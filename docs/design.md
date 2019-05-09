@@ -31,6 +31,10 @@ Components
     - authentication using TLS client certificate
 - kubelet device plugin to expose VG capacity
 
+### Diagram
+
+![component diagram](http://www.plantuml.com/plantuml/svg/ZLCzRy8m5DpzAvwoP-2D7H0ITAZKLgYHkbGCRlnA8nmdyWS5LVtljObn4b042-Bvxdntyil2MAwjgoLhURdZMuAiiDpIbvC5sGn-6S37ib5MDrAINakthTG6k85iMJn1Zq11Ub-Lb0M1CQOIL79jEcgSeFHqNYdI9cD_ZAb64Bpwdzc95Vu5HmPm3hCgEcZ5gMvKIkGj0hbBC-lZXCCKfEE956KsbIKovRucgwloJ4npn9_VNyHQDuTZnDCSSD_6KtRkaoJPI8XJnbXK3uJZ_ZZT7s_snplxuxtzyKP_lDKV9_hZHV_OicFcDJUMT5mvtbR6zo2z2PCflqauwQUHR4MjR8urAHjLXZg7uio7nuCb9KYV_FeNXbmqFogVm-bPu06sR-ibYu5xD0aIfLy2c5RFOR2T0riSsUA54AzjySeMOLezj4N6Bh_QtZnrY7VSmyN4JOyH70tvWxHYaBlM7wR76q5pk7A9Lov82LVBVm00)
+
 Architecture
 -------------
 
