@@ -20,6 +20,7 @@ Goals
 - Prefer nodes with less IO usage.
 - Support volume resizing (resizing for CSI is alpha as of Kubernetes 1.14)
 - Support volume snapshot
+- Authentication between CSI controller and Remote LVM service.
 
 Components
 --------------
@@ -39,7 +40,8 @@ https://kubernetes-csi.github.io/docs/ .
 
 Other than that, TopoLVM extends the general Pod scheduler of Kubernetes to
 reference node-local metrics such as VG free capacity or IO usage.  To expose
-these metrics, TopoLVM installs a [device plugin](https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/device-plugins/) into `kubelet`.
+these metrics, TopoLVM installs a [device plugin](https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/device-plugins/)
+called *lvmetrics* into `kubelet`.
 
 Extension of the general scheduler will be implemented as a [scheduler extender](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/scheduler_extender.md).
 
@@ -48,7 +50,25 @@ logical volume on remote target nodes.  To accept volume creation or deletion
 requests from CSI controller, each Node runs a gRPC service to manage LVM
 logical volumes.
 
+Remote LVM service is divided into two:
+- LVMd: A gRPC service listening on a Unix domain socket running on Node OS. 
+- LVMd-Proxy: A gRPC service listening on a TCP socket to proxy requests from 
+  CSI Controller to LVMd. This is run as a DaemonSet.
+
+LVMd-Proxy will authenticate CSI controller with TLS certificates.
+
+LVMd accepts requests from LVMd-Proxy and lvmetrics.
+
+### Authentication
+
 To protect the LVM service, the gRPC service should require authentication.
+Authentication will be implemented with mutual TLS.
 
 Packaging and deployment
 ----------------------------
+
+LVMd is provided as a single executable.
+Users need to deploy LVMd manually by themselves. 
+
+Other components as well as CSI sidecar containers are provided as Docker 
+container images, and will be deployed as Kubernetes objects.
