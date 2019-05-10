@@ -1,0 +1,57 @@
+syntax = "proto3";
+package proto;
+
+message Empty {}
+
+message LogicalVolume {
+    string name = 1;
+    uint64 size_gb = 2;
+    uint32 dev_major = 3;
+    uint32 dev_minor = 4;
+}
+
+message CreateLVRequest {
+    string name = 1;
+    uint64 size_gb = 2;
+}
+
+message CreateLVResponse {
+    string command_output = 1;
+    LogicalVolume volume = 2;
+}
+
+message RemoveLVRequest {
+    string name = 1;
+}
+
+message RemoveLVResponse {
+    string command_output = 1;
+}
+
+message ResizeLVRequest {
+    string name = 1;
+    uint64 size_gb = 2;
+}
+
+message ResizeLVResponse {
+    string command_output = 1;
+}
+
+message GetLVListResponse {
+    repeated LogicalVolume volumes = 1;
+}
+
+message GetFreeBytesResponse {
+    uint64 free_bytes = 1;
+}
+
+service LVService {
+    rpc CreateLV(CreateLVRequest) returns (CreateLVResponse);
+    rpc RemoveLV(RemoveLVRequest) returns (RemoveLVResponse);
+    rpc ResizeLV(ResizeLVRequest) returns (ResizeLVResponse);
+}
+
+service VGService {
+    rpc GetLVList(Empty) returns (GetLVListResponse);
+    rpc GetFreeBytes(Empty) returns (GetFreeBytesResponse);
+}
