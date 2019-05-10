@@ -23,7 +23,7 @@ const (
 var ErrNotFound = errors.New("not found")
 
 // callLVM calls lvm sub-commands.
-// cmd is a name of sub-commnad.
+// cmd is a name of sub-command.
 func callLVM(cmd string, args ...string) error {
 	args = append([]string{cmd}, args...)
 	c := exec.Command(lvm, args...)
@@ -471,7 +471,7 @@ func (l *LogicalVolume) MinorNumber() uint32 {
 // Snapshot takes a snapshot of this volume.
 //
 // If this is a thin-provisioning volume, snapshots can be
-// created unconditionalily.  Else, snapshots can be created
+// created unconditionally.  Else, snapshots can be created
 // only for non-snapshot volumes.
 func (l *LogicalVolume) Snapshot(name string, cowSize uint64) (*LogicalVolume, error) {
 	if l.pool == nil {
