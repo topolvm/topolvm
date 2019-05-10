@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -53,7 +54,11 @@ func subMain() error {
 }
 
 func checkVG(vg string) error {
-	return exec.Command("vgs", vg).Run()
+	msg, err := exec.Command("vgs", vg).CombinedOutput()
+	if err != nil {
+		return errors.New(string(msg))
+	}
+	return nil
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
