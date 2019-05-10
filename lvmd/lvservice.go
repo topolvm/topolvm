@@ -44,10 +44,55 @@ func (s lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*pro
 	}, nil
 }
 
-func (s lvService) RemoveLV(context.Context, *proto.RemoveLVRequest) (*proto.Empty, error) {
-	panic("implement me")
+func (s lvService) RemoveLV(_ context.Context, req *proto.RemoveLVRequest) (*proto.Empty, error) {
+	lvs, err := s.vg.ListVolumes()
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, err.Error())
+	}
+
+	for _, lv := range lvs {
+		if lv.Name() != req.GetName() {
+			continue
+		}
+
+		err = lv.Remove()
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, err.Error())
+		}
+		break
+	}
+
+	return &proto.Empty{}, nil
 }
 
-func (s lvService) ResizeLV(context.Context, *proto.ResizeLVRequest) (*proto.Empty, error) {
-	panic("implement me")
+func (s lvService) ResizeLV(_ context.Context, req *proto.ResizeLVRequest) (*proto.Empty, error) {
+	lv, err := s.vg.FindVolume(req.GetName())
+	if err == command.ErrNotFound {
+		return nil, status.Errorf(codes.NotFound, "logical volume %s is not found", req.GetName())
+	}
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, err.Error())
+	}
+
+	requested := req.GetSizeGb() << 30
+	current := lv.Size()
+
+	if requested < current {
+		return nil, status.Errorf(codes.OutOfRange, "shrinking volume size is not allowed")
+	}
+
+	free, err := s.vg.Free()
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, err.Error())
+	}
+	if free < (requested - current) {
+		return nil, status.Errorf(codes.ResourceExhausted, "no enough space left on VG: free=%d, requested=%d", free, requested-current)
+	}
+
+	err = lv.Resize(requested)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, err.Error())
+	}
+
+	return &proto.Empty{}, nil
 }

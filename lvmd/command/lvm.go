@@ -19,6 +19,9 @@ const (
 	cowMax   = 300
 )
 
+// ErrNotFound is returned when a VG or LV is not found.
+var ErrNotFound = errors.New("not found")
+
 // callLVM calls lvm sub-commands.
 // cmd is a name of sub-commnad.
 func callLVM(cmd string, args ...string) error {
@@ -166,7 +169,7 @@ func FindVolumeGroup(name string) (*VolumeGroup, error) {
 			return group, nil
 		}
 	}
-	return nil, fmt.Errorf("Not found volume group: %v", name)
+	return nil, ErrNotFound
 }
 
 // ListVolumeGroups lists all volume groups.
@@ -193,7 +196,7 @@ func (g *VolumeGroup) FindVolume(name string) (*LogicalVolume, error) {
 			return volume, nil
 		}
 	}
-	return nil, fmt.Errorf("Not found logical volume: %v", name)
+	return nil, ErrNotFound
 }
 
 // ListVolumes lists all logical volumes in this volume group.
