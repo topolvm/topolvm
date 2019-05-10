@@ -34,7 +34,7 @@ Components
 
 ### Diagram
 
-![component diagram](http://www.plantuml.com/plantuml/svg/ZPG_pzem48VtV8fJEcV08qFrIj2XKbkXHkhoYi74LnhXE97_K53LxruxSIucD0eBudAFVS-Fd7Wpbclh6fbrlBhmCq9UMcxnfvCbsXp-P03lkrPPtKg9-Y3TkLP7u0RoNVaPfWwKgAzrXNauO8of1LPScm6D5LGUvxL2RVBiRvQfLY1yyn-RdWhVmaH_moYpBuVMdcFJAZBo8m8ys6mcdV0m5V6S89NDaaiavRL1g-jg1AcE_Iy_leg3Rc_tsASwz7qQZrpS2INQ2CGgxrk1JWu-vcVB-TbgVlPYVlPgVhQIdwtbPmlvsIn_J3cGHSEDHHrNZdUryJbG7qDbgbyed0nLUcoFdMpl3QfnKGqE4ygHXqytYqgWxkTDRnYAzmydwV0esj-g-0Zzsu4jdByVTbdqVeBeE97JIX3xU1VGPGcGh2viQU8CIlOsGfC--vy-c-cpHNtsf3-nQtUbzijKgiz6_Vc_21HaJx_Y5bvb6R6q7E3x1lq3cWs5w_n3MgQ75ha-3Oitlw4Ihf7_0000)
+![component diagram](http://www.plantuml.com/plantuml/svg/ZPG_Rzim4CLtVOg3khI349XZXo20tA50MWGHcWw11vgyEa8eKk2Vj4NHxnvI54MRi60lXddyyVZUuq5tnb9jtI2gaR9NUa2eEqij_dAYGrl3lmhWkLNIQYK4wWVX3htS0JLGjzrNo3lGeNxh6TRXW36cvyYeDX6TLy0yJdk9sjJL_wgIYYDyzp-RYGh_meqLG1ApxUBMbkAWvAB8Nn7Wg6QJvOJY8YHoV96oMTKIIV4seDKzIs1QftshHkLhGVHCp9Kcb0BaBNdkrUrHe9sPULLFM_TFttZkpaz38EiXa8iXa2j38DU6G2w6GAu8WQo4G8eGajM9R0PgBEfv-EZO6sy6zIwi37j1xaHSSMhfdXf_32tZIohjupQslrU7db7nf8GRyAClVue2Zo_SuYZKtm5b6dQ3yN2NRe8lVonAZdfIcgS4ckSFU-5mnzLlsTp2zBZm6GwF3ssLXg24yl547YMQwTDkaDjb8B-znm9r3ieFdw1iW9mpG0e3PDK0EMCWqvUw7UjVeGe391aelqRGW7zQtwFLI2tU_AIMlHInkZ51q-xDZv5xj92-0bNBp4t8BPXGMtJDnMLCZxUoZr9qido7ahj1l0C0)
 
 Blue arrows in the diagram indicate communications over unix domain sockets.
 Red arrows indicate communications over TCP sockets.
@@ -68,6 +68,12 @@ between CSI controller and the target node, TopoLVM uses a custom resource
 7. CSI controller watches the status of `LogicalVolume` until an LVM logical volume is getting created.
 
 `lvmd` accepts requests from `topolvm-node` and `lvmetrics`.
+
+Limitations
+-----------
+
+The CSI driver of TopoLVM depends on Kubernetes because the controller service creates CRD object in Kubernetes.
+This limitation can be removed if the controller service uses etcd instead of Kubernetes.
 
 Packaging and deployment
 ------------------------
