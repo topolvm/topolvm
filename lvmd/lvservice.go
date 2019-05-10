@@ -16,7 +16,7 @@ type lvService struct {
 }
 
 func (s lvService) CreateLV(context.Context, *proto.CreateLVRequest) (*proto.CreateLVResponse, error) {
-	panic("implement me")
+	return &proto.CreateLVResponse{}, nil
 }
 
 func (s lvService) RemoveLV(context.Context, *proto.RemoveLVRequest) (*proto.RemoveLVResponse, error) {
