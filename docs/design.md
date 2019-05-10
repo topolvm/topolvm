@@ -1,18 +1,19 @@
 Design notes
-========
+============
 
 Motivation
------------
+----------
 
 To run softwares such as MySQL or Elasticsearch, it would be nice to use
-local fast storages and clustering multiple instances.  TopoLVM provides
-a storage driver for such softwares running on Kubernetes.
+local fast storages and form a cluster to replicate data between servers.
+
+TopoLVM provides a storage driver for such softwares running on Kubernetes.
 
 Goals
-------
+-----
 
 - Use LVM for flexible volume capacity management
-- Prefer to schedule to nodes having larger free spaces
+- Enhance the scheduler to prefer nodes having larger storage capacity
 - Support dynamic volume provisioning from PVC
 
 ### Future goals
@@ -23,7 +24,7 @@ Goals
 - Authentication between CSI controller and Remote LVM service.
 
 Components
---------------
+----------
 
 - Unified CSI driver binary
 - Scheduler extender for VG capacity management
@@ -39,7 +40,7 @@ Blue arrows in the diagram indicate communications over unix domain sockets.
 Red arrows indicate communications over TCP sockets.
 
 Architecture
--------------
+------------
 
 TopoLVM adopts [CSI](https://github.com/container-storage-interface/spec/).
 Therefore, the architecture basically follows the one described in
@@ -72,7 +73,7 @@ To protect the LVM service, the gRPC service should require authentication.
 Authentication will be implemented with mutual TLS.
 
 Packaging and deployment
-----------------------------
+------------------------
 
 LVMd is provided as a single executable.
 Users need to deploy LVMd manually by themselves. 

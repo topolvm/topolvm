@@ -4,104 +4,55 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/cybozu-go/topolvm)](https://goreportcard.com/report/github.com/cybozu-go/topolvm)
 [![Docker Repository on Quay](https://quay.io/repository/cybozu/topolvm/status "Docker Repository on Quay")](https://quay.io/repository/cybozu/topolvm)
 
-topolvm
-====
+TopoLVM
+=======
 
-**topolvm** is a [CSI][] plugin using LVM for Kubernetes.
+TopoLVM is a [CSI][] plugin using LVM for Kubernetes.
+It can be considered as a specific implementation of [local persistent volumes](https://kubernetes.io/docs/concepts/storage/volumes/#local) using CSI and LVM.
 
 **Project Status**: Initial Development
 
-Runtime Dependencies
-------------
+Supported environments
+----------------------
 
-* LVM command line tools
-* Supported Kubernetes versions
-  - 1.14.x
-* [etcd][]: coil requires etcd v3 API, does not support v2.
-* Routing Software
-  - [Bird][]
-  - Other software that can import a kernel routing table and advertise them via BGP, RIP, OSPF.
+- Kubernetes
+  - 1.14+
+- Node OS
+  - CoreOS Container Linux
+  - Other Linux distributions should work but not tested
 
 Features
 --------
 
-* IP address management (IPAM)
+- [Dynamic provisioning](https://kubernetes-csi.github.io/docs/external-provisioner.html): Volumes are created dynamically when `PersistentVolumeClaim` objects are created.
+- [Raw block volume](https://kubernetes-csi.github.io/docs/raw-block.html): Volumes are available as block devices inside containers.
+- [Topology](https://kubernetes-csi.github.io/docs/topology.html): TopoLVM uses CSI topology feature to schedule Pod to Node where LVM volume exist.
+- Extended scheduler: TopoLVM extends the general Pod scheduler to prioritize Nodes having larger storage capacity.
 
-    Coil dynamically allocates IP addresses to Pods.
+### Planned features
 
-    Coil has a mechanism called _address pool_ so that the administrator
-    can control to assign special/global IP addresses only to some Pods.
-
-* Address pools
-
-    An address pool is a pool of allocatable IP addresses.  In addition to
-    the _default_ pool, users can define arbitrary address pools.
-
-    Pods in a specific Kubernetes namespace take their IP addresses from
-    the address pool whose name matches the namespace if such a pool exists.
-
-    This way, only users who can create Pods in the namespace can use
-    special/global IP addresses.
-
-* Address block
-
-    Coil divides a large subnet into small fixed size blocks (e.g. `/27`),
-    and assign them to nodes.  Nodes then allocate IP addresses to Pods
-    from the assigned blocks.
-
-* Intra-node Pod routing
-
-    Coil programs _intra_-node routing for Pods.
-
-    As to inter-node routing, coil publishes address blocks assigned to
-    the node to an unused kernel routing table as described next.
-
-* Publish address blocks to implement inter-node Pod routing
-
-    Coil registers address blocks assigned to a node with an unused
-    kernel routing table.  The default table ID is `119`.
-
-    The routing table can be referenced by other routing programs
-    such as [BIRD][] to implement inter-node routing.
-
-    An example BIRD configuration file that advertises address blocks
-    via BGP is available at [mtest/bird.conf](mtest/bird.conf).
+- [Volume Expansion](https://kubernetes-csi.github.io/docs/volume-expansion.html): Once Kubernetes support for volume expansion for CSI matures to beta, we will implement it.
+- [Snapshot](https://kubernetes-csi.github.io/docs/snapshot-restore-feature.html): When we want it.
 
 Programs
 --------
 
 This repository contains these programs:
 
-* `coil`: [CNI][] plugin.
-* `coilctl`: CLI tool to configure coil IPAM.
-* `coild`: A background service to manage IP address.
-* `coil-controller`: watches kubernetes resources for coil.
-* `coil-installer`: installs `coil` and CNI configuration file.
-* `hypercoil`: all-in-one binary just like `hyperkube`.
+- `csi-topolvm`: Unified CSI driver.
+- `lvmd`: gRPC service to manage LVM volumes
+- `lvmetrics`: A kubelet [device plugin](https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/device-plugins/) to expose metrics needed for scheduling
+- `topolvm-scheduler`: A [scheduler extender](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/scheduler_extender.md) for TopoLVM
+- `topolvm-node`: A sidecar to communicate with CSI controller over TopoLVM [custom resources](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/).
 
-`coil` should be installed in `/opt/cni/bin` directory.
-
-`coilctl` directly communicates with etcd.
-Therefore it can be installed any host that can connect to etcd cluster.
-
-`coild` and `coil-installer` should run as [`DaemonSet`](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/).
-
-`coil-controller` should be deployed as [`Deployment`](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/).
+`lvmd` is a standalone program that should run on Node OS as a systemd service.
+Other programs are packaged into container images.
 
 Documentation
 -------------
 
 [docs](docs/) directory contains documents about designs and specifications.
 
-License
--------
-
-MIT
-
 [releases]: https://github.com/cybozu-go/coil/releases
 [godoc]: https://godoc.org/github.com/cybozu-go/coil
-[CNI]: https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/
-[BIRD]: https://bird.network.cz/
-[NetworkPolicy]: https://kubernetes.io/docs/concepts/services-networking/network-policies/
-[etcd]: https://github.com/etcd-io/etcd
-[CoreOS Container Linux]: https://coreos.com/os/docs/latest/
+[CSI]: https://github.com/container-storage-interface/spec
