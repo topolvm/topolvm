@@ -1,6 +1,7 @@
 package command
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -98,8 +99,6 @@ func parseOutput(cmd, fields string, args ...string) ([]LVInfo, error) {
 // VolumeGroup represents a volume group of linux lvm.
 type VolumeGroup struct {
 	name string
-	size uint64
-	free uint64
 }
 
 // Name returns the volume group name.
@@ -108,13 +107,41 @@ func (g *VolumeGroup) Name() string {
 }
 
 // Size returns the capacity of the volume group in bytes.
-func (g *VolumeGroup) Size() uint64 {
-	return g.size
+func (g *VolumeGroup) Size() (uint64, error) {
+	infoList, err := parseOutput("vgs", "vg_size", g.name)
+	if err != nil {
+		return 0, err
+	}
+
+	if len(infoList) != 1 {
+		return 0, errors.New("volume group not found: " + g.name)
+	}
+
+	info := infoList[0]
+	vgSize, err := strconv.ParseUint(info["vg_size"], 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return vgSize, nil
 }
 
 // Free returns the free space of the volume group in bytes.
-func (g *VolumeGroup) Free() uint64 {
-	return g.free
+func (g *VolumeGroup) Free() (uint64, error) {
+	infoList, err := parseOutput("vgs", "vg_free", g.name)
+	if err != nil {
+		return 0, err
+	}
+
+	if len(infoList) != 1 {
+		return 0, errors.New("volume group not found: " + g.name)
+	}
+
+	info := infoList[0]
+	vgFree, err := strconv.ParseUint(info["vg_free"], 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return vgFree, nil
 }
 
 // CreateVolumeGroup calls "vgcreate" to create a volume group.
@@ -144,25 +171,13 @@ func FindVolumeGroup(name string) (*VolumeGroup, error) {
 
 // ListVolumeGroups lists all volume groups.
 func ListVolumeGroups() ([]*VolumeGroup, error) {
-	infoList, err := parseOutput("vgs", "vg_name,vg_size,vg_free")
+	infoList, err := parseOutput("vgs", "vg_name")
 	if err != nil {
 		return nil, err
 	}
 	groups := []*VolumeGroup{}
 	for _, info := range infoList {
-		vgSize, err := strconv.ParseUint(info["vg_size"], 10, 64)
-		if err != nil {
-			return nil, err
-		}
-		vgFree, err := strconv.ParseUint(info["vg_free"], 10, 64)
-		if err != nil {
-			return nil, err
-		}
-		groups = append(groups, &VolumeGroup{
-			info["vg_name"],
-			vgSize,
-			vgFree,
-		})
+		groups = append(groups, &VolumeGroup{info["vg_name"]})
 	}
 	return groups, nil
 }

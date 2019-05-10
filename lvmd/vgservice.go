@@ -5,6 +5,8 @@ import (
 
 	"github.com/cybozu-go/topolvm/lvmd/command"
 	"github.com/cybozu-go/topolvm/lvmd/proto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // NewVGService creates a VGServiceServer
@@ -21,7 +23,12 @@ func (s vgService) GetLVList(context.Context, *proto.Empty) (*proto.GetLVListRes
 }
 
 func (s vgService) GetFreeBytes(context.Context, *proto.Empty) (*proto.GetFreeBytesResponse, error) {
+	vgFree, err := s.vg.Free()
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, err.Error())
+	}
+
 	return &proto.GetFreeBytesResponse{
-		FreeBytes: s.vg.Free(),
+		FreeBytes: vgFree,
 	}, nil
 }
