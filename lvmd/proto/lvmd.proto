@@ -16,25 +16,16 @@ message CreateLVRequest {
 }
 
 message CreateLVResponse {
-    string command_output = 1;
-    LogicalVolume volume = 2;
+    LogicalVolume volume = 1;
 }
 
 message RemoveLVRequest {
     string name = 1;
 }
 
-message RemoveLVResponse {
-    string command_output = 1;
-}
-
 message ResizeLVRequest {
     string name = 1;
     uint64 size_gb = 2;
-}
-
-message ResizeLVResponse {
-    string command_output = 1;
 }
 
 message GetLVListResponse {
@@ -47,8 +38,8 @@ message GetFreeBytesResponse {
 
 service LVService {
     rpc CreateLV(CreateLVRequest) returns (CreateLVResponse);
-    rpc RemoveLV(RemoveLVRequest) returns (RemoveLVResponse);
-    rpc ResizeLV(ResizeLVRequest) returns (ResizeLVResponse);
+    rpc RemoveLV(RemoveLVRequest) returns (Empty);
+    rpc ResizeLV(ResizeLVRequest) returns (Empty);
 }
 
 service VGService {

@@ -53,12 +53,8 @@ func TestService(t *testing.T) {
 
 	c := proto.NewLVServiceClient(conn)
 
-	resp, err := c.CreateLV(context.Background(), &proto.CreateLVRequest{Name: "test", SizeGb: 100})
+	_, err = c.CreateLV(context.Background(), &proto.CreateLVRequest{Name: "test", SizeGb: 100})
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	if resp.CommandOutput != "" {
-		t.Fatal(resp.CommandOutput)
 	}
 }
