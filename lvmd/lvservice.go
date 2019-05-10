@@ -3,16 +3,17 @@ package lvmd
 import (
 	"context"
 
+	"github.com/cybozu-go/topolvm/lvmd/command"
 	"github.com/cybozu-go/topolvm/lvmd/proto"
 )
 
 // NewLVService creates a new LVServiceServer
-func NewLVService(vg string) proto.LVServiceServer {
+func NewLVService(vg *command.VolumeGroup) proto.LVServiceServer {
 	return lvService{vg}
 }
 
 type lvService struct {
-	vg string
+	vg *command.VolumeGroup
 }
 
 func (s lvService) CreateLV(context.Context, *proto.CreateLVRequest) (*proto.CreateLVResponse, error) {

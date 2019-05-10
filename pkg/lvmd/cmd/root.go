@@ -1,13 +1,12 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"os"
-	"os/exec"
 
 	"github.com/cybozu-go/topolvm/lvmd"
+	"github.com/cybozu-go/topolvm/lvmd/command"
 	"github.com/cybozu-go/topolvm/lvmd/proto"
 	"github.com/cybozu-go/well"
 	"github.com/spf13/cobra"
@@ -38,7 +37,7 @@ func subMain() error {
 		return err
 	}
 
-	err = checkVG(config.vgName)
+	vg, err := command.FindVolumeGroup(config.vgName)
 	if err != nil {
 		return err
 	}
@@ -48,17 +47,9 @@ func subMain() error {
 		return err
 	}
 	grpcServer := grpc.NewServer()
-	proto.RegisterLVServiceServer(grpcServer, lvmd.NewLVService(config.vgName))
-	proto.RegisterVGServiceServer(grpcServer, lvmd.NewVGService(config.vgName))
+	proto.RegisterLVServiceServer(grpcServer, lvmd.NewLVService(vg))
+	proto.RegisterVGServiceServer(grpcServer, lvmd.NewVGService(vg))
 	return grpcServer.Serve(lis)
-}
-
-func checkVG(vg string) error {
-	msg, err := exec.Command("vgs", vg).CombinedOutput()
-	if err != nil {
-		return errors.New(string(msg))
-	}
-	return nil
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

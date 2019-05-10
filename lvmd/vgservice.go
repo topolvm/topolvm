@@ -3,16 +3,17 @@ package lvmd
 import (
 	"context"
 
+	"github.com/cybozu-go/topolvm/lvmd/command"
 	"github.com/cybozu-go/topolvm/lvmd/proto"
 )
 
 // NewVGService creates a VGServiceServer
-func NewVGService(vg string) proto.VGServiceServer {
+func NewVGService(vg *command.VolumeGroup) proto.VGServiceServer {
 	return vgService{vg}
 }
 
 type vgService struct {
-	vg string
+	vg *command.VolumeGroup
 }
 
 func (s vgService) GetLVList(context.Context, *proto.Empty) (*proto.GetLVListResponse, error) {
@@ -20,5 +21,7 @@ func (s vgService) GetLVList(context.Context, *proto.Empty) (*proto.GetLVListRes
 }
 
 func (s vgService) GetFreeBytes(context.Context, *proto.Empty) (*proto.GetFreeBytesResponse, error) {
-	panic("implement me")
+	return &proto.GetFreeBytesResponse{
+		FreeBytes: s.vg.Free(),
+	}, nil
 }
