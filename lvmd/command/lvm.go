@@ -71,7 +71,7 @@ func parseLines(output string) []LVInfo {
 //
 // cmd is a command name of lvm family.
 // fields are comma separated field names.
-// args is optional arguemnts for lvm command.
+// args is optional arguments for lvm command.
 func parseOutput(cmd, fields string, args ...string) ([]LVInfo, error) {
 	arg := []string{
 		cmd, "-o", fields,
@@ -543,7 +543,7 @@ func (l *LogicalVolume) Remove() error {
 }
 
 // Rename this volume.
-// this method also changes mumbers (such as name).
+// This method also updates properties such as Name() or Path().
 func (l *LogicalVolume) Rename(name string) error {
 	if err := callLVM("lvrename", l.vg.Name(), l.name, name); err != nil {
 		return err
