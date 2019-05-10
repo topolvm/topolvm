@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/cybozu-go/topolvm/lvmd/command"
 	"github.com/cybozu-go/topolvm/lvmd/proto"
 	"google.golang.org/grpc"
 )
@@ -28,9 +29,14 @@ func TestService(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	vg, err := command.FindVolumeGroup(vgName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	grpcServer := grpc.NewServer()
-	proto.RegisterLVServiceServer(grpcServer, NewLVService(vgName))
-	proto.RegisterVGServiceServer(grpcServer, NewVGService(vgName))
+	proto.RegisterLVServiceServer(grpcServer, NewLVService(vg))
+	proto.RegisterVGServiceServer(grpcServer, NewVGService(vg))
 	go func() {
 		grpcServer.Serve(lis)
 	}()
