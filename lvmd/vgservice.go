@@ -19,7 +19,22 @@ type vgService struct {
 }
 
 func (s vgService) GetLVList(context.Context, *proto.Empty) (*proto.GetLVListResponse, error) {
-	panic("implement me")
+	lvs, err := s.vg.ListVolumes()
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, err.Error())
+	}
+
+	vols := make([]*proto.LogicalVolume, len(lvs))
+	for i, lv := range lvs {
+
+		vols[i] = &proto.LogicalVolume{
+			Name:     lv.Name(),
+			SizeGb:   (lv.Size() + (1 << 30) - 1) >> 30,
+			DevMajor: lv.MajorNumber(),
+			DevMinor: lv.MinorNumber(),
+		}
+	}
+	return &proto.GetLVListResponse{Volumes: vols}, nil
 }
 
 func (s vgService) GetFreeBytes(context.Context, *proto.Empty) (*proto.GetFreeBytesResponse, error) {
