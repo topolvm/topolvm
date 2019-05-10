@@ -26,11 +26,11 @@ Goals
 Components
 ----------
 
-- Unified CSI driver binary
-- Scheduler extender for VG capacity management
-- Remote LVM service for dynamic volume provisioning
-    - authentication using TLS client certificate
-- kubelet device plugin to expose VG capacity
+- `csi-topolvm`: Unified CSI driver.
+- `lvmd`: gRPC service to manage LVM volumes
+- `lvmetrics`: A kubelet [device plugin](https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/device-plugins/) to expose metrics needed for scheduling
+- `topolvm-scheduler`: A [scheduler extender](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/scheduler_extender.md) for TopoLVM
+- `topolvm-node`: A sidecar to communicate with CSI controller over TopoLVM [custom resources](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/).
 
 ### Diagram
 
@@ -51,32 +51,29 @@ reference node-local metrics such as VG free capacity or IO usage.  To expose
 these metrics, TopoLVM installs a [device plugin](https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/device-plugins/)
 called *lvmetrics* into `kubelet`.
 
-Extension of the general scheduler will be implemented as a [scheduler extender](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/scheduler_extender.md).
+Extension of the general scheduler will be implemented as a [scheduler extender](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/scheduler_extender.md) called `topolvm-scheduler`.
 
 To support dynamic volume provisioning, CSI controller service need to create a
-logical volume on remote target nodes.  To accept volume creation or deletion
-requests from CSI controller, each Node runs a gRPC service to manage LVM
-logical volumes.
+logical volume on remote target nodes.  In general, CSI controller runs on a
+different node from the target node of the volume.  To allow communication
+between CSI controller and the target node, TopoLVM uses a custom resource
+(CRD) called `LogicalVolume`.
 
-Remote LVM service is divided into two:
-- LVMd: A gRPC service listening on a Unix domain socket running on Node OS. 
-- LVMd-Proxy: A gRPC service listening on a TCP socket to proxy requests from 
-  CSI Controller to LVMd. This is run as a DaemonSet.
+1. `external-provisioner` calls CSI controller's `CreateVolume` with the topology key of the target node.
+2. CSI controller creates a `LogicalVolume` with the topology key and capacity of the volume.
+3. `topolvm-node` on the target node watches `LogicalVolume` for the target node.
+4. `topolvm-node` sends a volume create request to `lvmd` over UNIX domain socket.
+5. `lvmd` creates an LVM logical volume as requested.
+6. `topolvm-node` updates the status of `LogicalVolume`.
+7. CSI controller watches the status of `LogicalVolume` until an LVM logical volume is getting created.
 
-LVMd-Proxy will authenticate CSI controller with TLS certificates.
-
-LVMd accepts requests from LVMd-Proxy and lvmetrics.
-
-### Authentication
-
-To protect the LVM service, the gRPC service should require authentication.
-Authentication will be implemented with mutual TLS.
+`lvmd` accepts requests from `topolvm-node` and `lvmetrics`.
 
 Packaging and deployment
 ------------------------
 
-LVMd is provided as a single executable.
-Users need to deploy LVMd manually by themselves. 
+`lvmd` is provided as a single executable.
+Users need to deploy `lvmd` manually by themselves. 
 
 Other components as well as CSI sidecar containers are provided as Docker 
 container images, and will be deployed as Kubernetes objects.
