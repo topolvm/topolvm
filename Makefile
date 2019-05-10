@@ -29,7 +29,7 @@ csi/csi.pb.go: csi.proto bin/protoc bin/protoc-gen-go
 lvmd/proto/lvmd.pb.go: lvmd/proto/lvmd.proto bin/protoc bin/protoc-gen-go
 	PATH=$(shell pwd)/bin:$(PATH) bin/protoc -I. --go_out=plugins=grpc:. $<
 
-test: lvmd/proto/lvmd.pb.go
+test:
 	test -z "$$(gofmt -s -l . | grep -v '^vendor' | tee /dev/stderr)"
 	test -z "$$(golint $$(go list ./... | grep -v /vendor/) | tee /dev/stderr)"
 	go install ./...
