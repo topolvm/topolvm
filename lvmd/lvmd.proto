@@ -1,0 +1,27 @@
+syntax = "proto3";
+package lvmd;
+
+message Empty {}
+
+message CreateLVRequest {}
+message CreateLVResponse {}
+message RemoveLVRequest {}
+message RemoveLVResponse {}
+message ResizeLVRequest {}
+message ResizeLVResponse {}
+
+message GetLVListResponse {}
+message GetFreeBytesResponse {
+    uint64 free_bytes = 1;
+}
+
+service LVService {
+    rpc CreateLV(CreateLVRequest) returns (CreateLVResponse);
+    rpc RemoveLV(RemoveLVRequest) returns (RemoveLVResponse);
+    rpc ResizeLV(ResizeLVRequest) returns (ResizeLVResponse);
+}
+
+service VGService {
+    rpc GetLVList(Empty) returns (GetLVListResponse);
+    rpc GetFreeBytes(Empty) returns (GetFreeBytesResponse);
+}

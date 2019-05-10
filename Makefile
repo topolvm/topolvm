@@ -22,3 +22,6 @@ bin/protoc-gen-go:
 csi/csi.pb.go: csi.proto bin/protoc bin/protoc-gen-go
 	mkdir -p csi
 	PATH=$(shell pwd)/bin:$(PATH) bin/protoc -I. --go_out=$(GO_OUT) $<
+
+lvmd/lvmd.pb.go: lvmd/lvmd.proto bin/protoc bin/protoc-gen-go
+	PATH=$(shell pwd)/bin:$(PATH) bin/protoc -I. --go_out=plugins=grpc:. $<
