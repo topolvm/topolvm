@@ -53,6 +53,7 @@ func (m *Empty) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_Empty proto.InternalMessageInfo
 
+// Represents a logical volume.
 type LogicalVolume struct {
 	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	SizeGb               uint64   `protobuf:"varint,2,opt,name=size_gb,json=sizeGb,proto3" json:"size_gb,omitempty"`
@@ -116,6 +117,7 @@ func (m *LogicalVolume) GetDevMinor() uint32 {
 	return 0
 }
 
+// Represents the input for CreateLV.
 type CreateLVRequest struct {
 	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	SizeGb               uint64   `protobuf:"varint,2,opt,name=size_gb,json=sizeGb,proto3" json:"size_gb,omitempty"`
@@ -163,6 +165,7 @@ func (m *CreateLVRequest) GetSizeGb() uint64 {
 	return 0
 }
 
+// Represents the response of CreateLV.
 type CreateLVResponse struct {
 	Volume               *LogicalVolume `protobuf:"bytes,1,opt,name=volume,proto3" json:"volume,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
@@ -202,6 +205,7 @@ func (m *CreateLVResponse) GetVolume() *LogicalVolume {
 	return nil
 }
 
+// Represents the input for RemoveLV.
 type RemoveLVRequest struct {
 	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -241,6 +245,10 @@ func (m *RemoveLVRequest) GetName() string {
 	return ""
 }
 
+// Represents the input for ResizeLV.
+//
+// The volume must already exist.
+// The volume size will be set to exactly "size_gb".
 type ResizeLVRequest struct {
 	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	SizeGb               uint64   `protobuf:"varint,2,opt,name=size_gb,json=sizeGb,proto3" json:"size_gb,omitempty"`
@@ -288,6 +296,7 @@ func (m *ResizeLVRequest) GetSizeGb() uint64 {
 	return 0
 }
 
+// Represents the response of GetLVList.
 type GetLVListResponse struct {
 	Volumes              []*LogicalVolume `protobuf:"bytes,1,rep,name=volumes,proto3" json:"volumes,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
@@ -327,6 +336,7 @@ func (m *GetLVListResponse) GetVolumes() []*LogicalVolume {
 	return nil
 }
 
+// Represents the response of GetFreeBytes.
 type GetFreeBytesResponse struct {
 	FreeBytes            uint64   `protobuf:"varint,1,opt,name=free_bytes,json=freeBytes,proto3" json:"free_bytes,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -366,6 +376,7 @@ func (m *GetFreeBytesResponse) GetFreeBytes() uint64 {
 	return 0
 }
 
+// Represents the stream output from Watch.
 type WatchResponse struct {
 	FreeBytes            uint64   `protobuf:"varint,1,opt,name=free_bytes,json=freeBytes,proto3" json:"free_bytes,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -461,8 +472,11 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type LVServiceClient interface {
+	// Create a logical volume.
 	CreateLV(ctx context.Context, in *CreateLVRequest, opts ...grpc.CallOption) (*CreateLVResponse, error)
+	// Remove a logical volume.
 	RemoveLV(ctx context.Context, in *RemoveLVRequest, opts ...grpc.CallOption) (*Empty, error)
+	// Resize a logical volume.
 	ResizeLV(ctx context.Context, in *ResizeLVRequest, opts ...grpc.CallOption) (*Empty, error)
 }
 
@@ -503,8 +517,11 @@ func (c *lVServiceClient) ResizeLV(ctx context.Context, in *ResizeLVRequest, opt
 
 // LVServiceServer is the server API for LVService service.
 type LVServiceServer interface {
+	// Create a logical volume.
 	CreateLV(context.Context, *CreateLVRequest) (*CreateLVResponse, error)
+	// Remove a logical volume.
 	RemoveLV(context.Context, *RemoveLVRequest) (*Empty, error)
+	// Resize a logical volume.
 	ResizeLV(context.Context, *ResizeLVRequest) (*Empty, error)
 }
 
@@ -591,8 +608,11 @@ var _LVService_serviceDesc = grpc.ServiceDesc{
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type VGServiceClient interface {
+	// Get the list of logical volumes in the volume group.
 	GetLVList(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*GetLVListResponse, error)
+	// Get the free space of the volume group in bytes.
 	GetFreeBytes(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*GetFreeBytesResponse, error)
+	// Stream the volume group metrics.
 	Watch(ctx context.Context, in *Empty, opts ...grpc.CallOption) (VGService_WatchClient, error)
 }
 
@@ -656,8 +676,11 @@ func (x *vGServiceWatchClient) Recv() (*WatchResponse, error) {
 
 // VGServiceServer is the server API for VGService service.
 type VGServiceServer interface {
+	// Get the list of logical volumes in the volume group.
 	GetLVList(context.Context, *Empty) (*GetLVListResponse, error)
+	// Get the free space of the volume group in bytes.
 	GetFreeBytes(context.Context, *Empty) (*GetFreeBytesResponse, error)
+	// Stream the volume group metrics.
 	Watch(*Empty, VGService_WatchServer) error
 }
 
