@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"time"
 
 	"github.com/cybozu-go/topolvm/lvmd"
 	"github.com/cybozu-go/topolvm/lvmd/command"
@@ -61,6 +62,18 @@ func subMain() error {
 		<-ctx.Done()
 		grpcServer.GracefulStop()
 		return nil
+	})
+	well.Go(func(ctx context.Context) error {
+		ticker := time.NewTicker(10 * time.Minute)
+		for {
+			select {
+			case <-ctx.Done():
+				ticker.Stop()
+				return nil
+			case <-ticker.C:
+				notifier()
+			}
+		}
 	})
 	err = well.Wait()
 	if err != nil && !well.IsSignaled(err) {
