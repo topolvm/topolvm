@@ -253,7 +253,7 @@ func (g *VolumeGroup) ListVolumes() ([]*LogicalVolume, error) {
 // CreateVolume creates logical volume in this volume group.
 // name is a name of creating volume. size is volume size in bytes.
 func (g *VolumeGroup) CreateVolume(name string, size uint64) (*LogicalVolume, error) {
-	if err := callLVM("lvcreate", "-n", name, "-L", fmt.Sprintf("%vg", size>>30)); err != nil {
+	if err := callLVM("lvcreate", "-n", name, "-L", fmt.Sprintf("%vg", size>>30), g.Name()); err != nil {
 		return nil, err
 	}
 	return g.FindVolume(name)
