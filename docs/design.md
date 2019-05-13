@@ -28,13 +28,13 @@ Components
 
 - `csi-topolvm`: Unified CSI driver.
 - `lvmd`: gRPC service to manage LVM volumes
-- `lvmetrics`: A kubelet [device plugin](https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/device-plugins/) to expose metrics needed for scheduling
+- `lvmetrics`: A DaemonSet sidecar container to expose storage metrics as Node annotations
 - `topolvm-scheduler`: A [scheduler extender](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/scheduler_extender.md) for TopoLVM
 - `topolvm-node`: A sidecar to communicate with CSI controller over TopoLVM [custom resources](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/).
 
 ### Diagram
 
-![component diagram](http://www.plantuml.com/plantuml/svg/ZPG_Rzim4CLtVOg3khI349XZXo20tA50MWGHcWw11vgyEa8eKk2Vj4NHxnvI54MRi60lXddyyVZUuq5tnb9jtI2gaR9NUa2eEqij_dAYGrl3lmhWkLNIQYK4wWVX3htS0JLGjzrNo3lGeNxh6TRXW36cvyYeDX6TLy0yJdk9sjJL_wgIYYDyzp-RYGh_meqLG1ApxUBMbkAWvAB8Nn7Wg6QJvOJY8YHoV96oMTKIIV4seDKzIs1QftshHkLhGVHCp9Kcb0BaBNdkrUrHe9sPULLFM_TFttZkpaz38EiXa8iXa2j38DU6G2w6GAu8WQo4G8eGajM9R0PgBEfv-EZO6sy6zIwi37j1xaHSSMhfdXf_32tZIohjupQslrU7db7nf8GRyAClVue2Zo_SuYZKtm5b6dQ3yN2NRe8lVonAZdfIcgS4ckSFU-5mnzLlsTp2zBZm6GwF3ssLXg24yl547YMQwTDkaDjb8B-znm9r3ieFdw1iW9mpG0e3PDK0EMCWqvUw7UjVeGe391aelqRGW7zQtwFLI2tU_AIMlHInkZ51q-xDZv5xj92-0bNBp4t8BPXGMtJDnMLCZxUoZr9qido7ahj1l0C0)
+![component diagram](http://www.plantuml.com/plantuml/svg/ZPJFYjim48VlVeh1lRG7iqJ77ig2qqDXMvQORWzB3eeqpPgLBQC_QKlfkrUI9IlsnYIN46c-ZB_vPV2zDbGPsubYeEoL7X7Anb23Fwreq9Jmjm1uhcLlb1G2rQEmnxRV0zLGriqNo1LeK9rQXgN_WTQwvSYeqYCQJy0SJjiUbIwBVqNHIuxmpNri0kM_-IUw3abcsuobBSLEzfEHUuI7HvjDrl6NMIHmV5BPhBb4KfmwDAfb2KpdL3ToaExEIqSYtbJ-oaDk9CUzsWCAD969fpAK7fw-yjoTpqCWwo6Ggo6G6qCWjuP0heP0RWY1h8H05Y6aKGDPTLGRL77vwD1gDmogVTWizeBSYl74gQ47gX5AD8nFgTIxxTZ-GHvRHiMJ5BR3z-xwGvbpsw6MLh7qNuOrl50ckKp2U3FTBGv2_kcmDz5MuyWtoHC-_pROSrHXphnZK3s_EmYBUov_zTKd2Ai17-6uUwndc1rSTIPSd6_Yr6VU0egOUGPYexGnZlJW2fSt9d5PYbno9s_SoGLtSkwU-onQfELPKxy2PdUIt9TlCAZ0hODhKoka1kz-KCDU5hdQ8K6XUlTzu0vT3B025TEUnX2qlvkye8h9JSjzNiofBBNJtFVOSzk9_m00)
 
 Blue arrows in the diagram indicate communications over unix domain sockets.
 Red arrows indicate communications over TCP sockets.
@@ -48,8 +48,10 @@ https://kubernetes-csi.github.io/docs/ .
 
 Other than that, TopoLVM extends the general Pod scheduler of Kubernetes to
 reference node-local metrics such as VG free capacity or IO usage.  To expose
-these metrics, TopoLVM installs a [device plugin](https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/device-plugins/)
-called *lvmetrics* into `kubelet`.
+these metrics, TopoLVM run sidecar containers called *lvmetrics* on each node.
+
+`lvmetrics` watches the capacity of LVM volume group and exposes it as Node
+annotations.
 
 Extension of the general scheduler will be implemented as a [scheduler extender](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/scheduler_extender.md) called `topolvm-scheduler`.
 
