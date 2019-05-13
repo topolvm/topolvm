@@ -1,0 +1,15 @@
+version: 2.1
+jobs:
+  build:
+    docker:
+    - image: quay.io/cybozu/golang:1.12-bionic
+    working_directory: /work
+    steps:
+    - checkout
+    - run: make test
+
+workflows:
+  version: 2
+  main:
+    jobs:
+      - build

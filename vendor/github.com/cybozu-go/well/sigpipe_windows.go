@@ -1,0 +1,3 @@
+package well
+
+func handleSigPipe() {}
