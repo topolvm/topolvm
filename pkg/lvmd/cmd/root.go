@@ -51,8 +51,9 @@ func subMain() error {
 		return err
 	}
 	grpcServer := grpc.NewServer()
-	proto.RegisterLVServiceServer(grpcServer, lvmd.NewLVService(vg))
-	proto.RegisterVGServiceServer(grpcServer, lvmd.NewVGService(vg))
+	vgService, notifier := lvmd.NewVGService(vg)
+	proto.RegisterVGServiceServer(grpcServer, vgService)
+	proto.RegisterLVServiceServer(grpcServer, lvmd.NewLVService(vg, notifier))
 	well.Go(func(ctx context.Context) error {
 		return grpcServer.Serve(lis)
 	})

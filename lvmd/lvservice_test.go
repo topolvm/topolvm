@@ -71,13 +71,20 @@ func TestLVService(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	lvService := NewLVService(vg)
+	var count int
+	notifier := func() {
+		count++
+	}
+	lvService := NewLVService(vg, notifier)
 	res, err := lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
 		Name:   "test1",
 		SizeGb: 1,
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Errorf("is not notified: %d", count)
 	}
 	if res.GetVolume().GetName() != "test1" {
 		t.Errorf(`res.Volume.Name != "test1": %s`, res.GetVolume().GetName())
@@ -98,6 +105,9 @@ func TestLVService(t *testing.T) {
 	if code != codes.ResourceExhausted {
 		t.Errorf(`code is not codes.ResouceExhausted: %s`, code)
 	}
+	if count != 1 {
+		t.Errorf("unexpected count: %d", count)
+	}
 
 	_, err = lvService.ResizeLV(context.Background(), &proto.ResizeLVRequest{
 		Name:   "test1",
@@ -105,6 +115,9 @@ func TestLVService(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if count != 2 {
+		t.Errorf("unexpected count: %d", count)
 	}
 	lv, err := vg.FindVolume("test1")
 	if err != nil {
@@ -122,12 +135,18 @@ func TestLVService(t *testing.T) {
 	if code != codes.ResourceExhausted {
 		t.Errorf(`code is not codes.ResouceExhausted: %s`, code)
 	}
+	if count != 2 {
+		t.Errorf("unexpected count: %d", count)
+	}
 
 	_, err = lvService.RemoveLV(context.Background(), &proto.RemoveLVRequest{
 		Name: "test1",
 	})
 	if err != nil {
 		t.Error(err)
+	}
+	if count != 3 {
+		t.Errorf("unexpected count: %d", count)
 	}
 	_, err = vg.FindVolume("test1")
 	if err != command.ErrNotFound {

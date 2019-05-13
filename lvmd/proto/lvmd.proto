@@ -36,6 +36,10 @@ message GetFreeBytesResponse {
     uint64 free_bytes = 1;
 }
 
+message WatchResponse {
+    uint64 free_bytes = 1;
+}
+
 service LVService {
     rpc CreateLV(CreateLVRequest) returns (CreateLVResponse);
     rpc RemoveLV(RemoveLVRequest) returns (Empty);
@@ -45,4 +49,5 @@ service LVService {
 service VGService {
     rpc GetLVList(Empty) returns (GetLVListResponse);
     rpc GetFreeBytes(Empty) returns (GetFreeBytesResponse);
+    rpc Watch(Empty) returns (stream WatchResponse);
 }

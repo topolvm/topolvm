@@ -10,12 +10,20 @@ import (
 )
 
 // NewLVService creates a new LVServiceServer
-func NewLVService(vg *command.VolumeGroup) proto.LVServiceServer {
-	return lvService{vg}
+func NewLVService(vg *command.VolumeGroup, notifyFunc func()) proto.LVServiceServer {
+	return lvService{vg, notifyFunc}
 }
 
 type lvService struct {
-	vg *command.VolumeGroup
+	vg         *command.VolumeGroup
+	notifyFunc func()
+}
+
+func (s lvService) notify() {
+	if s.notifyFunc == nil {
+		return
+	}
+	s.notifyFunc()
 }
 
 func (s lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*proto.CreateLVResponse, error) {
@@ -33,6 +41,7 @@ func (s lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*pro
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, err.Error())
 	}
+	s.notify()
 
 	return &proto.CreateLVResponse{
 		Volume: &proto.LogicalVolume{
@@ -59,6 +68,7 @@ func (s lvService) RemoveLV(_ context.Context, req *proto.RemoveLVRequest) (*pro
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, err.Error())
 		}
+		s.notify()
 		break
 	}
 
@@ -93,6 +103,7 @@ func (s lvService) ResizeLV(_ context.Context, req *proto.ResizeLVRequest) (*pro
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, err.Error())
 	}
+	s.notify()
 
 	return &proto.Empty{}, nil
 }

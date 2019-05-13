@@ -4,36 +4,115 @@ import (
 	"context"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/cybozu-go/topolvm/lvmd/command"
 	"github.com/cybozu-go/topolvm/lvmd/proto"
+	"google.golang.org/grpc/metadata"
 )
 
-func TestVGService(t *testing.T) {
-	uid := os.Getuid()
-	if uid != 0 {
-		t.Skip("run as root")
+type mockWatchServer struct {
+	ch  chan struct{}
+	ctx context.Context
+}
+
+func (s *mockWatchServer) Send(r *proto.WatchResponse) error {
+	s.ch <- struct{}{}
+	return nil
+}
+
+func (s *mockWatchServer) SetHeader(metadata.MD) error {
+	panic("implement me")
+}
+
+func (s *mockWatchServer) SendHeader(metadata.MD) error {
+	panic("implement me")
+}
+
+func (s *mockWatchServer) SetTrailer(metadata.MD) {
+	panic("implement me")
+}
+
+func (s *mockWatchServer) Context() context.Context {
+	return s.ctx
+}
+
+func (s *mockWatchServer) SendMsg(m interface{}) error {
+	panic("implement me")
+}
+
+func (s *mockWatchServer) RecvMsg(m interface{}) error {
+	panic("implement me")
+}
+
+func testWatch(t *testing.T, vg *command.VolumeGroup) {
+	ctx, cancel := context.WithCancel(context.Background())
+	vgService, notifier := NewVGService(vg)
+
+	ch1 := make(chan struct{})
+	server1 := &mockWatchServer{
+		ctx: ctx,
+		ch:  ch1,
 	}
-	circleci := os.Getenv("CIRCLECI") == "true"
-	if circleci {
-		executorType := os.Getenv("CIRCLECI_EXECUTOR")
-		if executorType != "machine" {
-			t.Skip("run on machine executor")
-		}
+	done := make(chan struct{})
+	go func() {
+		vgService.Watch(&proto.Empty{}, server1)
+		done <- struct{}{}
+	}()
+
+	select {
+	case <-ch1:
+	case <-time.After(1 * time.Second):
+		t.Fatal("not received the first event")
 	}
 
-	vgName := "test_vgservice"
-	loop, err := makeVG(vgName)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanVG(loop, vgName)
+	notifier()
 
-	vg, err := command.FindVolumeGroup(vgName)
-	if err != nil {
-		t.Fatal(err)
+	select {
+	case <-ch1:
+	case <-time.After(1 * time.Second):
+		t.Fatal("not received")
 	}
-	vgService := NewVGService(vg)
+
+	select {
+	case <-ch1:
+		t.Fatal("unexpected event")
+	default:
+	}
+
+	ch2 := make(chan struct{})
+	server2 := &mockWatchServer{
+		ctx: ctx,
+		ch:  ch2,
+	}
+	go func() {
+		vgService.Watch(&proto.Empty{}, server2)
+	}()
+
+	notifier()
+
+	select {
+	case <-ch1:
+	case <-time.After(1 * time.Second):
+		t.Fatal("not received")
+	}
+	select {
+	case <-ch2:
+	case <-time.After(1 * time.Second):
+		t.Fatal("not received")
+	}
+
+	cancel()
+
+	select {
+	case <-done:
+	case <-time.After(1 * time.Second):
+		t.Fatal("not done")
+	}
+}
+
+func testVGService(t *testing.T, vg *command.VolumeGroup) {
+	vgService, _ := NewVGService(vg)
 	res, err := vgService.GetLVList(context.Background(), &proto.Empty{})
 	if err != nil {
 		t.Fatal(err)
@@ -76,4 +155,37 @@ func TestVGService(t *testing.T) {
 	if res2.GetFreeBytes() != freeBytes {
 		t.Errorf("Free bytes mismatch: %d", res2.GetFreeBytes())
 	}
+}
+
+func TestVGService(t *testing.T) {
+	uid := os.Getuid()
+	if uid != 0 {
+		t.Skip("run as root")
+	}
+	circleci := os.Getenv("CIRCLECI") == "true"
+	if circleci {
+		executorType := os.Getenv("CIRCLECI_EXECUTOR")
+		if executorType != "machine" {
+			t.Skip("run on machine executor")
+		}
+	}
+
+	vgName := "test_vgservice"
+	loop, err := makeVG(vgName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanVG(loop, vgName)
+
+	vg, err := command.FindVolumeGroup(vgName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("VGService", func(t *testing.T) {
+		testVGService(t, vg)
+	})
+	t.Run("Watch", func(t *testing.T) {
+		testWatch(t, vg)
+	})
 }
