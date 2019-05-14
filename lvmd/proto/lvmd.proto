@@ -1,48 +1,79 @@
+/**
+ * LVMd manages logical volumes of an LVM volume group.
+ *
+ * The protocol consists of two services:
+ * - VGService provides information of the volume group.
+ * - LVService provides management functions for logical volumes on the volume group.
+ */
 syntax = "proto3";
 package proto;
 
 message Empty {}
 
+// Represents a logical volume.
 message LogicalVolume {
-    string name = 1;
-    uint64 size_gb = 2;
-    uint32 dev_major = 3;
-    uint32 dev_minor = 4;
+    string name = 1;       // The logical volume name.
+    uint64 size_gb = 2;    // Volume size in GiB.
+    uint32 dev_major = 3;  // Device major number.
+    uint32 dev_minor = 4;  // Device minor number.
 }
 
+// Represents the input for CreateLV.
 message CreateLVRequest {
-    string name = 1;
-    uint64 size_gb = 2;
+    string name = 1;       // The logical volume name.
+    uint64 size_gb = 2;    // Volume size in GiB.
 }
 
+// Represents the response of CreateLV.
 message CreateLVResponse {
-    LogicalVolume volume = 1;
+    LogicalVolume volume = 1;  // Information of the created volume.
 }
 
+// Represents the input for RemoveLV.
 message RemoveLVRequest {
-    string name = 1;
+    string name = 1;       // The logical volume name.
 }
 
+// Represents the input for ResizeLV.
+//
+// The volume must already exist.
+// The volume size will be set to exactly "size_gb".
 message ResizeLVRequest {
-    string name = 1;
-    uint64 size_gb = 2;
+    string name = 1;       // The logical volume name.
+    uint64 size_gb = 2;    // Volume size in GiB.
 }
 
+// Represents the response of GetLVList.
 message GetLVListResponse {
-    repeated LogicalVolume volumes = 1;
+    repeated LogicalVolume volumes = 1;  // Information of volumes.
 }
 
+// Represents the response of GetFreeBytes.
 message GetFreeBytesResponse {
-    uint64 free_bytes = 1;
+    uint64 free_bytes = 1;  // Free space of the volume group in bytes.
 }
 
+// Represents the stream output from Watch.
+message WatchResponse {
+    uint64 free_bytes = 1;  // Free space of the volume group in bytes.
+}
+
+// Service to manage logical volumes of the volume group.
 service LVService {
+    // Create a logical volume.
     rpc CreateLV(CreateLVRequest) returns (CreateLVResponse);
+    // Remove a logical volume.
     rpc RemoveLV(RemoveLVRequest) returns (Empty);
+    // Resize a logical volume.
     rpc ResizeLV(ResizeLVRequest) returns (Empty);
 }
 
+// Service to retrieve information of the volume group.
 service VGService {
+    // Get the list of logical volumes in the volume group.
     rpc GetLVList(Empty) returns (GetLVListResponse);
+    // Get the free space of the volume group in bytes.
     rpc GetFreeBytes(Empty) returns (GetFreeBytesResponse);
+    // Stream the volume group metrics.
+    rpc Watch(Empty) returns (stream WatchResponse);
 }

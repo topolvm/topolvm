@@ -41,7 +41,7 @@ This repository contains these programs:
 
 - `csi-topolvm`: Unified CSI driver.
 - `lvmd`: gRPC service to manage LVM volumes
-- `lvmetrics`: A kubelet [device plugin](https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/device-plugins/) to expose metrics needed for scheduling
+- `lvmetrics`: A DaemonSet sidecar container to expose storage metrics as Node annotations
 - `topolvm-scheduler`: A [scheduler extender](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/scheduler_extender.md) for TopoLVM
 - `topolvm-node`: A sidecar to communicate with CSI controller over TopoLVM [custom resources](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/).
 

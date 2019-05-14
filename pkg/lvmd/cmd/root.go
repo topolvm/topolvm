@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"time"
 
 	"github.com/cybozu-go/topolvm/lvmd"
 	"github.com/cybozu-go/topolvm/lvmd/command"
@@ -51,8 +52,9 @@ func subMain() error {
 		return err
 	}
 	grpcServer := grpc.NewServer()
-	proto.RegisterLVServiceServer(grpcServer, lvmd.NewLVService(vg))
-	proto.RegisterVGServiceServer(grpcServer, lvmd.NewVGService(vg))
+	vgService, notifier := lvmd.NewVGService(vg)
+	proto.RegisterVGServiceServer(grpcServer, vgService)
+	proto.RegisterLVServiceServer(grpcServer, lvmd.NewLVService(vg, notifier))
 	well.Go(func(ctx context.Context) error {
 		return grpcServer.Serve(lis)
 	})
@@ -60,6 +62,18 @@ func subMain() error {
 		<-ctx.Done()
 		grpcServer.GracefulStop()
 		return nil
+	})
+	well.Go(func(ctx context.Context) error {
+		ticker := time.NewTicker(10 * time.Minute)
+		for {
+			select {
+			case <-ctx.Done():
+				ticker.Stop()
+				return nil
+			case <-ticker.C:
+				notifier()
+			}
+		}
 	})
 	err = well.Wait()
 	if err != nil && !well.IsSignaled(err) {

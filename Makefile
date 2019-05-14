@@ -22,12 +22,18 @@ bin/protoc:
 bin/protoc-gen-go:
 	GOBIN=$(shell pwd)/bin go install -mod=vendor github.com/golang/protobuf/protoc-gen-go
 
+bin/protoc-gen-doc:
+	$(CURL) https://github.com/pseudomuto/protoc-gen-doc/releases/download/v1.3.0/protoc-gen-doc-1.3.0.linux-amd64.go1.11.2.tar.gz | tar xzf - -C bin --strip-components=1
+
 csi/csi.pb.go: csi.proto bin/protoc bin/protoc-gen-go
 	mkdir -p csi
 	PATH=$(shell pwd)/bin:$(PATH) bin/protoc -I. --go_out=$(GO_OUT) $<
 
 lvmd/proto/lvmd.pb.go: lvmd/proto/lvmd.proto bin/protoc bin/protoc-gen-go
 	PATH=$(shell pwd)/bin:$(PATH) bin/protoc -I. --go_out=plugins=grpc:. $<
+
+docs/lvmd-protocol.md: lvmd/proto/lvmd.proto bin/protoc bin/protoc-gen-doc
+	PATH=$(shell pwd)/bin:$(PATH) bin/protoc -I. --doc_out=./docs --doc_opt=markdown,$@ $<
 
 test:
 	test -z "$$(gofmt -s -l . | grep -v '^vendor' | tee /dev/stderr)"
@@ -36,4 +42,6 @@ test:
 	go test -race -v ./...
 	go vet ./...
 
-.PHONY: test
+generate: csi/csi.pb.go lvmd/proto/lvmd.pb.go docs/lvmd-protocol.md
+
+.PHONY: test generate
