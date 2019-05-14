@@ -34,15 +34,22 @@ jobs:
     steps:
       - checkout
       - run:
+          name: setup golang
+          command: |
+            sudo rm -rf /usr/local/go
+            GO_VERSION=1.12.5
+            curl -fsSL -o go${GO_VERSION}.linux-amd64.tar.gz https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz
+            sudo tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz
+      - run:
           name: Install microk8s
           command: |
             cd microtest
-            make setup
+            make CONTAINER_BUILDER=docker setup
       - run:
           name: Run test
           command: |
             cd microtest
-            make test
+            make CONTAINER_BUILDER=docker test
 
 workflows:
   version: 2
