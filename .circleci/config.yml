@@ -2,11 +2,11 @@ version: 2.1
 jobs:
   build:
     docker:
-    - image: quay.io/cybozu/golang:1.12-bionic
+      - image: quay.io/cybozu/golang:1.12-bionic
     working_directory: /work
     steps:
-    - checkout
-    - run: make test
+      - checkout
+      - run: make test
   test_lvmd:
     machine: true
     working_directory: /home/circleci/work
@@ -27,6 +27,21 @@ jobs:
       - run:
           name: run test
           command: sudo env "GO111MODULE=on" "CIRCLECI=${CIRCLECI}" "CIRCLECI_EXECUTOR=machine" /usr/local/go/bin/go test -mod=vendor -race -v ./lvmd
+  test_lvmetrics:
+    machine: true
+    working_directory: /home/circleci/work
+    steps:
+      - checkout
+      - run:
+          name: Install microk8s
+          command: |
+            cd microtest
+            make setup
+      - run:
+          name: Run test
+          command: |
+            cd microtest
+            make test
 
 workflows:
   version: 2
@@ -34,3 +49,4 @@ workflows:
     jobs:
       - build
       - test_lvmd
+      - test_lvmetrics
