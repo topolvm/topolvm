@@ -28,7 +28,8 @@ jobs:
           name: run test
           command: sudo env "GO111MODULE=on" "CIRCLECI=${CIRCLECI}" "CIRCLECI_EXECUTOR=machine" /usr/local/go/bin/go test -mod=vendor -race -v ./lvmd
   test_lvmetrics:
-    machine: true
+    machine:
+      image: circleci/classic:edge
     working_directory: /home/circleci/work
     steps:
       - checkout
