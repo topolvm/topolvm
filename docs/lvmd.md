@@ -8,6 +8,7 @@
     - Provide management of logical volumes: create, remove, resize
 
 Command-line options are:
+
 |    Option     |      Default value       |             Description             |
 | ------------- | ------------------------ | ----------------------------------- |
 | `volumegroup` | ""                       | target volume group name            |
