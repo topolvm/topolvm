@@ -12,7 +12,9 @@ lvmetrics.img:
 test: lvmetrics.img
 	microk8s.status --wait-ready
 	$(SUDO) microk8s.ctr -n k8s.io images import $<
-
+	microk8s.kubectl delete -f lvmetrics.yml
+	microk8s.kubectl apply -f lvmetrics.yml
+	./test.sh
 
 setup:
 	$(SUDO) add-apt-repository -y ppa:projectatomic/ppa
