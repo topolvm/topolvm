@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: lvmetrics
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      k8s-app: lvmetrics
+  template:
+    metadata:
+      labels:
+        k8s-app: lvmetrics
+    spec:
+      containers:
+        - name: lvmetrics
+          image: lvmetrics:latest
+          imagePullPolicy: Never
+          command:
+            - /lvmetrics
+            - --socket=/tmp/lvmd.sock
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
