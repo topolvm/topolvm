@@ -2,31 +2,32 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"os"
 	"net"
+	"os"
 
-	"github.com/cybozu-go/well"
 	"github.com/cybozu-go/topolvm/lvmd/proto"
+	"github.com/cybozu-go/topolvm/lvmetrics"
+	"github.com/cybozu-go/well"
 
-	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 )
 
 var config struct {
-	socketName     string
-	nodename       string
+	socketName string
 }
 
-var cfgFile string
-
-// rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "lvmetrics",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains`,
+	Short: "annotate Node with LVM volume group metrics",
+	Long: `Annotate Node resource with LVM volume group metrics.
+
+This program should be run as a sidecar container in DaemonSet.
+As this edits Node, the service account of the Pod should have
+privilege to edit Node resources.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 		return subMain()
@@ -39,13 +40,21 @@ func subMain() error {
 		return err
 	}
 
-	dialer := func(ctx context.Context, a string) (net.Conn, error) {
-		return net.Dial("unix", a)
+	nodeName := viper.GetString("nodename")
+	if len(nodeName) == 0 {
+		return errors.New("node name is not set")
 	}
-	conn, err := grpc.Dial(config.socketName, grpc.WithInsecure(), grpc.WithContextDialer(dialer))
+	patcher, err := lvmetrics.NewNodePatcher(nodeName)
+	if err != nil {
+		return err
+	}
+
+	dialer := &net.Dialer{}
+	dialFunc := func(ctx context.Context, a string) (net.Conn, error) {
+		return dialer.DialContext(ctx, "unix", a)
+	}
+	conn, err := grpc.Dial(config.socketName, grpc.WithInsecure(), grpc.WithContextDialer(dialFunc))
 	defer conn.Close()
-
-
 
 	well.Go(func(ctx context.Context) error {
 		client := proto.NewVGServiceClient(conn)
@@ -56,6 +65,14 @@ func subMain() error {
 
 		for {
 			res, err := wClient.Recv()
+			if err != nil {
+				return err
+			}
+
+			met := &lvmetrics.NodeMetrics{
+				FreeBytes: res.GetFreeBytes(),
+			}
+			err = patcher.Patch(met)
 			if err != nil {
 				return err
 			}
@@ -83,8 +100,8 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().StringVar(&config.socketName, "target", "", "Unix domain socket name")
-	viper.SetEnvPrefix("lvmetrics")
-	viper.BindEnv("nodename")
-	config.nodename = viper.GetString("nodename")
+	rootCmd.Flags().StringVar(&config.socketName, "socket", "/run/topolvm/lvmd.sock", "Unix domain socket name")
+	rootCmd.Flags().String("nodename", "", "node resource name")
+	viper.BindEnv("nodename", "NODE_NAME")
+	viper.BindPFlag("nodename", rootCmd.Flags().Lookup("nodename"))
 }

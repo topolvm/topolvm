@@ -7,9 +7,11 @@
 - LVService
     - Provide management of logical volumes: create, remove, resize
 
+`lvmd` is intended to be run as a systemd service on the node OS.
+
 Command-line options are:
 
-|    Option     |      Default value       |             Description             |
+| Option        | Default value            | Description                         |
 | ------------- | ------------------------ | ----------------------------------- |
 | `volumegroup` | ""                       | target volume group name            |
 | `listen`      | "/run/topolvm/lvmd.sock" | unix domain socket endpoint of gRPC |
