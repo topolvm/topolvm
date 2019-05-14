@@ -3,6 +3,7 @@ module github.com/cybozu-go/topolvm
 go 1.12
 
 require (
+	github.com/cybozu-go/log v1.5.0
 	github.com/cybozu-go/well v1.8.1
 	github.com/gogo/protobuf v0.0.0-20171007142547-342cbe0a0415 // indirect
 	github.com/golang/protobuf v1.3.1
@@ -10,7 +11,6 @@ require (
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/json-iterator/go v0.0.0-20180701071628-ab8a2e0c74be // indirect
-	github.com/mitchellh/go-homedir v1.1.0
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/onsi/gomega v0.0.0-20190113212917-5533ce8a0da3 // indirect

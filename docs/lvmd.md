@@ -14,7 +14,7 @@ Command-line options are:
 | Option        | Default value            | Description                         |
 | ------------- | ------------------------ | ----------------------------------- |
 | `volumegroup` | ""                       | target volume group name            |
-| `listen`      | "/run/topolvm/lvmd.sock" | unix domain socket endpoint of gRPC |
+| `listen`      | `/run/topolvm/lvmd.sock` | unix domain socket endpoint of gRPC |
 
 API specification
 -----------------

@@ -7,8 +7,8 @@ import (
 	"net"
 	"os"
 
-	"github.com/cybozu-go/topolvm/lvmd/proto"
 	"github.com/cybozu-go/topolvm/lvmetrics"
+	lvmd "github.com/cybozu-go/topolvm/pkg/lvmd/cmd"
 	"github.com/cybozu-go/well"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -56,28 +56,8 @@ func subMain() error {
 	defer conn.Close()
 
 	well.Go(func(ctx context.Context) error {
-		client := proto.NewVGServiceClient(conn)
-		wClient, err := client.Watch(ctx, &proto.Empty{})
-		if err != nil {
-			return err
-		}
-
-		for {
-			res, err := wClient.Recv()
-			if err != nil {
-				return err
-			}
-
-			met := &lvmetrics.NodeMetrics{
-				FreeBytes: res.GetFreeBytes(),
-			}
-			err = patcher.Patch(met)
-			if err != nil {
-				return err
-			}
-		}
+		return lvmetrics.WatchLVMd(ctx, conn, patcher)
 	})
-
 	well.Stop()
 	err = well.Wait()
 	if err != nil && !well.IsSignaled(err) {
@@ -97,7 +77,7 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().StringVar(&config.socketName, "socket", "/run/topolvm/lvmd.sock", "Unix domain socket name")
+	rootCmd.Flags().StringVar(&config.socketName, "socket", lvmd.DefaultSocketName, "Unix domain socket name")
 	rootCmd.Flags().String("nodename", "", "node resource name")
 	viper.BindEnv("nodename", "NODE_NAME")
 	viper.BindPFlag("nodename", rootCmd.Flags().Lookup("nodename"))
