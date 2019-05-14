@@ -24,3 +24,17 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+          volumeMounts:
+          - name: empty-volume
+            mountPath: /tmp
+        - name: lvmd-fake
+          image: lvmetrics:latest
+          imagePullPolicy: Never
+          command:
+           - /lvmd
+          volumeMounts:
+          - name: empty-volume
+            mountPath: /tmp
+      volumes:
+      - name: empty-volume
+        emptyDir: {}

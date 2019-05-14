@@ -4,8 +4,9 @@ export GOFLAGS
 
 lvmetrics.img:
 	CGO_ENABLED=0 go build ../pkg/lvmetrics
+	CGO_ENABLED=0 go build -o lvmd ./lvmd-fake
 	podman build -t docker.io/library/lvmetrics:latest .
-	rm lvmetrics
+	rm -f lvmetrics lvmd
 	podman save -o $@ docker.io/library/lvmetrics:latest
 
 test: lvmetrics.img
