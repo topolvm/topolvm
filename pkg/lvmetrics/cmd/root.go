@@ -10,7 +10,6 @@ import (
 	"github.com/cybozu-go/topolvm/lvmd/proto"
 	"github.com/cybozu-go/topolvm/lvmetrics"
 	"github.com/cybozu-go/well"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
@@ -77,8 +76,6 @@ func subMain() error {
 				return err
 			}
 		}
-
-		return nil
 	})
 
 	well.Stop()
