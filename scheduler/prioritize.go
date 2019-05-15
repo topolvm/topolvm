@@ -9,8 +9,15 @@ import (
 	"github.com/cybozu-go/topolvm"
 )
 
-func capacityToScore(capacity uint64) int {
-	converted := int(math.Log10(float64(capacity >> 30)))
+func capacityToScore(capacity uint64, divisor float64) int {
+	gb := capacity >> 30
+
+	// avoid logarithm of zero, which diverges to negative infinity.
+	if gb == 0 {
+		return 0
+	}
+
+	converted := int(math.Log2(float64(gb) / divisor))
 	switch {
 	case converted < 0:
 		return 0
@@ -21,7 +28,7 @@ func capacityToScore(capacity uint64) int {
 	}
 }
 
-func prioritize(w http.ResponseWriter, r *http.Request) {
+func (s scheduler) prioritize(w http.ResponseWriter, r *http.Request) {
 	var input ExtenderArgs
 
 	reader := http.MaxBytesReader(w, r.Body, 10<<20)
@@ -37,7 +44,7 @@ func prioritize(w http.ResponseWriter, r *http.Request) {
 		var score int
 		if val, ok := item.Annotations[topolvm.CapacityKey]; ok {
 			capacity, _ := strconv.ParseUint(val, 64, 10)
-			score = capacityToScore(capacity)
+			score = capacityToScore(capacity, s.divisor)
 		}
 		result[i] = HostPriority{Host: item.Name, Score: score}
 	}

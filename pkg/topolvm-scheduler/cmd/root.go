@@ -12,14 +12,32 @@ import (
 
 var config struct {
 	listenAddr string
+	divisor    float64
+	spareGB    uint64
 }
 
 var rootCmd = &cobra.Command{
 	Use:   "topolvm-scheduler",
-	Short: "A scheduler-extender for TopoLVM",
-	Long:  `A scheduler-extender for TopoLVM`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
+	Short: "a scheduler-extender for TopoLVM",
+	Long: `A scheduler-extender for TopoLVM.
+
+The extender implements filter and prioritize verbs.
+
+The filter verb is "predicate" and served at "/predicate" via HTTP.
+It filters out nodes that have less storage capacity than requested.
+The requested capacity is read from "topolvm.cybozu.com/capacity"
+resource value.
+
+If command-line option "spare" is not zero, that value * GiB
+storage is kept as spare.
+
+The prioritize verb is "prioritize" and served at "/prioritize" via HTTP.
+It scores nodes with this formula:
+
+    min(10, log2(capacity >> 30 / divisor))
+
+The default divisor is 1.  It can be changed with a command-line option.
+`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 		return subMain()
@@ -32,9 +50,15 @@ func subMain() error {
 		return err
 	}
 
+	h, err := scheduler.NewHandler(config.divisor, config.spareGB)
+	if err != nil {
+		return err
+	}
+
 	serv := &well.HTTPServer{
 		Server: &http.Server{
-			Handler: scheduler.NewHandler(),
+			Addr:    config.listenAddr,
+			Handler: h,
 		},
 	}
 
@@ -61,5 +85,7 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().StringVar(&config.listenAddr, "listen", "127.0.0.1:8000", "listen address")
+	rootCmd.Flags().StringVar(&config.listenAddr, "listen", ":8000", "listen address")
+	rootCmd.Flags().Float64Var(&config.divisor, "divisor", 1, "capacity divisor")
+	rootCmd.Flags().Uint64Var(&config.spareGB, "spare", 10, "storage capacity in GiB to be spared")
 }
