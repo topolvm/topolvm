@@ -3,6 +3,7 @@ package lvmd
 import (
 	"context"
 
+	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/topolvm/lvmd/command"
 	"github.com/cybozu-go/topolvm/lvmd/proto"
 	"google.golang.org/grpc/codes"
@@ -43,6 +44,11 @@ func (s lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*pro
 	}
 	s.notify()
 
+	log.Info("created a new LV", map[string]interface{}{
+		"name": req.GetName(),
+		"size": requested,
+	})
+
 	return &proto.CreateLVResponse{
 		Volume: &proto.LogicalVolume{
 			Name:     lv.Name(),
@@ -69,6 +75,10 @@ func (s lvService) RemoveLV(_ context.Context, req *proto.RemoveLVRequest) (*pro
 			return nil, status.Errorf(codes.Internal, err.Error())
 		}
 		s.notify()
+
+		log.Info("removed a LV", map[string]interface{}{
+			"name": req.GetName(),
+		})
 		break
 	}
 
@@ -104,6 +114,11 @@ func (s lvService) ResizeLV(_ context.Context, req *proto.ResizeLVRequest) (*pro
 		return nil, status.Errorf(codes.Internal, err.Error())
 	}
 	s.notify()
+
+	log.Info("resized a LV", map[string]interface{}{
+		"name": req.GetName(),
+		"size": requested,
+	})
 
 	return &proto.Empty{}, nil
 }

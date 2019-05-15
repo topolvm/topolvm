@@ -20,7 +20,8 @@ var config struct {
 	socketName string
 }
 
-const defaultSocketName = "/run/topolvm/lvmd.sock"
+// DefaultSocketName defines the default UNIX domain socket path.
+const DefaultSocketName = "/run/topolvm/lvmd.sock"
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -93,5 +94,5 @@ func Execute() {
 
 func init() {
 	rootCmd.Flags().StringVar(&config.vgName, "volumegroup", "", "LVM volume group name")
-	rootCmd.Flags().StringVar(&config.socketName, "listen", defaultSocketName, "Unix domain socket name")
+	rootCmd.Flags().StringVar(&config.socketName, "listen", DefaultSocketName, "Unix domain socket name")
 }

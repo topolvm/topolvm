@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"strconv"
 
+	"github.com/cybozu-go/log"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -15,7 +16,8 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-const capacityKey = "topolvm.cybozu.com/capacity"
+// CapacityKey is a key of Node annotation that represents VG free space.
+const CapacityKey = "topolvm.cybozu.com/capacity"
 
 var resourceEncoder runtime.Encoder = json.NewSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme, false)
 
@@ -41,7 +43,7 @@ type NodeMetrics struct {
 
 // Annotate adds annotations to node
 func (n *NodeMetrics) Annotate(node *corev1.Node) {
-	node.Annotations[capacityKey] = strconv.FormatUint(n.FreeBytes, 10)
+	node.Annotations[CapacityKey] = strconv.FormatUint(n.FreeBytes, 10)
 }
 
 // NewNodePatcher creates NodePatcher
@@ -77,10 +79,20 @@ func (n *NodePatcher) Patch(met *NodeMetrics) error {
 		return err
 	}
 
+	if bytes.Equal(original, modified) {
+		log.Debug("no diff", nil)
+		return nil
+	}
+
 	patch, err := strategicpatch.CreateTwoWayMergePatch(original, modified, node)
 	if err != nil {
 		return err
 	}
+
+	log.Info("update annotations", map[string]interface{}{
+		"node":     n.nodeName,
+		"capacity": met.FreeBytes,
+	})
 
 	_, err = n.k8sClient.CoreV1().Nodes().Patch(n.nodeName, types.StrategicMergePatchType, patch)
 	return err
