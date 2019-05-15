@@ -31,10 +31,11 @@ Components
 - `lvmetrics`: A DaemonSet sidecar container to expose storage metrics as Node annotations
 - `topolvm-scheduler`: A [scheduler extender](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/scheduler_extender.md) for TopoLVM
 - `topolvm-node`: A sidecar to communicate with CSI controller over TopoLVM [custom resources](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/).
+- `topolvm-hook`: A [MutatingAdmissionWebhook](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#mutatingadmissionwebhook) for `topolvm-scheduler`.
 
 ### Diagram
 
-![component diagram](http://www.plantuml.com/plantuml/svg/ZPJFYjim48VlVeh1lRG7iqJ77ig2qqDXMvQORWzB3eeqpPgLBQC_QKlfkrUI9IlsnYIN46c-ZB_vPV2zDbGPsubYeEoL7X7Anb23Fwreq9Jmjm1uhcLlb1G2rQEmnxRV0zLGriqNo1LeK9rQXgN_WTQwvSYeqYCQJy0SJjiUbIwBVqNHIuxmpNri0kM_-IUw3abcsuobBSLEzfEHUuI7HvjDrl6NMIHmV5BPhBb4KfmwDAfb2KpdL3ToaExEIqSYtbJ-oaDk9CUzsWCAD969fpAK7fw-yjoTpqCWwo6Ggo6G6qCWjuP0heP0RWY1h8H05Y6aKGDPTLGRL77vwD1gDmogVTWizeBSYl74gQ47gX5AD8nFgTIxxTZ-GHvRHiMJ5BR3z-xwGvbpsw6MLh7qNuOrl50ckKp2U3FTBGv2_kcmDz5MuyWtoHC-_pROSrHXphnZK3s_EmYBUov_zTKd2Ai17-6uUwndc1rSTIPSd6_Yr6VU0egOUGPYexGnZlJW2fSt9d5PYbno9s_SoGLtSkwU-onQfELPKxy2PdUIt9TlCAZ0hODhKoka1kz-KCDU5hdQ8K6XUlTzu0vT3B025TEUnX2qlvkye8h9JSjzNiofBBNJtFVOSzk9_m00)
+![component diagram](http://www.plantuml.com/plantuml/svg/ZPHFZzCm4CNl-HIZS853j5eVEQ2LMWv82rerOZciUd3jeOtgn97_B234TyUE_xWf3UsbYcT-cRnvUUc3DbGPsujgfEn8zmXrQwZ1xrQqQ6huNG6yhEHWb1G2rPEm-sxO0jLGhzfFK3hGedhj6DR-1grrnv5HfGCQJy0SJhi1bQwhFrKrI8xmnVtSJvI_yazq4vAOTHjQQugz7B8YzmWF1pNtHOulPY61urdA_PAMI8hN7etgM0BpEVQD7AMhUT6HY9N6bppaLdBSqUvGe8bCFDLJw_7vCo_J-Tm4icm2kMe2kT44Sgi9vAe9v0OJo889vCo4k6eWcvvgWog6ZuwTTikWsax9OWVaLeGJfuRkg7QteM4ykxBQhCFuHxdl61NFKjWUtxhokxhuja4jhMBfNKunlD0cfKt2UYToDN8SXVmLNizqsUEGFXkDuTusQOQFFmqE79NRESyuI7dytvJehyVcXllAP5u9BZGlRtR2ufRB7qFp0QQymNlORvvMCyoEhZjpeJgDTvup7m5LodO6qg0OGqTwS84hCKnS4KKkQIV_Q2SNj9DJxMNEsOYKo2NfLy2YdIJjvt-Bq83Bc1kpKaWDtdsZXXtEVBLZWgRktTUHEtIsm29KvV174pHM-Uk8fPEqE3vhXYQwclbPCpjslbBov047Rdln5m00)
 
 Blue arrows in the diagram indicate communications over unix domain sockets.
 Red arrows indicate communications over TCP sockets.
@@ -54,6 +55,9 @@ these metrics, TopoLVM run sidecar containers called *lvmetrics* on each node.
 annotations.
 
 Extension of the general scheduler will be implemented as a [scheduler extender](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/scheduler_extender.md) called `topolvm-scheduler`.
+
+`topolvm-hook` mutates pods using TopoLVM PVC to add a resource `topolvm.cybozu.com/capacity`.
+Only pods with this resource will be passed to the extended scheduler.
 
 To support dynamic volume provisioning, CSI controller service need to create a
 logical volume on remote target nodes.  In general, CSI controller runs on a

@@ -44,6 +44,7 @@ This repository contains these programs:
 - `lvmetrics`: A DaemonSet sidecar container to expose storage metrics as Node annotations
 - `topolvm-scheduler`: A [scheduler extender](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/scheduler_extender.md) for TopoLVM
 - `topolvm-node`: A sidecar to communicate with CSI controller over TopoLVM [custom resources](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/).
+- `topolvm-hook`: A [MutatingAdmissionWebhook](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#mutatingadmissionwebhook) for `topolvm-scheduler`.
 
 `lvmd` is a standalone program that should run on Node OS as a systemd service.
 Other programs are packaged into container images.
