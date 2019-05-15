@@ -34,7 +34,7 @@ storage is kept as spare.
 The prioritize verb is "prioritize" and served at "/prioritize" via HTTP.
 It scores nodes with this formula:
 
-    min(10, log2(capacity >> 30 / divisor))
+    min(10, max(0, log2(capacity >> 30 / divisor)))
 
 The default divisor is 1.  It can be changed with a command-line option.
 `,

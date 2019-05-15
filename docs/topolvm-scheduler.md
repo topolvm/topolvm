@@ -47,7 +47,7 @@ It keeps spare free space in each volume group as specified by `spare` command-l
 
 This verb scores nodes.  The score of a node is calculated by this formula:
 
-    min(10, log2(capacity >> 30 / divisor))
+    min(10, max(0, log2(capacity >> 30 / divisor)))
 
 `divisor` can be changed with `divisor` command-line flag.
 

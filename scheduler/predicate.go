@@ -50,7 +50,7 @@ func (s scheduler) predicate(w http.ResponseWriter, r *http.Request) {
 
 	reader := http.MaxBytesReader(w, r.Body, 10<<20)
 	err := json.NewDecoder(reader).Decode(&input)
-	if err != nil || input.Nodes == nil {
+	if err != nil || input.Nodes == nil || input.Pod == nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
