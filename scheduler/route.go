@@ -6,7 +6,7 @@ import "net/http"
 func NewHandler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/predicate", predicate)
-	mux.HandleFunc("/prioritize", nil)
+	mux.HandleFunc("/prioritize", prioritize)
 
 	return mux
 }
