@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    run: nginx
+  name: nginx
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: nginx
+  template:
+    metadata:
+      labels:
+        run: nginx
+    spec:
+      containers:
+      - image: nginx:latest
+        imagePullPolicy: Always
+        name: nginx
+        resources: 
+          requests:
+            topolvm.cybozu.com/capacity: 1Gi
+          limits:
+            topolvm.cybozu.com/capacity: 1Gi
+      restartPolicy: Always
+      schedulerName: topolvm-scheduler

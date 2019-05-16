@@ -6,11 +6,11 @@ metadata:
 spec:
   selector:
     matchLabels:
-      k8s-app: lvmetrics
+      app.kubernetes.io/name: lvmetrics
   template:
     metadata:
       labels:
-        k8s-app: lvmetrics
+        app.kubernetes.io/name: lvmetrics
     spec:
       containers:
         - name: lvmetrics
