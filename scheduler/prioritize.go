@@ -43,7 +43,7 @@ func (s scheduler) prioritize(w http.ResponseWriter, r *http.Request) {
 	for i, item := range input.Nodes.Items {
 		var score int
 		if val, ok := item.Annotations[topolvm.CapacityKey]; ok {
-			capacity, _ := strconv.ParseUint(val, 64, 10)
+			capacity, _ := strconv.ParseUint(val, 10, 64)
 			score = capacityToScore(capacity, s.divisor)
 		}
 		result[i] = HostPriority{Host: item.Name, Score: score}

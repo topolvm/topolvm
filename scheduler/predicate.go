@@ -26,7 +26,7 @@ func filterNodes(nodes corev1.NodeList, requested int64, spare uint64) ExtenderF
 			failed[node.Name] = "no capacity annotation"
 			continue
 		}
-		capacity, err := strconv.ParseUint(val, 64, 10)
+		capacity, err := strconv.ParseUint(val, 10, 64)
 		if err != nil {
 			failed[node.Name] = "bad capacity annotation: " + val
 			continue
@@ -45,18 +45,9 @@ func filterNodes(nodes corev1.NodeList, requested int64, spare uint64) ExtenderF
 	}
 }
 
-func (s scheduler) predicate(w http.ResponseWriter, r *http.Request) {
-	var input ExtenderArgs
-
-	reader := http.MaxBytesReader(w, r.Body, 10<<20)
-	err := json.NewDecoder(reader).Decode(&input)
-	if err != nil || input.Nodes == nil || input.Pod == nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
-		return
-	}
-
+func extractRequestedSize(pod *corev1.Pod) int64 {
 	var requested int64
-	for _, container := range input.Pod.Spec.Containers {
+	for _, container := range pod.Spec.Containers {
 		for k, v := range container.Resources.Limits {
 			if k == topolvm.CapacityResource {
 				requested = v.Value()
@@ -71,6 +62,20 @@ func (s scheduler) predicate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	return requested
+}
+
+func (s scheduler) predicate(w http.ResponseWriter, r *http.Request) {
+	var input ExtenderArgs
+
+	reader := http.MaxBytesReader(w, r.Body, 10<<20)
+	err := json.NewDecoder(reader).Decode(&input)
+	if err != nil || input.Nodes == nil || input.Pod == nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+
+	requested := extractRequestedSize(input.Pod)
 	result := filterNodes(*input.Nodes, requested, s.spareGB<<30)
 	w.Header().Set("content-type", "application/json")
 	json.NewEncoder(w).Encode(result)
