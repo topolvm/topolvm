@@ -17,7 +17,11 @@ Scheduler policy
         "urlPrefix": "http://...",
         "filterVerb": "predicate",
         "prioritizeVerb": "prioritize",
-        "managedResources": [{"name": "topolvm.cybozu.com/capacity"}],
+        "managedResources":
+        [{
+          "name": "topolvm.cybozu.com/capacity",
+          "ignoredByScheduler": true
+        }],
         "nodeCacheCapable": false
     }]
 }

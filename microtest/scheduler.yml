@@ -50,18 +50,18 @@ data:
   {
     "kind" : "Policy",
     "apiVersion" : "v1",
-     "extenders" : [{
+    "extenders" :
+      [{
         "urlPrefix": "http://10.152.183.100/",
         "filterVerb": "predicate",
         "prioritizeVerb": "prioritize",
         "nodeCacheCapable": false,
         "weight": 1,
-         "managedResources": [
-        {
+        "managedResources":
+        [{
           "name": "topolvm.cybozu.com/capacity",
           "ignoredByScheduler": true
-        }
-      ]
-     }]
+        }]
+      }]
   }
 
