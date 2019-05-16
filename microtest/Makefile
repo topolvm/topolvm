@@ -32,6 +32,7 @@ setup:
 ifeq ($(CONTAINER_BUILDER),podman)
 	$(SUDO) apt-get install -y podman
 endif
+	$(SUDO) snap install core
 	$(SUDO) snap install microk8s --classic
 
 .PHONY: test setup
