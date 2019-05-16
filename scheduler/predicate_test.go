@@ -34,12 +34,12 @@ func TestFilterNodes(t *testing.T) {
 				Items: []corev1.Node{
 					testNode("10.1.1.1", 5),
 					testNode("10.1.1.2", 1),
-					corev1.Node{
+					{
 						ObjectMeta: metav1.ObjectMeta{
 							Name: "10.1.1.3",
 						},
 					},
-					corev1.Node{
+					{
 						ObjectMeta: metav1.ObjectMeta{
 							Name: "10.1.1.4",
 							Annotations: map[string]string{
