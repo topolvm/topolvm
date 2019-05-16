@@ -46,23 +46,20 @@ func filterNodes(nodes corev1.NodeList, requested int64, spare uint64) ExtenderF
 }
 
 func extractRequestedSize(pod *corev1.Pod) int64 {
-	var requested int64
 	for _, container := range pod.Spec.Containers {
 		for k, v := range container.Resources.Limits {
 			if k == topolvm.CapacityResource {
-				requested = v.Value()
-				break
+				return v.Value()
 			}
 		}
 		for k, v := range container.Resources.Requests {
 			if k == topolvm.CapacityResource {
-				requested = v.Value()
-				break
+				return v.Value()
 			}
 		}
 	}
 
-	return requested
+	return 0
 }
 
 func (s scheduler) predicate(w http.ResponseWriter, r *http.Request) {

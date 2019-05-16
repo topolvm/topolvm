@@ -1,6 +1,13 @@
 package scheduler
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+
+	"github.com/cybozu-go/topolvm"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 func TestCapacityToScore(t *testing.T) {
 	testCases := []struct {
@@ -25,5 +32,43 @@ func TestCapacityToScore(t *testing.T) {
 				score,
 			)
 		}
+	}
+}
+
+func TestScoreNodes(t *testing.T) {
+	input := []corev1.Node{
+		testNode("10.1.1.1", 128),
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "10.1.1.2",
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "10.1.1.3",
+				Annotations: map[string]string{
+					topolvm.CapacityKey: "foo",
+				},
+			},
+		},
+	}
+	expected := []HostPriority{
+		{
+			Host:  "10.1.1.1",
+			Score: 5,
+		},
+		{
+			Host:  "10.1.1.2",
+			Score: 0,
+		},
+		{
+			Host:  "10.1.1.3",
+			Score: 0,
+		},
+	}
+
+	result := scoreNodes(input, 4)
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("expected scoreNodes() to be %#v, but actual %#v", expected, result)
 	}
 }

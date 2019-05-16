@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/cybozu-go/topolvm"
+	corev1 "k8s.io/api/core/v1"
 )
 
 func capacityToScore(capacity uint64, divisor float64) int {
@@ -28,6 +29,21 @@ func capacityToScore(capacity uint64, divisor float64) int {
 	}
 }
 
+func scoreNodes(nodes []corev1.Node, divisor float64) []HostPriority {
+	result := make([]HostPriority, len(nodes))
+
+	for i, item := range nodes {
+		var score int
+		if val, ok := item.Annotations[topolvm.CapacityKey]; ok {
+			capacity, _ := strconv.ParseUint(val, 10, 64)
+			score = capacityToScore(capacity, divisor)
+		}
+		result[i] = HostPriority{Host: item.Name, Score: score}
+	}
+
+	return result
+}
+
 func (s scheduler) prioritize(w http.ResponseWriter, r *http.Request) {
 	var input ExtenderArgs
 
@@ -38,16 +54,7 @@ func (s scheduler) prioritize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := make([]HostPriority, len(input.Nodes.Items))
-
-	for i, item := range input.Nodes.Items {
-		var score int
-		if val, ok := item.Annotations[topolvm.CapacityKey]; ok {
-			capacity, _ := strconv.ParseUint(val, 10, 64)
-			score = capacityToScore(capacity, s.divisor)
-		}
-		result[i] = HostPriority{Host: item.Name, Score: score}
-	}
+	result := scoreNodes(input.Nodes.Items, s.divisor)
 
 	w.Header().Set("content-type", "application/json")
 	json.NewEncoder(w).Encode(result)
