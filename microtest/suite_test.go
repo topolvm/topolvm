@@ -12,7 +12,7 @@ func TestMtest(t *testing.T) {
 	RegisterFailHandler(Fail)
 
 	SetDefaultEventuallyPollingInterval(time.Second)
-	SetDefaultEventuallyTimeout(3 * time.Minute)
+	SetDefaultEventuallyTimeout(time.Minute)
 
 	RunSpecs(t, "Test on microk8s")
 }

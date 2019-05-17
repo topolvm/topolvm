@@ -12,22 +12,14 @@ topolvm.img:
 	rm -f lvmetrics topolvm-scheduler lvmd
 	$(CONTAINER_BUILDER) save -o $@ docker.io/library/lvmetrics:latest
 
-test-lvmetrics: topolvm.img
+test: topolvm.img
 	/snap/bin/microk8s.status --wait-ready
 	$(SUDO) /snap/bin/microk8s.ctr -n k8s.io images import $<
 	/snap/bin/microk8s.kubectl apply -f lvmetrics.yml
-	./test.sh
-
-test-scheduler: topolvm.img
-	/snap/bin/microk8s.status --wait-ready
-	$(SUDO) /snap/bin/microk8s.ctr -n k8s.io images import $<
 	/snap/bin/microk8s.kubectl apply -f scheduler.yml
 	$(SUDO) cp scheduler-config.yaml /var/snap/microk8s/current/scheduler-config.yaml
 	echo "--config=/var/snap/microk8s/current/scheduler-config.yaml" | $(SUDO) tee -a /var/snap/microk8s/current/args/kube-scheduler
 	$(SUDO) systemctl restart snap.microk8s.daemon-scheduler.service
-	/snap/bin/microk8s.kubectl apply -f nginx.yml
-
-test: topolvm.img
 	$(GINKGO) -v .
 
 setup:
