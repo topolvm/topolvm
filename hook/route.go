@@ -1,16 +1,15 @@
 package hook
 
 import (
-	"fmt"
 	"net/http"
 )
 
-type hook struct {}
+type hook struct{}
 
 func (h hook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
 	case "/mutate":
-
+		h.mutate(w, r)
 	case "/status":
 		status(w, r)
 	default:

@@ -26,7 +26,10 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	//	Run: func(cmd *cobra.Command, args []string) { },
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
+		return subMain()
+	},
 }
 
 func subMain() error {
@@ -35,10 +38,7 @@ func subMain() error {
 		return err
 	}
 
-	h, err := hook.NewHandler()
-	if err != nil {
-		return err
-	}
+	h := hook.NewHandler()
 
 	serv := &well.HTTPServer{
 		Server: &http.Server{
