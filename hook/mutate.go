@@ -3,18 +3,23 @@ package hook
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/cybozu-go/topolvm"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sjson "k8s.io/apimachinery/pkg/runtime/serializer/json"
-	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/kubernetes/scheme"
 )
+
+type patchOperation struct {
+	Op    string      `json:"op"`
+	Path  string      `json:"path"`
+	Value interface{} `json:"value,omitempty"`
+}
 
 func (h hook) hasTopolvmPVC(pod *corev1.Pod) bool {
 	for _, vol := range pod.Spec.Volumes {
@@ -76,6 +81,52 @@ func encodeToJSON(obj runtime.Object) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+func createPatch(request int64, pod *corev1.Pod) []patchOperation {
+	var patch []patchOperation
+
+	requestedStr := fmt.Sprintf("%v", request)
+
+	reqPath := "/spec/containers/0/resources/requests"
+	limitPath := "/spec/containers/0/resources/requests"
+
+	container := pod.Spec.Containers[0]
+	_, ok := container.Resources.Requests[topolvm.CapacityResource]
+	if !ok {
+		patch = append(patch, patchOperation{
+			Op:   "add",
+			Path: reqPath,
+			Value: map[string]string{
+				topolvm.CapacityKey: requestedStr,
+			},
+		})
+	} else {
+		patch = append(patch, patchOperation{
+			Op:    "replace",
+			Path:  reqPath + "/" + topolvm.CapacityKey,
+			Value: requestedStr,
+		})
+	}
+
+	_, ok = container.Resources.Limits[topolvm.CapacityResource]
+	if !ok {
+		patch = append(patch, patchOperation{
+			Op:   "add",
+			Path: limitPath,
+			Value: map[string]string{
+				topolvm.CapacityKey: requestedStr,
+			},
+		})
+	} else {
+		patch = append(patch, patchOperation{
+			Op:    "replace",
+			Path:  limitPath + "/" + topolvm.CapacityKey,
+			Value: requestedStr,
+		})
+	}
+
+	return patch
+}
+
 func (h hook) mutatePod(ar *admissionv1beta1.AdmissionReview) (*admissionv1beta1.AdmissionResponse, error) {
 	req := ar.Request
 	pod := new(corev1.Pod)
@@ -90,26 +141,8 @@ func (h hook) mutatePod(ar *admissionv1beta1.AdmissionReview) (*admissionv1beta1
 		}, nil
 	}
 
-	original, err := encodeToJSON(pod)
-	if err != nil {
-		return nil, err
-	}
-
 	requested := h.calcRequested(pod)
-	pod.Spec.Containers[0].Resources.Requests[topolvm.CapacityResource] = *resource.NewQuantity(requested, resource.BinarySI)
-
-	modified, err := encodeToJSON(pod)
-	if err != nil {
-		return nil, err
-	}
-
-	if bytes.Equal(original, modified) {
-		return &admissionv1beta1.AdmissionResponse{
-			Allowed: true,
-		}, nil
-	}
-
-	patch, err := strategicpatch.CreateTwoWayMergePatch(original, modified, pod)
+	patch, err := json.Marshal(createPatch(requested, pod))
 	if err != nil {
 		return nil, err
 	}
