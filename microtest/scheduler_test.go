@@ -52,8 +52,7 @@ var _ = Describe("Test topolvm-scheduler", func() {
 	})
 
 	It("should schedule pod if requested capacity is sufficient", func() {
-		podYml := `
-apiVersion: v1
+		podYml := `apiVersion: v1
 kind: Pod
 metadata:
   name: testhttpd
@@ -97,6 +96,46 @@ spec:
 
 	It("should not schedule pod if requested capacity is not sufficient", func() {
 
+		podYml := `apiVersion: v1
+kind: Pod
+metadata:
+  name: testhttpd
+  namespace: scheduler-test
+  labels:
+    app.kubernetes.io/name: testhttpd
+spec:
+  containers:
+  - name: testhttpd
+    image: quay.io/cybozu/testhttpd:0
+    resources:
+      requests:
+        topolvm.cybozu.com/capacity: 10Gi
+      limits:
+        topolvm.cybozu.com/capacity: 10Gi
+`
+		_, err := kubectlWithInput([]byte(podYml), "apply", "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+
+		Eventually(func() error {
+			result, err := kubectl("get", "-n=scheduler-test", "pods/testhttpd", "-o=json")
+			if err != nil {
+				return err
+			}
+
+			var pod corev1.Pod
+			err = json.Unmarshal(result, &pod)
+			if err != nil {
+				return err
+			}
+
+			for _, cond := range pod.Status.Conditions {
+				if cond.Type == corev1.PodScheduled && cond.Status == corev1.ConditionFalse {
+					return nil
+				}
+			}
+
+			return errors.New("testhttpd should not be scheduled")
+		}).Should(Succeed())
 	})
 
 })
