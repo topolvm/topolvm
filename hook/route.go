@@ -8,7 +8,7 @@ import (
 )
 
 type hook struct {
-	k8sClient *kubernetes.Clientset
+	k8sClient kubernetes.Interface
 }
 
 func (h hook) ServeHTTP(w http.ResponseWriter, r *http.Request) {

@@ -1,7 +1,6 @@
 package hook
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -10,9 +9,6 @@ import (
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	k8sjson "k8s.io/apimachinery/pkg/runtime/serializer/json"
-	"k8s.io/client-go/kubernetes/scheme"
 )
 
 type patchOperation struct {
@@ -68,17 +64,6 @@ func (h hook) calcRequested(pod *corev1.Pod) int64 {
 		}
 	}
 	return requested
-}
-
-var resourceEncoder runtime.Encoder = k8sjson.NewSerializer(k8sjson.DefaultMetaFactory, scheme.Scheme, scheme.Scheme, false)
-
-func encodeToJSON(obj runtime.Object) ([]byte, error) {
-	buf := &bytes.Buffer{}
-	err := resourceEncoder.Encode(obj, buf)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
 }
 
 func createPatch(request int64, pod *corev1.Pod) []patchOperation {
