@@ -13,6 +13,15 @@ import (
 )
 
 var _ = Describe("Test topolvm-scheduler", func() {
+	BeforeEach(func() {
+		kubectl("delete", "namespace", "scheduler-test")
+		_, err := kubectl("create", "namespace", "scheduler-test")
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+	AfterEach(func() {
+		kubectl("delete", "namespace", "scheduler-test")
+	})
+
 	It("should be deployed topolvm-scheduler pod", func() {
 		Eventually(func() error {
 			result, err := kubectl("get", "-n=kube-system", "pods", "--selector=app.kubernetes.io/name=topolvm-scheduler", "-o=json")
@@ -27,7 +36,7 @@ var _ = Describe("Test topolvm-scheduler", func() {
 			}
 
 			if len(podlist.Items) != 1 {
-				return errors.New("pod is not found.")
+				return errors.New("pod is not found")
 			}
 
 			pod := podlist.Items[0]
@@ -38,7 +47,7 @@ var _ = Describe("Test topolvm-scheduler", func() {
 				}
 			}
 
-			return errors.New("pod is not yet ready.")
+			return errors.New("topolvm-scheduler is not yet ready")
 		}).Should(Succeed())
 	})
 
@@ -47,20 +56,43 @@ var _ = Describe("Test topolvm-scheduler", func() {
 apiVersion: v1
 kind: Pod
 metadata:
-  name: testapp-pod
+  name: testhttpd
+  namespace: scheduler-test
   labels:
-    app.kubernetes.io/name: testapp
+    app.kubernetes.io/name: testhttpd
 spec:
   containers:
-  - name: test-container
-    image: quey.io/cybozu/testhttpd:0
-	resources:
-	  requests:
-    	topolvm.cybozu.com/capacity: 1Gi
-	  limits:
-		topolvm.cybozu.com/capacity: 1Gi
+  - name: testhttpd
+    image: quay.io/cybozu/testhttpd:0
+    resources:
+      requests:
+        topolvm.cybozu.com/capacity: 1Gi
+      limits:
+        topolvm.cybozu.com/capacity: 1Gi
 `
+		_, err := kubectlWithInput([]byte(podYml), "apply", "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
+		Eventually(func() error {
+			result, err := kubectl("get", "-n=scheduler-test", "pods/testhttpd", "-o=json")
+			if err != nil {
+				return err
+			}
+
+			var pod corev1.Pod
+			err = json.Unmarshal(result, &pod)
+			if err != nil {
+				return err
+			}
+
+			for _, cond := range pod.Status.Conditions {
+				if cond.Type == corev1.PodReady && cond.Status == corev1.ConditionTrue {
+					return nil
+				}
+			}
+
+			return errors.New("testhttpd is not yet ready")
+		}).Should(Succeed())
 	})
 
 	It("should not schedule pod if requested capacity is not sufficient", func() {
@@ -70,8 +102,6 @@ spec:
 })
 
 func execAtLocal(cmd string, input []byte, args ...string) ([]byte, error) {
-	fmt.Println(args)
-
 	var stdout bytes.Buffer
 	command := exec.Command(cmd, args...)
 	command.Stdout = &stdout

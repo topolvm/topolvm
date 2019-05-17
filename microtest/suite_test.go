@@ -2,6 +2,7 @@ package microtest
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -9,5 +10,9 @@ import (
 
 func TestMtest(t *testing.T) {
 	RegisterFailHandler(Fail)
+
+	SetDefaultEventuallyPollingInterval(time.Second)
+	SetDefaultEventuallyTimeout(3 * time.Minute)
+
 	RunSpecs(t, "Test on microk8s")
 }
