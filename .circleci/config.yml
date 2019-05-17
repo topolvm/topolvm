@@ -49,7 +49,9 @@ jobs:
           name: Run test
           command: |
             cd microtest
-            make CONTAINER_BUILDER=docker test
+            make GINKGO=/home/circleci/.go_workspace/bin/ginkgo CONTAINER_BUILDER=docker test
+          environment:
+            CIRCLECI_EXECUTOR: machine
 
 workflows:
   version: 2

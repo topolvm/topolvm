@@ -1,6 +1,7 @@
 package microtest
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -9,6 +10,14 @@ import (
 )
 
 func TestMtest(t *testing.T) {
+	circleci := os.Getenv("CIRCLECI") == "true"
+	if circleci {
+		executorType := os.Getenv("CIRCLECI_EXECUTOR")
+		if executorType != "machine" {
+			t.Skip("run on machine executor")
+		}
+	}
+
 	RegisterFailHandler(Fail)
 
 	SetDefaultEventuallyPollingInterval(time.Second)

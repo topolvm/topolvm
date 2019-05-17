@@ -23,7 +23,7 @@ test: topolvm.img
 	$(GINKGO) -v .
 
 setup:
-	go install github.com/onsi/ginkgo/ginkgo
+	GO111MODULE=off go get -u github.com/onsi/ginkgo/ginkgo
 	$(SUDO) apt-get update
 	$(SUDO) apt-get install -y snapd
 ifeq ($(CONTAINER_BUILDER),podman)
