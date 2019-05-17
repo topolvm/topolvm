@@ -1,6 +1,7 @@
 SUDO=sudo
 CONTAINER_BUILDER=podman
 GOFLAGS=-mod=vendor
+GINKGO=$(GOPATH)/bin/ginkgo
 export GOFLAGS
 
 topolvm.img:
@@ -11,7 +12,7 @@ topolvm.img:
 	rm -f lvmetrics topolvm-scheduler lvmd
 	$(CONTAINER_BUILDER) save -o $@ docker.io/library/lvmetrics:latest
 
-test: topolvm.img
+test-lvmetrics: topolvm.img
 	/snap/bin/microk8s.status --wait-ready
 	$(SUDO) /snap/bin/microk8s.ctr -n k8s.io images import $<
 	/snap/bin/microk8s.kubectl apply -f lvmetrics.yml
@@ -26,7 +27,11 @@ test-scheduler: topolvm.img
 	$(SUDO) systemctl restart snap.microk8s.daemon-scheduler.service
 	/snap/bin/microk8s.kubectl apply -f nginx.yml
 
+test: topolvm.img
+	$GINKGO -v .
+
 setup:
+	go install github.com/onsi/ginkgo/ginkgo
 	$(SUDO) apt-get update
 	$(SUDO) apt-get install -y snapd
 ifeq ($(CONTAINER_BUILDER),podman)
