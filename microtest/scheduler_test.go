@@ -1,11 +1,9 @@
-package microtest_test
+package microtest
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os/exec"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,8 +13,8 @@ import (
 var _ = Describe("Test topolvm-scheduler", func() {
 	BeforeEach(func() {
 		kubectl("delete", "namespace", "scheduler-test")
-		_, err := kubectl("create", "namespace", "scheduler-test")
-		Expect(err).ShouldNot(HaveOccurred())
+		stdout, stderr, err := kubectl("create", "namespace", "scheduler-test")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 	})
 	AfterEach(func() {
 		kubectl("delete", "namespace", "scheduler-test")
@@ -24,9 +22,9 @@ var _ = Describe("Test topolvm-scheduler", func() {
 
 	It("should be deployed topolvm-scheduler pod", func() {
 		Eventually(func() error {
-			result, err := kubectl("get", "-n=kube-system", "pods", "--selector=app.kubernetes.io/name=topolvm-scheduler", "-o=json")
+			result, stderr, err := kubectl("get", "-n=kube-system", "pods", "--selector=app.kubernetes.io/name=topolvm-scheduler", "-o=json")
 			if err != nil {
-				return err
+				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
 			}
 
 			var podlist corev1.PodList
@@ -69,13 +67,13 @@ spec:
       limits:
         topolvm.cybozu.com/capacity: 1Gi
 `
-		_, err := kubectlWithInput([]byte(podYml), "apply", "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred())
+		stdout, stderr, err := kubectlWithInput([]byte(podYml), "apply", "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		Eventually(func() error {
-			result, err := kubectl("get", "-n=scheduler-test", "pods/testhttpd", "-o=json")
+			result, stderr, err := kubectl("get", "-n=scheduler-test", "pods/testhttpd", "-o=json")
 			if err != nil {
-				return err
+				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
 			}
 
 			var pod corev1.Pod
@@ -113,13 +111,13 @@ spec:
       limits:
         topolvm.cybozu.com/capacity: 10Gi
 `
-		_, err := kubectlWithInput([]byte(podYml), "apply", "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred())
+		stdout, stderr, err := kubectlWithInput([]byte(podYml), "apply", "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		Eventually(func() error {
-			result, err := kubectl("get", "-n=scheduler-test", "pods/testhttpd", "-o=json")
+			result, stderr, err := kubectl("get", "-n=scheduler-test", "pods/testhttpd", "-o=json")
 			if err != nil {
-				return err
+				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
 			}
 
 			var pod corev1.Pod
@@ -139,28 +137,3 @@ spec:
 	})
 
 })
-
-func execAtLocal(cmd string, input []byte, args ...string) ([]byte, error) {
-	var stdout bytes.Buffer
-	command := exec.Command(cmd, args...)
-	command.Stdout = &stdout
-	command.Stderr = GinkgoWriter
-
-	if len(input) != 0 {
-		command.Stdin = bytes.NewReader(input)
-	}
-
-	err := command.Run()
-	if err != nil {
-		return nil, err
-	}
-	return stdout.Bytes(), nil
-}
-
-func kubectl(args ...string) ([]byte, error) {
-	return execAtLocal("/snap/bin/microk8s.kubectl", nil, args...)
-}
-
-func kubectlWithInput(input []byte, args ...string) ([]byte, error) {
-	return execAtLocal("/snap/bin/microk8s.kubectl", input, args...)
-}

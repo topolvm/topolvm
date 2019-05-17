@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: lvmetrics
-  namespace: default
+  namespace: kube-system
 spec:
   selector:
     matchLabels:

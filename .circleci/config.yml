@@ -27,7 +27,7 @@ jobs:
       - run:
           name: run test
           command: sudo env "GO111MODULE=on" "CIRCLECI=${CIRCLECI}" "CIRCLECI_EXECUTOR=machine" /usr/local/go/bin/go test -mod=vendor -race -v ./lvmd
-  test_lvmetrics:
+  micro_test:
     machine:
       image: circleci/classic:edge
     working_directory: /home/circleci/work
@@ -49,7 +49,9 @@ jobs:
           name: Run test
           command: |
             cd microtest
-            make CONTAINER_BUILDER=docker test
+            make GINKGO=/home/circleci/.go_workspace/bin/ginkgo CONTAINER_BUILDER=docker test
+          environment:
+            CIRCLECI_EXECUTOR: machine
 
 workflows:
   version: 2
@@ -57,4 +59,4 @@ workflows:
     jobs:
       - build
       - test_lvmd
-      - test_lvmetrics
+      - micro_test
