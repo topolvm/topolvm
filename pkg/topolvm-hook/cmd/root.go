@@ -38,7 +38,10 @@ func subMain() error {
 		return err
 	}
 
-	h := hook.NewHandler()
+	h, err := hook.NewHandler()
+	if err != nil {
+		return err
+	}
 
 	serv := &well.HTTPServer{
 		Server: &http.Server{
