@@ -1,10 +1,9 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: DaemonSet
 metadata:
   name: topolvm-scheduler
   namespace: kube-system
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: topolvm-scheduler
@@ -19,26 +18,14 @@ spec:
           imagePullPolicy: Never
           command:
             - /topolvm-scheduler
-            - --listen=:8000
+            - --listen=:9251
             - --divisor=1
             - --spare=1
-          ports:
-            - containerPort: 8000
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: topolvm-scheduler
-  namespace: kube-system
-spec:
-  selector:
-    app.kubernetes.io/name: topolvm-scheduler
-  type: ClusterIP
-  clusterIP: 10.152.183.100
-  ports:
-    - port: 80
-      targetPort: 8000
-      protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /status
+              port: 9251
+      hostNetwork: true
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -52,7 +39,7 @@ data:
     "apiVersion" : "v1",
     "extenders" :
       [{
-        "urlPrefix": "http://10.152.183.100/",
+        "urlPrefix": "http://127.0.0.1:9251/",
         "filterVerb": "predicate",
         "prioritizeVerb": "prioritize",
         "nodeCacheCapable": false,
