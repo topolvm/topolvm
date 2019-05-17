@@ -13,7 +13,8 @@ require (
 	github.com/json-iterator/go v0.0.0-20180701071628-ab8a2e0c74be // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
-	github.com/onsi/gomega v0.0.0-20190113212917-5533ce8a0da3 // indirect
+	github.com/onsi/ginkgo v1.6.0
+	github.com/onsi/gomega v0.0.0-20190113212917-5533ce8a0da3
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/viper v1.2.1
 	golang.org/x/sys v0.0.0-20190312061237-fead79001313 // indirect

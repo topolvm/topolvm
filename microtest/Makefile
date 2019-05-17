@@ -28,7 +28,7 @@ test-scheduler: topolvm.img
 	/snap/bin/microk8s.kubectl apply -f nginx.yml
 
 test: topolvm.img
-	$GINKGO -v .
+	$(GINKGO) -v .
 
 setup:
 	go install github.com/onsi/ginkgo/ginkgo
