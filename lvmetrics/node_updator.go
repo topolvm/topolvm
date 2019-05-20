@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/cybozu-go/log"
+	"github.com/cybozu-go/topolvm"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -15,9 +16,6 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 )
-
-// CapacityKey is a key of Node annotation that represents VG free space.
-const CapacityKey = "topolvm.cybozu.com/capacity"
 
 var resourceEncoder runtime.Encoder = json.NewSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme, false)
 
@@ -43,7 +41,7 @@ type NodeMetrics struct {
 
 // Annotate adds annotations to node
 func (n *NodeMetrics) Annotate(node *corev1.Node) {
-	node.Annotations[CapacityKey] = strconv.FormatUint(n.FreeBytes, 10)
+	node.Annotations[topolvm.CapacityKey] = strconv.FormatUint(n.FreeBytes, 10)
 }
 
 // NewNodePatcher creates NodePatcher

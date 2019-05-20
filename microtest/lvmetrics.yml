@@ -2,15 +2,15 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: lvmetrics
-  namespace: default
+  namespace: kube-system
 spec:
   selector:
     matchLabels:
-      k8s-app: lvmetrics
+      app.kubernetes.io/name: lvmetrics
   template:
     metadata:
       labels:
-        k8s-app: lvmetrics
+        app.kubernetes.io/name: lvmetrics
     spec:
       containers:
         - name: lvmetrics
