@@ -17,6 +17,8 @@ type patchOperation struct {
 	Value interface{} `json:"value,omitempty"`
 }
 
+const defaultSize = 1 << 30
+
 func (h hook) hasTopolvmPVC(pod *corev1.Pod) bool {
 	for _, vol := range pod.Spec.Volumes {
 		if vol.PersistentVolumeClaim == nil {
@@ -59,10 +61,15 @@ func (h hook) calcRequested(pod *corev1.Pod) int64 {
 		}
 
 		if *pvc.Spec.StorageClassName == topolvm.StorageClassName {
-			req := pvc.Spec.Resources.Requests[corev1.ResourceRequestsStorage]
-			requested += req.Value()
+			req, ok := pvc.Spec.Resources.Requests[corev1.ResourceRequestsStorage]
+			if ok && req.Value() != 0 {
+				requested += ((req.Value()-1)>>30 + 1) << 30
+			} else {
+				requested += defaultSize
+			}
 		}
 	}
+
 	return requested
 }
 
