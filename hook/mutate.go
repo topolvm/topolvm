@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/cybozu-go/topolvm"
+	"k8s.io/api/admission/v1beta1"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -121,8 +122,11 @@ func createPatch(request int64, pod *corev1.Pod) []patchOperation {
 
 func (h hook) mutatePod(ar *admissionv1beta1.AdmissionReview) (*admissionv1beta1.AdmissionResponse, error) {
 	req := ar.Request
-	pod := new(corev1.Pod)
+	if req == nil {
+		return nil, nil
+	}
 
+	pod := new(corev1.Pod)
 	err := json.Unmarshal(req.Object.Raw, pod)
 	if err != nil {
 		return nil, err
@@ -167,6 +171,14 @@ func (h hook) mutate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	output := v1beta1.AdmissionReview{}
+	if result != nil {
+		output.Response = result
+		if input.Request != nil {
+			output.Response.UID = input.Request.UID
+		}
+	}
+
 	w.Header().Set("content-type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	json.NewEncoder(w).Encode(output)
 }

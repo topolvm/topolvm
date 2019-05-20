@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/cybozu-go/topolvm"
+	jsonpatch "github.com/evanphx/json-patch"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -237,6 +238,13 @@ func TestMutate(t *testing.T) {
 		res, err := hook.mutatePod(prepare(&hook, tt.inputPvcs, t))
 		if err != nil {
 			t.Fatal(err)
+		}
+
+		if res.Patch != nil {
+			_, err = jsonpatch.DecodePatch(res.Patch)
+			if err != nil {
+				t.Fatal(err)
+			}
 		}
 
 		expectJ, err := json.Marshal(tt.expect)

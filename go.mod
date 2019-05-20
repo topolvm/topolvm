@@ -5,7 +5,7 @@ go 1.12
 require (
 	github.com/cybozu-go/log v1.5.0
 	github.com/cybozu-go/well v1.8.1
-	github.com/evanphx/json-patch v4.2.0+incompatible // indirect
+	github.com/evanphx/json-patch v4.2.0+incompatible
 	github.com/gogo/protobuf v0.0.0-20171007142547-342cbe0a0415 // indirect
 	github.com/golang/protobuf v1.3.1
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf // indirect
