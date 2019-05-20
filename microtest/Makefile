@@ -20,10 +20,8 @@ topolvm.img: $(GO_FILES)
 test: topolvm.img
 	$(SNAPBIN)/microk8s.status --wait-ready
 	$(SUDO) $(SNAPBIN)/microk8s.ctr -n k8s.io images import $<
-	$(KUBECTL) delete -f lvmetrics.yml
-	$(KUBECTL) wait -f lvmetrics.yml --for=delete
-	$(KUBECTL) delete -f scheduler.yml
-	$(KUBECTL) wait -f scheduler.yml --for=delete
+	$(KUBECTL) delete -f lvmetrics.yml --ignore-not-found --wait
+	$(KUBECTL) delete -f scheduler.yml --ignore-not-found --wait
 	$(KUBECTL) apply -f lvmetrics.yml
 	$(KUBECTL) apply -f scheduler.yml
 	$(SUDO) cp scheduler-config.yaml $(SNAPDATA)/scheduler-config.yaml
