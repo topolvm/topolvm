@@ -72,7 +72,7 @@ func createPatch(request int64, pod *corev1.Pod) []patchOperation {
 	requestedStr := fmt.Sprintf("%v", request)
 
 	reqPath := "/spec/containers/0/resources/requests"
-	limitPath := "/spec/containers/0/resources/requests"
+	limitPath := "/spec/containers/0/resources/limits"
 
 	container := pod.Spec.Containers[0]
 	_, ok := container.Resources.Requests[topolvm.CapacityResource]
