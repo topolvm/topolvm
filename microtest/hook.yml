@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: topolvm-hook
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: topolvm-hook
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: topolvm-hook
+    spec:
+      containers:
+        - name: topolvm-hook
+          image: lvmetrics:latest
+          imagePullPolicy: Never
+          command:
+            - /topolvm-hook
+            - --listen=:9252
+          livenessProbe:
+            httpGet:
+              path: /status
+              port: 9252
+      hostNetwork: true
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: topolvm-hook
+  labels:
+    app.kubernetes.io/name: topolvm-hook
+webhooks:
+  - name: topolvm-hook.cybozu-ne.co
+    clientConfig:
+      url: https://localhost:9252/mutate
+      caBundle: "to be filled"
+    rules:
+      - operations: ["CREATE"]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]
