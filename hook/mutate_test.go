@@ -15,7 +15,7 @@ import (
 	testclient "k8s.io/client-go/kubernetes/fake"
 )
 
-func prepare(h *hook, pvc *corev1.PersistentVolumeClaim, t *testing.T) *admissionv1beta1.AdmissionReview {
+func prepare(h *hook, pvcs []*corev1.PersistentVolumeClaim, t *testing.T) *admissionv1beta1.AdmissionReview {
 	_, err := h.k8sClient.CoreV1().Namespaces().Create(&corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "default",
@@ -25,9 +25,21 @@ func prepare(h *hook, pvc *corev1.PersistentVolumeClaim, t *testing.T) *admissio
 		t.Fatal(err)
 	}
 
-	_, err = h.k8sClient.CoreV1().PersistentVolumeClaims("default").Create(pvc)
-	if err != nil {
-		t.Fatal(err)
+	volumes := make([]corev1.Volume, len(pvcs))
+	for i, pvc := range pvcs {
+		_, err = h.k8sClient.CoreV1().PersistentVolumeClaims("default").Create(pvc)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		volumes[i] = corev1.Volume{
+			Name: fmt.Sprintf("storage%d", i),
+			VolumeSource: corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: pvc.Name,
+				},
+			},
+		}
 	}
 
 	pod := &corev1.Pod{
@@ -40,16 +52,7 @@ func prepare(h *hook, pvc *corev1.PersistentVolumeClaim, t *testing.T) *admissio
 					Name: "test",
 				},
 			},
-			Volumes: []corev1.Volume{
-				{
-					Name: "storage1",
-					VolumeSource: corev1.VolumeSource{
-						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-							ClaimName: "test-pvc",
-						},
-					},
-				},
-			},
+			Volumes: volumes,
 		},
 	}
 	_, err = h.k8sClient.CoreV1().Pods("default").Create(pod)
@@ -80,19 +83,21 @@ func clear(h *hook, t *testing.T) {
 func TestMutate(t *testing.T) {
 	scn := "topolvm"
 	testCases := []struct {
-		inputPvc *corev1.PersistentVolumeClaim
-		expect   []patchOperation
+		inputPvcs []*corev1.PersistentVolumeClaim
+		expect    []patchOperation
 	}{
 		{
-			inputPvc: &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-pvc",
-				},
-				Spec: corev1.PersistentVolumeClaimSpec{
-					StorageClassName: &scn,
-				},
-				Status: corev1.PersistentVolumeClaimStatus{
-					Phase: corev1.ClaimPending,
+			inputPvcs: []*corev1.PersistentVolumeClaim{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test-pvc",
+					},
+					Spec: corev1.PersistentVolumeClaimSpec{
+						StorageClassName: &scn,
+					},
+					Status: corev1.PersistentVolumeClaimStatus{
+						Phase: corev1.ClaimPending,
+					},
 				},
 			},
 			expect: []patchOperation{
@@ -114,38 +119,42 @@ func TestMutate(t *testing.T) {
 		},
 
 		{
-			inputPvc: &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-pvc",
-				},
-				Spec: corev1.PersistentVolumeClaimSpec{
-					StorageClassName: &scn,
-				},
-				Status: corev1.PersistentVolumeClaimStatus{
-					Phase: corev1.ClaimBound,
+			inputPvcs: []*corev1.PersistentVolumeClaim{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test-pvc",
+					},
+					Spec: corev1.PersistentVolumeClaimSpec{
+						StorageClassName: &scn,
+					},
+					Status: corev1.PersistentVolumeClaimStatus{
+						Phase: corev1.ClaimBound,
+					},
 				},
 			},
 			expect: nil,
 		},
 
 		{
-			inputPvc: &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-pvc",
-				},
-				Spec: corev1.PersistentVolumeClaimSpec{
-					StorageClassName: &scn,
-					Resources: corev1.ResourceRequirements{
-						Limits: corev1.ResourceList{
-							corev1.ResourceRequestsStorage: *resource.NewQuantity(5<<30, resource.BinarySI),
-						},
-						Requests: corev1.ResourceList{
-							corev1.ResourceRequestsStorage: *resource.NewQuantity(3<<30, resource.BinarySI),
+			inputPvcs: []*corev1.PersistentVolumeClaim{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test-pvc",
+					},
+					Spec: corev1.PersistentVolumeClaimSpec{
+						StorageClassName: &scn,
+						Resources: corev1.ResourceRequirements{
+							Limits: corev1.ResourceList{
+								corev1.ResourceRequestsStorage: *resource.NewQuantity(5<<30, resource.BinarySI),
+							},
+							Requests: corev1.ResourceList{
+								corev1.ResourceRequestsStorage: *resource.NewQuantity(3<<30, resource.BinarySI),
+							},
 						},
 					},
-				},
-				Status: corev1.PersistentVolumeClaimStatus{
-					Phase: corev1.ClaimPending,
+					Status: corev1.PersistentVolumeClaimStatus{
+						Phase: corev1.ClaimPending,
+					},
 				},
 			},
 			expect: []patchOperation{
@@ -161,6 +170,59 @@ func TestMutate(t *testing.T) {
 					Path: "/spec/containers/0/resources/limits",
 					Value: map[string]string{
 						topolvm.CapacityKey: fmt.Sprintf("%v", 3<<30),
+					},
+				},
+			},
+		},
+
+		{
+			inputPvcs: []*corev1.PersistentVolumeClaim{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test-pvc1",
+					},
+					Spec: corev1.PersistentVolumeClaimSpec{
+						StorageClassName: &scn,
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								corev1.ResourceRequestsStorage: *resource.NewQuantity(3<<29, resource.BinarySI),
+							},
+						},
+					},
+					Status: corev1.PersistentVolumeClaimStatus{
+						Phase: corev1.ClaimPending,
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test-pvc2",
+					},
+					Spec: corev1.PersistentVolumeClaimSpec{
+						StorageClassName: &scn,
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								corev1.ResourceRequestsStorage: *resource.NewQuantity(3<<29, resource.BinarySI),
+							},
+						},
+					},
+					Status: corev1.PersistentVolumeClaimStatus{
+						Phase: corev1.ClaimPending,
+					},
+				},
+			},
+			expect: []patchOperation{
+				{
+					Op:   "add",
+					Path: "/spec/containers/0/resources/requests",
+					Value: map[string]string{
+						topolvm.CapacityKey: fmt.Sprintf("%v", 4<<30),
+					},
+				},
+				{
+					Op:   "add",
+					Path: "/spec/containers/0/resources/limits",
+					Value: map[string]string{
+						topolvm.CapacityKey: fmt.Sprintf("%v", 4<<30),
 					},
 				},
 			},
@@ -172,7 +234,7 @@ func TestMutate(t *testing.T) {
 	}
 
 	for _, tt := range testCases {
-		res, err := hook.mutatePod(prepare(&hook, tt.inputPvc, t))
+		res, err := hook.mutatePod(prepare(&hook, tt.inputPvcs, t))
 		if err != nil {
 			t.Fatal(err)
 		}
