@@ -15,6 +15,7 @@ topolvm.img: $(GO_FILES)
 	CGO_ENABLED=0 go build -o lvmd ./lvmd-fake
 	$(CONTAINER_BUILDER) build -t docker.io/library/lvmetrics:latest .
 	rm -f lvmetrics topolvm-scheduler lvmd
+	rm -f $@
 	$(CONTAINER_BUILDER) save -o $@ docker.io/library/lvmetrics:latest
 
 test: topolvm.img
