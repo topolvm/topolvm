@@ -24,10 +24,8 @@ topolvm.img: $(GO_FILES)
 test: topolvm.img certs secret hook.yml
 	$(SNAPBIN)/microk8s.status --wait-ready
 	$(SUDO) $(SNAPBIN)/microk8s.ctr -n k8s.io images import $<
-	$(KUBECTL) delete -f lvmetrics.yml --ignore-not-found --wait
-	$(KUBECTL) delete -f scheduler.yml --ignore-not-found --wait
-	$(KUBECTL) apply -f lvmetrics.yml
-	$(KUBECTL) apply -f scheduler.yml
+	$(KUBECTL) delete -f lvmetrics.yml -f scheduler.yml -f hook.yml -f scandpv.yml --ignore-not-found --wait
+	$(KUBECTL) apply -f lvmetrics.yml -f scheduler.yml -f hook.yml -f scandpv.yml
 	$(SUDO) cp scheduler-config.yaml $(SNAPDATA)/scheduler-config.yaml
 	if ! grep -q scheduler-config.yaml $(SNAPDATA)/args/kube-scheduler; then echo "--config=$(SNAPDATA)/scheduler-config.yaml" | $(SUDO) tee -a $(SNAPDATA)/args/kube-scheduler; fi
 	$(SUDO) systemctl restart snap.microk8s.daemon-scheduler.service
@@ -48,8 +46,8 @@ secret: $(SERVER_CERT_FILES)
 	$(KUBECTL) create -n=kube-system secret generic topolvm-hook-certs --from-file=certs/server.pem --from-file=certs/server-key.pem
 
 setup:
-	go get -u github.com/cloudflare/cfssl/cmd/cfssl
-	go get -u github.com/cloudflare/cfssl/cmd/cfssljson
+	go install github.com/cloudflare/cfssl/cmd/cfssl
+	go install github.com/cloudflare/cfssl/cmd/cfssljson
 	go install github.com/onsi/ginkgo/ginkgo
 	$(SUDO) apt-get update
 	$(SUDO) apt-get install -y snapd

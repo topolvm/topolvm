@@ -1,0 +1,48 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: topolvm
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: local-pv1
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: topolvm
+  local:
+    path: /tmp/microtest1
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: microk8s.io/cluster
+          operator: In
+          values:
+            - "true"
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: local-pv2
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: topolvm
+  local:
+    path: /tmp/microtest2
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: microk8s.io/cluster
+          operator: In
+          values:
+            - "true"
