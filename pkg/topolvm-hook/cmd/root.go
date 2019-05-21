@@ -45,11 +45,9 @@ func subMain() error {
 		return err
 	}
 
-	serv := &well.HTTPServer{
-		Server: &http.Server{
-			Addr:    config.listenAddr,
-			Handler: h,
-		},
+	serv := &http.Server{
+		Addr:    config.listenAddr,
+		Handler: h,
 	}
 
 	err = serv.ListenAndServeTLS(config.certPath, config.keyPath)

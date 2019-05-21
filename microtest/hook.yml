@@ -21,9 +21,6 @@ spec:
             - --listen=:9252
             - --cert=/certs/server.pem
             - --key=/certs/server-key.pem
-          env:
-            - name: "GODEBUG"
-              value: "http2server=0,http2client=0" 
           volumeMounts:
             - name: server-certs
               mountPath: /certs

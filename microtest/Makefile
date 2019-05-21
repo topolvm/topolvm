@@ -8,6 +8,8 @@ KUBECTL=$(SNAPBIN)/microk8s.kubectl
 SNAPDATA=/var/snap/microk8s/current
 
 GO_FILES=$(shell find ../ -name "*.go" -print)
+CA_FILES=certs/ca.csr certs/ca.pem certs/ca-key.pem
+SERVER_CERT_FILES=certs/server.csr certs/server.pem certs/server-key.pem
 
 topolvm.img: $(GO_FILES)
 	CGO_ENABLED=0 go build ../pkg/lvmetrics
@@ -31,7 +33,17 @@ test: topolvm.img
 	$(SUDO) systemctl restart snap.microk8s.daemon-scheduler.service
 	$(GINKGO) -v .
 
+CA_FILES: certs/csr.json
+	cfssl gencert -initca certs/csr.json | cfssljson -bare certs/ca
+
+SERVER_CERT_FILES: CA_FILES certs/ca-config.json certs/server.json
+	cfssl gencert -ca=certs/ca.pem -ca-key=certs/ca-key.pem -config=certs/ca-config.json -profile=server certs/server.json | cfssljson -bare certs/server
+
+certs: CA_FILES SERVER_CERT_FILES
+
 setup:
+	go get -u github.com/cloudflare/cfssl/cmd/cfssl
+	go get -u github.com/cloudflare/cfssl/cmd/cfssljson
 	go install github.com/onsi/ginkgo/ginkgo
 	$(SUDO) apt-get update
 	$(SUDO) apt-get install -y snapd
@@ -41,4 +53,7 @@ endif
 	$(SUDO) snap install core
 	$(SUDO) snap install microk8s --classic
 
-.PHONY: test setup
+clean:
+	rm -f $(CA_FILES) $(SERVER_CERT_FILES)
+
+.PHONY: test setup certs
