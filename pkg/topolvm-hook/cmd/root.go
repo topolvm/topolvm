@@ -12,6 +12,8 @@ import (
 
 var config struct {
 	listenAddr string
+	certPath   string
+	keyPath    string
 }
 
 // rootCmd represents the base command when called without any subcommands
@@ -50,7 +52,7 @@ func subMain() error {
 		},
 	}
 
-	err = serv.ListenAndServe()
+	err = serv.ListenAndServeTLS(config.certPath, config.keyPath)
 	if err != nil {
 		return err
 	}
@@ -73,5 +75,7 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().StringVar(&config.listenAddr, "listen", ":8000", "listen address")
+	rootCmd.Flags().StringVar(&config.listenAddr, "listen", ":8443", "listen address")
+	rootCmd.Flags().StringVar(&config.certPath, "cert", "", "certification file path")
+	rootCmd.Flags().StringVar(&config.keyPath, "key", "", "private key file path")
 }
