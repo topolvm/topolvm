@@ -1,0 +1,59 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: local-storage
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: local-pv
+spec:
+  capacity:
+    storage: 2Gi
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: local-storage
+  local:
+    path: /tmp/microtest
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: microk8s.io/cluster
+          operator: In
+          values:
+            - "true"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: local-pvc
+  namespace: default
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: local-storage
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: testhttpd
+  namespace: default
+  labels:
+    app.kubernetes.io/name: testhttpd
+spec:
+  containers:
+    - name: testhttpd
+      image: quay.io/cybozu/testhttpd:0
+      volumeMounts:
+        - mountPath: /test
+          name: my-volume
+  volumes:
+    - name: my-volume
+      persistentVolumeClaim:
+        claimName: local-pvc

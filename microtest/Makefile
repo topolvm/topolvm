@@ -8,8 +8,8 @@ KUBECTL=$(SNAPBIN)/microk8s.kubectl
 SNAPDATA=/var/snap/microk8s/current
 
 GO_FILES=$(shell find ../ -name "*.go" -print)
-CA_FILES=certs/ca.csr certs/ca.pem certs/ca-key.pem
-SERVER_CERT_FILES=certs/server.csr certs/server.pem certs/server-key.pem
+CA_FILES=./certs/ca.csr ./certs/ca.pem ./certs/ca-key.pem
+SERVER_CERT_FILES=./certs/server.csr ./certs/server.pem ./certs/server-key.pem
 
 topolvm.img: $(GO_FILES)
 	CGO_ENABLED=0 go build ../pkg/lvmetrics
@@ -21,7 +21,7 @@ topolvm.img: $(GO_FILES)
 	rm -f $@
 	$(CONTAINER_BUILDER) save -o $@ docker.io/library/lvmetrics:latest
 
-test: topolvm.img
+test: topolvm.img certs secret hook.yml
 	$(SNAPBIN)/microk8s.status --wait-ready
 	$(SUDO) $(SNAPBIN)/microk8s.ctr -n k8s.io images import $<
 	$(KUBECTL) delete -f lvmetrics.yml --ignore-not-found --wait
@@ -33,13 +33,19 @@ test: topolvm.img
 	$(SUDO) systemctl restart snap.microk8s.daemon-scheduler.service
 	$(GINKGO) -v .
 
-CA_FILES: certs/csr.json
+$(CA_FILES): ./certs/csr.json
 	cfssl gencert -initca certs/csr.json | cfssljson -bare certs/ca
 
-SERVER_CERT_FILES: CA_FILES certs/ca-config.json certs/server.json
+$(SERVER_CERT_FILES): $(CA_FILES) ./certs/ca-config.json ./certs/server.json
 	cfssl gencert -ca=certs/ca.pem -ca-key=certs/ca-key.pem -config=certs/ca-config.json -profile=server certs/server.json | cfssljson -bare certs/server
 
-certs: CA_FILES SERVER_CERT_FILES
+certs: $(CA_FILES) $(SERVER_CERT_FILES)
+
+hook.yml: hook.yml.template $(CA_FILES)
+	./patch_capem.sh
+
+secret: $(SERVER_CERT_FILES)
+	$(KUBECTL) create -n=kube-system secret generic topolvm-hook-certs --from-file=certs/server.pem --from-file=certs/server-key.pem
 
 setup:
 	go get -u github.com/cloudflare/cfssl/cmd/cfssl
@@ -54,6 +60,7 @@ endif
 	$(SUDO) snap install microk8s --classic
 
 clean:
-	rm -f $(CA_FILES) $(SERVER_CERT_FILES)
+	rm -f $(CA_FILES) $(SERVER_CERT_FILES) hook.yml topolvm.img
+	$(KUBECTL) -n=kube-system delete secret topolvm-hook-certs
 
 .PHONY: test setup certs
