@@ -21,7 +21,7 @@ topolvm.img: $(GO_FILES)
 	rm -f $@
 	$(CONTAINER_BUILDER) save -o $@ docker.io/library/lvmetrics:latest
 
-test: topolvm.img certs secret hook.yml
+test: topolvm.img secret hook.yml
 	$(SNAPBIN)/microk8s.status --wait-ready
 	$(SUDO) $(SNAPBIN)/microk8s.ctr -n k8s.io images import $<
 	$(KUBECTL) delete -f lvmetrics.yml -f scheduler.yml -f hook.yml -f scandpv.yml --ignore-not-found --wait
@@ -37,12 +37,11 @@ $(CA_FILES): ./certs/csr.json
 $(SERVER_CERT_FILES): $(CA_FILES) ./certs/ca-config.json ./certs/server.json
 	cfssl gencert -ca=certs/ca.pem -ca-key=certs/ca-key.pem -config=certs/ca-config.json -profile=server certs/server.json | cfssljson -bare certs/server
 
-certs: $(CA_FILES) $(SERVER_CERT_FILES)
-
 hook.yml: hook.yml.template $(CA_FILES)
 	./patch_capem.sh
 
 secret: $(SERVER_CERT_FILES)
+	$(KUBECTL) delete -n=kube-system secret topolvm-hook-certs --ignore-not-found --wait
 	$(KUBECTL) create -n=kube-system secret generic topolvm-hook-certs --from-file=certs/server.pem --from-file=certs/server-key.pem
 
 setup:
@@ -59,6 +58,5 @@ endif
 
 clean:
 	rm -f $(CA_FILES) $(SERVER_CERT_FILES) hook.yml topolvm.img
-	$(KUBECTL) -n=kube-system delete secret topolvm-hook-certs
 
-.PHONY: test setup certs
+.PHONY: test setup
