@@ -21,6 +21,11 @@ spec:
             - --listen=:9252
             - --cert=/certs/server.pem
             - --key=/certs/server-key.pem
+          livenessProbe:
+            httpGet:
+              path: /status
+              port: 9252
+              scheme: HTTPS
           volumeMounts:
             - name: server-certs
               mountPath: /certs
