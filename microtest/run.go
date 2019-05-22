@@ -16,10 +16,7 @@ func execAtLocal(cmd string, input []byte, args ...string) ([]byte, []byte, erro
 	}
 
 	err := command.Run()
-	if err != nil {
-		return nil, nil, err
-	}
-	return stdout.Bytes(), stderr.Bytes(), nil
+	return stdout.Bytes(), stderr.Bytes(), err
 }
 
 func kubectl(args ...string) ([]byte, []byte, error) {

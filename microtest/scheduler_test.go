@@ -88,7 +88,7 @@ spec:
 				}
 			}
 
-			return errors.New("testhttpd is not yet ready")
+			return fmt.Errorf("testhttpd is not yet ready: %v", pod.Status)
 		}).Should(Succeed())
 	})
 
