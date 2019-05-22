@@ -76,4 +76,6 @@ func init() {
 	rootCmd.Flags().StringVar(&config.listenAddr, "listen", ":8443", "listen address")
 	rootCmd.Flags().StringVar(&config.certPath, "cert", "", "certification file path")
 	rootCmd.Flags().StringVar(&config.keyPath, "key", "", "private key file path")
+	rootCmd.MarkFlagRequired("cert")
+	rootCmd.MarkFlagRequired("key")
 }
