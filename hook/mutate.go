@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/cybozu-go/topolvm"
 	"k8s.io/api/admission/v1beta1"
@@ -82,6 +83,8 @@ func createPatch(request int64, pod *corev1.Pod) []patchOperation {
 	reqPath := "/spec/containers/0/resources/requests"
 	limitPath := "/spec/containers/0/resources/limits"
 
+	escapedCapacityKey := strings.ReplaceAll(topolvm.CapacityKey, "/", "~1")
+
 	container := pod.Spec.Containers[0]
 	_, ok := container.Resources.Requests[topolvm.CapacityResource]
 	if !ok {
@@ -95,7 +98,7 @@ func createPatch(request int64, pod *corev1.Pod) []patchOperation {
 	} else {
 		patch = append(patch, patchOperation{
 			Op:    "replace",
-			Path:  reqPath + "/" + topolvm.CapacityKey,
+			Path:  reqPath + "/" + escapedCapacityKey,
 			Value: requestedStr,
 		})
 	}
@@ -112,7 +115,7 @@ func createPatch(request int64, pod *corev1.Pod) []patchOperation {
 	} else {
 		patch = append(patch, patchOperation{
 			Op:    "replace",
-			Path:  limitPath + "/" + topolvm.CapacityKey,
+			Path:  limitPath + "/" + escapedCapacityKey,
 			Value: requestedStr,
 		})
 	}

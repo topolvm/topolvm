@@ -16,7 +16,7 @@ import (
 	testclient "k8s.io/client-go/kubernetes/fake"
 )
 
-func prepare(h *hook, pvcs []*corev1.PersistentVolumeClaim, t *testing.T) *admissionv1beta1.AdmissionReview {
+func prepare(h *hook, pvcs []*corev1.PersistentVolumeClaim, hasResources bool, t *testing.T) *admissionv1beta1.AdmissionReview {
 	_, err := h.k8sClient.CoreV1().Namespaces().Create(&corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "default",
@@ -56,6 +56,14 @@ func prepare(h *hook, pvcs []*corev1.PersistentVolumeClaim, t *testing.T) *admis
 			Volumes: volumes,
 		},
 	}
+
+	if hasResources {
+		resourceList := make(corev1.ResourceList)
+		resourceList[topolvm.CapacityResource] = *resource.NewQuantity(1024, resource.BinarySI)
+		pod.Spec.Containers[0].Resources.Limits = resourceList
+		pod.Spec.Containers[0].Resources.Requests = resourceList
+	}
+
 	_, err = h.k8sClient.CoreV1().Pods("default").Create(pod)
 	if err != nil {
 		t.Fatal(err)
@@ -84,8 +92,9 @@ func clear(h *hook, t *testing.T) {
 func TestMutate(t *testing.T) {
 	scn := "topolvm"
 	testCases := []struct {
-		inputPvcs []*corev1.PersistentVolumeClaim
-		expect    []patchOperation
+		inputPvcs      []*corev1.PersistentVolumeClaim
+		inputResources bool
+		expect         []patchOperation
 	}{
 		{
 			inputPvcs: []*corev1.PersistentVolumeClaim{
@@ -228,6 +237,35 @@ func TestMutate(t *testing.T) {
 				},
 			},
 		},
+
+		{
+			inputPvcs: []*corev1.PersistentVolumeClaim{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test-pvc",
+					},
+					Spec: corev1.PersistentVolumeClaimSpec{
+						StorageClassName: &scn,
+					},
+					Status: corev1.PersistentVolumeClaimStatus{
+						Phase: corev1.ClaimPending,
+					},
+				},
+			},
+			inputResources: true,
+			expect: []patchOperation{
+				{
+					Op:    "replace",
+					Path:  "/spec/containers/0/resources/requests/topolvm.cybozu.com~1capacity",
+					Value: fmt.Sprintf("%v", 1<<30),
+				},
+				{
+					Op:    "replace",
+					Path:  "/spec/containers/0/resources/limits/topolvm.cybozu.com~1capacity",
+					Value: fmt.Sprintf("%v", 1<<30),
+				},
+			},
+		},
 	}
 
 	hook := hook{
@@ -235,7 +273,7 @@ func TestMutate(t *testing.T) {
 	}
 
 	for _, tt := range testCases {
-		res, err := hook.mutatePod(prepare(&hook, tt.inputPvcs, t))
+		res, err := hook.mutatePod(prepare(&hook, tt.inputPvcs, tt.inputResources, t))
 		if err != nil {
 			t.Fatal(err)
 		}

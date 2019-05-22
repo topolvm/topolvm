@@ -58,7 +58,11 @@ spec:
 ```
 
 When a pod refers multiple pvc, `topolvm-hook` calculate summation of volume sizes and inserts it.
-Note that you MUST create storage class using TopoLVM provisioner, and use it in the pvc.
+Each volume size in requests is rounded up to the nearest GiB.
+If a volume size is missing in a pvc, `topolvm-hook` uses 1 GiB as default.
+
+`topolvm-hook` decides which pvcs to handle by examining `storageClassName` in spec.
+It handles pvcs with `storageClassName: topolvm`, and you MUST first create a storage class named `topolvm` using TopoLVM provisioner.
 
 Command-line flags
 ------------------

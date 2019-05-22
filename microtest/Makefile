@@ -7,7 +7,7 @@ SNAPBIN=/snap/bin
 KUBECTL=$(SNAPBIN)/microk8s.kubectl
 SNAPDATA=/var/snap/microk8s/current
 
-GO_FILES=$(shell find ../ -name "*.go" -print)
+GO_FILES=$(shell find ../ -path ../microtest -prune -o -name "*.go" -print)
 CA_FILES=./certs/ca.csr ./certs/ca.pem ./certs/ca-key.pem
 SERVER_CERT_FILES=./certs/server.csr ./certs/server.pem ./certs/server-key.pem
 
@@ -24,7 +24,7 @@ topolvm.img: $(GO_FILES)
 test: topolvm.img secret hook.yml
 	$(SNAPBIN)/microk8s.status --wait-ready
 	$(SUDO) $(SNAPBIN)/microk8s.ctr -n k8s.io images import $<
-	$(KUBECTL) delete -f lvmetrics.yml -f scheduler.yml -f hook.yml -f scandpv.yml --ignore-not-found --wait
+	$(KUBECTL) delete -f lvmetrics.yml -f scheduler.yml -f hook.yml -f scandpv.yml --ignore-not-found
 	$(KUBECTL) apply -f lvmetrics.yml -f scheduler.yml -f hook.yml -f scandpv.yml
 	$(SUDO) cp scheduler-config.yaml $(SNAPDATA)/scheduler-config.yaml
 	if ! grep -q scheduler-config.yaml $(SNAPDATA)/args/kube-scheduler; then echo "--config=$(SNAPDATA)/scheduler-config.yaml" | $(SUDO) tee -a $(SNAPDATA)/args/kube-scheduler; fi
@@ -41,7 +41,7 @@ hook.yml: hook.yml.template $(CA_FILES)
 	./patch_capem.sh
 
 secret: $(SERVER_CERT_FILES)
-	$(KUBECTL) delete -n=kube-system secret topolvm-hook-certs --ignore-not-found --wait
+	$(KUBECTL) delete -n=kube-system secret topolvm-hook-certs --ignore-not-found
 	$(KUBECTL) create -n=kube-system secret generic topolvm-hook-certs --from-file=certs/server.pem --from-file=certs/server-key.pem
 
 setup:
