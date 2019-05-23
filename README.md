@@ -54,6 +54,6 @@ Documentation
 
 [docs](docs/) directory contains documents about designs and specifications.
 
-[releases]: https://github.com/cybozu-go/coil/releases
-[godoc]: https://godoc.org/github.com/cybozu-go/coil
+[releases]: https://github.com/cybozu-go/topolvm/releases
+[godoc]: https://godoc.org/github.com/cybozu-go/topolvm
 [CSI]: https://github.com/container-storage-interface/spec
