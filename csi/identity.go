@@ -3,6 +3,7 @@ package csi
 import (
 	"context"
 
+	"github.com/cybozu-go/log"
 	"github.com/golang/protobuf/ptypes/wrappers"
 )
 
@@ -14,14 +15,20 @@ func NewIdentityService() IdentityServer {
 type identityService struct {
 }
 
-func (s identityService) GetPluginInfo(context.Context, *GetPluginInfoRequest) (*GetPluginInfoResponse, error) {
+func (s identityService) GetPluginInfo(ctx context.Context, req *GetPluginInfoRequest) (*GetPluginInfoResponse, error) {
+	log.Info("GetPluginInfo", map[string]interface{}{
+		"req": req.String(),
+	})
 	return &GetPluginInfoResponse{
 		Name:          "csi-topolvm.cybozu-ne.co",
 		VendorVersion: "1.0.0",
 	}, nil
 }
 
-func (s identityService) GetPluginCapabilities(context.Context, *GetPluginCapabilitiesRequest) (*GetPluginCapabilitiesResponse, error) {
+func (s identityService) GetPluginCapabilities(ctx context.Context, req *GetPluginCapabilitiesRequest) (*GetPluginCapabilitiesResponse, error) {
+	log.Info("GetPluginCapabilities", map[string]interface{}{
+		"req": req.String(),
+	})
 	return &GetPluginCapabilitiesResponse{
 		Capabilities: []*PluginCapability{
 			{
@@ -42,7 +49,10 @@ func (s identityService) GetPluginCapabilities(context.Context, *GetPluginCapabi
 	}, nil
 }
 
-func (s identityService) Probe(context.Context, *ProbeRequest) (*ProbeResponse, error) {
+func (s identityService) Probe(ctx context.Context, req *ProbeRequest) (*ProbeResponse, error) {
+	log.Info("Probe", map[string]interface{}{
+		"req": req.String(),
+	})
 	return &ProbeResponse{
 		Ready: &wrappers.BoolValue{
 			Value: true,

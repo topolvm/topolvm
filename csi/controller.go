@@ -4,12 +4,9 @@ import (
 	context "context"
 
 	"github.com/cybozu-go/log"
+	"github.com/cybozu-go/topolvm"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-)
-
-const (
-	TopologyNodeKey = "topology.topolvm.cybozu.com/node"
 )
 
 // NewControllerService returns a new ControllerServer.
@@ -54,21 +51,21 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 	requirements := req.GetAccessibilityRequirements()
 	var node string
 	for _, topo := range requirements.Preferred {
-		if v, ok := topo.GetSegments()[TopologyNodeKey]; ok {
+		if v, ok := topo.GetSegments()[topolvm.TopologyNodeKey]; ok {
 			node = v
 			break
 		}
 	}
 	if node == "" {
 		for _, topo := range requirements.Requisite {
-			if v, ok := topo.GetSegments()[TopologyNodeKey]; ok {
+			if v, ok := topo.GetSegments()[topolvm.TopologyNodeKey]; ok {
 				node = v
 				break
 			}
 		}
 	}
 	if node == "" {
-		return nil, status.Errorf(codes.InvalidArgument, "cannot find key '%s' in accessibility_requirements", TopologyNodeKey)
+		return nil, status.Errorf(codes.InvalidArgument, "cannot find key '%s' in accessibility_requirements", topolvm.TopologyNodeKey)
 	}
 
 	name := req.GetName()
@@ -90,7 +87,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 			VolumeId:      volumeId,
 			AccessibleTopology: []*Topology{
 				{
-					Segments: map[string]string{TopologyNodeKey: node},
+					Segments: map[string]string{topolvm.TopologyNodeKey: node},
 				},
 			},
 		},

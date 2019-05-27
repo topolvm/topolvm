@@ -10,3 +10,6 @@ const CapacityResource = corev1.ResourceName("topolvm.cybozu.com/capacity")
 
 // StorageClassName is the name of StorageClass for TopoLVM
 const StorageClassName = "topolvm"
+
+// TopologyNodeKey is a key of topology that represents node name.
+const TopologyNodeKey = "topology.topolvm.cybozu.com/node"

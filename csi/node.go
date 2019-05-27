@@ -2,6 +2,7 @@ package csi
 
 import (
 	"context"
+	"github.com/cybozu-go/topolvm"
 
 	"github.com/cybozu-go/log"
 	"google.golang.org/grpc/codes"
@@ -9,11 +10,12 @@ import (
 )
 
 // NewNodeService returns a new NodeServer.
-func NewNodeService() NodeServer {
-	return &nodeService{}
+func NewNodeService(nodeName string) NodeServer {
+	return &nodeService{nodeName: nodeName}
 }
 
 type nodeService struct {
+	nodeName string
 }
 
 func (s nodeService) NodeStageVolume(context.Context, *NodeStageVolumeRequest) (*NodeStageVolumeResponse, error) {
@@ -82,9 +84,13 @@ func (s nodeService) NodeGetCapabilities(context.Context, *NodeGetCapabilitiesRe
 	}, nil
 }
 
-func (s nodeService) NodeGetInfo(context.Context, *NodeGetInfoRequest) (*NodeGetInfoResponse, error) {
+func (s nodeService) NodeGetInfo(ctx context.Context, req *NodeGetInfoRequest) (*NodeGetInfoResponse, error) {
 	return &NodeGetInfoResponse{
-		NodeId:             "foo",
-		AccessibleTopology: &Topology{},
+		NodeId: s.nodeName,
+		AccessibleTopology: &Topology{
+			Segments: map[string]string{
+				topolvm.TopologyNodeKey: s.nodeName,
+			},
+		},
 	}, nil
 }
