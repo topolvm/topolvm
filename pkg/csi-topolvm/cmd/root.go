@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/cybozu-go/topolvm/csi"
+	"github.com/cybozu-go/topolvm/csi/mock"
 	"github.com/cybozu-go/well"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
@@ -33,7 +34,11 @@ var rootCmd = &cobra.Command{
 
 		identityServer := csi.NewIdentityService()
 		csi.RegisterIdentityServer(grpcServer, identityServer)
-		controllerServer := csi.NewControllerService()
+		s, err := mock.NewLogicalVolumeService()
+		if err != nil {
+			return err
+		}
+		controllerServer := csi.NewControllerService(s)
 		csi.RegisterControllerServer(grpcServer, controllerServer)
 		nodeServer := csi.NewNodeService()
 		csi.RegisterNodeServer(grpcServer, nodeServer)

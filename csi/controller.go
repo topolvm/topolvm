@@ -8,12 +8,17 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+const (
+	TopologyNodeKey = "topology.topolvm.cybozu.com/node"
+)
+
 // NewControllerService returns a new ControllerServer.
-func NewControllerService() ControllerServer {
-	return &controllerService{}
+func NewControllerService(service LogicalVolumeService) ControllerServer {
+	return &controllerService{service: service}
 }
 
 type controllerService struct {
+	service LogicalVolumeService
 }
 
 func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRequest) (*CreateVolumeResponse, error) {
@@ -46,14 +51,48 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 	}
 
 	// process topology
+	requirements := req.GetAccessibilityRequirements()
+	var node string
+	for _, topo := range requirements.Preferred {
+		if v, ok := topo.GetSegments()[TopologyNodeKey]; ok {
+			node = v
+			break
+		}
+	}
+	if node == "" {
+		for _, topo := range requirements.Requisite {
+			if v, ok := topo.GetSegments()[TopologyNodeKey]; ok {
+				node = v
+				break
+			}
+		}
+	}
+	if node == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "cannot find key '%s' in accessibility_requirements", TopologyNodeKey)
+	}
 
-	// doCreateVolume
+	name := req.GetName()
+	if name == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid name")
+	}
+
+	size := req.GetCapacityRange().GetRequiredBytes()
+
+	volumeId, err := s.service.CreateVolume(ctx, node, name, size)
+	if err != nil {
+		// todo: handle ALREADY_EXISTS, RESOURCE_EXHAUSTED
+		return nil, status.Errorf(codes.Internal, err.Error())
+	}
 
 	return &CreateVolumeResponse{
 		Volume: &Volume{
-			CapacityBytes:      req.GetCapacityRange().GetRequiredBytes(),
-			VolumeId:           "foo",
-			AccessibleTopology: []*Topology{},
+			CapacityBytes: size,
+			VolumeId:      volumeId,
+			AccessibleTopology: []*Topology{
+				{
+					Segments: map[string]string{TopologyNodeKey: node},
+				},
+			},
 		},
 	}, nil
 }
