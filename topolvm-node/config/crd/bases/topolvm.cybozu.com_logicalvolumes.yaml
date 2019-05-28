@@ -387,31 +387,34 @@ spec:
           type: object
         spec:
           properties:
-            capacity:
-              type: string
-            node_name:
-              type: string
-            pvc_name:
+            name:
               description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
                 Important: Run "make" to regenerate code after modifying this file'
               type: string
-            pvc_namespace:
+            node_name:
+              type: string
+            size:
               type: string
           required:
-          - pvc_name
-          - pvc_namespace
+          - name
           - node_name
-          - capacity
+          - size
           type: object
         status:
           properties:
+            message:
+              type: string
             phase:
+              type: string
+            volume_id:
               description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
                 of cluster Important: Run "make" to regenerate code after modifying
                 this file'
               type: string
           required:
+          - volume_id
           - phase
+          - message
           type: object
       type: object
   versions:

@@ -69,7 +69,7 @@ spec:
   resources:
     requests:
       storage: 1Gi
-  storageClassName: topolvm
+  storageClassName: topolvm-no-provisioner
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
@@ -82,7 +82,7 @@ spec:
   resources:
     requests:
       storage: 1Gi
-  storageClassName: topolvm
+  storageClassName: topolvm-no-provisioner
 ---
 apiVersion: v1
 kind: Pod
@@ -156,7 +156,7 @@ spec:
   resources:
     requests:
       storage: 1Gi
-  storageClassName: topolvm
+  storageClassName: topolvm-no-provisioner
 ---
 apiVersion: v1
 kind: Pod

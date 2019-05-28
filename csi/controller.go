@@ -1,7 +1,7 @@
 package csi
 
 import (
-	context "context"
+	"context"
 
 	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/topolvm"
@@ -20,12 +20,13 @@ type controllerService struct {
 
 func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRequest) (*CreateVolumeResponse, error) {
 	log.Info("CreateVolume called", map[string]interface{}{
-		"name":           req.GetName(),
-		"required":       req.GetCapacityRange().GetRequiredBytes(),
-		"limit":          req.GetCapacityRange().GetLimitBytes(),
-		"parameters":     req.GetParameters(),
-		"num_secrets":    len(req.GetSecrets()),
-		"content_source": req.GetVolumeContentSource(),
+		"name":                       req.GetName(),
+		"required":                   req.GetCapacityRange().GetRequiredBytes(),
+		"limit":                      req.GetCapacityRange().GetLimitBytes(),
+		"parameters":                 req.GetParameters(),
+		"num_secrets":                len(req.GetSecrets()),
+		"content_source":             req.GetVolumeContentSource(),
+		"accessibility_requirements": req.GetAccessibilityRequirements().String(),
 	})
 
 	// check required volume capabilities

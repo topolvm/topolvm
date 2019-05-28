@@ -70,7 +70,7 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	log.Info("RECONCILE!!", "LogicalVolume", lv)
 
 	if lv.Status.Phase == "CREATING" {
-		reqBytes, ok := lv.Spec.Requests.AsInt64()
+		reqBytes, ok := lv.Spec.Size.AsInt64()
 		if ok {
 			_, err := lvService.CreateLV(ctx, &proto.CreateLVRequest{Name: lv.Name, SizeGb: uint64(reqBytes >> 30)})
 			if err != nil {

@@ -2,9 +2,9 @@ package csi
 
 import (
 	"context"
-	"github.com/cybozu-go/topolvm"
 
 	"github.com/cybozu-go/log"
+	"github.com/cybozu-go/topolvm"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

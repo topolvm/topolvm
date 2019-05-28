@@ -15,14 +15,10 @@ require (
 	github.com/cybozu-go/log v1.5.0
 	github.com/cybozu-go/well v1.8.1
 	github.com/evanphx/json-patch v4.2.0+incompatible
-	github.com/ghodss/yaml v1.0.0 // indirect
-	github.com/go-logr/logr v0.1.0 // indirect
 	github.com/go-logr/zapr v0.1.1 // indirect
 	github.com/go-sql-driver/mysql v1.4.1 // indirect
-	github.com/gogo/protobuf v1.1.1 // indirect
 	github.com/golang/protobuf v1.3.1
 	github.com/google/certificate-transparency-go v1.0.21 // indirect
-	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/jmhodges/clock v0.0.0-20160418191101-880ee4c33548 // indirect
 	github.com/jmoiron/sqlx v1.2.0 // indirect
@@ -30,25 +26,20 @@ require (
 	github.com/kisielk/sqlstruct v0.0.0-20150923205031-648daed35d49 // indirect
 	github.com/lib/pq v1.1.1 // indirect
 	github.com/mattn/go-sqlite3 v1.10.0 // indirect
-	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/onsi/ginkgo v1.6.0
-	github.com/onsi/gomega v0.0.0-20190113212917-5533ce8a0da3
+	github.com/onsi/gomega v1.4.2
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/viper v1.2.1
 	go.uber.org/atomic v1.4.0 // indirect
-	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.10.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
 	google.golang.org/appengine v1.5.0 // indirect
 	google.golang.org/grpc v1.20.1
-	gopkg.in/inf.v0 v0.9.1 // indirect
 	k8s.io/api v0.0.0-20190515023547-db5a9d1c40eb
 	k8s.io/apiextensions-apiserver v0.0.0-20190515024537-2fd0e9006049 // indirect
 	k8s.io/apimachinery v0.0.0-20190515023456-b74e4c97951f
-	k8s.io/client-go v11.0.0+incompatible
-	k8s.io/utils v0.0.0-20190506122338-8fab8cb257d5 // indirect
-	sigs.k8s.io/controller-runtime v0.1.10
-	sigs.k8s.io/testing_frameworks v0.1.1 // indirect
+	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
+	sigs.k8s.io/controller-runtime v0.2.0-beta.1
 )

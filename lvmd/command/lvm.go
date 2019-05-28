@@ -203,7 +203,7 @@ func (g *VolumeGroup) FindVolume(name string) (*LogicalVolume, error) {
 func (g *VolumeGroup) ListVolumes() ([]*LogicalVolume, error) {
 	infoList, err := parseOutput(
 		"lvs",
-		"lv_name,lv_path,lv_size,lv_kernel_major,lv_kernel_minor,origin,origin_size,pool_lv,thin_count",
+		"lv_name,lv_path,lv_size,origin,origin_size,pool_lv,thin_count,lv_uuid",
 		g.Name())
 	if err != nil {
 		return nil, err
@@ -234,8 +234,7 @@ func (g *VolumeGroup) ListVolumes() ([]*LogicalVolume, error) {
 				return nil, err
 			}
 		}
-		major, _ := strconv.ParseUint(info["lv_kernel_major"], 10, 32)
-		minor, _ := strconv.ParseUint(info["lv_kernel_minor"], 10, 32)
+		uuid, _ := info["lv_uuid"]
 		ret = append(ret, newLogicalVolume(
 			info["lv_name"],
 			info["lv_path"],
@@ -243,8 +242,7 @@ func (g *VolumeGroup) ListVolumes() ([]*LogicalVolume, error) {
 			size,
 			origin,
 			pool,
-			uint32(major),
-			uint32(minor),
+			uuid,
 		))
 	}
 	return ret, nil
@@ -388,11 +386,10 @@ type LogicalVolume struct {
 	size     uint64
 	origin   *string
 	pool     *string
-	devMajor uint32
-	devMinor uint32
+	uuid     string
 }
 
-func newLogicalVolume(name, path string, vg *VolumeGroup, size uint64, origin *string, pool *string, major, minor uint32) *LogicalVolume {
+func newLogicalVolume(name, path string, vg *VolumeGroup, size uint64, origin *string, pool *string, uuid string) *LogicalVolume {
 	fullname := fullName(name, vg)
 	return &LogicalVolume{
 		fullname,
@@ -402,8 +399,7 @@ func newLogicalVolume(name, path string, vg *VolumeGroup, size uint64, origin *s
 		size,
 		origin,
 		pool,
-		major,
-		minor,
+		uuid,
 	}
 }
 
@@ -458,14 +454,9 @@ func (l *LogicalVolume) Pool() (*ThinPool, error) {
 	return l.vg.FindPool(*l.pool)
 }
 
-// MajorNumber returns the device major number.
-func (l *LogicalVolume) MajorNumber() uint32 {
-	return l.devMajor
-}
-
-// MinorNumber returns the device minor number.
-func (l *LogicalVolume) MinorNumber() uint32 {
-	return l.devMinor
+// UUID returns the UUID of the volume.
+func (l *LogicalVolume) UUID() string {
+	return l.uuid
 }
 
 // Snapshot takes a snapshot of this volume.

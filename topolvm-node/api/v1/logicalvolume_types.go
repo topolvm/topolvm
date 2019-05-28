@@ -27,22 +27,18 @@ import (
 type LogicalVolumeSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	VolumeID   string            `json:"volume_id"`
-	Major      string            `json:"major"`
-	Minor      string            `json:"minor"`
-	NodeName   string            `json:"node_name"`
-	AccessType string            `json:"access_type"`
-	AccessMode string            `json:"access_mode"`
-	FSType     string            `json:"fs_type"`
-	Requests   resource.Quantity `json:"requests"`
+	Name     string            `json:"name"`
+	NodeName string            `json:"node_name"`
+	Size     resource.Quantity `json:"size"`
 }
 
 // LogicalVolumeStatus defines the observed state of LogicalVolume
 type LogicalVolumeStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Phase   string `json:"phase"`
-	Message string `json:"message"`
+	VolumeID string `json:"volume_id"`
+	Phase    string `json:"phase"`
+	Message  string `json:"message"`
 }
 
 // +kubebuilder:object:root=true

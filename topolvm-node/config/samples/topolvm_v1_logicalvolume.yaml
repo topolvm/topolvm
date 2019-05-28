@@ -4,6 +4,6 @@ metadata:
   name: logicalvolume-sample
 spec:
   # Add fields here
-  capacity: 10Gi
+  size: 10Gi
   node_name: localhost
-  access_type: block
+  name: pvc-1234

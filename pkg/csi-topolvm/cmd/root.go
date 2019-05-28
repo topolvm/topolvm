@@ -3,16 +3,16 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"github.com/cybozu-go/topolvm/csi/mock"
-	"github.com/spf13/viper"
 	"net"
 	"os"
 	"strings"
 
 	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/topolvm/csi"
+	"github.com/cybozu-go/topolvm/csi/k8s"
 	"github.com/cybozu-go/well"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 )
 
@@ -52,7 +52,7 @@ var rootCmd = &cobra.Command{
 		mode := args[0]
 		switch mode {
 		case modeController:
-			s, err := mock.NewLogicalVolumeService()
+			s, err := k8s.NewLogicalVolumeService()
 			if err != nil {
 				return err
 			}

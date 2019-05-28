@@ -30,9 +30,20 @@ spec:
           imagePullPolicy: "IfNotPresent"
           args:
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
+            - "--feature-gates=Topology=true"
           volumeMounts:
             - name: socket-dir
               mountPath: /run/topolvm
+
+        - name: csi-attacher
+          image: quay.io/k8scsi/csi-attacher:v1.1.1
+          imagePullPolicy: "IfNotPresent"
+          args:
+            - "--csi-address=/run/topolvm/csi-topolvm.sock"
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /run/topolvm
+
       volumes:
         - name: socket-dir
           emptyDir: {}
@@ -61,7 +72,7 @@ spec:
             - --node-name=test-node
             - --socket-name=/run/topolvm/csi-topolvm.sock
           volumeMounts:
-            - name: socket-dir
+            - name: plugin-dir
               mountPath: /run/topolvm
 
         - name: csi-registrar
@@ -69,18 +80,41 @@ spec:
           imagePullPolicy: "IfNotPresent"
           args:
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
-            - "--kubelet-registration-path=/var/lib/kubelet/plugins/<drivername.example.com>/csi.sock"
+            - "--kubelet-registration-path=/var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/csi-topolvm.sock"
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "rm -rf /registration/topolvm.cybozu.com /registration/topolvm.cybozu.com-reg.sock"]
           volumeMounts:
-            - name: socket-dir
+            - name: plugin-dir
               mountPath: /run/topolvm
+            - name: registration-dir
+              mountPath: /registration
+
       volumes:
-        - name: socket-dir
-          emptyDir: {}
+        - name: registration-dir
+          hostPath:
+            path: /var/snap/microk8s/common/var/lib/kubelet/plugins_registry/
+            type: Directory
+        - name: plugin-dir
+          hostPath:
+            path: /var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/
+            type: DirectoryOrCreate
 ---
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: topolvm
-provisioner: csi-topolvm.cybozu-ne.co
+provisioner: topolvm.cybozu.com
 volumeBindingMode: WaitForFirstConsumer
+parameters:
+  csi.storage.k8s.io/fstype: xfs
 
+---
+apiVersion: storage.k8s.io/v1beta1
+kind: CSIDriver
+metadata:
+  name: topolvm.cybozu.com
+spec:
+  attachRequired: false
+  podInfoOnMount: false

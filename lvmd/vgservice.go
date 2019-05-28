@@ -38,10 +38,9 @@ func (s *vgService) GetLVList(context.Context, *proto.Empty) (*proto.GetLVListRe
 	for i, lv := range lvs {
 
 		vols[i] = &proto.LogicalVolume{
-			Name:     lv.Name(),
-			SizeGb:   (lv.Size() + (1 << 30) - 1) >> 30,
-			DevMajor: lv.MajorNumber(),
-			DevMinor: lv.MinorNumber(),
+			Name:   lv.Name(),
+			SizeGb: (lv.Size() + (1 << 30) - 1) >> 30,
+			Uuid:   lv.UUID(),
 		}
 	}
 	return &proto.GetLVListResponse{Volumes: vols}, nil

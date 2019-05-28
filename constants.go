@@ -8,6 +8,9 @@ const CapacityKey = "topolvm.cybozu.com/capacity"
 // CapacityResource is the resource name of topolvm capacity.
 const CapacityResource = corev1.ResourceName("topolvm.cybozu.com/capacity")
 
+// PluginName is the name of the CSI plugin.
+const PluginName = "topolvm.cybozu.com"
+
 // StorageClassName is the name of StorageClass for TopoLVM
 const StorageClassName = "topolvm"
 

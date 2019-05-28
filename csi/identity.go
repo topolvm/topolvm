@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/cybozu-go/log"
+	"github.com/cybozu-go/topolvm"
 	"github.com/golang/protobuf/ptypes/wrappers"
 )
 
@@ -20,8 +21,8 @@ func (s identityService) GetPluginInfo(ctx context.Context, req *GetPluginInfoRe
 		"req": req.String(),
 	})
 	return &GetPluginInfoResponse{
-		Name:          "csi-topolvm.cybozu-ne.co",
-		VendorVersion: "1.0.0",
+		Name:          topolvm.PluginName,
+		VendorVersion: topolvm.Version,
 	}, nil
 }
 
