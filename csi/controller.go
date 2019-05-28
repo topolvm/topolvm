@@ -29,6 +29,10 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 		"accessibility_requirements": req.GetAccessibilityRequirements().String(),
 	})
 
+	if req.GetVolumeContentSource() != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "volume_content_source not supported")
+	}
+
 	// check required volume capabilities
 	for _, cap := range req.GetVolumeCapabilities() {
 		if block := cap.GetBlock(); block != nil {
@@ -42,9 +46,15 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 				"flags":       mount.GetMountFlags(),
 			})
 		} else if mode := cap.GetAccessMode(); mode != nil {
+			modeName := VolumeCapability_AccessMode_Mode_name[int32(mode.GetMode())]
 			log.Info("CreateVolume specifies volume capability", map[string]interface{}{
-				"access_mode": VolumeCapability_AccessMode_Mode_name[int32(mode.GetMode())],
+				"access_mode": modeName,
 			})
+			if mode.GetMode() != VolumeCapability_AccessMode_SINGLE_NODE_WRITER {
+				return nil, status.Errorf(codes.InvalidArgument, "unsupported access mode: %s", modeName)
+			}
+		} else {
+			return nil, status.Errorf(codes.InvalidArgument, "unknown volume capability: %v", cap)
 		}
 	}
 
@@ -74,9 +84,25 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 		return nil, status.Errorf(codes.InvalidArgument, "invalid name")
 	}
 
-	size := req.GetCapacityRange().GetRequiredBytes()
+	var sizeGb int64
+	switch size := req.GetCapacityRange().GetRequiredBytes(); {
+	case size < 0:
+		return nil, status.Errorf(codes.InvalidArgument, "required capacity must not be negative")
+	case size == 0:
+		sizeGb = 1
+	default:
+		sizeGb = (size-1)>>30 + 1
+	}
 
-	volumeId, err := s.service.CreateVolume(ctx, node, name, size)
+	switch limit := req.GetCapacityRange().GetLimitBytes(); {
+	case limit < 0:
+		return nil, status.Errorf(codes.InvalidArgument, "capacity limit must not be negative")
+	case limit > 0 && sizeGb<<30 > limit:
+		return nil, status.Errorf(codes.InvalidArgument, "capacity limit exceeded")
+	}
+
+	// todo: use sizeGb directly?
+	volumeId, err := s.service.CreateVolume(ctx, node, name, sizeGb<<30)
 	if err != nil {
 		// todo: handle ALREADY_EXISTS, RESOURCE_EXHAUSTED
 		return nil, status.Errorf(codes.Internal, err.Error())
@@ -84,7 +110,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 
 	return &CreateVolumeResponse{
 		Volume: &Volume{
-			CapacityBytes: size,
+			CapacityBytes: sizeGb << 30,
 			VolumeId:      volumeId,
 			AccessibleTopology: []*Topology{
 				{
