@@ -15,6 +15,7 @@ require (
 	github.com/cybozu-go/log v1.5.0
 	github.com/cybozu-go/well v1.8.1
 	github.com/evanphx/json-patch v4.2.0+incompatible
+	github.com/go-logr/logr v0.1.0
 	github.com/go-logr/zapr v0.1.1 // indirect
 	github.com/go-sql-driver/mysql v1.4.1 // indirect
 	github.com/golang/protobuf v1.3.1
@@ -33,6 +34,7 @@ require (
 	github.com/spf13/viper v1.2.1
 	go.uber.org/atomic v1.4.0 // indirect
 	go.uber.org/zap v1.10.0 // indirect
+	golang.org/x/net v0.0.0-20190311183353-d8887717615a
 	golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
 	google.golang.org/appengine v1.5.0 // indirect

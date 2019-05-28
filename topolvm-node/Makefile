@@ -3,6 +3,8 @@
 IMG ?= controller:latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
+GOFLAGS = -mod=vendor
+export GOFLAGS
 
 all: manager
 
@@ -37,7 +39,7 @@ fmt:
 
 # Run go vet against code
 vet:
-	go vet ./...
+	test -z "$$(go vet ./... | grep -v '^vendor' | tee /dev/stderr)"
 
 # Generate code
 generate: controller-gen
