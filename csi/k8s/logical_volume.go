@@ -5,9 +5,11 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/topolvm/csi"
 	topolvmv1 "github.com/cybozu-go/topolvm/topolvm-node/api/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -54,10 +56,24 @@ func NewLogicalVolumeService() (csi.LogicalVolumeService, error) {
 }
 
 func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node string, name string, size int64) (string, error) {
+	log.Info("k8s.CreateVolume", map[string]interface{}{
+		"name": name,
+		"node": node,
+		"size": size,
+	})
+
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 
 	lv := &topolvmv1.LogicalVolume{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "LogicalVolume",
+			APIVersion: "topolvm.cybozu.com/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: "default",
+		},
 		Spec: topolvmv1.LogicalVolumeSpec{
 			Name:     name,
 			NodeName: node,
@@ -67,13 +83,15 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node string, na
 
 	err := s.k8sClient.Create(ctx, lv)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
+	log.Info("Created!!", nil)
 
 	var volumeID string
 	message := "timed out"
 	s.k8sInformer.AddEventHandler(&toolscache.ResourceEventHandlerFuncs{
 		UpdateFunc: func(oldObj, newObj interface{}) {
+			log.Info("Updated!!", nil)
 			newLV := newObj.(*topolvmv1.LogicalVolume)
 			if newLV.Name != lv.Name || newLV.Spec.NodeName != lv.Spec.NodeName {
 				return
