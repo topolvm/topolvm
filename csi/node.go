@@ -1,12 +1,15 @@
 package csi
 
 import (
+	"bytes"
 	"context"
 	"path"
+	"sync"
 
 	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/well"
+	"golang.org/x/sys/unix"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -22,6 +25,7 @@ func NewNodeService(nodeName, vgName string) NodeServer {
 type nodeService struct {
 	nodeName string
 	vgName   string
+	mu       sync.Mutex
 }
 
 func (s nodeService) NodeStageVolume(context.Context, *NodeStageVolumeRequest) (*NodeStageVolumeResponse, error) {
@@ -43,8 +47,31 @@ func (s nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVolu
 		"volume_context":    req.GetVolumeContext(),
 	})
 
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	device := path.Join("/dev", s.vgName, req.GetVolumeId())
+
 	if req.GetVolumeCapability().GetBlock() != nil {
-		// block device
+		stat := new(unix.Stat_t)
+		err := unix.Stat(device, stat)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "stat failed for %s", device)
+		}
+
+		stat2 := new(unix.Stat_t)
+		err = unix.Stat(req.GetTargetPath(), stat2)
+		if err == nil {
+			if stat2.Rdev == stat.Rdev && stat2.Mode == stat.Mode {
+				return &NodePublishVolumeResponse{}, nil
+			}
+			return nil, status.Errorf(codes.Internal, "target_path already used")
+		}
+
+		err = unix.Mknod(req.GetTargetPath(), stat.Mode, int(stat.Rdev))
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "mknod failed for %s", req.GetTargetPath())
+		}
 	} else if mountOption := req.GetVolumeCapability().GetMount(); mountOption != nil {
 		accessMode := req.GetVolumeCapability().GetAccessMode().GetMode()
 		if accessMode != VolumeCapability_AccessMode_SINGLE_NODE_WRITER {
@@ -52,8 +79,19 @@ func (s nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVolu
 			return nil, status.Errorf(codes.FailedPrecondition, "unsupported access mode: %s", modeName)
 		}
 
-		device := path.Join("/dev", s.vgName, req.GetVolumeId())
-		out, err := well.CommandContext(ctx, "mkfs", "-t", mountOption.FsType, device).CombinedOutput()
+		out, err := well.CommandContext(ctx, "mountpoint", "-d", req.GetTargetPath()).Output()
+		if err == nil {
+			out2, err := well.CommandContext(ctx, "mountpoint", "-x", device).Output()
+			if err != nil {
+				return nil, status.Errorf(codes.Internal, "mountpoint failed for %s", device)
+			}
+			if bytes.Equal(out, out2) {
+				return &NodePublishVolumeResponse{}, nil
+			}
+			return nil, status.Errorf(codes.Internal, "target_path already used")
+		}
+
+		out, err = well.CommandContext(ctx, "mkfs", "-t", mountOption.FsType, device).CombinedOutput()
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "mkfs failed: %s", out)
 		}
