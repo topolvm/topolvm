@@ -63,7 +63,11 @@ var rootCmd = &cobra.Command{
 			if nodeName == "" {
 				return fmt.Errorf("--node-name is required")
 			}
-			nodeServer := csi.NewNodeService(nodeName)
+			vgName := viper.GetString("volume-group")
+			if vgName == "" {
+				return fmt.Errorf("--volume-group is required")
+			}
+			nodeServer := csi.NewNodeService(nodeName, vgName)
 			csi.RegisterNodeServer(grpcServer, nodeServer)
 		}
 
@@ -99,6 +103,7 @@ func Execute() {
 
 func init() {
 	fs := rootCmd.Flags()
+	fs.String("volume-group", "", "LVM volume group name")
 	fs.String("node-name", "", "The name of the node hosting csi-topolvm node service")
 	fs.String("socket-name", defaultSocketName, "The socket name for gRPC")
 

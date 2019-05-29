@@ -2,20 +2,26 @@ package csi
 
 import (
 	"context"
+	"path"
 
 	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/topolvm"
+	"github.com/cybozu-go/well"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 // NewNodeService returns a new NodeServer.
-func NewNodeService(nodeName string) NodeServer {
-	return &nodeService{nodeName: nodeName}
+func NewNodeService(nodeName, vgName string) NodeServer {
+	return &nodeService{
+		nodeName: nodeName,
+		vgName:   vgName,
+	}
 }
 
 type nodeService struct {
 	nodeName string
+	vgName   string
 }
 
 func (s nodeService) NodeStageVolume(context.Context, *NodeStageVolumeRequest) (*NodeStageVolumeResponse, error) {
@@ -37,7 +43,25 @@ func (s nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVolu
 		"volume_context":    req.GetVolumeContext(),
 	})
 
-	// doNodePublishVolume
+	if req.GetVolumeCapability().GetBlock() != nil {
+		// block device
+	} else if mountOption := req.GetVolumeCapability().GetMount(); mountOption != nil {
+		accessMode := req.GetVolumeCapability().GetAccessMode().GetMode()
+		if accessMode != VolumeCapability_AccessMode_SINGLE_NODE_WRITER {
+			modeName := VolumeCapability_AccessMode_Mode_name[int32(accessMode)]
+			return nil, status.Errorf(codes.FailedPrecondition, "unsupported access mode: %s", modeName)
+		}
+
+		device := path.Join("/dev", s.vgName, req.GetVolumeId())
+		out, err := well.CommandContext(ctx, "mkfs", "-t", mountOption.FsType, device).CombinedOutput()
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "mkfs failed: %s", out)
+		}
+		out, err = well.CommandContext(ctx, "mount", "-t", mountOption.FsType, device, req.GetTargetPath()).CombinedOutput()
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "mount failed: %s", out)
+		}
+	}
 
 	return &NodePublishVolumeResponse{}, nil
 }

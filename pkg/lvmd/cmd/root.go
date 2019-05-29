@@ -93,6 +93,6 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().StringVar(&config.vgName, "volumegroup", "", "LVM volume group name")
+	rootCmd.Flags().StringVar(&config.vgName, "volume-group", "", "LVM volume group name")
 	rootCmd.Flags().StringVar(&config.socketName, "listen", DefaultSocketName, "Unix domain socket name")
 }
