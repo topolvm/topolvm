@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"net"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"google.golang.org/grpc"
 	"k8s.io/apimachinery/pkg/runtime"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	// +kubebuilder:scaffold:imports
@@ -51,6 +53,10 @@ func init() {
 	viper.SetEnvPrefix("topo")
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv()
+
+	goflags := flag.NewFlagSet("klog", flag.ExitOnError)
+	klog.InitFlags(goflags)
+	fs.AddGoFlagSet(goflags)
 }
 
 var rootCmd = &cobra.Command{
@@ -64,7 +70,7 @@ var rootCmd = &cobra.Command{
 }
 
 func subMain() error {
-	ctrl.SetLogger(zap.Logger(true))
+	ctrl.SetLogger(zap.Logger(false))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{Scheme: scheme, MetricsBindAddress: viper.GetString("metrics-addr")})
 	if err != nil {

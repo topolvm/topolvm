@@ -30,6 +30,7 @@ func subMain() error {
 	}
 	grpcServer := grpc.NewServer()
 	proto.RegisterVGServiceServer(grpcServer, vgService{})
+	proto.RegisterLVServiceServer(grpcServer, lvService{})
 	well.Go(func(ctx context.Context) error {
 		return grpcServer.Serve(lis)
 	})
@@ -69,4 +70,25 @@ func (s vgService) Watch(_ *proto.Empty, server proto.VGService_WatchServer) err
 	<-ch
 
 	return nil
+}
+
+type lvService struct {
+}
+
+func (g lvService) CreateLV(ctx context.Context, req *proto.CreateLVRequest) (*proto.CreateLVResponse, error) {
+	return &proto.CreateLVResponse{
+		Volume: &proto.LogicalVolume{
+			Name:   req.Name,
+			SizeGb: req.SizeGb,
+			Uuid:   req.Name + "-test",
+		},
+	}, nil
+}
+
+func (g lvService) RemoveLV(context.Context, *proto.RemoveLVRequest) (*proto.Empty, error) {
+	panic("implement me")
+}
+
+func (g lvService) ResizeLV(context.Context, *proto.ResizeLVRequest) (*proto.Empty, error) {
+	panic("implement me")
 }

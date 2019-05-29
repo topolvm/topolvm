@@ -90,7 +90,24 @@ spec:
               mountPath: /run/topolvm
             - name: registration-dir
               mountPath: /registration
-
+        - name: topolvm-node
+          image: topolvm:latest
+          imagePullPolicy: Never
+          command:
+            - /topolvm-node
+            - --node-name=test-node
+            - --lvmd-socket=/run/topolvm/lvmd.sock
+          volumeMounts:
+            - name: lvmd-socket-dir
+              mountPath: /run/topolvm
+        - name: lvmd-fake
+          image: topolvm:latest
+          imagePullPolicy: Never
+          command:
+            - /lvmd
+          volumeMounts:
+            - name: lvmd-socket-dir
+              mountPath: /tmp
       volumes:
         - name: registration-dir
           hostPath:
@@ -100,6 +117,10 @@ spec:
           hostPath:
             path: /var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/
             type: DirectoryOrCreate
+        - name: lvmd-socket-dir
+          hostPath:
+            path: /tmp/topolvm
+            type: Directory
 ---
 kind: StorageClass
 apiVersion: storage.k8s.io/v1

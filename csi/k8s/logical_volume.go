@@ -4,23 +4,22 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/topolvm/csi"
 	topolvmv1 "github.com/cybozu-go/topolvm/topolvm-node/api/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	toolscache "k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type LogicalVolumeService struct {
-	k8sClient   client.Client
-	k8sInformer cache.Informer
+	k8sClient client.Client
+	k8sCache  cache.Cache
 }
 
 func NewLogicalVolumeService() (csi.LogicalVolumeService, error) {
@@ -43,15 +42,10 @@ func NewLogicalVolumeService() (csi.LogicalVolumeService, error) {
 	if err != nil {
 		return nil, err
 	}
-	informer, err := cacheClient.GetInformerForKind(schema.GroupVersionKind{
-		Group:   "topolvm.cybozu.com",
-		Version: "v1",
-		Kind:    "LogicalVolume",
-	})
 
 	return &LogicalVolumeService{
-		k8sClient:   k8sClient,
-		k8sInformer: informer,
+		k8sClient: k8sClient,
+		k8sCache:  cacheClient,
 	}, nil
 }
 
@@ -87,33 +81,23 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node string, na
 	}
 	log.Info("Created!!", nil)
 
-	var volumeID string
-	message := "timed out"
-	s.k8sInformer.AddEventHandler(&toolscache.ResourceEventHandlerFuncs{
-		UpdateFunc: func(oldObj, newObj interface{}) {
-			log.Info("Updated!!", nil)
-			newLV := newObj.(*topolvmv1.LogicalVolume)
-			if newLV.Name != lv.Name || newLV.Spec.NodeName != lv.Spec.NodeName {
-				return
-			}
-			if newLV.Status.Phase != "CREATED" {
-				return
-			}
-			if len(newLV.Status.Message) != 0 {
-				message = newLV.Status.Message
-			} else {
-				volumeID = newLV.Status.VolumeID
-			}
-			wg.Done()
-		},
-	})
-
-	wg.Wait()
-
-	if len(message) != 0 {
-		return "", errors.New(message)
+	//TODO: use informer
+	for i := 0; i < 10; i++ {
+		var newLV topolvmv1.LogicalVolume
+		err := s.k8sClient.Get(ctx, client.ObjectKey{Namespace: "default", Name: name}, &newLV)
+		if err != nil {
+			return "", err
+		}
+		if newLV.Status.Phase == "CREATED" && newLV.Status.VolumeID != "" {
+			return newLV.Status.VolumeID, nil
+		}
+		if newLV.Status.Message != "" {
+			return "", errors.New(newLV.Status.Message)
+		}
+		time.Sleep(1 * time.Second)
 	}
-	return volumeID, nil
+
+	return "", errors.New("timed out")
 }
 
 func (s *LogicalVolumeService) DeleteVolume(ctx context.Context, volumeID string) error {

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/cybozu-go/topolvm/topolvm-node/cmd"
+	"github.com/cybozu-go/topolvm/pkg/topolvm-node/cmd"
 )
 
 func main() {
