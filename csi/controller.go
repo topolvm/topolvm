@@ -45,7 +45,8 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 				"fs_type":     mount.GetFsType(),
 				"flags":       mount.GetMountFlags(),
 			})
-		} else if mode := cap.GetAccessMode(); mode != nil {
+		}
+		if mode := cap.GetAccessMode(); mode != nil {
 			modeName := VolumeCapability_AccessMode_Mode_name[int32(mode.GetMode())]
 			log.Info("CreateVolume specifies volume capability", map[string]interface{}{
 				"access_mode": modeName,
@@ -53,8 +54,6 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 			if mode.GetMode() != VolumeCapability_AccessMode_SINGLE_NODE_WRITER {
 				return nil, status.Errorf(codes.InvalidArgument, "unsupported access mode: %s", modeName)
 			}
-		} else {
-			return nil, status.Errorf(codes.InvalidArgument, "unknown volume capability: %v", cap)
 		}
 	}
 
@@ -101,8 +100,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 		return nil, status.Errorf(codes.InvalidArgument, "capacity limit exceeded")
 	}
 
-	// todo: use sizeGb directly?
-	volumeId, err := s.service.CreateVolume(ctx, node, name, sizeGb<<30)
+	volumeId, err := s.service.CreateVolume(ctx, node, name, sizeGb)
 	if err != nil {
 		// todo: handle ALREADY_EXISTS, RESOURCE_EXHAUSTED
 		return nil, status.Errorf(codes.Internal, err.Error())

@@ -77,7 +77,7 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 				lv.Status.Message = err.Error()
 			} else {
 				lv.Status.Phase = "CREATED"
-				lv.Status.VolumeID = resp.Volume.Uuid
+				lv.Status.VolumeID = resp.Volume.Name
 			}
 		}
 	} else if lv.Status.Phase == "TERMINATING" {

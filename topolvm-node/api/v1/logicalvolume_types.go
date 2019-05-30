@@ -28,7 +28,7 @@ type LogicalVolumeSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 	Name     string            `json:"name"`
-	NodeName string            `json:"node_name"`
+	NodeName string            `json:"nodeName"`
 	Size     resource.Quantity `json:"size"`
 }
 
@@ -36,7 +36,7 @@ type LogicalVolumeSpec struct {
 type LogicalVolumeStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	VolumeID string `json:"volume_id"`
+	VolumeID string `json:"volumeID"`
 	Phase    string `json:"phase"`
 	Message  string `json:"message"`
 }

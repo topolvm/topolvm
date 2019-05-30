@@ -31,7 +31,7 @@ func NewLogicalVolumeService() (csi.LogicalVolumeService, error) {
 	}, nil
 }
 
-func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node string, name string, size int64) (string, error) {
+func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node string, name string, sizeGb int64) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -40,7 +40,7 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node string, na
 	}
 	s.volumes[name] = logicalVolume{
 		name:     name,
-		size:     size,
+		size:     sizeGb << 30,
 		node:     node,
 		volumeID: name,
 	}
@@ -58,7 +58,7 @@ func (s *LogicalVolumeService) DeleteVolume(ctx context.Context, volumeID string
 	return nil
 }
 
-func (s *LogicalVolumeService) ExpandVolume(ctx context.Context, volumeID string, size int64) error {
+func (s *LogicalVolumeService) ExpandVolume(ctx context.Context, volumeID string, sizeGb int64) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -66,7 +66,7 @@ func (s *LogicalVolumeService) ExpandVolume(ctx context.Context, volumeID string
 	if !ok {
 		return ErrNotFound
 	}
-	v.size = size
+	v.size = sizeGb << 30
 	s.volumes[volumeID] = v
 
 	return nil

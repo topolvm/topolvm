@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/cybozu-go/log"
+	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/csi"
 	"github.com/cybozu-go/topolvm/csi/k8s"
 	"github.com/cybozu-go/well"
@@ -20,6 +21,7 @@ const (
 	modeNode          = "node"
 	modeController    = "controller"
 	defaultSocketName = "/run/topolvm/csi-topolvm.sock"
+	defaultNamespace  = topolvm.SystemNamespace
 )
 
 var rootCmd = &cobra.Command{
@@ -52,7 +54,11 @@ var rootCmd = &cobra.Command{
 		mode := args[0]
 		switch mode {
 		case modeController:
-			s, err := k8s.NewLogicalVolumeService()
+			namespace := viper.GetString("namespace")
+			if namespace == "" {
+				return fmt.Errorf("--namespace is required for controller")
+			}
+			s, err := k8s.NewLogicalVolumeService(namespace)
 			if err != nil {
 				return err
 			}
@@ -106,6 +112,7 @@ func init() {
 	fs.String("volume-group", "", "LVM volume group name")
 	fs.String("node-name", "", "The name of the node hosting csi-topolvm node service")
 	fs.String("socket-name", defaultSocketName, "The socket name for gRPC")
+	fs.String("namespace", defaultNamespace, "Namespace for LogicalVolume CRD")
 
 	if err := viper.BindPFlags(fs); err != nil {
 		panic(err)

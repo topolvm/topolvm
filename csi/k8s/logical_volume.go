@@ -20,9 +20,10 @@ import (
 type LogicalVolumeService struct {
 	k8sClient client.Client
 	k8sCache  cache.Cache
+	namespace string
 }
 
-func NewLogicalVolumeService() (csi.LogicalVolumeService, error) {
+func NewLogicalVolumeService(namespace string) (csi.LogicalVolumeService, error) {
 	err := topolvmv1.AddToScheme(scheme.Scheme)
 	if err != nil {
 		return nil, err
@@ -46,14 +47,15 @@ func NewLogicalVolumeService() (csi.LogicalVolumeService, error) {
 	return &LogicalVolumeService{
 		k8sClient: k8sClient,
 		k8sCache:  cacheClient,
+		namespace: namespace,
 	}, nil
 }
 
-func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node string, name string, size int64) (string, error) {
+func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node string, name string, sizeGb int64) (string, error) {
 	log.Info("k8s.CreateVolume", map[string]interface{}{
-		"name": name,
-		"node": node,
-		"size": size,
+		"name":    name,
+		"node":    node,
+		"size_gb": sizeGb,
 	})
 
 	wg := &sync.WaitGroup{}
@@ -66,12 +68,12 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node string, na
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: "default",
+			Namespace: s.namespace,
 		},
 		Spec: topolvmv1.LogicalVolumeSpec{
 			Name:     name,
 			NodeName: node,
-			Size:     *resource.NewQuantity(size, resource.BinarySI),
+			Size:     *resource.NewQuantity(sizeGb<<30, resource.BinarySI),
 		},
 	}
 
@@ -104,6 +106,6 @@ func (s *LogicalVolumeService) DeleteVolume(ctx context.Context, volumeID string
 	panic("implement me")
 }
 
-func (s *LogicalVolumeService) ExpandVolume(ctx context.Context, volumeID string, size int64) error {
+func (s *LogicalVolumeService) ExpandVolume(ctx context.Context, volumeID string, sizeGb int64) error {
 	panic("implement me")
 }
