@@ -33,6 +33,7 @@ Field             | Description
 ----------------- | -----------
 `volumeID` string | Name of the logical volume.  Also used as the volume ID in the CSI context, so this should be unique in the cluster.
 `phase`    string | Phase of the logical volume lifecycle.  See below.
+`code`     uint32 | gRPC error code.
 `message`  string | Error message.
 
 
@@ -59,6 +60,9 @@ Transit to `TERMINATED` if the logical volume is deleted successfully.
 
 * `TERMINATED`
 The corresponding logical volume has been deleted and is now unavailable.
+
+* `TERMINATE_FAILED`
+The resource is being deleted but a corresponding logical volume failed to be deleted.
 
 TODO: denote who makes transitions.
 

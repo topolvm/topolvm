@@ -45,12 +45,16 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 				"fs_type":     mount.GetFsType(),
 				"flags":       mount.GetMountFlags(),
 			})
+		} else {
+			return nil, status.Errorf(codes.InvalidArgument, "unknown or empty access_type")
 		}
+
 		if mode := cap.GetAccessMode(); mode != nil {
 			modeName := VolumeCapability_AccessMode_Mode_name[int32(mode.GetMode())]
 			log.Info("CreateVolume specifies volume capability", map[string]interface{}{
 				"access_mode": modeName,
 			})
+			// we only support SINGLE_NODE_WRITER
 			if mode.GetMode() != VolumeCapability_AccessMode_SINGLE_NODE_WRITER {
 				return nil, status.Errorf(codes.InvalidArgument, "unsupported access mode: %s", modeName)
 			}
@@ -102,8 +106,11 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 
 	volumeId, err := s.service.CreateVolume(ctx, node, name, sizeGb)
 	if err != nil {
-		// todo: handle ALREADY_EXISTS, RESOURCE_EXHAUSTED
-		return nil, status.Errorf(codes.Internal, err.Error())
+		s, ok := status.FromError(err)
+		if !ok {
+			return nil, status.Errorf(codes.Internal, err.Error())
+		}
+		return nil, s.Err()
 	}
 
 	return &CreateVolumeResponse{

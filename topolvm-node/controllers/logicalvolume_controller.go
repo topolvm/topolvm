@@ -22,6 +22,8 @@ import (
 	topolvmv1 "github.com/cybozu-go/topolvm/topolvm-node/api/v1"
 	"github.com/go-logr/logr"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -69,24 +71,45 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 
 	log.Info("RECONCILE!!", "LogicalVolume", lv)
 
-	if lv.Status.Phase == "" {
+	if lv.Status.Phase == "INITIAL" {
 		reqBytes, ok := lv.Spec.Size.AsInt64()
-		if ok {
-			resp, err := lvService.CreateLV(ctx, &proto.CreateLVRequest{Name: lv.Name, SizeGb: uint64(reqBytes >> 30)})
-			if err != nil {
+		if !ok {
+			lv.Status.Phase = "CREATE_FAILED"
+			lv.Status.Message = "failed to interpret LogicalVolume's Spec.Size as int64"
+		}
+
+		resp, err := lvService.CreateLV(ctx, &proto.CreateLVRequest{Name: lv.Name, SizeGb: uint64(reqBytes >> 30)})
+		if err != nil {
+			lv.Status.Phase = "CREATE_FAILED"
+			s, ok := status.FromError(err)
+			if !ok {
+				lv.Status.Code = codes.Internal
 				lv.Status.Message = err.Error()
 			} else {
-				lv.Status.Phase = "CREATED"
-				lv.Status.VolumeID = resp.Volume.Name
+				lv.Status.Code = s.Code()
+				lv.Status.Message = s.Message()
 			}
+		} else {
+			lv.Status.Phase = "CREATED"
+			lv.Status.VolumeID = resp.Volume.Name
 		}
 	} else if lv.Status.Phase == "TERMINATING" {
 		_, err := lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: lv.Name})
 		if err != nil {
-			lv.Status.Message = err.Error()
+			lv.Status.Phase = "TERMINATE_FAILED"
+			s, ok := status.FromError(err)
+			if !ok {
+				lv.Status.Code = codes.Internal
+				lv.Status.Message = err.Error()
+			} else {
+				lv.Status.Code = s.Code()
+				lv.Status.Message = s.Message()
+			}
 		} else {
 			lv.Status.Phase = "TERMINATED"
 		}
+	} else {
+		return ctrl.Result{}, nil
 	}
 
 	if err := r.k8sClient.Status().Update(ctx, &lv); err != nil {

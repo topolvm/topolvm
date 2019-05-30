@@ -16,6 +16,7 @@ limitations under the License.
 package v1
 
 import (
+	"google.golang.org/grpc/codes"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -36,9 +37,10 @@ type LogicalVolumeSpec struct {
 type LogicalVolumeStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	VolumeID string `json:"volumeID"`
-	Phase    string `json:"phase"`
-	Message  string `json:"message"`
+	VolumeID string     `json:"volumeID"`
+	Phase    string     `json:"phase"`
+	Code     codes.Code `json:"code"`
+	Message  string     `json:"message"`
 }
 
 // +kubebuilder:object:root=true
