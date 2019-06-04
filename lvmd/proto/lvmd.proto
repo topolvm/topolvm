@@ -16,7 +16,6 @@ message LogicalVolume {
     uint64 size_gb = 2;    // Volume size in GiB.
     uint32 dev_major = 3;  // Device major number.
     uint32 dev_minor = 4;  // Device minor number.
-    bool is_active = 5;    // Is active this volume.
 }
 
 // Represents the input for CreateLV.

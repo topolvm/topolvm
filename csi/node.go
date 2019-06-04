@@ -74,7 +74,11 @@ func (s nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVolu
 
 		}
 
-		err = unix.Mknod(req.GetTargetPath(), unix.S_IFBLK|0660, unix.Mkdev(lv.DevMajor, lv.DevMinor))
+		dev, err := mkdev(lv.DevMajor, lv.DevMinor)
+		if err != nil {
+			return nil, err
+		}
+		err = unix.Mknod(req.GetTargetPath(), unix.S_IFBLK|0660, dev)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "mknod failed for %s", req.GetTargetPath())
 		}
@@ -100,7 +104,11 @@ func (s nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVolu
 			return nil, status.Errorf(codes.Internal, "device %s exists, but it is not expected block device", device)
 		}
 	case unix.ENOENT:
-		err = unix.Mknod(device, unix.S_IFBLK|0660, unix.Mkdev(lv.DevMajor, lv.DevMinor))
+		dev, err := mkdev(lv.DevMajor, lv.DevMinor)
+		if err != nil {
+			return nil, err
+		}
+		err = unix.Mknod(device, unix.S_IFBLK|0660, dev)
 		if err != nil {
 			return nil, status.Error(codes.Internal, "failed to mknod")
 		}
@@ -192,4 +200,13 @@ func (s nodeService) NodeGetInfo(ctx context.Context, req *NodeGetInfoRequest) (
 			},
 		},
 	}, nil
+}
+
+func mkdev(major, minor uint32) (int, error) {
+	dev := unix.Mkdev(major, minor)
+	devInt := int(dev)
+	if dev != uint64(devInt) {
+		return 0, status.Errorf(codes.Internal, "failed to convert. dev: %d, devInt: %d", dev, devInt)
+	}
+	return devInt, nil
 }

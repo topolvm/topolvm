@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 )
 
+// NewLogicalVolumeReconciler returns LogicalVolumeReconciler.
 func NewLogicalVolumeReconciler(client client.Client, log logr.Logger, nodeName string, conn *grpc.ClientConn) *LogicalVolumeReconciler {
 	return &LogicalVolumeReconciler{
 		k8sClient:  client,
@@ -57,6 +58,7 @@ func ignoreNotFound(err error) error {
 // +kubebuilder:rbac:groups=topolvm.cybozu.com,resources=logicalvolumes,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=topolvm.cybozu.com,resources=logicalvolumes/status,verbs=get;update;patch
 
+// Reconcile manages LogicalVolume according to Spec and Status.Phase.
 func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.logger.WithValues("logicalvolume", req.NamespacedName)
@@ -128,19 +130,20 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	return ctrl.Result{}, nil
 }
 
+// SetupWithManager sets up Reconciler with Manager.
 func (r *LogicalVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&topolvmv1.LogicalVolume{}).
-		WithEventFilter(&LogicalVolumeFilter{r.logger, r.nodeName}).
+		WithEventFilter(&logicalVolumeFilter{r.logger, r.nodeName}).
 		Complete(r)
 }
 
-type LogicalVolumeFilter struct {
+type logicalVolumeFilter struct {
 	log      logr.Logger
 	nodeName string
 }
 
-func (f LogicalVolumeFilter) Create(e event.CreateEvent) bool {
+func (f logicalVolumeFilter) Create(e event.CreateEvent) bool {
 	f.log.Info("CREATE", "event", e)
 	var lv *topolvmv1.LogicalVolume
 	lv = e.Object.(*topolvmv1.LogicalVolume)
@@ -153,17 +156,17 @@ func (f LogicalVolumeFilter) Create(e event.CreateEvent) bool {
 	return false
 }
 
-func (f LogicalVolumeFilter) Delete(e event.DeleteEvent) bool {
+func (f logicalVolumeFilter) Delete(e event.DeleteEvent) bool {
 	f.log.Info("DELETE", "event", e)
 	return false
 }
 
-func (f LogicalVolumeFilter) Update(e event.UpdateEvent) bool {
+func (f logicalVolumeFilter) Update(e event.UpdateEvent) bool {
 	f.log.Info("UPDATE", "event", e)
 	return true
 }
 
-func (f LogicalVolumeFilter) Generic(e event.GenericEvent) bool {
+func (f logicalVolumeFilter) Generic(e event.GenericEvent) bool {
 	f.log.Info("GENERIC", "event", e)
 	return true
 }

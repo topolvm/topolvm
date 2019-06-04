@@ -78,9 +78,10 @@ type lvService struct {
 func (g lvService) CreateLV(ctx context.Context, req *proto.CreateLVRequest) (*proto.CreateLVResponse, error) {
 	return &proto.CreateLVResponse{
 		Volume: &proto.LogicalVolume{
-			Name:   req.Name,
-			SizeGb: req.SizeGb,
-			Uuid:   req.Name + "-test",
+			Name:     req.Name,
+			SizeGb:   req.SizeGb,
+			DevMajor: 0,
+			DevMinor: 0,
 		},
 	}, nil
 }

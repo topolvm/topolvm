@@ -2,15 +2,11 @@ package mock
 
 import (
 	"context"
-	"errors"
 	"sync"
 
 	"github.com/cybozu-go/topolvm/csi"
-)
-
-var (
-	ErrResourceExhausted = errors.New("resource exhausted")
-	ErrNotFound          = errors.New("not found")
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type logicalVolume struct {
@@ -20,23 +16,24 @@ type logicalVolume struct {
 	volumeID string
 }
 
-type LogicalVolumeService struct {
+type logicalVolumeService struct {
 	mu      sync.Mutex
 	volumes map[string]logicalVolume
 }
 
+// NewLogicalVolumeService returns LogicalVolumeService.
 func NewLogicalVolumeService() (csi.LogicalVolumeService, error) {
-	return &LogicalVolumeService{
+	return &logicalVolumeService{
 		volumes: make(map[string]logicalVolume),
 	}, nil
 }
 
-func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node string, name string, sizeGb int64) (string, error) {
+func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, name string, sizeGb int64) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if _, ok := s.volumes[name]; ok {
-		return "", ErrResourceExhausted
+		return "", status.Error(codes.ResourceExhausted, "error")
 	}
 	s.volumes[name] = logicalVolume{
 		name:     name,
@@ -47,24 +44,24 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node string, na
 	return name, nil
 }
 
-func (s *LogicalVolumeService) DeleteVolume(ctx context.Context, volumeID string) error {
+func (s *logicalVolumeService) DeleteVolume(ctx context.Context, volumeID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if _, ok := s.volumes[volumeID]; !ok {
-		return ErrNotFound
+		return status.Error(codes.NotFound, "error")
 	}
 	delete(s.volumes, volumeID)
 	return nil
 }
 
-func (s *LogicalVolumeService) ExpandVolume(ctx context.Context, volumeID string, sizeGb int64) error {
+func (s *logicalVolumeService) ExpandVolume(ctx context.Context, volumeID string, sizeGb int64) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	v, ok := s.volumes[volumeID]
 	if !ok {
-		return ErrNotFound
+		return status.Error(codes.NotFound, "error")
 	}
 	v.size = sizeGb << 30
 	s.volumes[volumeID] = v

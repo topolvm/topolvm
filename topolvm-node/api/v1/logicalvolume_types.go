@@ -24,6 +24,7 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// Phase is state transition name of LogicalVolume.
 const (
 	PhaseInitial         = ""
 	PhaseCreated         = "CREATED"
@@ -73,6 +74,7 @@ type LogicalVolumeList struct {
 	Items           []LogicalVolume `json:"items"`
 }
 
+// IsCompatibleWith returns true if the LogicalVolume is compatible.
 func (lv *LogicalVolume) IsCompatibleWith(lv2 *LogicalVolume) bool {
 	if lv.Spec.Name != lv2.Spec.Name {
 		return false

@@ -104,7 +104,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 		return nil, status.Errorf(codes.InvalidArgument, "capacity limit exceeded")
 	}
 
-	volumeId, err := s.service.CreateVolume(ctx, node, name, sizeGb)
+	volumeID, err := s.service.CreateVolume(ctx, node, name, sizeGb)
 	if err != nil {
 		s, ok := status.FromError(err)
 		if !ok {
@@ -116,7 +116,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 	return &CreateVolumeResponse{
 		Volume: &Volume{
 			CapacityBytes: sizeGb << 30,
-			VolumeId:      volumeId,
+			VolumeId:      volumeID,
 			AccessibleTopology: []*Topology{
 				{
 					Segments: map[string]string{topolvm.TopologyNodeKey: node},

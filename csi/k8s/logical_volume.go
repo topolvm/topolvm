@@ -20,12 +20,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type LogicalVolumeService struct {
+type logicalVolumeService struct {
 	k8sClient client.Client
 	k8sCache  cache.Cache
 	namespace string
 }
 
+// NewLogicalVolumeService returns LogicalVolumeService.
 func NewLogicalVolumeService(namespace string) (csi.LogicalVolumeService, error) {
 	err := topolvmv1.AddToScheme(scheme.Scheme)
 	if err != nil {
@@ -47,14 +48,14 @@ func NewLogicalVolumeService(namespace string) (csi.LogicalVolumeService, error)
 		return nil, err
 	}
 
-	return &LogicalVolumeService{
+	return &logicalVolumeService{
 		k8sClient: k8sClient,
 		k8sCache:  cacheClient,
 		namespace: namespace,
 	}, nil
 }
 
-func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node string, name string, sizeGb int64) (string, error) {
+func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, name string, sizeGb int64) (string, error) {
 	log.Info("k8s.CreateVolume", map[string]interface{}{
 		"name":    name,
 		"node":    node,
@@ -133,10 +134,10 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node string, na
 	}
 }
 
-func (s *LogicalVolumeService) DeleteVolume(ctx context.Context, volumeID string) error {
+func (s *logicalVolumeService) DeleteVolume(ctx context.Context, volumeID string) error {
 	panic("implement me")
 }
 
-func (s *LogicalVolumeService) ExpandVolume(ctx context.Context, volumeID string, sizeGb int64) error {
+func (s *logicalVolumeService) ExpandVolume(ctx context.Context, volumeID string, sizeGb int64) error {
 	panic("implement me")
 }
