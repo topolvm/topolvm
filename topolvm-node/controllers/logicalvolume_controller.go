@@ -71,16 +71,19 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 
 	log.Info("RECONCILE!!", "LogicalVolume", lv)
 
-	if lv.Status.Phase == "INITIAL" {
+	switch lv.Status.Phase {
+	case topolvmv1.PhaseInitial:
 		reqBytes, ok := lv.Spec.Size.AsInt64()
 		if !ok {
-			lv.Status.Phase = "CREATE_FAILED"
+			lv.Status.Phase = topolvmv1.PhaseCreateFailed
+			lv.Status.Code = codes.Internal
 			lv.Status.Message = "failed to interpret LogicalVolume's Spec.Size as int64"
+			break
 		}
 
 		resp, err := lvService.CreateLV(ctx, &proto.CreateLVRequest{Name: lv.Name, SizeGb: uint64(reqBytes >> 30)})
 		if err != nil {
-			lv.Status.Phase = "CREATE_FAILED"
+			lv.Status.Phase = topolvmv1.PhaseCreateFailed
 			s, ok := status.FromError(err)
 			if !ok {
 				lv.Status.Code = codes.Internal
@@ -89,14 +92,16 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 				lv.Status.Code = s.Code()
 				lv.Status.Message = s.Message()
 			}
-		} else {
-			lv.Status.Phase = "CREATED"
-			lv.Status.VolumeID = resp.Volume.Name
+			break
 		}
-	} else if lv.Status.Phase == "TERMINATING" {
+
+		lv.Status.Phase = topolvmv1.PhaseCreated
+		lv.Status.VolumeID = resp.Volume.Name
+
+	case topolvmv1.PhaseTerminating:
 		_, err := lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: lv.Name})
 		if err != nil {
-			lv.Status.Phase = "TERMINATE_FAILED"
+			lv.Status.Phase = topolvmv1.PhaseTerminateFailed
 			s, ok := status.FromError(err)
 			if !ok {
 				lv.Status.Code = codes.Internal
@@ -105,11 +110,14 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 				lv.Status.Code = s.Code()
 				lv.Status.Message = s.Message()
 			}
-		} else {
-			lv.Status.Phase = "TERMINATED"
+			break
 		}
-	} else {
+
+		lv.Status.Phase = topolvmv1.PhaseTerminated
+
+	default:
 		return ctrl.Result{}, nil
+
 	}
 
 	if err := r.k8sClient.Status().Update(ctx, &lv); err != nil {

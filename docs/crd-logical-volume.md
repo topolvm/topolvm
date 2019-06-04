@@ -42,7 +42,7 @@ Phase of Logical Volume Lifecycle
 
 A `LogicalVolume` resource is in one of the following lifecycle phases.
 
-* `INITIAL`:
+* `""`:
 The resource has been registered, and a corresponding logical volume in LVM should be created.
 Transit to `CREATED` if the logical volume is created successfully.
 Transit to `CREATE_FAILED` if an error occurred.
@@ -66,7 +66,7 @@ The resource is being deleted but a corresponding logical volume failed to be de
 
 TODO: denote who makes transitions.
 
-![component diagram](http://www.plantuml.com/plantuml/svg/ROzD2i8m44RtESMiXLwW2scmgGp4B69m8o8X6IHG4yWFNjygNIYw6tZl3Nn3gJRNTf_PUNE1pgT7xBQ02WrosOEcabfs1A50fbiebJ9vjdBe5dUd1JTYxE7Od2FoK1EuJBQ6546U_hZNYQDy5PCDys-mFdm7HkW3AcvGxTd7_SN4o0QAVjdm1000)
+![component diagram](http://www.plantuml.com/plantuml/svg/ROxH2e8m58RlznG7hohm1Rm8fJG4yyAacuWOso46KsCx8thxD1KqTdVs_zyv-s9Bt91hDEi7GWWssBpeims0Mr2j8iKrk-tk4ChktORxEOkWGjiv8n2K1ODFPGaDIZRr4FRieKgJEZr6S75284gW3eJ1uP_YwY4VMP8N0vznfV_n5V9RwhN6T7hNQNNEowJEonDRpAjkjXclIzGuNlVp7YVFbaThBXPHZArqZVu2)
 
 
 [ObjectMeta]: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#objectmeta-v1-meta

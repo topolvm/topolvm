@@ -11,6 +11,7 @@ import (
 	topolvmv1 "github.com/cybozu-go/topolvm/topolvm-node/api/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -63,37 +64,27 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node string, na
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 
+	lv := &topolvmv1.LogicalVolume{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "LogicalVolume",
+			APIVersion: "topolvm.cybozu.com/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: s.namespace,
+		},
+		Spec: topolvmv1.LogicalVolumeSpec{
+			Name:     name,
+			NodeName: node,
+			Size:     *resource.NewQuantity(sizeGb<<30, resource.BinarySI),
+		},
+	}
+
 	existingLV := new(topolvmv1.LogicalVolume)
 	err := s.k8sClient.Get(ctx, client.ObjectKey{Namespace: s.namespace, Name: name}, existingLV)
-	if client.IgnoreNotFound(err) != nil {
-		return "", err
-	} else if err == nil {
-		// LV with same name was found; check compatibility
-		// skip check of capabilities because (1) we allow both of two access types, and (2) we allow only one access mode
-		// for ease of comparison, sizes are compared strictly, not by compatibility of ranges
-		if existingLV.Spec.NodeName != node || existingLV.Spec.Size.Value() != sizeGb<<30 { // todo: add IsCompatibleWith() method to LogicalVolume?
-			return "", status.Error(codes.AlreadyExists, "LogicalVolume already exists")
-		}
-		// compatible LV was found; check its phase
-		// todo; if INITIAL, we should wait for CREATED in the polling below
-	} else {
-		lv := &topolvmv1.LogicalVolume{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "LogicalVolume",
-				APIVersion: "topolvm.cybozu.com/v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      name,
-				Namespace: s.namespace,
-			},
-			Spec: topolvmv1.LogicalVolumeSpec{
-				Name:     name,
-				NodeName: node,
-				Size:     *resource.NewQuantity(sizeGb<<30, resource.BinarySI),
-			},
-			Status: topolvmv1.LogicalVolumeStatus{
-				Phase: "INITIAL",
-			},
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return "", err
 		}
 
 		err := s.k8sClient.Create(ctx, lv)
@@ -101,22 +92,29 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node string, na
 			return "", err
 		}
 		log.Info("Created!!", nil)
+	} else {
+		// LV with same name was found; check compatibility
+		// skip check of capabilities because (1) we allow both of two access types, and (2) we allow only one access mode
+		// for ease of comparison, sizes are compared strictly, not by compatibility of ranges
+		if !existingLV.IsCompatibleWith(lv) {
+			return "", status.Error(codes.AlreadyExists, "Incompatible LogicalVolume already exists")
+		}
+		// compatible LV was found
 	}
 
-	//TODO: use informer
-	for i := 0; i < 10; i++ {
+	for {
 		var newLV topolvmv1.LogicalVolume
 		err := s.k8sClient.Get(ctx, client.ObjectKey{Namespace: s.namespace, Name: name}, &newLV)
 		if err != nil {
 			return "", err
 		}
-		if newLV.Status.Phase == "CREATED" {
+		if newLV.Status.Phase == topolvmv1.PhaseCreated {
 			if newLV.Status.VolumeID == "" {
 				return "", errors.New("VolumeID is empty")
 			}
 			return newLV.Status.VolumeID, nil
 		}
-		if newLV.Status.Phase == "CREATE_FAILED" {
+		if newLV.Status.Phase == topolvmv1.PhaseCreateFailed {
 			err := s.k8sClient.Delete(ctx, &newLV)
 			if err != nil {
 				// log this error but do not return this error, because newLV.Status.Message is more important
@@ -126,10 +124,13 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node string, na
 			}
 			return "", status.Error(newLV.Status.Code, newLV.Status.Message)
 		}
-		time.Sleep(1 * time.Second)
-	}
 
-	return "", errors.New("timed out")
+		select {
+		case <-ctx.Done():
+			return "", errors.New("timed out")
+		case <-time.After(1 * time.Second):
+		}
+	}
 }
 
 func (s *LogicalVolumeService) DeleteVolume(ctx context.Context, volumeID string) error {
