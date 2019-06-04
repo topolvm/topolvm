@@ -20,7 +20,7 @@ spec:
           command:
             - /csi-topolvm
             - controller
-            - --socket-name=/run/topolvm/csi-topolvm.sock
+            - --csi-socket-name=/run/topolvm/csi-topolvm.sock
           volumeMounts:
             - name: socket-dir
               mountPath: /run/topolvm
@@ -70,8 +70,7 @@ spec:
             - /csi-topolvm
             - node
             - --node-name=test-node
-            - --socket-name=/run/topolvm/csi-topolvm.sock
-            - --volume-group=topolvm
+            - --csi-socket-name=/run/topolvm/csi-topolvm.sock
           volumeMounts:
             - name: plugin-dir
               mountPath: /run/topolvm

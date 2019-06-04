@@ -11,6 +11,7 @@ import (
 	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/csi"
 	"github.com/cybozu-go/topolvm/csi/k8s"
+	lvmd "github.com/cybozu-go/topolvm/pkg/lvmd/cmd"
 	"github.com/cybozu-go/well"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -18,10 +19,10 @@ import (
 )
 
 const (
-	modeNode          = "node"
-	modeController    = "controller"
-	defaultSocketName = "/run/topolvm/csi-topolvm.sock"
-	defaultNamespace  = topolvm.SystemNamespace
+	modeNode             = "node"
+	modeController       = "controller"
+	defaultCSISocketName = "/run/topolvm/csi-topolvm.sock"
+	defaultNamespace     = topolvm.SystemNamespace
 )
 
 var rootCmd = &cobra.Command{
@@ -40,9 +41,12 @@ var rootCmd = &cobra.Command{
 			return err
 		}
 
-		socketName := viper.GetString("socket-name")
-		os.Remove(socketName)
-		lis, err := net.Listen("unix", socketName)
+		csiSocketName := viper.GetString("csi-socket-name")
+		err = os.Remove(csiSocketName)
+		if err != nil {
+			return err
+		}
+		lis, err := net.Listen("unix", csiSocketName)
 		if err != nil {
 			return err
 		}
@@ -64,23 +68,35 @@ var rootCmd = &cobra.Command{
 			}
 			controllerServer := csi.NewControllerService(s)
 			csi.RegisterControllerServer(grpcServer, controllerServer)
+			log.Info("start csi-topolvm", map[string]interface{}{
+				"mode":       mode,
+				"csi_socket": csiSocketName,
+			})
 		case modeNode:
+			lvmdSocketName := viper.GetString("lvmd-socket-name")
+			dialer := &net.Dialer{}
+			dialFunc := func(ctx context.Context, a string) (net.Conn, error) {
+				return dialer.DialContext(ctx, "unix", a)
+			}
+			conn, err := grpc.Dial(lvmdSocketName, grpc.WithInsecure(), grpc.WithContextDialer(dialFunc))
+			if err != nil {
+				return err
+			}
+			defer conn.Close()
+
 			nodeName := viper.GetString("node-name")
 			if nodeName == "" {
 				return fmt.Errorf("--node-name is required")
 			}
-			vgName := viper.GetString("volume-group")
-			if vgName == "" {
-				return fmt.Errorf("--volume-group is required")
-			}
-			nodeServer := csi.NewNodeService(nodeName, vgName)
+			nodeServer := csi.NewNodeService(nodeName, conn)
 			csi.RegisterNodeServer(grpcServer, nodeServer)
+			log.Info("start csi-topolvm", map[string]interface{}{
+				"mode":        mode,
+				"csi_socket":  csiSocketName,
+				"lvmd_socket": lvmdSocketName,
+			})
 		}
 
-		log.Info("start csi-topolvm", map[string]interface{}{
-			"mode":   mode,
-			"socket": socketName,
-		})
 		well.Go(func(ctx context.Context) error {
 			return grpcServer.Serve(lis)
 		})
@@ -109,9 +125,9 @@ func Execute() {
 
 func init() {
 	fs := rootCmd.Flags()
-	fs.String("volume-group", "", "LVM volume group name")
 	fs.String("node-name", "", "The name of the node hosting csi-topolvm node service")
-	fs.String("socket-name", defaultSocketName, "The socket name for gRPC")
+	fs.String("csi-socket-name", defaultCSISocketName, "The socket name for CSI gRPC server")
+	fs.String("lvmd-socket-name", lvmd.DefaultSocketName, "The socket name for LVMD gRPC server, for node mode")
 	fs.String("namespace", defaultNamespace, "Namespace for LogicalVolume CRD")
 
 	if err := viper.BindPFlags(fs); err != nil {

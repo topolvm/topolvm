@@ -47,14 +47,14 @@ func (s lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*pro
 	log.Info("created a new LV", map[string]interface{}{
 		"name": req.GetName(),
 		"size": requested,
-		"uuid": lv.UUID(),
 	})
 
 	return &proto.CreateLVResponse{
 		Volume: &proto.LogicalVolume{
-			Name:   lv.Name(),
-			SizeGb: lv.Size() >> 30,
-			Uuid:   lv.UUID(),
+			Name:     lv.Name(),
+			SizeGb:   lv.Size() >> 30,
+			DevMajor: lv.MajorNumber(),
+			DevMinor: lv.MinorNumber(),
 		},
 	}, nil
 }

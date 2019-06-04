@@ -46,7 +46,10 @@ func subMain() error {
 	}
 
 	// UNIX domain socket file should be removed before listening.
-	os.Remove(config.socketName)
+	err = os.Remove(config.socketName)
+	if err != nil {
+		return err
+	}
 
 	lis, err := net.Listen("unix", config.socketName)
 	if err != nil {

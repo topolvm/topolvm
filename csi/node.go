@@ -8,23 +8,25 @@ import (
 
 	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/topolvm"
+	"github.com/cybozu-go/topolvm/lvmd/proto"
 	"github.com/cybozu-go/well"
 	"golang.org/x/sys/unix"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 // NewNodeService returns a new NodeServer.
-func NewNodeService(nodeName, vgName string) NodeServer {
+func NewNodeService(nodeName string, conn *grpc.ClientConn) NodeServer {
 	return &nodeService{
 		nodeName: nodeName,
-		vgName:   vgName,
+		client:   proto.NewVGServiceClient(conn),
 	}
 }
 
 type nodeService struct {
 	nodeName string
-	vgName   string
+	client   proto.VGServiceClient
 	mu       sync.Mutex
 }
 
@@ -50,58 +52,93 @@ func (s nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVolu
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	device := path.Join("/dev", s.vgName, req.GetVolumeId())
+	listResp, err := s.client.GetLVList(ctx, &proto.Empty{})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to list LV: %v", err)
+	}
+	lv := s.findVolumeByID(listResp, req.GetVolumeId())
+	if lv == nil {
+		return nil, status.Errorf(codes.NotFound, "failed to find LV: %s", req.GetVolumeId())
+	}
 
 	if req.GetVolumeCapability().GetBlock() != nil {
 		stat := new(unix.Stat_t)
-		err := unix.Stat(device, stat)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "stat failed for %s", device)
-		}
-
-		stat2 := new(unix.Stat_t)
-		err = unix.Stat(req.GetTargetPath(), stat2)
+		err = unix.Stat(req.GetTargetPath(), stat)
 		if err == nil {
-			if stat2.Rdev == stat.Rdev && stat2.Mode == stat.Mode {
+			if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && stat.Mode&unix.S_IFBLK != 0 {
 				return &NodePublishVolumeResponse{}, nil
 			}
-			return nil, status.Errorf(codes.Internal, "target_path already used")
+			return nil, status.Errorf(codes.AlreadyExists, "target_path already used")
+		} else if err != unix.ENOENT {
+			return nil, status.Errorf(codes.Internal, "failed to stat: %v", err)
+
 		}
 
-		err = unix.Mknod(req.GetTargetPath(), stat.Mode, int(stat.Rdev))
+		err = unix.Mknod(req.GetTargetPath(), unix.S_IFBLK|0660, unix.Mkdev(lv.DevMajor, lv.DevMinor))
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "mknod failed for %s", req.GetTargetPath())
 		}
-	} else if mountOption := req.GetVolumeCapability().GetMount(); mountOption != nil {
-		accessMode := req.GetVolumeCapability().GetAccessMode().GetMode()
-		if accessMode != VolumeCapability_AccessMode_SINGLE_NODE_WRITER {
-			modeName := VolumeCapability_AccessMode_Mode_name[int32(accessMode)]
-			return nil, status.Errorf(codes.FailedPrecondition, "unsupported access mode: %s", modeName)
-		}
+		return &NodePublishVolumeResponse{}, nil
+	}
 
-		out, err := well.CommandContext(ctx, "mountpoint", "-d", req.GetTargetPath()).Output()
-		if err == nil {
-			out2, err := well.CommandContext(ctx, "mountpoint", "-x", device).Output()
-			if err != nil {
-				return nil, status.Errorf(codes.Internal, "mountpoint failed for %s", device)
-			}
-			if bytes.Equal(out, out2) {
-				return &NodePublishVolumeResponse{}, nil
-			}
-			return nil, status.Errorf(codes.Internal, "target_path already used")
-		}
+	mountOption := req.GetVolumeCapability().GetMount()
+	if mountOption == nil {
+		return nil, status.Error(codes.Internal, "failed to GetMount")
+	}
+	accessMode := req.GetVolumeCapability().GetAccessMode().GetMode()
+	if accessMode != VolumeCapability_AccessMode_SINGLE_NODE_WRITER {
+		modeName := VolumeCapability_AccessMode_Mode_name[int32(accessMode)]
+		return nil, status.Errorf(codes.FailedPrecondition, "unsupported access mode: %s", modeName)
+	}
 
-		out, err = well.CommandContext(ctx, "mkfs", "-t", mountOption.FsType, device).CombinedOutput()
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "mkfs failed: %s", out)
+	device := path.Join("/dev", "topolvm", req.GetVolumeId())
+	stat := new(unix.Stat_t)
+	err = unix.Stat(device, stat)
+	switch err {
+	case nil:
+		if !(stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && stat.Mode&unix.S_IFBLK != 0) {
+			return nil, status.Errorf(codes.Internal, "device %s exists, but it is not expected block device", device)
 		}
-		out, err = well.CommandContext(ctx, "mount", "-t", mountOption.FsType, device, req.GetTargetPath()).CombinedOutput()
+	case unix.ENOENT:
+		err = unix.Mknod(device, unix.S_IFBLK|0660, unix.Mkdev(lv.DevMajor, lv.DevMinor))
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "mount failed: %s", out)
+			return nil, status.Error(codes.Internal, "failed to mknod")
 		}
+	default:
+		return nil, status.Errorf(codes.Internal, "failed to stat: %v", err)
+	}
+
+	out, err := well.CommandContext(ctx, "mountpoint", "-d", req.GetTargetPath()).Output()
+	if err == nil {
+		out2, err := well.CommandContext(ctx, "mountpoint", "-x", device).Output()
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "mountpoint failed for %s", device)
+		}
+		if bytes.Equal(out, out2) {
+			return &NodePublishVolumeResponse{}, nil
+		}
+		return nil, status.Errorf(codes.AlreadyExists, "target_path already used")
+	}
+
+	out, err = well.CommandContext(ctx, "mkfs", "-t", mountOption.FsType, device).CombinedOutput()
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "mkfs failed: %s", out)
+	}
+	out, err = well.CommandContext(ctx, "mount", "-t", mountOption.FsType, device, req.GetTargetPath()).CombinedOutput()
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "mount failed: %s", out)
 	}
 
 	return &NodePublishVolumeResponse{}, nil
+}
+
+func (s nodeService) findVolumeByID(listResp *proto.GetLVListResponse, name string) *proto.LogicalVolume {
+	for _, v := range listResp.Volumes {
+		if v.Name == name {
+			return v
+		}
+	}
+	return nil
 }
 
 func (s nodeService) NodeUnpublishVolume(ctx context.Context, req *NodeUnpublishVolumeRequest) (*NodeUnpublishVolumeResponse, error) {

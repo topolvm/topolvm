@@ -203,12 +203,12 @@ func (g *VolumeGroup) FindVolume(name string) (*LogicalVolume, error) {
 func (g *VolumeGroup) ListVolumes() ([]*LogicalVolume, error) {
 	infoList, err := parseOutput(
 		"lvs",
-		"lv_name,lv_path,lv_size,origin,origin_size,pool_lv,thin_count,lv_uuid",
+		"lv_name,lv_path,lv_size,lv_kernel_major,lv_kernel_minor,origin,origin_size,pool_lv,thin_count",
 		g.Name())
 	if err != nil {
 		return nil, err
 	}
-	ret := []*LogicalVolume{}
+	var ret []*LogicalVolume
 	for _, info := range infoList {
 		if len(info["thin_count"]) > 0 {
 			continue
@@ -234,7 +234,8 @@ func (g *VolumeGroup) ListVolumes() ([]*LogicalVolume, error) {
 				return nil, err
 			}
 		}
-		uuid, _ := info["lv_uuid"]
+		major, _ := strconv.ParseUint(info["lv_kernel_major"], 10, 32)
+		minor, _ := strconv.ParseUint(info["lv_kernel_minor"], 10, 32)
 		ret = append(ret, newLogicalVolume(
 			info["lv_name"],
 			info["lv_path"],
@@ -242,7 +243,8 @@ func (g *VolumeGroup) ListVolumes() ([]*LogicalVolume, error) {
 			size,
 			origin,
 			pool,
-			uuid,
+			uint32(major),
+			uint32(minor),
 		))
 	}
 	return ret, nil
@@ -386,10 +388,11 @@ type LogicalVolume struct {
 	size     uint64
 	origin   *string
 	pool     *string
-	uuid     string
+	devMajor uint32
+	devMinor uint32
 }
 
-func newLogicalVolume(name, path string, vg *VolumeGroup, size uint64, origin *string, pool *string, uuid string) *LogicalVolume {
+func newLogicalVolume(name, path string, vg *VolumeGroup, size uint64, origin, pool *string, major, minor uint32) *LogicalVolume {
 	fullname := fullName(name, vg)
 	return &LogicalVolume{
 		fullname,
@@ -399,7 +402,8 @@ func newLogicalVolume(name, path string, vg *VolumeGroup, size uint64, origin *s
 		size,
 		origin,
 		pool,
-		uuid,
+		major,
+		minor,
 	}
 }
 
@@ -454,9 +458,14 @@ func (l *LogicalVolume) Pool() (*ThinPool, error) {
 	return l.vg.FindPool(*l.pool)
 }
 
-// UUID returns the UUID of the volume.
-func (l *LogicalVolume) UUID() string {
-	return l.uuid
+// MajorNumber returns the device major number.
+func (l *LogicalVolume) MajorNumber() uint32 {
+	return l.devMajor
+}
+
+// MinorNumber returns the device minor number.
+func (l *LogicalVolume) MinorNumber() uint32 {
+	return l.devMinor
 }
 
 // Snapshot takes a snapshot of this volume.
