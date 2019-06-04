@@ -391,29 +391,33 @@ spec:
               description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
                 Important: Run "make" to regenerate code after modifying this file'
               type: string
-            node_name:
+            nodeName:
               type: string
             size:
               type: string
           required:
           - name
-          - node_name
+          - nodeName
           - size
           type: object
         status:
           properties:
+            code:
+              format: int32
+              type: integer
             message:
               type: string
             phase:
               type: string
-            volume_id:
+            volumeID:
               description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
                 of cluster Important: Run "make" to regenerate code after modifying
                 this file'
               type: string
           required:
-          - volume_id
+          - volumeID
           - phase
+          - code
           - message
           type: object
       type: object

@@ -34,12 +34,12 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 	}
 
 	// check required volume capabilities
-	for _, cap := range req.GetVolumeCapabilities() {
-		if block := cap.GetBlock(); block != nil {
+	for _, capability := range req.GetVolumeCapabilities() {
+		if block := capability.GetBlock(); block != nil {
 			log.Info("CreateVolume specifies volume capability", map[string]interface{}{
 				"access_type": "block",
 			})
-		} else if mount := cap.GetMount(); mount != nil {
+		} else if mount := capability.GetMount(); mount != nil {
 			log.Info("CreateVolume specifies volume capability", map[string]interface{}{
 				"access_type": "mount",
 				"fs_type":     mount.GetFsType(),
@@ -49,7 +49,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 			return nil, status.Errorf(codes.InvalidArgument, "unknown or empty access_type")
 		}
 
-		if mode := cap.GetAccessMode(); mode != nil {
+		if mode := capability.GetAccessMode(); mode != nil {
 			modeName := VolumeCapability_AccessMode_Mode_name[int32(mode.GetMode())]
 			log.Info("CreateVolume specifies volume capability", map[string]interface{}{
 				"access_mode": modeName,
@@ -133,6 +133,7 @@ func (s controllerService) DeleteVolume(ctx context.Context, req *DeleteVolumeRe
 	})
 
 	// doDeleteVolume
+	// get CRD from volumeID and Indexer
 
 	return &DeleteVolumeResponse{}, nil
 }
