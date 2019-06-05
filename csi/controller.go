@@ -132,8 +132,14 @@ func (s controllerService) DeleteVolume(ctx context.Context, req *DeleteVolumeRe
 		"num_secrets": len(req.GetSecrets()),
 	})
 
-	// doDeleteVolume
-	// get CRD from volumeID and Indexer
+	err := s.service.DeleteVolume(ctx, req.GetVolumeId())
+	if err != nil {
+		s, ok := status.FromError(err)
+		if !ok {
+			return nil, status.Errorf(codes.Internal, err.Error())
+		}
+		return nil, s.Err()
+	}
 
 	return &DeleteVolumeResponse{}, nil
 }

@@ -63,68 +63,62 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	ctx := context.Background()
 	log := r.logger.WithValues("logicalvolume", req.NamespacedName)
 	lvService := proto.NewLVServiceClient(r.lvmdClient)
+	vgService := proto.NewVGServiceClient(r.lvmdClient)
 
 	// your logic here
-	var lv topolvmv1.LogicalVolume
-	if err := r.k8sClient.Get(ctx, req.NamespacedName, &lv); err != nil {
+	lv := new(topolvmv1.LogicalVolume)
+	if err := r.k8sClient.Get(ctx, req.NamespacedName, lv); err != nil {
 		log.Error(err, "unable to fetch LogicalVolume")
 		return ctrl.Result{}, ignoreNotFound(err)
 	}
 
 	log.Info("RECONCILE!!", "LogicalVolume", lv)
 
-	switch lv.Status.Phase {
-	case topolvmv1.PhaseInitial:
-		reqBytes, ok := lv.Spec.Size.AsInt64()
-		if !ok {
-			lv.Status.Phase = topolvmv1.PhaseCreateFailed
-			lv.Status.Code = codes.Internal
-			lv.Status.Message = "failed to interpret LogicalVolume's Spec.Size as int64"
-			break
+	if lv.ObjectMeta.DeletionTimestamp.IsZero() {
+		if lv.Status.Code != codes.OK {
+			return ctrl.Result{}, nil
 		}
 
-		resp, err := lvService.CreateLV(ctx, &proto.CreateLVRequest{Name: lv.Name, SizeGb: uint64(reqBytes >> 30)})
-		if err != nil {
-			lv.Status.Phase = topolvmv1.PhaseCreateFailed
-			s, ok := status.FromError(err)
+		if lv.Status.VolumeID == "" {
+			// todo: set finalizer
+
+			reqBytes, ok := lv.Spec.Size.AsInt64()
 			if !ok {
-				lv.Status.Code = codes.Internal
-				lv.Status.Message = err.Error()
-			} else {
-				lv.Status.Code = s.Code()
-				lv.Status.Message = s.Message()
+				err := r.updateStatusWithError(ctx, log, lv, codes.Internal, "failed to interpret LogicalVolume's Spec.Size as int64")
+				return ctrl.Result{}, err
 			}
-			break
+
+			respList, err := vgService.GetLVList(ctx, &proto.Empty{})
+			if err != nil {
+				err := r.updateStatusWithError(ctx, log, lv, codes.Internal, "failed to get list of LV")
+				return ctrl.Result{}, err
+			}
+
+			for _, v := range respList.Volumes {
+				if v.Name == lv.Name {
+					lv.Status.VolumeID = lv.Name
+					// todo: update and return
+				}
+			}
+
+			resp, err := lvService.CreateLV(ctx, &proto.CreateLVRequest{Name: lv.Name, SizeGb: uint64(reqBytes >> 30)})
+			if err != nil {
+				s, ok := status.FromError(err)
+				if !ok {
+					err := r.updateStatusWithError(ctx, log, lv, codes.Internal, err.Error())
+					return ctrl.Result{}, err
+				}
+				err := r.updateStatusWithError(ctx, log, lv, s.Code(), s.Message())
+				return ctrl.Result{}, err
+			}
+
+			lv.Status.VolumeID = resp.Volume.Name
+			// todo: update and return
 		}
-
-		lv.Status.Phase = topolvmv1.PhaseCreated
-		lv.Status.VolumeID = resp.Volume.Name
-
-	case topolvmv1.PhaseTerminating:
+	} else {
+		// todo: finalizer!!!
 		_, err := lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: lv.Name})
-		if err != nil {
-			lv.Status.Phase = topolvmv1.PhaseTerminateFailed
-			s, ok := status.FromError(err)
-			if !ok {
-				lv.Status.Code = codes.Internal
-				lv.Status.Message = err.Error()
-			} else {
-				lv.Status.Code = s.Code()
-				lv.Status.Message = s.Message()
-			}
-			break
-		}
-
-		lv.Status.Phase = topolvmv1.PhaseTerminated
-
-	default:
-		return ctrl.Result{}, nil
-
-	}
-
-	if err := r.k8sClient.Status().Update(ctx, &lv); err != nil {
-		log.Error(err, "unable to update LogicalVolume status")
-		return ctrl.Result{}, err
+		_ = err
 	}
 
 	return ctrl.Result{}, nil
@@ -136,6 +130,16 @@ func (r *LogicalVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&topolvmv1.LogicalVolume{}).
 		WithEventFilter(&logicalVolumeFilter{r.logger, r.nodeName}).
 		Complete(r)
+}
+
+func (r *LogicalVolumeReconciler) updateStatusWithError(ctx context.Context, logger logr.Logger, lv *topolvmv1.LogicalVolume, code codes.Code, message string) error {
+	lv.Status.Code = code
+	lv.Status.Message = message
+	err := r.k8sClient.Status().Update(ctx, lv)
+	if err != nil {
+		logger.Error(err, "unable to update LogicalVolume status")
+	}
+	return err
 }
 
 type logicalVolumeFilter struct {

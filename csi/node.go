@@ -3,7 +3,8 @@ package csi
 import (
 	"bytes"
 	"context"
-	"path"
+	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/cybozu-go/log"
@@ -14,6 +15,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+)
+
+const (
+	deviceDirectory = "/dev/topolvm"
 )
 
 // NewNodeService returns a new NodeServer.
@@ -30,15 +35,15 @@ type nodeService struct {
 	mu       sync.Mutex
 }
 
-func (s nodeService) NodeStageVolume(context.Context, *NodeStageVolumeRequest) (*NodeStageVolumeResponse, error) {
+func (s *nodeService) NodeStageVolume(context.Context, *NodeStageVolumeRequest) (*NodeStageVolumeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "NodeStageVolume not implemented")
 }
 
-func (s nodeService) NodeUnstageVolume(context.Context, *NodeUnstageVolumeRequest) (*NodeUnstageVolumeResponse, error) {
+func (s *nodeService) NodeUnstageVolume(context.Context, *NodeUnstageVolumeRequest) (*NodeUnstageVolumeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "NodeUnstageVolume not implemented")
 }
 
-func (s nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVolumeRequest) (*NodePublishVolumeResponse, error) {
+func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVolumeRequest) (*NodePublishVolumeResponse, error) {
 	log.Info("NodePublishVolume called", map[string]interface{}{
 		"volume_id":         req.GetVolumeId(),
 		"publish_context":   req.GetPublishContext(),
@@ -95,7 +100,7 @@ func (s nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVolu
 		return nil, status.Errorf(codes.FailedPrecondition, "unsupported access mode: %s", modeName)
 	}
 
-	device := path.Join("/dev", "topolvm", req.GetVolumeId())
+	device := filepath.Join(deviceDirectory, req.GetVolumeId())
 	stat := new(unix.Stat_t)
 	err = unix.Stat(device, stat)
 	switch err {
@@ -140,7 +145,7 @@ func (s nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVolu
 	return &NodePublishVolumeResponse{}, nil
 }
 
-func (s nodeService) findVolumeByID(listResp *proto.GetLVListResponse, name string) *proto.LogicalVolume {
+func (s *nodeService) findVolumeByID(listResp *proto.GetLVListResponse, name string) *proto.LogicalVolume {
 	for _, v := range listResp.Volumes {
 		if v.Name == name {
 			return v
@@ -149,18 +154,47 @@ func (s nodeService) findVolumeByID(listResp *proto.GetLVListResponse, name stri
 	return nil
 }
 
-func (s nodeService) NodeUnpublishVolume(ctx context.Context, req *NodeUnpublishVolumeRequest) (*NodeUnpublishVolumeResponse, error) {
+func (s *nodeService) NodeUnpublishVolume(ctx context.Context, req *NodeUnpublishVolumeRequest) (*NodeUnpublishVolumeResponse, error) {
 	log.Info("NodeUnpublishVolume called", map[string]interface{}{
 		"volume_id":   req.GetVolumeId(),
 		"target_path": req.GetTargetPath(),
 	})
 
-	// doNodeUnpublishVolume
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	device := filepath.Join(deviceDirectory, req.GetVolumeId())
+
+	info, err := os.Stat(req.GetTargetPath())
+	if os.IsNotExist(err) {
+		// target_path does not exist, but device for mount-type PV may still exist.
+		_ = os.Remove(device)
+		return &NodeUnpublishVolumeResponse{}, nil
+	} else if err != nil {
+		return nil, status.Errorf(codes.Internal, "stat failed for %s: %v", req.GetTargetPath(), err)
+	}
+
+	// remove device file if target_path is device, umount target_path otherwise
+	if info.Mode()&os.ModeDevice != 0 {
+		err := os.Remove(req.GetTargetPath())
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "remove failed for %s: %v", req.GetTargetPath(), err)
+		}
+	} else {
+		out, err := well.CommandContext(ctx, "umount", req.GetTargetPath()).CombinedOutput()
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "umount failed for %s: %s", req.GetTargetPath(), out)
+		}
+		err = os.Remove(device)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "remove failed for %s", device)
+		}
+	}
 
 	return &NodeUnpublishVolumeResponse{}, nil
 }
 
-func (s nodeService) NodeGetVolumeStats(ctx context.Context, req *NodeGetVolumeStatsRequest) (*NodeGetVolumeStatsResponse, error) {
+func (s *nodeService) NodeGetVolumeStats(ctx context.Context, req *NodeGetVolumeStatsRequest) (*NodeGetVolumeStatsResponse, error) {
 	log.Info("NodeGetVolumeStats called", map[string]interface{}{
 		"volume_id":   req.GetVolumeId(),
 		"volume_path": req.GetVolumePath(),
@@ -173,11 +207,11 @@ func (s nodeService) NodeGetVolumeStats(ctx context.Context, req *NodeGetVolumeS
 	}, nil
 }
 
-func (s nodeService) NodeExpandVolume(context.Context, *NodeExpandVolumeRequest) (*NodeExpandVolumeResponse, error) {
+func (s *nodeService) NodeExpandVolume(context.Context, *NodeExpandVolumeRequest) (*NodeExpandVolumeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "NodeExpandVolume not implemented")
 }
 
-func (s nodeService) NodeGetCapabilities(context.Context, *NodeGetCapabilitiesRequest) (*NodeGetCapabilitiesResponse, error) {
+func (s *nodeService) NodeGetCapabilities(context.Context, *NodeGetCapabilitiesRequest) (*NodeGetCapabilitiesResponse, error) {
 	return &NodeGetCapabilitiesResponse{
 		Capabilities: []*NodeServiceCapability{
 			{
@@ -191,7 +225,7 @@ func (s nodeService) NodeGetCapabilities(context.Context, *NodeGetCapabilitiesRe
 	}, nil
 }
 
-func (s nodeService) NodeGetInfo(ctx context.Context, req *NodeGetInfoRequest) (*NodeGetInfoResponse, error) {
+func (s *nodeService) NodeGetInfo(ctx context.Context, req *NodeGetInfoRequest) (*NodeGetInfoResponse, error) {
 	return &NodeGetInfoResponse{
 		NodeId: s.nodeName,
 		AccessibleTopology: &Topology{

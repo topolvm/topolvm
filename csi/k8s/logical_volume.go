@@ -3,6 +3,7 @@ package k8s
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -24,6 +26,7 @@ type logicalVolumeService struct {
 	k8sClient client.Client
 	k8sCache  cache.Cache
 	namespace string
+	mu        sync.Mutex
 }
 
 // NewLogicalVolumeService returns LogicalVolumeService.
@@ -48,6 +51,13 @@ func NewLogicalVolumeService(namespace string) (csi.LogicalVolumeService, error)
 		return nil, err
 	}
 
+	err = cacheClient.IndexField(&topolvmv1.LogicalVolume{}, "status.volumeID", func(o runtime.Object) []string {
+		return []string{o.(*topolvmv1.LogicalVolume).Status.VolumeID}
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &logicalVolumeService{
 		k8sClient: k8sClient,
 		k8sCache:  cacheClient,
@@ -62,8 +72,8 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 		"size_gb": sizeGb,
 	})
 
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	lv := &topolvmv1.LogicalVolume{
 		TypeMeta: metav1.TypeMeta{
@@ -135,7 +145,19 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 }
 
 func (s *logicalVolumeService) DeleteVolume(ctx context.Context, volumeID string) error {
-	panic("implement me")
+	lvList := new(topolvmv1.LogicalVolumeList)
+	err := s.k8sClient.List(ctx, lvList, client.MatchingField("status.volumeID", volumeID))
+	if err != nil {
+		return err
+	}
+
+	if len(lvList.Items) == 0 {
+		return nil
+	} else if len(lvList.Items) > 1 {
+		return fmt.Errorf("multiple LogicalVolume found for VolumeID %s", volumeID)
+	}
+
+	return s.k8sClient.Delete(ctx, &lvList.Items[0])
 }
 
 func (s *logicalVolumeService) ExpandVolume(ctx context.Context, volumeID string, sizeGb int64) error {
