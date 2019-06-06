@@ -12,16 +12,36 @@ CA_FILES=./certs/ca.csr ./certs/ca.pem ./certs/ca-key.pem
 SERVER_CERT_FILES=./certs/server.csr ./certs/server.pem ./certs/server-key.pem
 
 topolvm.img: $(GO_FILES)
-	CGO_ENABLED=0 go build ../pkg/lvmetrics
-	CGO_ENABLED=0 go build ../pkg/topolvm-scheduler
-	CGO_ENABLED=0 go build ../pkg/topolvm-hook
-	CGO_ENABLED=0 go build ../pkg/csi-topolvm
-	CGO_ENABLED=0 go build ../pkg/topolvm-node
-	CGO_ENABLED=0 go build -o lvmd ./lvmd-fake
+	mkdir -p build
+	CGO_ENABLED=0 go build -o build/lvmetrics ../pkg/lvmetrics
+	CGO_ENABLED=0 go build -o build/topolvm-scheduler ../pkg/topolvm-scheduler
+	CGO_ENABLED=0 go build -o build/topolvm-hook ../pkg/topolvm-hook
+	CGO_ENABLED=0 go build -o build/csi-topolvm ../pkg/csi-topolvm
+	CGO_ENABLED=0 go build -o build/topolvm-node ../pkg/topolvm-node
+	CGO_ENABLED=0 go build -o build/lvmd-fake ./lvmd-fake
 	$(CONTAINER_BUILDER) build -t docker.io/library/topolvm:latest .
-	rm -f lvmetrics topolvm-scheduler topolvm-hook csi-topolvm lvmd topolvm-node
 	rm -f $@
 	$(CONTAINER_BUILDER) save -o $@ docker.io/library/topolvm:latest
+
+start-lvmd:
+	mkdir -p build
+	CGO_ENABLED=0 go build -o build/lvmd ../pkg/lvmd
+	if [ "$$(losetup -j build/backing_store)" ]; then $(SUDO) vgremove myvg; $(SUDO) pvremove $$(losetup -j build/backing_store | cut -d: -f1); $(SUDO) losetup -d $$(losetup -j build/backing_store | cut -d: -f1); fi
+	truncate --size=10G build/backing_store
+	$(SUDO) losetup -f build/backing_store
+	$(SUDO) pvcreate $$(losetup -j build/backing_store | cut -d: -f1)
+	$(SUDO) vgcreate myvg $$(losetup -j build/backing_store | cut -d: -f1)
+	mkdir -p /tmp/topolvm
+	$(SUDO) systemd-run --unit=lvmd.service $(shell pwd)/build/lvmd --volume-group=myvg --listen=/tmp/topolvm/lvmd.sock
+
+stop-lvmd:
+	$(SUDO) systemctl stop lvmd.service
+	$(SUDO) systemctl disable lvmd.service
+	$(SUDO) rm /run/systemd/transient/lvmd.service
+	$(SUDO) systemctl daemon-reload
+	$(SUDO) systemctl reset-failed lvmd.service
+	$(SUDO) losetup -d $$(losetup -j build/backing_store | cut -d: -f1)
+	rm build/backing_store
 
 test: topolvm.img secret hook.yml
 	$(SNAPBIN)/microk8s.status --wait-ready
@@ -51,7 +71,7 @@ setup:
 	go install github.com/cloudflare/cfssl/cmd/cfssljson
 	go install github.com/onsi/ginkgo/ginkgo
 	$(SUDO) apt-get update
-	$(SUDO) apt-get install -y snapd
+	$(SUDO) apt-get install -y snapd lvm2
 ifeq ($(CONTAINER_BUILDER),podman)
 	$(SUDO) apt-get install -y podman
 endif
@@ -59,6 +79,6 @@ endif
 	$(SUDO) snap install microk8s --classic
 
 clean:
-	rm -f $(CA_FILES) $(SERVER_CERT_FILES) hook.yml topolvm.img
+	rm -rf $(CA_FILES) $(SERVER_CERT_FILES) hook.yml topolvm.img build/
 
 .PHONY: test setup

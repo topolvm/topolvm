@@ -47,7 +47,7 @@ func subMain() error {
 
 	// UNIX domain socket file should be removed before listening.
 	err = os.Remove(config.socketName)
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
 

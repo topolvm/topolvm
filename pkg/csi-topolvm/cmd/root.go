@@ -43,7 +43,7 @@ var rootCmd = &cobra.Command{
 
 		csiSocketName := viper.GetString("csi-socket-name")
 		err = os.Remove(csiSocketName)
-		if err != nil {
+		if err != nil && !os.IsNotExist(err) {
 			return err
 		}
 		lis, err := net.Listen("unix", csiSocketName)

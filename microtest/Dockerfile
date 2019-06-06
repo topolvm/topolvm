@@ -1,8 +1,8 @@
 FROM scratch
 
-COPY lvmetrics /lvmetrics
-COPY topolvm-scheduler /topolvm-scheduler
-COPY topolvm-hook /topolvm-hook
-COPY csi-topolvm /csi-topolvm
-COPY topolvm-node /topolvm-node
-COPY lvmd /lvmd
+COPY build/lvmetrics /lvmetrics
+COPY build/topolvm-scheduler /topolvm-scheduler
+COPY build/topolvm-hook /topolvm-hook
+COPY build/csi-topolvm /csi-topolvm
+COPY build/topolvm-node /topolvm-node
+COPY build/lvmd-fake /lvmd

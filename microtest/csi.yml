@@ -71,11 +71,12 @@ spec:
             - node
             - --node-name=test-node
             - --csi-socket-name=/run/topolvm/csi-topolvm.sock
+            - --lvmd-socket-name=/run/lvmd/lvmd.sock
           volumeMounts:
             - name: plugin-dir
               mountPath: /run/topolvm
             - name: lvmd-socket-dir
-              mountPath: /tmp
+              mountPath: /run/lvmd
 
         - name: csi-registrar
           image: quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
@@ -99,19 +100,11 @@ spec:
           command:
             - /topolvm-node
             - --node-name=test-node
-            - --lvmd-socket=/run/topolvm/lvmd.sock
+            - --lvmd-socket=/run/lvmd/lvmd.sock
           volumeMounts:
             - name: lvmd-socket-dir
-              mountPath: /run/topolvm
+              mountPath: /run/lvmd
 
-        - name: lvmd-fake
-          image: topolvm:latest
-          imagePullPolicy: Never
-          command:
-            - /lvmd
-          volumeMounts:
-            - name: lvmd-socket-dir
-              mountPath: /tmp
       volumes:
         - name: registration-dir
           hostPath:
