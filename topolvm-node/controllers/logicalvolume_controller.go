@@ -1,18 +1,3 @@
-/*
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package controllers
 
 import (
@@ -29,6 +14,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 )
+
+const finalizerName = "logicalvolume.topolvm.cybozu.com"
 
 // NewLogicalVolumeReconciler returns LogicalVolumeReconciler.
 func NewLogicalVolumeReconciler(client client.Client, log logr.Logger, nodeName string, conn *grpc.ClientConn) *LogicalVolumeReconciler {
@@ -58,14 +45,13 @@ func ignoreNotFound(err error) error {
 // +kubebuilder:rbac:groups=topolvm.cybozu.com,resources=logicalvolumes,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=topolvm.cybozu.com,resources=logicalvolumes/status,verbs=get;update;patch
 
-// Reconcile manages LogicalVolume according to Spec and Status.Phase.
+// Reconcile manages LogicalVolume and its LV
 func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.logger.WithValues("logicalvolume", req.NamespacedName)
 	lvService := proto.NewLVServiceClient(r.lvmdClient)
 	vgService := proto.NewVGServiceClient(r.lvmdClient)
 
-	// your logic here
 	lv := new(topolvmv1.LogicalVolume)
 	if err := r.k8sClient.Get(ctx, req.NamespacedName, lv); err != nil {
 		log.Error(err, "unable to fetch LogicalVolume")
@@ -80,45 +66,41 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		}
 
 		if lv.Status.VolumeID == "" {
-			// todo: set finalizer
-
-			reqBytes, ok := lv.Spec.Size.AsInt64()
-			if !ok {
-				err := r.updateStatusWithError(ctx, log, lv, codes.Internal, "failed to interpret LogicalVolume's Spec.Size as int64")
-				return ctrl.Result{}, err
+			if !containsString(lv.Finalizers, finalizerName) {
+				lv.Finalizers = append(lv.Finalizers, finalizerName)
 			}
-
-			respList, err := vgService.GetLVList(ctx, &proto.Empty{})
+			err := r.k8sClient.Update(ctx, lv)
 			if err != nil {
-				err := r.updateStatusWithError(ctx, log, lv, codes.Internal, "failed to get list of LV")
+				log.Error(err, "failed to set finalizer", "name", lv.Name)
 				return ctrl.Result{}, err
 			}
-
-			for _, v := range respList.Volumes {
-				if v.Name == lv.Name {
-					lv.Status.VolumeID = lv.Name
-					// todo: update and return
-				}
-			}
-
-			resp, err := lvService.CreateLV(ctx, &proto.CreateLVRequest{Name: lv.Name, SizeGb: uint64(reqBytes >> 30)})
+			err = r.createLV(ctx, log, lv, vgService, lvService)
 			if err != nil {
-				s, ok := status.FromError(err)
-				if !ok {
-					err := r.updateStatusWithError(ctx, log, lv, codes.Internal, err.Error())
-					return ctrl.Result{}, err
-				}
-				err := r.updateStatusWithError(ctx, log, lv, s.Code(), s.Message())
 				return ctrl.Result{}, err
 			}
-
-			lv.Status.VolumeID = resp.Volume.Name
-			// todo: update and return
+			return ctrl.Result{}, nil
 		}
+		//
+		// TODO: handle requests to expand volume, here
+		//
 	} else {
-		// todo: finalizer!!!
-		_, err := lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: lv.Name})
-		_ = err
+		if !containsString(lv.Finalizers, finalizerName) {
+			// Our finalizer has finished, so the reconciler can do nothing.
+			return ctrl.Result{}, nil
+		}
+		log.Info("start finalizing LogicalVolume", "name", lv.Name)
+		err := r.removeLVIfExists(ctx, log, lv, vgService, lvService)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		lv.Finalizers = removeString(lv.Finalizers, finalizerName)
+		err = r.k8sClient.Update(ctx, lv)
+		if err != nil {
+			log.Error(err, "failed to remove finalizers from LogicalVolume", "name", lv.Name)
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
 	}
 
 	return ctrl.Result{}, nil
@@ -140,6 +122,92 @@ func (r *LogicalVolumeReconciler) updateStatusWithError(ctx context.Context, log
 		logger.Error(err, "unable to update LogicalVolume status")
 	}
 	return err
+}
+
+func (r *LogicalVolumeReconciler) removeLVIfExists(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume, vgService proto.VGServiceClient, lvService proto.LVServiceClient) error {
+	// Finalizer's process ( RemoveLV then removeString ) is not atomic,
+	// so checking existence of LV to ensure its idempotence
+	respList, err := vgService.GetLVList(ctx, &proto.Empty{})
+	if err != nil {
+		log.Error(err, "failed to list LV")
+		return err
+	}
+
+	for _, v := range respList.Volumes {
+		if v.Name == lv.Name {
+			_, err := lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: lv.Name})
+			if err != nil {
+				log.Error(err, "failed to remove LV", "name", lv.Name)
+				return err
+			}
+			log.Info("removed LV", "name", lv.Name)
+			return nil
+		}
+	}
+	log.Info("LV already removed", "name", lv.Name)
+	return nil
+}
+
+func (r *LogicalVolumeReconciler) updateVolumeIfExists(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume, vgService proto.VGServiceClient) (found bool, err error) {
+	respList, err := vgService.GetLVList(ctx, &proto.Empty{})
+	if err != nil {
+		err := r.updateStatusWithError(ctx, log, lv, codes.Internal, "failed to get list of LV")
+		return false, err
+	}
+
+	for _, v := range respList.Volumes {
+		if v.Name == lv.Name {
+			lv.Status.VolumeID = lv.Name
+			err := r.k8sClient.Status().Update(ctx, lv)
+			if err != nil {
+				log.Error(err, "failed to add VolumeID", "name", lv.Name)
+				return true, err
+			}
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume,
+	vgService proto.VGServiceClient, lvService proto.LVServiceClient) error {
+
+	reqBytes, ok := lv.Spec.Size.AsInt64()
+	if !ok {
+		err := r.updateStatusWithError(ctx, log, lv, codes.Internal, "failed to interpret spec.size as int64")
+		return err
+	}
+
+	// This function's logic is not atomic, so it is possible that LV is created but LogicalVolume.status is not updated.
+	// We check existence the LV to ensure idempotence of createLV.
+	found, err := r.updateVolumeIfExists(ctx, log, lv, vgService)
+	if err != nil {
+		return err
+	} else if found {
+		log.Info("set volumeID to existing LogicalVolume", "name", lv.Name, "status.volumeID", lv.Status.VolumeID)
+		return nil
+	}
+
+	resp, err := lvService.CreateLV(ctx, &proto.CreateLVRequest{Name: lv.Name, SizeGb: uint64(reqBytes >> 30)})
+	if err != nil {
+		s, ok := status.FromError(err)
+		if !ok {
+			err := r.updateStatusWithError(ctx, log, lv, codes.Internal, err.Error())
+			return err
+		}
+		err := r.updateStatusWithError(ctx, log, lv, s.Code(), s.Message())
+		return err
+	}
+
+	lv.Status.VolumeID = resp.Volume.Name
+	err = r.k8sClient.Status().Update(ctx, lv)
+	if err != nil {
+		log.Error(err, "failed to update VolumeID", "name", lv.Name)
+		return err
+	}
+
+	log.Info("created new LV", "name", lv.Name, "status.volumeID", lv.Status.VolumeID)
+	return nil
 }
 
 type logicalVolumeFilter struct {
@@ -173,4 +241,23 @@ func (f logicalVolumeFilter) Update(e event.UpdateEvent) bool {
 func (f logicalVolumeFilter) Generic(e event.GenericEvent) bool {
 	f.log.Info("GENERIC", "event", e)
 	return true
+}
+
+func containsString(slice []string, s string) bool {
+	for _, item := range slice {
+		if item == s {
+			return true
+		}
+	}
+	return false
+}
+
+func removeString(slice []string, s string) (result []string) {
+	for _, item := range slice {
+		if item == s {
+			continue
+		}
+		result = append(result, item)
+	}
+	return
 }

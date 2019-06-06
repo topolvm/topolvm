@@ -119,13 +119,10 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 		if err != nil {
 			return "", err
 		}
-		if newLV.Status.Phase == topolvmv1.PhaseCreated {
-			if newLV.Status.VolumeID == "" {
-				return "", errors.New("VolumeID is empty")
-			}
+		if newLV.Status.VolumeID != "" {
 			return newLV.Status.VolumeID, nil
 		}
-		if newLV.Status.Phase == topolvmv1.PhaseCreateFailed {
+		if newLV.Status.Code != codes.OK {
 			err := s.k8sClient.Delete(ctx, &newLV)
 			if err != nil {
 				// log this error but do not return this error, because newLV.Status.Message is more important
