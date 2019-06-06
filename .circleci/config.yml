@@ -6,6 +6,7 @@ jobs:
     working_directory: /work
     steps:
       - checkout
+      - run: make -f topolvm-node/Makefile SUDO="" setup
       - run: make test
   test_lvmd:
     machine: true

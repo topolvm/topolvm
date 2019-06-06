@@ -6,6 +6,11 @@ CRD_OPTIONS ?= "crd:trivialVersions=true"
 GOFLAGS = -mod=vendor
 export GOFLAGS
 
+GOOS = $(shell go env GOOS)
+GOARCH = $(shell go env GOARCH)
+SUDO = sudo
+KUBEBUILDER_VERSION = 2.0.0-alpha.2
+
 all: manager
 
 # Run tests
@@ -64,3 +69,10 @@ CONTROLLER_GEN=$(shell go env GOPATH)/bin/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
+
+setup:
+	curl -sL https://go.kubebuilder.io/dl/$(KUBEBUILDER_VERSION)/$(GOOS)/$(GOARCH) | tar -xz -C /tmp/
+	$(SUDO) mv /tmp/kubebuilder_$(KUBEBUILDER_VERSION)_$(GOOS)_$(GOARCH) /usr/local/kubebuilder
+	$(SUDO) curl -o /usr/local/kubebuilder/bin/kustomize -sL https://go.kubebuilder.io/kustomize/$(GOOS)/$(GOARCH)
+	$(SUDO) chmod a+x /usr/local/kubebuilder/bin/kustomize
+	GOFLAGS="" go install github.com/jstemmer/go-junit-report

@@ -126,7 +126,7 @@ spec:
 			resources := pod.Spec.Containers[0].Resources
 			v, ok := resources.Limits[topolvm.CapacityResource]
 			if !ok {
-				return errors.New("not mutated")
+				return errors.New("resources.Limits is not mutated")
 			}
 			if v.Value() != 2<<30 {
 				return fmt.Errorf("wrong limit value: actual=%d, expect=%d", v.Value(), 2<<30)
@@ -134,7 +134,7 @@ spec:
 
 			v, ok = resources.Requests[topolvm.CapacityResource]
 			if !ok {
-				return errors.New("not mutated")
+				return errors.New("resources.Requests is not mutated")
 			}
 			if v.Value() != 2<<30 {
 				return fmt.Errorf("wrong request value: actual=%d, expect=%d", v.Value(), 2<<30)
@@ -200,7 +200,7 @@ spec:
 			resources := pod.Spec.Containers[0].Resources
 			v, ok := resources.Limits[topolvm.CapacityResource]
 			if !ok {
-				return errors.New("not mutated")
+				return errors.New("resources.Limits is deleted")
 			}
 			if v.Value() != 1<<30 {
 				return fmt.Errorf("wrong limit value: actual=%d, expect=%d", v.Value(), 1<<30)
@@ -208,7 +208,7 @@ spec:
 
 			v, ok = resources.Requests[topolvm.CapacityResource]
 			if !ok {
-				return errors.New("not mutated")
+				return errors.New("resources.Requests is deleted")
 			}
 			if v.Value() != 1<<30 {
 				return fmt.Errorf("wrong request value: actual=%d, expect=%d", v.Value(), 1<<30)

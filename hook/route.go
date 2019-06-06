@@ -3,6 +3,7 @@ package hook
 import (
 	"net/http"
 
+	"github.com/cybozu-go/log"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -12,6 +13,16 @@ type hook struct {
 }
 
 func (h hook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	fields := map[string]interface{}{
+		log.FnType:        "access",
+		log.FnProtocol:    r.Proto,
+		log.FnHTTPMethod:  r.Method,
+		log.FnURL:         r.RequestURI,
+		log.FnHTTPHost:    r.Host,
+		log.FnRequestSize: r.ContentLength,
+	}
+	log.Info("access topolvm-hook", fields)
+
 	switch r.URL.Path {
 	case "/mutate":
 		h.mutate(w, r)
