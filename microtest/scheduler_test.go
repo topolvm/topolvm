@@ -11,13 +11,17 @@ import (
 )
 
 var _ = Describe("Test topolvm-scheduler", func() {
+	testNamespace := "scheduler-test"
 	BeforeEach(func() {
-		kubectl("delete", "namespace", "scheduler-test")
-		stdout, stderr, err := kubectl("create", "namespace", "scheduler-test")
+		kubectl("delete", "namespace", testNamespace)
+		stdout, stderr, err := kubectl("create", "namespace", testNamespace)
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		Eventually(func() error {
+			return waitCreatingDefaultSA(testNamespace)
+		}).Should(Succeed())
 	})
 	AfterEach(func() {
-		kubectl("delete", "namespace", "scheduler-test")
+		kubectl("delete", "namespace", testNamespace)
 	})
 
 	It("should be deployed topolvm-scheduler pod", func() {

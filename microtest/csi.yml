@@ -66,6 +66,8 @@ spec:
         - name: node
           image: topolvm:latest
           imagePullPolicy: Never
+          securityContext:
+            privileged: true
           command:
             - /csi-topolvm
             - node
@@ -79,6 +81,8 @@ spec:
               mountPath: /run/lvmd
             - name: device-dir
               mountPath: /dev
+            - name: pod-volumes-dir
+              mountPath: /var/snap/microk8s/common/var/lib/kubelet/pods
 
         - name: csi-registrar
           image: quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
@@ -115,6 +119,10 @@ spec:
         - name: plugin-dir
           hostPath:
             path: /var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/
+            type: DirectoryOrCreate
+        - name: pod-volumes-dir
+          hostPath:
+            path: /var/snap/microk8s/common/var/lib/kubelet/pods/
             type: DirectoryOrCreate
         - name: lvmd-socket-dir
           hostPath:

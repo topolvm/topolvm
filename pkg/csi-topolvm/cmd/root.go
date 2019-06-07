@@ -84,8 +84,8 @@ var rootCmd = &cobra.Command{
 			}
 			defer conn.Close()
 
-			err = os.Mkdir(csi.DeviceDirectory, 0755)
-			if err != nil && !os.IsExist(err) {
+			err = os.MkdirAll(csi.DeviceDirectory, 0755)
+			if err != nil {
 				return err
 			}
 

@@ -77,6 +77,10 @@ ifeq ($(CONTAINER_BUILDER),podman)
 endif
 	$(SUDO) snap install core
 	$(SUDO) snap install microk8s --classic
+	echo "--allow-privileged=true" | $(SUDO) tee -a /var/snap/microk8s/current/args/kubelet
+	echo "--allow-privileged=true" | $(SUDO) tee -a /var/snap/microk8s/current/args/kube-apiserver
+	$(SUDO) systemctl restart snap.microk8s.daemon-kubelet.service
+	$(SUDO) systemctl restart snap.microk8s.daemon-apiserver.service
 
 clean:
 	rm -rf $(CA_FILES) $(SERVER_CERT_FILES) hook.yml topolvm.img build/

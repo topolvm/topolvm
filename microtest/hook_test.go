@@ -16,14 +16,19 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = Describe("Test topolvm-hook", func() {
+	testNamespace := "hook-test"
+
 	BeforeEach(func() {
-		kubectl("delete", "namespace", "hook-test")
+		kubectl("delete", "namespace", testNamespace)
 		kubectl("wait", "namespace/hook-test", "--for=delete")
-		stdout, stderr, err := kubectl("create", "namespace", "hook-test")
+		stdout, stderr, err := kubectl("create", "namespace", testNamespace)
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		Eventually(func() error {
+			return waitCreatingDefaultSA(testNamespace)
+		}).Should(Succeed())
 	})
 	AfterEach(func() {
-		stdout, stderr, err := kubectl("delete", "namespace", "hook-test")
+		stdout, stderr, err := kubectl("delete", "namespace", testNamespace)
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 		kubectl("wait", "namespace/hook-test", "--for=delete")
 	})

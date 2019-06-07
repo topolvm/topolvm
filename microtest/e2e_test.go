@@ -14,6 +14,9 @@ var _ = Describe("E2E test", func() {
 		kubectl("delete", "namespace", testNamespace)
 		stdout, stderr, err := kubectl("create", "namespace", testNamespace)
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		Eventually(func() error {
+			return waitCreatingDefaultSA(testNamespace)
+		}).Should(Succeed())
 	})
 
 	AfterEach(func() {
@@ -26,6 +29,10 @@ var _ = Describe("E2E test", func() {
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 		//defer kubectl("delete", "namespace", "topolvm-system")
 
+		Eventually(func() error {
+			return waitCreatingDefaultSA("topolvm-system")
+		}).Should(Succeed())
+
 		stdout, stderr, err = kubectl("apply", "-f", "../topolvm-node/config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
@@ -34,8 +41,7 @@ var _ = Describe("E2E test", func() {
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		By("deploying Pod with PVC")
-		yml := `
-kind: PersistentVolumeClaim
+		yml := `kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: topo-pvc
@@ -57,6 +63,7 @@ spec:
   containers:
     - name: ubuntu
       image: quay.io/cybozu/ubuntu:18.04
+      command: ["sleep", "infinity"]
       volumeMounts:
         - mountPath: /test1
           name: my-volume
@@ -88,3 +95,11 @@ spec:
 		}).Should(Succeed())
 	})
 })
+
+func waitCreatingDefaultSA(ns string) error {
+	stdout, stderr, err := kubectl("get", "sa", "-n", ns, "default")
+	if err != nil {
+		return fmt.Errorf("default sa is not found. stdout=%s, stderr=%s, err=%v", stdout, stderr, err)
+	}
+	return nil
+}

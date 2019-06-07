@@ -139,6 +139,10 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVol
 		return nil, status.Errorf(codes.AlreadyExists, "target_path already used")
 	}
 
+	err = os.MkdirAll(req.GetTargetPath(), 0755)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "mkdir failed, target path: "+req.GetTargetPath())
+	}
 	out, err = well.CommandContext(ctx, mkfsCmd, "-t", mountOption.FsType, device).CombinedOutput()
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "mkfs failed: %s", out)
