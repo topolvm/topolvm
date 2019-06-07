@@ -17,13 +17,15 @@ var _ = Describe("E2E test", func() {
 	})
 
 	AfterEach(func() {
-		kubectl("delete", "namespace", testNamespace)
+		//kubectl("delete", "namespace", testNamespace)
 	})
 
 	It("should be mounted in specified path", func() {
 		By("initialize LogicalVolume CRD")
 		stdout, stderr, err := kubectl("create", "namespace", "topolvm-system")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		//defer kubectl("delete", "namespace", "topolvm-system")
+
 		stdout, stderr, err = kubectl("apply", "-f", "../topolvm-node/config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
@@ -68,9 +70,19 @@ spec:
 
 		By("confirming that the specified device exists in the Pod")
 		Eventually(func() error {
+			stdout, stderr, err = kubectl("get", "pvc", "topo-pvc", "-n", testNamespace)
+			if err != nil {
+				return fmt.Errorf("failed to create PVC. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+
+			stdout, stderr, err = kubectl("get", "pods", "ubuntu", "-n", testNamespace)
+			if err != nil {
+				return fmt.Errorf("failed to create Pod. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+
 			stdout, stderr, err = kubectl("exec", "-n", testNamespace, "ubuntu", "--", "mountpoint", "-d", "/test1")
 			if err != nil {
-				return fmt.Errorf("failed. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+				return fmt.Errorf("failed to check mount point. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
 			}
 			return nil
 		}).Should(Succeed())

@@ -84,6 +84,11 @@ var rootCmd = &cobra.Command{
 			}
 			defer conn.Close()
 
+			err = os.Mkdir(csi.DeviceDirectory, 0755)
+			if err != nil && !os.IsExist(err) {
+				return err
+			}
+
 			nodeName := viper.GetString("node-name")
 			if nodeName == "" {
 				return fmt.Errorf("--node-name is required")

@@ -77,6 +77,8 @@ spec:
               mountPath: /run/topolvm
             - name: lvmd-socket-dir
               mountPath: /run/lvmd
+            - name: device-dir
+              mountPath: /dev
 
         - name: csi-registrar
           image: quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
@@ -117,6 +119,10 @@ spec:
         - name: lvmd-socket-dir
           hostPath:
             path: /tmp/topolvm
+            type: Directory
+        - name: device-dir
+          hostPath:
+            path: /dev
             type: Directory
 ---
 apiVersion: storage.k8s.io/v1beta1

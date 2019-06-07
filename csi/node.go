@@ -18,7 +18,8 @@ import (
 )
 
 const (
-	deviceDirectory = "/dev/topolvm"
+	// DeviceDirectory is a directory where TopoLVM Node service creates device files.
+	DeviceDirectory = "/dev/topolvm"
 )
 
 // NewNodeService returns a new NodeServer.
@@ -100,7 +101,7 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVol
 		return nil, status.Errorf(codes.FailedPrecondition, "unsupported access mode: %s", modeName)
 	}
 
-	device := filepath.Join(deviceDirectory, req.GetVolumeId())
+	device := filepath.Join(DeviceDirectory, req.GetVolumeId())
 	stat := new(unix.Stat_t)
 	err = unix.Stat(device, stat)
 	switch err {
@@ -163,7 +164,7 @@ func (s *nodeService) NodeUnpublishVolume(ctx context.Context, req *NodeUnpublis
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	device := filepath.Join(deviceDirectory, req.GetVolumeId())
+	device := filepath.Join(DeviceDirectory, req.GetVolumeId())
 
 	info, err := os.Stat(req.GetTargetPath())
 	if os.IsNotExist(err) {
