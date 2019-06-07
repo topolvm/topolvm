@@ -119,16 +119,6 @@ spec:
             path: /tmp/topolvm
             type: Directory
 ---
-kind: StorageClass
-apiVersion: storage.k8s.io/v1
-metadata:
-  name: topolvm
-provisioner: topolvm.cybozu.com
-volumeBindingMode: WaitForFirstConsumer
-parameters:
-  csi.storage.k8s.io/fstype: xfs
-
----
 apiVersion: storage.k8s.io/v1beta1
 kind: CSIDriver
 metadata:

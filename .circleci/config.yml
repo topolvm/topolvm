@@ -30,7 +30,7 @@ jobs:
           command: sudo env "GO111MODULE=on" "CIRCLECI=${CIRCLECI}" "CIRCLECI_EXECUTOR=machine" /usr/local/go/bin/go test -mod=vendor -race -v ./lvmd
   micro_test:
     machine:
-      image: circleci/classic:edge
+      image: ubuntu-1604:201903-01
     working_directory: /home/circleci/work
     steps:
       - checkout
@@ -74,6 +74,7 @@ jobs:
           name: Run test
           command: |
             cd microtest
+            make start-lvmd
             make GINKGO=/home/circleci/.go_workspace/bin/ginkgo CONTAINER_BUILDER=docker test
           environment:
             CIRCLECI_EXECUTOR: machine

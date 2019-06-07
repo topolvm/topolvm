@@ -26,11 +26,11 @@ topolvm.img: $(GO_FILES)
 start-lvmd:
 	mkdir -p build
 	CGO_ENABLED=0 go build -o build/lvmd ../pkg/lvmd
-	if [ "$$(losetup -j build/backing_store)" ]; then $(SUDO) vgremove myvg; $(SUDO) pvremove $$(losetup -j build/backing_store | cut -d: -f1); $(SUDO) losetup -d $$(losetup -j build/backing_store | cut -d: -f1); fi
+	if [ "$$($(SUDO) losetup -j build/backing_store)" ]; then $(SUDO) vgremove myvg; $(SUDO) pvremove $$($(SUDO) losetup -j build/backing_store | cut -d: -f1); $(SUDO) losetup -d $$($(SUDO) losetup -j build/backing_store | cut -d: -f1); fi
 	truncate --size=10G build/backing_store
 	$(SUDO) losetup -f build/backing_store
-	$(SUDO) pvcreate $$(losetup -j build/backing_store | cut -d: -f1)
-	$(SUDO) vgcreate myvg $$(losetup -j build/backing_store | cut -d: -f1)
+	$(SUDO) pvcreate $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
+	$(SUDO) vgcreate myvg $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
 	mkdir -p /tmp/topolvm
 	$(SUDO) systemd-run --unit=lvmd.service $(shell pwd)/build/lvmd --volume-group=myvg --listen=/tmp/topolvm/lvmd.sock
 
@@ -40,7 +40,7 @@ stop-lvmd:
 	$(SUDO) rm /run/systemd/transient/lvmd.service
 	$(SUDO) systemctl daemon-reload
 	$(SUDO) systemctl reset-failed lvmd.service
-	$(SUDO) losetup -d $$(losetup -j build/backing_store | cut -d: -f1)
+	$(SUDO) losetup -d $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
 	rm build/backing_store
 
 test: topolvm.img secret hook.yml
