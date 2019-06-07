@@ -20,6 +20,11 @@ import (
 const (
 	// DeviceDirectory is a directory where TopoLVM Node service creates device files.
 	DeviceDirectory = "/dev/topolvm"
+
+	mkfsCmd       = "/sbin/mkfs"
+	mountCmd      = "/bin/mount"
+	mountpointCmd = "/bin/mountpoint"
+	umountCmd     = "/bin/umount"
 )
 
 // NewNodeService returns a new NodeServer.
@@ -122,9 +127,9 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVol
 		return nil, status.Errorf(codes.Internal, "failed to stat: %v", err)
 	}
 
-	out, err := well.CommandContext(ctx, "mountpoint", "-d", req.GetTargetPath()).Output()
+	out, err := well.CommandContext(ctx, mountpointCmd, "-d", req.GetTargetPath()).Output()
 	if err == nil {
-		out2, err := well.CommandContext(ctx, "mountpoint", "-x", device).Output()
+		out2, err := well.CommandContext(ctx, mountpointCmd, "-x", device).Output()
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "mountpoint failed for %s", device)
 		}
@@ -134,11 +139,11 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVol
 		return nil, status.Errorf(codes.AlreadyExists, "target_path already used")
 	}
 
-	out, err = well.CommandContext(ctx, "mkfs", "-t", mountOption.FsType, device).CombinedOutput()
+	out, err = well.CommandContext(ctx, mkfsCmd, "-t", mountOption.FsType, device).CombinedOutput()
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "mkfs failed: %s", out)
 	}
-	out, err = well.CommandContext(ctx, "mount", "-t", mountOption.FsType, device, req.GetTargetPath()).CombinedOutput()
+	out, err = well.CommandContext(ctx, mountCmd, "-t", mountOption.FsType, device, req.GetTargetPath()).CombinedOutput()
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "mount failed: %s", out)
 	}
@@ -182,7 +187,8 @@ func (s *nodeService) NodeUnpublishVolume(ctx context.Context, req *NodeUnpublis
 			return nil, status.Errorf(codes.Internal, "remove failed for %s: %v", req.GetTargetPath(), err)
 		}
 	} else {
-		out, err := well.CommandContext(ctx, "umount", req.GetTargetPath()).CombinedOutput()
+
+		out, err := well.CommandContext(ctx, umountCmd, req.GetTargetPath()).CombinedOutput()
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "umount failed for %s: %s", req.GetTargetPath(), out)
 		}
