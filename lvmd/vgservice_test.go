@@ -171,11 +171,11 @@ func TestVGService(t *testing.T) {
 	}
 
 	vgName := "test_vgservice"
-	loop, err := makeVG(vgName)
+	loop, err := MakeLoopbackVG(vgName)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer cleanVG(loop, vgName)
+	defer CleanLoopbackVG(loop, vgName)
 
 	vg, err := command.FindVolumeGroup(vgName)
 	if err != nil {

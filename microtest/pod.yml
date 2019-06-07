@@ -8,7 +8,7 @@ spec:
   resources:
     requests:
       storage: 1Gi
-  storageClassName: topolvm
+  storageClassName: topolvm-provisioner
 ---
 apiVersion: v1
 kind: Pod

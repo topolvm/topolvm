@@ -407,8 +407,6 @@ spec:
               type: integer
             message:
               type: string
-            phase:
-              type: string
             volumeID:
               description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
                 of cluster Important: Run "make" to regenerate code after modifying
@@ -416,7 +414,6 @@ spec:
               type: string
           required:
           - volumeID
-          - phase
           - code
           - message
           type: object

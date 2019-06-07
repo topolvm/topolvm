@@ -1,0 +1,19 @@
+#!/bin/sh -e
+
+test $# -eq 1
+service="$1"
+
+tail_once() {
+  sudo journalctl -f -u ${service}.service
+}
+
+tail_forever() {
+  while true; do
+    tail_once || continue
+    sleep 3
+  done
+}
+
+tail_forever
+
+wait
