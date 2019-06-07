@@ -66,10 +66,12 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		}
 
 		if lv.Status.VolumeID == "" {
-			if !containsString(lv.Finalizers, finalizerName) {
-				lv.Finalizers = append(lv.Finalizers, finalizerName)
-			}
-			err := r.k8sClient.Update(ctx, lv)
+			_, err := ctrl.CreateOrUpdate(ctx, r.k8sClient, lv, func() error {
+				if !containsString(lv.Finalizers, finalizerName) {
+					lv.Finalizers = append(lv.Finalizers, finalizerName)
+				}
+				return nil
+			})
 			if err != nil {
 				log.Error(err, "failed to set finalizer", "name", lv.Name)
 				return ctrl.Result{}, err
@@ -93,9 +95,10 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-
-		lv.Finalizers = removeString(lv.Finalizers, finalizerName)
-		err = r.k8sClient.Update(ctx, lv)
+		_, err = ctrl.CreateOrUpdate(ctx, r.k8sClient, lv, func() error {
+			lv.Finalizers = removeString(lv.Finalizers, finalizerName)
+			return nil
+		})
 		if err != nil {
 			log.Error(err, "failed to remove finalizers from LogicalVolume", "name", lv.Name)
 			return ctrl.Result{}, err

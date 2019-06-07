@@ -1,4 +1,4 @@
-FROM scratch
+FROM quay.io/cybozu/ubuntu-debug:18.04
 
 COPY build/lvmetrics /lvmetrics
 COPY build/topolvm-scheduler /topolvm-scheduler
