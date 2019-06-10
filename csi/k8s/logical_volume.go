@@ -3,6 +3,7 @@ package k8s
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -16,42 +17,34 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 type logicalVolumeService struct {
-	k8sClient client.Client
-	k8sCache  cache.Cache
+	mgr       manager.Manager
 	namespace string
 	mu        sync.Mutex
 }
 
+var (
+	scheme = runtime.NewScheme()
+)
+
+const indexFieldVolumeID = "status.volumeID"
+
 // NewLogicalVolumeService returns LogicalVolumeService.
 func NewLogicalVolumeService(namespace string) (csi.LogicalVolumeService, error) {
-	err := topolvmv1.AddToScheme(scheme.Scheme)
+	err := topolvmv1.AddToScheme(scheme)
 	if err != nil {
 		return nil, err
 	}
-
-	config, err := rest.InClusterConfig()
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{Scheme: scheme})
 	if err != nil {
 		return nil, err
 	}
-
-	k8sClient, err := client.New(config, client.Options{Scheme: scheme.Scheme})
-	if err != nil {
-		return nil, err
-	}
-
-	cacheClient, err := cache.New(config, cache.Options{Scheme: scheme.Scheme})
-	if err != nil {
-		return nil, err
-	}
-
-	err = cacheClient.IndexField(&topolvmv1.LogicalVolume{}, "status.volumeID", func(o runtime.Object) []string {
+	err = mgr.GetFieldIndexer().IndexField(&topolvmv1.LogicalVolume{}, indexFieldVolumeID, func(o runtime.Object) []string {
 		return []string{o.(*topolvmv1.LogicalVolume).Status.VolumeID}
 	})
 	if err != nil {
@@ -59,8 +52,7 @@ func NewLogicalVolumeService(namespace string) (csi.LogicalVolumeService, error)
 	}
 
 	return &logicalVolumeService{
-		k8sClient: k8sClient,
-		k8sCache:  cacheClient,
+		mgr:       mgr,
 		namespace: namespace,
 	}, nil
 }
@@ -92,13 +84,13 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 	}
 
 	existingLV := new(topolvmv1.LogicalVolume)
-	err := s.k8sClient.Get(ctx, client.ObjectKey{Namespace: s.namespace, Name: name}, existingLV)
+	err := s.mgr.GetClient().Get(ctx, client.ObjectKey{Namespace: s.namespace, Name: name}, existingLV)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			return "", err
 		}
 
-		err := s.k8sClient.Create(ctx, lv)
+		err := s.mgr.GetClient().Create(ctx, lv)
 		if err != nil {
 			return "", err
 		}
@@ -115,7 +107,7 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 
 	for {
 		var newLV topolvmv1.LogicalVolume
-		err := s.k8sClient.Get(ctx, client.ObjectKey{Namespace: s.namespace, Name: name}, &newLV)
+		err := s.mgr.GetClient().Get(ctx, client.ObjectKey{Namespace: s.namespace, Name: name}, &newLV)
 		if err != nil {
 			return "", err
 		}
@@ -123,7 +115,7 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 			return newLV.Status.VolumeID, nil
 		}
 		if newLV.Status.Code != codes.OK {
-			err := s.k8sClient.Delete(ctx, &newLV)
+			err := s.mgr.GetClient().Delete(ctx, &newLV)
 			if err != nil {
 				// log this error but do not return this error, because newLV.Status.Message is more important
 				log.Error("failed to delete LogicalVolume", map[string]interface{}{
@@ -143,29 +135,22 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 
 func (s *logicalVolumeService) DeleteVolume(ctx context.Context, volumeID string) error {
 	lvList := new(topolvmv1.LogicalVolumeList)
-	err := s.k8sClient.List(ctx, lvList, client.InNamespace(topolvm.SystemNamespace))
+	err := s.mgr.GetClient().List(ctx, lvList,
+		client.InNamespace(topolvm.SystemNamespace),
+		client.MatchingField(indexFieldVolumeID, volumeID))
 	if err != nil {
 		return err
 	}
-
-	lv := findByVolumeID(lvList, volumeID)
-	if lv == nil {
+	if len(lvList.Items) == 0 {
 		log.Info("volume is not found", map[string]interface{}{
 			"volume_id": volumeID,
 		})
 		return nil
+	} else if len(lvList.Items) > 1 {
+		return fmt.Errorf("multiple LogicalVolume is found for VolumeID %s", volumeID)
 	}
 
-	return s.k8sClient.Delete(ctx, lv)
-}
-
-func findByVolumeID(lvList *topolvmv1.LogicalVolumeList, volumeID string) *topolvmv1.LogicalVolume {
-	for _, lv := range lvList.Items {
-		if lv.Status.VolumeID == volumeID {
-			return &lv
-		}
-	}
-	return nil
+	return s.mgr.GetClient().Delete(ctx, &lvList.Items[0])
 }
 
 func (s *logicalVolumeService) ExpandVolume(ctx context.Context, volumeID string, sizeGb int64) error {
