@@ -11,8 +11,9 @@ var _ = Describe("E2E test", func() {
 	testNamespace := "e2e-test"
 
 	BeforeEach(func() {
-		kubectl("delete", "namespace", testNamespace)
-		stdout, stderr, err := kubectl("create", "namespace", testNamespace)
+		stdout, stderr, err := kubectl("delete", "--now=true", "--ignore-not-found=true", "namespace", testNamespace)
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		stdout, stderr, err = kubectl("create", "namespace", testNamespace)
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 		Eventually(func() error {
 			return waitCreatingDefaultSA(testNamespace)

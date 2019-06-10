@@ -149,6 +149,9 @@ func (s *logicalVolumeService) DeleteVolume(ctx context.Context, volumeID string
 	}
 
 	if len(lvList.Items) == 0 {
+		log.Info("volume is already deleted", map[string]interface{}{
+			"volume_id": volumeID,
+		})
 		return nil
 	} else if len(lvList.Items) > 1 {
 		return fmt.Errorf("multiple LogicalVolume found for VolumeID %s", volumeID)
