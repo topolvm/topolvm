@@ -3,11 +3,11 @@ package k8s
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/cybozu-go/log"
+	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/csi"
 	topolvmv1 "github.com/cybozu-go/topolvm/topolvm-node/api/v1"
 	"google.golang.org/grpc/codes"
@@ -143,21 +143,29 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 
 func (s *logicalVolumeService) DeleteVolume(ctx context.Context, volumeID string) error {
 	lvList := new(topolvmv1.LogicalVolumeList)
-	err := s.k8sClient.List(ctx, lvList, client.MatchingField("status.volumeID", volumeID))
+	err := s.k8sClient.List(ctx, lvList, client.InNamespace(topolvm.SystemNamespace))
 	if err != nil {
 		return err
 	}
 
-	if len(lvList.Items) == 0 {
-		log.Info("volume is already deleted", map[string]interface{}{
+	lv := findByVolumeID(lvList, volumeID)
+	if lv == nil {
+		log.Info("volume is not found", map[string]interface{}{
 			"volume_id": volumeID,
 		})
 		return nil
-	} else if len(lvList.Items) > 1 {
-		return fmt.Errorf("multiple LogicalVolume found for VolumeID %s", volumeID)
 	}
 
-	return s.k8sClient.Delete(ctx, &lvList.Items[0])
+	return s.k8sClient.Delete(ctx, lv)
+}
+
+func findByVolumeID(lvList *topolvmv1.LogicalVolumeList, volumeID string) *topolvmv1.LogicalVolume {
+	for _, lv := range lvList.Items {
+		if lv.Status.VolumeID == volumeID {
+			return &lv
+		}
+	}
+	return nil
 }
 
 func (s *logicalVolumeService) ExpandVolume(ctx context.Context, volumeID string, sizeGb int64) error {

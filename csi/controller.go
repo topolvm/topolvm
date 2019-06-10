@@ -134,6 +134,10 @@ func (s controllerService) DeleteVolume(ctx context.Context, req *DeleteVolumeRe
 
 	err := s.service.DeleteVolume(ctx, req.GetVolumeId())
 	if err != nil {
+		log.Error("DeleteVolume failed", map[string]interface{}{
+			"volume_id": req.GetVolumeId(),
+			"error":     err.Error(),
+		})
 		s, ok := status.FromError(err)
 		if !ok {
 			return nil, status.Errorf(codes.Internal, err.Error())
