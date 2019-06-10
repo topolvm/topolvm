@@ -47,28 +47,28 @@ jobs:
             cd microtest
             make CONTAINER_BUILDER=docker setup
       - run:
-          name: Watch microk8s.daemon-apiserver
+          name: Watch apiserver
           command: |
             if [ -f .skip ]; then exit 0; fi
-            ./bin/watch_service microk8s.daemon-apiserver
+            ./bin/watch_service snap.microk8s.daemon-apiserver
           background: true
       - run:
-          name: Watch microk8s.daemon-scheduler
+          name: Watch scheduler
           command: |
             if [ -f .skip ]; then exit 0; fi
-            ./bin/watch_service microk8s.daemon-scheduler
+            ./bin/watch_service snap.microk8s.daemon-scheduler
           background: true
       - run:
-          name: Watch microk8s.daemon-controller-manager
+          name: Watch controller-manager
           command: |
             if [ -f .skip ]; then exit 0; fi
-            ./bin/watch_service microk8s.daemon-controller-manager
+            ./bin/watch_service snap.microk8s.daemon-controller-manager
           background: true
       - run:
-          name: Watch microk8s.daemon-kubelet
+          name: Watch kubelet
           command: |
             if [ -f .skip ]; then exit 0; fi
-            ./bin/watch_service microk8s.daemon-kubelet
+            ./bin/watch_service snap.microk8s.daemon-kubelet
           background: true
       - run:
           name: Run test

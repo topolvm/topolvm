@@ -5,6 +5,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/cybozu-go/log"
@@ -143,16 +144,50 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVol
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "mkdir failed, target path: "+req.GetTargetPath())
 	}
-	out, err = well.CommandContext(ctx, mkfsCmd, "-t", mountOption.FsType, device).CombinedOutput()
+
+	existingFsType, err := detectFsType(ctx, device)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "mkfs failed: %s", out)
+		return nil, err
 	}
-	out, err = well.CommandContext(ctx, mountCmd, "-t", mountOption.FsType, device, req.GetTargetPath()).CombinedOutput()
+	if existingFsType == "" {
+		out, err := well.CommandContext(ctx, mkfsCmd, "-t", mountOption.FsType, device).CombinedOutput()
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to mkfs: %s", out)
+		}
+	} else {
+		log.Info("skipped mkfs, because file system already exists", map[string]interface{}{
+			"device_path": device,
+		})
+	}
+
+	out, err = well.CommandContext(ctx, mountCmd, "-t", mountOption.FsType, device, req.TargetPath).CombinedOutput()
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "mount failed: %s", out)
+		return nil, status.Errorf(codes.Internal, "failed to mount: %s", out)
 	}
 
 	return &NodePublishVolumeResponse{}, nil
+}
+
+func detectFsType(ctx context.Context, devicePath string) (string, error) {
+	out, err := well.CommandContext(ctx, "file", "-bsL", devicePath).CombinedOutput()
+	if err != nil {
+		return "", err
+	}
+	if strings.TrimSpace(string(out)) == "data" {
+		return "", nil
+	}
+	out, err = well.CommandContext(ctx, "blkid", "-c", "/dev/null", "-o", "export", devicePath).CombinedOutput()
+	if err != nil {
+		return "", err
+	}
+	for _, l := range strings.Split(string(out), "\n") {
+		prefix := "TYPE="
+		if !strings.HasPrefix(l, prefix) {
+			continue
+		}
+		return l[len(prefix):], nil
+	}
+	return "", nil
 }
 
 func (s *nodeService) findVolumeByID(listResp *proto.GetLVListResponse, name string) *proto.LogicalVolume {

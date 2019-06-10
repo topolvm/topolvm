@@ -58,7 +58,7 @@ func NewLogicalVolumeService(namespace string) (csi.LogicalVolumeService, error)
 }
 
 func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, name string, sizeGb int64) (string, error) {
-	log.Info("k8s.CreateVolume", map[string]interface{}{
+	log.Info("k8s.CreateVolume called", map[string]interface{}{
 		"name":    name,
 		"node":    node,
 		"size_gb": sizeGb,
@@ -94,7 +94,9 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 		if err != nil {
 			return "", err
 		}
-		log.Info("Created!!", nil)
+		log.Info("creat LogicalVolume", map[string]interface{}{
+			"name": name,
+		})
 	} else {
 		// LV with same name was found; check compatibility
 		// skip check of capabilities because (1) we allow both of two access types, and (2) we allow only one access mode
@@ -112,6 +114,9 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 			return "", err
 		}
 		if newLV.Status.VolumeID != "" {
+			log.Info("end k8s.LogicalVolume", map[string]interface{}{
+				"volume_id": newLV.Status.VolumeID,
+			})
 			return newLV.Status.VolumeID, nil
 		}
 		if newLV.Status.Code != codes.OK {
