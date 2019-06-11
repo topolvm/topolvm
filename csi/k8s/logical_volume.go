@@ -111,6 +111,11 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 		var newLV topolvmv1.LogicalVolume
 		err := s.mgr.GetClient().Get(ctx, client.ObjectKey{Namespace: s.namespace, Name: name}, &newLV)
 		if err != nil {
+			log.Error("failed to get LogicalVolume", map[string]interface{}{
+				log.FnError: err,
+				"namespace": s.namespace,
+				"name":      name,
+			})
 			return "", err
 		}
 		if newLV.Status.VolumeID != "" {
@@ -120,6 +125,9 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 			return newLV.Status.VolumeID, nil
 		}
 		if newLV.Status.Code != codes.OK {
+			log.Debug("status code", map[string]interface{}{
+				"statuscode": newLV.Status.Code,
+			})
 			err := s.mgr.GetClient().Delete(ctx, &newLV)
 			if err != nil {
 				// log this error but do not return this error, because newLV.Status.Message is more important
@@ -129,9 +137,13 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 			}
 			return "", status.Error(newLV.Status.Code, newLV.Status.Message)
 		}
-
+		log.Info("waiting for setting 'status.volumeID'", map[string]interface{}{
+			"namespace": s.namespace,
+			"name":      name,
+		})
 		select {
 		case <-ctx.Done():
+			log.Info("context is done", map[string]interface{}{})
 			return "", errors.New("timed out")
 		case <-time.After(1 * time.Second):
 		}
