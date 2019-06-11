@@ -578,7 +578,7 @@ k8s.io/utils/trace
 sigs.k8s.io/controller-runtime
 sigs.k8s.io/controller-runtime/pkg/client
 sigs.k8s.io/controller-runtime/pkg/manager
-sigs.k8s.io/controller-runtime/pkg/reconcile/reconciletest
+sigs.k8s.io/controller-runtime/pkg/reconcile
 sigs.k8s.io/controller-runtime/pkg/log/zap
 sigs.k8s.io/controller-runtime/pkg/scheme
 sigs.k8s.io/controller-runtime/pkg/event
@@ -587,7 +587,6 @@ sigs.k8s.io/controller-runtime/pkg/client/config
 sigs.k8s.io/controller-runtime/pkg/controller/controllerutil
 sigs.k8s.io/controller-runtime/pkg/log
 sigs.k8s.io/controller-runtime/pkg/manager/signals
-sigs.k8s.io/controller-runtime/pkg/reconcile
 sigs.k8s.io/controller-runtime/pkg/client/apiutil
 sigs.k8s.io/controller-runtime/pkg/cache
 sigs.k8s.io/controller-runtime/pkg/internal/log

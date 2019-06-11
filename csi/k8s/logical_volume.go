@@ -11,6 +11,7 @@ import (
 	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/csi"
 	topolvmv1 "github.com/cybozu-go/topolvm/topolvm-node/api/v1"
+	"github.com/cybozu-go/well"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -20,7 +21,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile/reconciletest"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 type logicalVolumeService struct {
@@ -41,6 +42,7 @@ func NewLogicalVolumeService(namespace string) (csi.LogicalVolumeService, error)
 	if err != nil {
 		return nil, err
 	}
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{Scheme: scheme})
 	if err != nil {
 		return nil, err
@@ -52,15 +54,13 @@ func NewLogicalVolumeService(namespace string) (csi.LogicalVolumeService, error)
 		return nil, err
 	}
 
-	err = ctrl.NewControllerManagedBy(mgr).Complete(&reconciletest.FakeReconcile{})
-	if err != nil {
-		return nil, err
-	}
-
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		log.Error("failed to start manager", map[string]interface{}{log.FnError: err})
-		return nil, err
-	}
+	well.Go(func(ctx context.Context) error {
+		if err := mgr.Start(ctx.Done()); err != nil {
+			log.Error("failed to start manager", map[string]interface{}{log.FnError: err})
+			return err
+		}
+		return nil
+	})
 
 	return &logicalVolumeService{
 		mgr:       mgr,
@@ -185,4 +185,20 @@ func (s *logicalVolumeService) DeleteVolume(ctx context.Context, volumeID string
 
 func (s *logicalVolumeService) ExpandVolume(ctx context.Context, volumeID string, sizeGb int64) error {
 	panic("implement me")
+}
+
+// FakeReconciler is a simple ControllerManagedBy example implementation.
+type fakeReconciler struct {
+	client.Client
+}
+
+// Reconcile is Reconcile
+func (a *fakeReconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
+	return reconcile.Result{}, nil
+}
+
+// InjectClient is InjectClient
+func (a *fakeReconciler) InjectClient(c client.Client) error {
+	a.Client = c
+	return nil
 }
