@@ -20,6 +20,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile/reconciletest"
 )
 
 type logicalVolumeService struct {
@@ -51,10 +52,21 @@ func NewLogicalVolumeService(namespace string) (csi.LogicalVolumeService, error)
 		return nil, err
 	}
 
+	err = ctrl.NewControllerManagedBy(mgr).Complete(&reconciletest.FakeReconcile{})
+	if err != nil {
+		return nil, err
+	}
+
+	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+		log.Error("failed to start manager", map[string]interface{}{log.FnError: err})
+		return nil, err
+	}
+
 	return &logicalVolumeService{
 		mgr:       mgr,
 		namespace: namespace,
 	}, nil
+
 }
 
 func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, name string, sizeGb int64) (string, error) {
@@ -108,6 +120,17 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 	}
 
 	for {
+		log.Info("waiting for setting 'status.volumeID'", map[string]interface{}{
+			"namespace": s.namespace,
+			"name":      name,
+		})
+		select {
+		case <-ctx.Done():
+			log.Info("context is done", map[string]interface{}{})
+			return "", errors.New("timed out")
+		case <-time.After(1 * time.Second):
+		}
+
 		var newLV topolvmv1.LogicalVolume
 		err := s.mgr.GetClient().Get(ctx, client.ObjectKey{Namespace: s.namespace, Name: name}, &newLV)
 		if err != nil {
@@ -116,7 +139,7 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 				"namespace": s.namespace,
 				"name":      name,
 			})
-			return "", err
+			continue
 		}
 		if newLV.Status.VolumeID != "" {
 			log.Info("end k8s.LogicalVolume", map[string]interface{}{
@@ -136,16 +159,6 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 				})
 			}
 			return "", status.Error(newLV.Status.Code, newLV.Status.Message)
-		}
-		log.Info("waiting for setting 'status.volumeID'", map[string]interface{}{
-			"namespace": s.namespace,
-			"name":      name,
-		})
-		select {
-		case <-ctx.Done():
-			log.Info("context is done", map[string]interface{}{})
-			return "", errors.New("timed out")
-		case <-time.After(1 * time.Second):
 		}
 	}
 }
