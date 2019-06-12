@@ -10,33 +10,15 @@ import (
 )
 
 var _ = Describe("E2E test", func() {
-	testNamespace := "e2e-test"
-
-	BeforeEach(func() {
-		stdout, stderr, err := kubectl("delete", "--now=true", "--ignore-not-found=true", "namespace", testNamespace)
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		stdout, stderr, err = kubectl("create", "namespace", testNamespace)
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		Eventually(func() error {
-			return waitCreatingDefaultSA(testNamespace)
-		}).Should(Succeed())
-	})
-
-	AfterEach(func() {
-		//kubectl("delete", "namespace", testNamespace)
-	})
+	testNamespacePrefix := "e2e-test"
 
 	It("should be mounted in specified path", func() {
+		ns := testNamespacePrefix + randomString(10)
+		createNamespace(ns)
+
 		By("initialize LogicalVolume CRD")
-		stdout, stderr, err := kubectl("create", "namespace", "topolvm-system")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		//defer kubectl("delete", "namespace", "topolvm-system")
-
-		Eventually(func() error {
-			return waitCreatingDefaultSA("topolvm-system")
-		}).Should(Succeed())
-
-		stdout, stderr, err = kubectl("apply", "-f", "../topolvm-node/config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml")
+		createNamespace("topolvm-system")
+		stdout, stderr, err := kubectl("apply", "-f", "../topolvm-node/config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		By("initialize topolvm services")
@@ -76,22 +58,22 @@ spec:
   storageClassName: topolvm-provisioner
 ---
 ` + podYAML
-		stdout, stderr, err = kubectlWithInput([]byte(podAndClaimYAML), "apply", "-n", testNamespace, "-f", "-")
+		stdout, stderr, err = kubectlWithInput([]byte(podAndClaimYAML), "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		By("confirming that the specified device exists in the Pod")
 		Eventually(func() error {
-			stdout, stderr, err = kubectl("get", "pvc", "topo-pvc", "-n", testNamespace)
+			stdout, stderr, err = kubectl("get", "pvc", "topo-pvc", "-n", ns)
 			if err != nil {
 				return fmt.Errorf("failed to create PVC. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
 			}
 
-			stdout, stderr, err = kubectl("get", "pods", "ubuntu", "-n", testNamespace)
+			stdout, stderr, err = kubectl("get", "pods", "ubuntu", "-n", ns)
 			if err != nil {
 				return fmt.Errorf("failed to create Pod. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
 			}
 
-			stdout, stderr, err = kubectl("exec", "-n", testNamespace, "ubuntu", "--", "mountpoint", "-d", "/test1")
+			stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "mountpoint", "-d", "/test1")
 			if err != nil {
 				return fmt.Errorf("failed to check mount point. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
 			}
@@ -100,33 +82,33 @@ spec:
 
 		By("writing file under /test1")
 		writePath := "/test1/bootstrap.log"
-		stdout, stderr, err = kubectl("exec", "-n", testNamespace, "ubuntu", "--", "cp", "/var/log/bootstrap.log", writePath)
+		stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "cp", "/var/log/bootstrap.log", writePath)
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		stdout, stderr, err = kubectl("exec", "-n", testNamespace, "ubuntu", "--", "sync")
+		stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "sync")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		stdout, stderr, err = kubectl("exec", "-n", testNamespace, "ubuntu", "--", "cat", writePath)
+		stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "cat", writePath)
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 		Expect(strings.TrimSpace(string(stdout))).ShouldNot(BeEmpty())
 
 		By("deleting the Pod, then recreating it")
-		stdout, stderr, err = kubectl("delete", "--now=true", "-n", testNamespace, "pod/ubuntu")
+		stdout, stderr, err = kubectl("delete", "--now=true", "-n", ns, "pod/ubuntu")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "apply", "-n", testNamespace, "-f", "-")
+		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		By("confirming that the file exists")
 		Eventually(func() error {
-			stdout, stderr, err = kubectl("get", "pvc", "topo-pvc", "-n", testNamespace)
+			stdout, stderr, err = kubectl("get", "pvc", "topo-pvc", "-n", ns)
 			if err != nil {
 				return fmt.Errorf("failed to create PVC. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
 			}
 
-			stdout, stderr, err = kubectl("get", "pods", "ubuntu", "-n", testNamespace)
+			stdout, stderr, err = kubectl("get", "pods", "ubuntu", "-n", ns)
 			if err != nil {
 				return fmt.Errorf("failed to create Pod. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
 			}
 
-			stdout, stderr, err = kubectl("exec", "-n", testNamespace, "ubuntu", "--", "cat", writePath)
+			stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "cat", writePath)
 			if err != nil {
 				return fmt.Errorf("failed to cat. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
 			}
@@ -137,7 +119,7 @@ spec:
 		}).Should(Succeed())
 
 		By("confirming that the lv correspond to LogicalVolume resource is registered in LVM")
-		stdout, stderr, err = kubectl("get", "pvc", "-n", testNamespace, "topo-pvc", "-o=template", "--template='{{.spec.volumeName}}'")
+		stdout, stderr, err = kubectl("get", "pvc", "-n", ns, "topo-pvc", "-o=template", "--template='{{.spec.volumeName}}'")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 		volName := strings.TrimSpace(string(stdout))
 		stdout, err = exec.Command("sudo", "lvdisplay", "--select", "lv_name="+volName).Output()
@@ -145,7 +127,7 @@ spec:
 		Expect(strings.TrimSpace(string(stdout))).ShouldNot(BeEmpty())
 
 		By("deleting the Pod and PVC")
-		stdout, stderr, err = kubectlWithInput([]byte(podAndClaimYAML), "delete", "-n", testNamespace, "-f", "-")
+		stdout, stderr, err = kubectlWithInput([]byte(podAndClaimYAML), "delete", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		By("confirming that the PV is deleted")

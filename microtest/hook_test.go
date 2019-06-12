@@ -16,24 +16,12 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = Describe("Test topolvm-hook", func() {
-	testNamespace := "hook-test"
-
-	BeforeEach(func() {
-		kubectl("delete", "namespace", testNamespace)
-		kubectl("wait", "namespace/hook-test", "--for=delete")
-		stdout, stderr, err := kubectl("create", "namespace", testNamespace)
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		Eventually(func() error {
-			return waitCreatingDefaultSA(testNamespace)
-		}).Should(Succeed())
-	})
-	AfterEach(func() {
-		stdout, stderr, err := kubectl("delete", "namespace", testNamespace)
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		kubectl("wait", "namespace/hook-test", "--for=delete")
-	})
+	testNamespacePrefix := "hook-test"
 
 	It("should be deployed topolvm-hook pod", func() {
+		ns := testNamespacePrefix + randomString(10)
+		createNamespace(ns)
+
 		Eventually(func() error {
 			result, stderr, err := kubectl("get", "-n=kube-system", "pods", "--selector=app.kubernetes.io/name=topolvm-hook", "-o=json")
 			if err != nil {
@@ -63,11 +51,14 @@ var _ = Describe("Test topolvm-hook", func() {
 	})
 
 	It("should annotate pod with topolvm.cybozu.com/capacity", func() {
-		yml := `kind: PersistentVolumeClaim
+		ns := testNamespacePrefix + randomString(10)
+		createNamespace(ns)
+
+		yml := fmt.Sprintf(`kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: local-pvc1
-  namespace: hook-test
+  namespace: %s 
 spec:
   accessModes:
   - ReadWriteOnce
@@ -80,7 +71,7 @@ kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: local-pvc2
-  namespace: hook-test
+  namespace: %s
 spec:
   accessModes:
   - ReadWriteOnce
@@ -93,7 +84,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: testhttpd
-  namespace: hook-test
+  namespace: %s
   labels:
     app.kubernetes.io/name: testhttpd
 spec:
@@ -112,12 +103,12 @@ spec:
     - name: my-volume2
       persistentVolumeClaim:
         claimName: local-pvc2
-`
+`, ns, ns, ns)
 		stdout, stderr, err := kubectlWithInput([]byte(yml), "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		Eventually(func() error {
-			result, stderr, err := kubectl("get", "-n=hook-test", "pods/testhttpd", "-o=json")
+			result, stderr, err := kubectl("get", "-n", ns, "pods/testhttpd", "-o=json")
 			if err != nil {
 				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
 			}
@@ -150,11 +141,14 @@ spec:
 	})
 
 	It("should replace pod annotation of topolvm.cybozu.com/capacity", func() {
-		yml := `kind: PersistentVolumeClaim
+		ns := testNamespacePrefix + randomString(10)
+		createNamespace(ns)
+
+		yml := fmt.Sprintf(`kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: local-pvc1
-  namespace: hook-test
+  namespace: %s
 spec:
   accessModes:
   - ReadWriteOnce
@@ -167,7 +161,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: testhttpd
-  namespace: hook-test
+  namespace: %s
   labels:
     app.kubernetes.io/name: testhttpd
 spec:
@@ -186,12 +180,12 @@ spec:
     - name: my-volume1
       persistentVolumeClaim:
         claimName: local-pvc1
-`
+`, ns, ns)
 		stdout, stderr, err := kubectlWithInput([]byte(yml), "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		Eventually(func() error {
-			result, stderr, err := kubectl("get", "-n=hook-test", "pods/testhttpd", "-o=json")
+			result, stderr, err := kubectl("get", "-n", ns, "pods/testhttpd", "-o=json")
 			if err != nil {
 				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
 			}
@@ -224,11 +218,14 @@ spec:
 	})
 
 	It("should not annotate pod with topolvm.cybozu.com/capacity", func() {
-		yml := `kind: PersistentVolumeClaim
+		ns := testNamespacePrefix + randomString(10)
+		createNamespace(ns)
+
+		yml := fmt.Sprintf(`kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: local-pvc1
-  namespace: hook-test
+  namespace: %s
 spec:
   accessModes:
   - ReadWriteOnce
@@ -241,7 +238,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: testhttpd
-  namespace: hook-test
+  namespace: %s
   labels:
     app.kubernetes.io/name: testhttpd
 spec:
@@ -259,13 +256,12 @@ spec:
         claimName: local-pvc1
     - name: my-volume2
       persistentVolumeClaim:
-        claimName: local-pvc2
-`
+        claimName: local-pvc2`, ns, ns)
 		stdout, stderr, err := kubectlWithInput([]byte(yml), "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		Eventually(func() error {
-			result, stderr, err := kubectl("get", "-n=hook-test", "pods/testhttpd", "-o=json")
+			result, stderr, err := kubectl("get", "-n", ns, "pods/testhttpd", "-o=json")
 			if err != nil {
 				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
 			}
@@ -292,11 +288,14 @@ spec:
 	})
 
 	It("should replace pod annotation of topolvm.cybozu.com/capacity", func() {
-		yml := `kind: PersistentVolumeClaim
+		ns := testNamespacePrefix + randomString(10)
+		createNamespace(ns)
+
+		yml := fmt.Sprintf(`kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: local-pvc1
-  namespace: hook-test
+  namespace: %s
 spec:
   accessModes:
   - ReadWriteOnce
@@ -309,7 +308,7 @@ kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: local-pvc2
-  namespace: hook-test
+  namespace: %s
 spec:
   accessModes:
   - ReadWriteOnce
@@ -322,7 +321,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: testhttpd
-  namespace: hook-test
+  namespace: %s
   labels:
     app.kubernetes.io/name: testhttpd
 spec:
@@ -346,12 +345,12 @@ spec:
     - name: my-volume2
       persistentVolumeClaim:
         claimName: local-pvc2
-`
+`, ns, ns, ns)
 		stdout, stderr, err := kubectlWithInput([]byte(yml), "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		Eventually(func() error {
-			result, stderr, err := kubectl("get", "-n=hook-test", "pods/testhttpd", "-o=json")
+			result, stderr, err := kubectl("get", "-n", ns, "pods/testhttpd", "-o=json")
 			if err != nil {
 				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
 			}

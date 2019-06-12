@@ -7,6 +7,7 @@ import (
 	"github.com/cybozu-go/topolvm/csi"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	corev1 "k8s.io/api/core/v1"
 )
 
 type logicalVolume struct {
@@ -67,4 +68,9 @@ func (s *logicalVolumeService) ExpandVolume(ctx context.Context, volumeID string
 	s.volumes[volumeID] = v
 
 	return nil
+}
+
+func (s *logicalVolumeService) GetPVByVolumeID(ctx context.Context, volumeID string) (*corev1.PersistentVolume, error) {
+	pv := new(corev1.PersistentVolume)
+	return pv, nil
 }

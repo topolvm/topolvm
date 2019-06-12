@@ -1,6 +1,7 @@
 package microtest
 
 import (
+	"math/rand"
 	"os"
 	"testing"
 	"time"
@@ -24,4 +25,22 @@ func TestMtest(t *testing.T) {
 	SetDefaultEventuallyTimeout(time.Minute)
 
 	RunSpecs(t, "Test on microk8s")
+}
+
+func createNamespace(ns string) {
+	stdout, stderr, err := kubectl("create", "namespace", ns)
+	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+	Eventually(func() error {
+		return waitCreatingDefaultSA(ns)
+	}).Should(Succeed())
+}
+
+func randomString(n int) string {
+	var letter = []rune("abcdefghijklmnopqrstuvwxyz")
+
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letter[rand.Intn(len(letter))]
+	}
+	return string(b)
 }
