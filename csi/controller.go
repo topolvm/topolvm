@@ -7,6 +7,8 @@ import (
 	"github.com/cybozu-go/topolvm"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // NewControllerService returns a new ControllerServer.
@@ -165,13 +167,52 @@ func (s controllerService) ValidateVolumeCapabilities(ctx context.Context, req *
 		"num_secrets":         len(req.GetSecrets()),
 	})
 
-	// doValidateVolumeCapabilities
+	if len(req.GetVolumeId()) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "volume id is nil")
+	}
+	if len(req.GetVolumeCapabilities()) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "volume capabilities is empty")
+	}
 
+	pv, err := s.service.GetPVByVolumeID(ctx, req.GetVolumeId())
+	if apierrors.IsNotFound(err) {
+		return nil, status.Errorf(codes.NotFound, "%s is not found", req.GetVolumeId())
+	} else if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	var confirmed *ValidateVolumeCapabilitiesResponse_Confirmed
+	if isValidVolumeCapabilities(pv, req.GetVolumeCapabilities()) {
+		confirmed = &ValidateVolumeCapabilitiesResponse_Confirmed{
+			VolumeCapabilities: req.GetVolumeCapabilities(),
+		}
+	}
 	return &ValidateVolumeCapabilitiesResponse{
-		Confirmed: &ValidateVolumeCapabilitiesResponse_Confirmed{
-			VolumeCapabilities: []*VolumeCapability{},
-		},
+		Confirmed: confirmed,
 	}, nil
+}
+
+func isValidVolumeCapabilities(pv *corev1.PersistentVolume, capabilities []*VolumeCapability) bool {
+	for _, capability := range capabilities {
+		// we only support single node writer
+		if capability.GetAccessMode().Mode != VolumeCapability_AccessMode_SINGLE_NODE_WRITER {
+			return false
+		}
+
+		if *pv.Spec.VolumeMode == corev1.PersistentVolumeBlock {
+			if capability.GetBlock() != nil {
+				return false
+			}
+		}
+
+		if *pv.Spec.VolumeMode == corev1.PersistentVolumeFilesystem {
+			if capability.GetMount() != nil {
+				return false
+			}
+		}
+		// TODO: check file system type
+	}
+	return true
 }
 
 func (s controllerService) ListVolumes(ctx context.Context, req *ListVolumesRequest) (*ListVolumesResponse, error) {

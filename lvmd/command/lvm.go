@@ -270,7 +270,7 @@ func (g *VolumeGroup) FindPool(name string) (*ThinPool, error) {
 			return pool, nil
 		}
 	}
-	return nil, fmt.Errorf("Not found thin pool: %v", name)
+	return nil, fmt.Errorf("not found thin pool: %v", name)
 }
 
 // ListPools lists all thin pool volumes in this volume group.

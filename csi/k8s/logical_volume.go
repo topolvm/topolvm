@@ -14,6 +14,7 @@ import (
 	"github.com/cybozu-go/well"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,7 +22,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 type logicalVolumeService struct {
@@ -148,9 +148,6 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 			return newLV.Status.VolumeID, nil
 		}
 		if newLV.Status.Code != codes.OK {
-			log.Debug("status code", map[string]interface{}{
-				"statuscode": newLV.Status.Code,
-			})
 			err := s.mgr.GetClient().Delete(ctx, &newLV)
 			if err != nil {
 				// log this error but do not return this error, because newLV.Status.Message is more important
@@ -183,22 +180,17 @@ func (s *logicalVolumeService) DeleteVolume(ctx context.Context, volumeID string
 	return s.mgr.GetClient().Delete(ctx, &lvList.Items[0])
 }
 
+func (s *logicalVolumeService) GetPVByVolumeID(ctx context.Context, volumeID string) (*corev1.PersistentVolume, error) {
+	pv := new(corev1.PersistentVolume)
+	err := s.mgr.GetClient().Get(ctx, client.ObjectKey{Name: volumeID}, pv)
+	if apierrors.IsNotFound(err) {
+		return nil, status.Errorf(codes.NotFound, "%s is not found", volumeID)
+	} else if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return pv, nil
+}
+
 func (s *logicalVolumeService) ExpandVolume(ctx context.Context, volumeID string, sizeGb int64) error {
 	panic("implement me")
-}
-
-// FakeReconciler is a simple ControllerManagedBy example implementation.
-type fakeReconciler struct {
-	client.Client
-}
-
-// Reconcile is Reconcile
-func (a *fakeReconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
-	return reconcile.Result{}, nil
-}
-
-// InjectClient is InjectClient
-func (a *fakeReconciler) InjectClient(c client.Client) error {
-	a.Client = c
-	return nil
 }
