@@ -76,6 +76,10 @@ func (s *logicalVolumeService) GetPVByVolumeID(ctx context.Context, volumeID str
 	return pv, nil
 }
 
+func (s *logicalVolumeService) ListNodes(ctx context.Context) (*corev1.NodeList, error) {
+	return new(corev1.NodeList), nil
+}
+
 func (s *logicalVolumeService) GetStorageClass(ctx context.Context, storageClassName string) (*storagev1.StorageClass, error) {
 	sc := new(storagev1.StorageClass)
 	return sc, nil

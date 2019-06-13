@@ -2,6 +2,7 @@ package csi
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/topolvm"
@@ -245,17 +246,68 @@ func (s controllerService) ListVolumes(ctx context.Context, req *ListVolumesRequ
 }
 
 func (s controllerService) GetCapacity(ctx context.Context, req *GetCapacityRequest) (*GetCapacityResponse, error) {
+	topology := req.GetAccessibleTopology()
+	capabilities := req.GetVolumeCapabilities()
 	log.Info("GetCapacity called", map[string]interface{}{
-		"volume_capabilities": req.GetVolumeCapabilities(),
+		"volume_capabilities": capabilities,
 		"parameters":          req.GetParameters(),
-		"accessible_topology": req.GetAccessibleTopology(),
+		"accessible_topology": topology,
 	})
+	if capabilities != nil {
+		log.Warn("capability argument is not nil, but csi controller plugin ignored this argument", map[string]interface{}{})
+	}
 
-	// doGetCapacity
-
-	return &GetCapacityResponse{
-		AvailableCapacity: 0,
-	}, nil
+	nodeList, err := s.service.ListNodes(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	switch topology {
+	case nil:
+		totalCapacity := int64(0)
+		for _, node := range nodeList.Items {
+			capacity, ok := node.Annotations[topolvm.CapacityKey]
+			if !ok {
+				continue
+			}
+			res, err := strconv.ParseInt(capacity, 10, 64)
+			if err != nil {
+				return nil, status.Error(codes.Internal, err.Error())
+			}
+			totalCapacity += res
+		}
+		return &GetCapacityResponse{
+			AvailableCapacity: totalCapacity,
+		}, nil
+	default:
+		requestNodeNumber, ok := topology.Segments[topolvm.TopologyNodeKey]
+		if !ok {
+			return nil, status.Errorf(codes.Internal, "%s is not found in req.AccessibleTopology", topolvm.TopologyNodeKey)
+		}
+		for _, node := range nodeList.Items {
+			if nodeNumber, ok := node.Annotations[topolvm.TopologyNodeKey]; ok {
+				if requestNodeNumber != nodeNumber {
+					continue
+				}
+				capacity, ok := node.Annotations[topolvm.CapacityKey]
+				if !ok {
+					return nil, status.Errorf(codes.Internal, "%s is not found", topolvm.CapacityKey)
+				}
+				capacityInt, err := strconv.ParseInt(capacity, 10, 64)
+				if err != nil {
+					return nil, status.Errorf(codes.Internal, err.Error())
+				}
+				return &GetCapacityResponse{
+					AvailableCapacity: capacityInt,
+				}, nil
+			}
+		}
+		log.Info("target is not found", map[string]interface{}{
+			"accessible_topology": req.AccessibleTopology,
+		})
+		return &GetCapacityResponse{
+			AvailableCapacity: 0,
+		}, nil
+	}
 }
 
 func (s controllerService) ControllerGetCapabilities(context.Context, *ControllerGetCapabilitiesRequest) (*ControllerGetCapabilitiesResponse, error) {

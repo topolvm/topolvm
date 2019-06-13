@@ -199,6 +199,15 @@ func (s *logicalVolumeService) GetStorageClass(ctx context.Context, storageClass
 	return sc, nil
 }
 
+func (s *logicalVolumeService) ListNodes(ctx context.Context) (*corev1.NodeList, error) {
+	nl := new(corev1.NodeList)
+	err := s.mgr.GetClient().List(ctx, nl)
+	if err != nil {
+		return nil, err
+	}
+	return nl, nil
+}
+
 func (s *logicalVolumeService) ExpandVolume(ctx context.Context, volumeID string, sizeGb int64) error {
 	panic("implement me")
 }

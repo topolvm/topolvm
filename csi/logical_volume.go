@@ -14,4 +14,5 @@ type LogicalVolumeService interface {
 	ExpandVolume(ctx context.Context, volumeID string, sizeGb int64) error
 	GetPVByVolumeID(ctx context.Context, volumeID string) (*corev1.PersistentVolume, error)
 	GetStorageClass(ctx context.Context, storageClassName string) (*storagev1.StorageClass, error)
+	ListNodes(ctx context.Context) (*corev1.NodeList, error)
 }
