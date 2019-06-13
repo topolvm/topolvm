@@ -35,15 +35,6 @@ spec:
             - name: socket-dir
               mountPath: /run/topolvm
 
-        - name: csi-attacher
-          image: quay.io/k8scsi/csi-attacher:v1.1.1
-          imagePullPolicy: "IfNotPresent"
-          args:
-            - "--csi-address=/run/topolvm/csi-topolvm.sock"
-          volumeMounts:
-            - name: socket-dir
-              mountPath: /run/topolvm
-
       volumes:
         - name: socket-dir
           emptyDir: {}
