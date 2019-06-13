@@ -8,6 +8,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 )
 
 type logicalVolume struct {
@@ -73,4 +74,9 @@ func (s *logicalVolumeService) ExpandVolume(ctx context.Context, volumeID string
 func (s *logicalVolumeService) GetPVByVolumeID(ctx context.Context, volumeID string) (*corev1.PersistentVolume, error) {
 	pv := new(corev1.PersistentVolume)
 	return pv, nil
+}
+
+func (s *logicalVolumeService) GetStorageClass(ctx context.Context, storageClassName string) (*storagev1.StorageClass, error) {
+	sc := new(storagev1.StorageClass)
+	return sc, nil
 }

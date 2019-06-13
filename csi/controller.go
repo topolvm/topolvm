@@ -8,6 +8,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -176,13 +177,20 @@ func (s controllerService) ValidateVolumeCapabilities(ctx context.Context, req *
 
 	pv, err := s.service.GetPVByVolumeID(ctx, req.GetVolumeId())
 	if apierrors.IsNotFound(err) {
-		return nil, status.Errorf(codes.NotFound, "%s is not found", req.GetVolumeId())
+		return nil, status.Errorf(codes.NotFound, "persistent volume %s is not found", req.GetVolumeId())
+	} else if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	sc, err := s.service.GetStorageClass(ctx, pv.Spec.StorageClassName)
+	if apierrors.IsNotFound(err) {
+		return nil, status.Errorf(codes.NotFound, "storage class %s is not found", pv.Spec.StorageClassName)
 	} else if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	var confirmed *ValidateVolumeCapabilitiesResponse_Confirmed
-	if isValidVolumeCapabilities(pv, req.GetVolumeCapabilities()) {
+	if isValidVolumeCapabilities(pv, sc, req.GetVolumeCapabilities()) {
 		confirmed = &ValidateVolumeCapabilitiesResponse_Confirmed{
 			VolumeCapabilities: req.GetVolumeCapabilities(),
 		}
@@ -192,7 +200,7 @@ func (s controllerService) ValidateVolumeCapabilities(ctx context.Context, req *
 	}, nil
 }
 
-func isValidVolumeCapabilities(pv *corev1.PersistentVolume, capabilities []*VolumeCapability) bool {
+func isValidVolumeCapabilities(pv *corev1.PersistentVolume, sc *storagev1.StorageClass, capabilities []*VolumeCapability) bool {
 	for _, capability := range capabilities {
 		// we only support single node writer
 		if capability.GetAccessMode().Mode != VolumeCapability_AccessMode_SINGLE_NODE_WRITER {
@@ -209,8 +217,16 @@ func isValidVolumeCapabilities(pv *corev1.PersistentVolume, capabilities []*Volu
 			if capability.GetMount() != nil {
 				return false
 			}
+
+			fsTypeKey := "csi.storage.k8s.io/fstype"
+			fsType, ok := sc.Parameters[fsTypeKey]
+			if !ok {
+				fsType = "ext4"
+			}
+			if fsType != capability.GetMount().FsType {
+				return false
+			}
 		}
-		// TODO: check file system type
 	}
 	return true
 }

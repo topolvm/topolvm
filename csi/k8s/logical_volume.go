@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -183,12 +184,19 @@ func (s *logicalVolumeService) DeleteVolume(ctx context.Context, volumeID string
 func (s *logicalVolumeService) GetPVByVolumeID(ctx context.Context, volumeID string) (*corev1.PersistentVolume, error) {
 	pv := new(corev1.PersistentVolume)
 	err := s.mgr.GetClient().Get(ctx, client.ObjectKey{Name: volumeID}, pv)
-	if apierrors.IsNotFound(err) {
-		return nil, status.Errorf(codes.NotFound, "%s is not found", volumeID)
-	} else if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+	if err != nil {
+		return nil, err
 	}
 	return pv, nil
+}
+
+func (s *logicalVolumeService) GetStorageClass(ctx context.Context, storageClassName string) (*storagev1.StorageClass, error) {
+	sc := new(storagev1.StorageClass)
+	err := s.mgr.GetClient().Get(ctx, client.ObjectKey{Name: storageClassName}, sc)
+	if err != nil {
+		return nil, err
+	}
+	return sc, nil
 }
 
 func (s *logicalVolumeService) ExpandVolume(ctx context.Context, volumeID string, sizeGb int64) error {
