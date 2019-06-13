@@ -267,7 +267,15 @@ func (s *nodeService) NodeExpandVolume(context.Context, *NodeExpandVolumeRequest
 
 func (s *nodeService) NodeGetCapabilities(context.Context, *NodeGetCapabilitiesRequest) (*NodeGetCapabilitiesResponse, error) {
 	return &NodeGetCapabilitiesResponse{
-		Capabilities: []*NodeServiceCapability{{}},
+		Capabilities: []*NodeServiceCapability{
+			{
+				Type: &NodeServiceCapability_Rpc{
+					Rpc: &NodeServiceCapability_RPC{
+						Type: NodeServiceCapability_RPC_UNKNOWN,
+					},
+				},
+			},
+		},
 	}, nil
 }
 
