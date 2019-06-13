@@ -22,7 +22,7 @@ spec:
             - controller
             - --csi-socket-name=/run/topolvm/csi-topolvm.sock
           volumeMounts:
-            - name: socket-dir
+            - name: plugin-dir
               mountPath: /run/topolvm
 
         - name: csi-provisioner
@@ -32,12 +32,24 @@ spec:
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
             - "--feature-gates=Topology=true"
           volumeMounts:
+            - name: plugin-dir
+              mountPath: /run/topolvm
+
+        - name: csi-attacher
+          image: quay.io/k8scsi/csi-attacher:v1.1.1
+          imagePullPolicy: "IfNotPresent"
+          args:
+            - "--csi-address=/run/topolvm/csi-topolvm.sock"
+          volumeMounts:
             - name: socket-dir
               mountPath: /run/topolvm
 
       volumes:
-        - name: socket-dir
-          emptyDir: {}
+        - name: plugin-dir
+          hostPath:
+            path: /var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/controller
+            type: DirectoryOrCreate
+
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -110,7 +122,7 @@ spec:
             type: Directory
         - name: plugin-dir
           hostPath:
-            path: /var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/
+            path: /var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/node
             type: DirectoryOrCreate
         - name: pod-volumes-dir
           hostPath:

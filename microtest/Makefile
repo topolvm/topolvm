@@ -29,7 +29,7 @@ start-lvmd:
 	if [ "$$($(SUDO) losetup -j build/backing_store)" ]; then $(SUDO) vgremove myvg; $(SUDO) pvremove $$($(SUDO) losetup -j build/backing_store | cut -d: -f1); $(SUDO) losetup -d $$($(SUDO) losetup -j build/backing_store | cut -d: -f1); fi
 	truncate --size=10G build/backing_store
 	$(SUDO) losetup -f build/backing_store
-	$(SUDO) pvcreate $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
+	$(SUDO) pvcreate -ff $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
 	$(SUDO) vgcreate myvg $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
 	mkdir -p /tmp/topolvm
 	$(SUDO) systemd-run --unit=lvmd.service $(shell pwd)/build/lvmd --volume-group=myvg --listen=/tmp/topolvm/lvmd.sock
@@ -81,6 +81,12 @@ endif
 	echo "--allow-privileged=true" | $(SUDO) tee -a /var/snap/microk8s/current/args/kube-apiserver
 	$(SUDO) systemctl restart snap.microk8s.daemon-kubelet.service
 	$(SUDO) systemctl restart snap.microk8s.daemon-apiserver.service
+	GO111MODULE=off go get -d github.com/kubernetes-csi/csi-test/cmd/csi-sanity
+ifeq ($(CIRCLECI), true)
+	(cd /home/circleci/.go_workspace/src/github.com/kubernetes-csi/csi-test/cmd/csi-sanity; GOPATH=/home/circleci/.go_workspace make install)
+else
+	(cd $(GOPATH)/src/github.com/kubernetes-csi/csi-test/cmd/csi-sanity; make install)
+endif
 
 clean:
 	rm -rf $(CA_FILES) $(SERVER_CERT_FILES) hook.yml topolvm.img build/
