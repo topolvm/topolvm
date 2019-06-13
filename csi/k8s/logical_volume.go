@@ -43,6 +43,14 @@ func NewLogicalVolumeService(namespace string) (csi.LogicalVolumeService, error)
 	if err != nil {
 		return nil, err
 	}
+	err = corev1.AddToScheme(scheme)
+	if err != nil {
+		return nil, err
+	}
+	err = storagev1.AddToScheme(scheme)
+	if err != nil {
+		return nil, err
+	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{Scheme: scheme})
 	if err != nil {
