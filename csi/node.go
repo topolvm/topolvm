@@ -241,16 +241,7 @@ func (s *nodeService) NodeUnpublishVolume(ctx context.Context, req *NodeUnpublis
 }
 
 func (s *nodeService) NodeGetVolumeStats(ctx context.Context, req *NodeGetVolumeStatsRequest) (*NodeGetVolumeStatsResponse, error) {
-	log.Info("NodeGetVolumeStats called", map[string]interface{}{
-		"volume_id":   req.GetVolumeId(),
-		"volume_path": req.GetVolumePath(),
-	})
-
-	// doNodeGetVolumeStats
-
-	return &NodeGetVolumeStatsResponse{
-		Usage: []*VolumeUsage{},
-	}, nil
+	return nil, status.Errorf(codes.Unimplemented, "NodeGetVolumeStats not implemented")
 }
 
 func (s *nodeService) NodeExpandVolume(context.Context, *NodeExpandVolumeRequest) (*NodeExpandVolumeResponse, error) {

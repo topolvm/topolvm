@@ -233,16 +233,7 @@ func isValidVolumeCapabilities(pv *corev1.PersistentVolume, sc *storagev1.Storag
 }
 
 func (s controllerService) ListVolumes(ctx context.Context, req *ListVolumesRequest) (*ListVolumesResponse, error) {
-	log.Info("ListVolumes called", map[string]interface{}{
-		"max_entries":    req.GetMaxEntries(),
-		"starting_token": req.GetStartingToken(),
-	})
-
-	// doListVolumes
-
-	return &ListVolumesResponse{
-		Entries: []*ListVolumesResponse_Entry{},
-	}, nil
+	return nil, status.Errorf(codes.Unimplemented, "ListVolumes not implemented")
 }
 
 func (s controllerService) GetCapacity(ctx context.Context, req *GetCapacityRequest) (*GetCapacityResponse, error) {
@@ -317,13 +308,6 @@ func (s controllerService) ControllerGetCapabilities(context.Context, *Controlle
 				Type: &ControllerServiceCapability_Rpc{
 					Rpc: &ControllerServiceCapability_RPC{
 						Type: ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
-					},
-				},
-			},
-			{
-				Type: &ControllerServiceCapability_Rpc{
-					Rpc: &ControllerServiceCapability_RPC{
-						Type: ControllerServiceCapability_RPC_LIST_VOLUMES,
 					},
 				},
 			},
