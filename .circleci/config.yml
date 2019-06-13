@@ -71,6 +71,24 @@ jobs:
             ./bin/watch_service snap.microk8s.daemon-kubelet
           background: true
       - run:
+          name: Watch topolvm-node topolvm-node container
+          command: |
+            if [ -f .skip ]; then exit 0; fi
+            ./bin/watch_pod kube-system app.kubernetes.io/name=csi-topolvm-node topolvm-node
+          background: true
+      - run:
+          name: Watch topolvm-node node container
+          command: |
+            if [ -f .skip ]; then exit 0; fi
+            ./bin/watch_pod kube-system app.kubernetes.io/name=csi-topolvm-node node
+          background: true
+      - run:
+          name: Watch csi-topolvm-controller controller container
+          command: |
+            if [ -f .skip ]; then exit 0; fi
+            ./bin/watch_pod kube-system app.kubernetes.io/name=csi-topolvm-controller controller
+          background: true
+      - run:
           name: Run test
           command: |
             cd microtest

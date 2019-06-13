@@ -41,7 +41,7 @@ spec:
           args:
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
           volumeMounts:
-            - name: socket-dir
+            - name: plugin-dir
               mountPath: /run/topolvm
 
       volumes:
@@ -93,7 +93,7 @@ spec:
           imagePullPolicy: "IfNotPresent"
           args:
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
-            - "--kubelet-registration-path=/var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/csi-topolvm.sock"
+            - "--kubelet-registration-path=/var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock"
           lifecycle:
             preStop:
               exec:
