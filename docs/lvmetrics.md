@@ -20,7 +20,7 @@ Environment variables
 
 - `NODE_NAME`: `Node` resource name.
 
-If both `NODE_NAME` and `nodename` flag is given, `nodename` flag value is used.
+If both `NODE_NAME` and `nodename` flags are given, `nodename` flag value is used.
 
 Annotations
 -----------

@@ -44,7 +44,7 @@ spec:
       claimName: local-pvc1
 ```
 
-then, `topolvm-hook` inserts `resource` filed to the first container in pod spec as follows:
+then, `topolvm-hook` inserts `resource` field to the first container in pod spec as follows:
 
 ```yaml
 spec:
@@ -57,7 +57,7 @@ spec:
         topolvm.cybozu.com/capacity: "1073741824"
 ```
 
-When a pod refers multiple pvc, `topolvm-hook` calculate summation of volume sizes and inserts it.
+When a pod refers multiple pvc, `topolvm-hook` calculates the summation of volume sizes and inserts it.
 Each volume size in requests is rounded up to the nearest GiB.
 If a volume size is missing in a pvc, `topolvm-hook` uses 1 GiB as default.
 

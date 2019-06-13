@@ -1,7 +1,7 @@
 `lvmd`
 ======
 
-`lvmd` is a gRPC service to manage LVM volumes.  It is composed with two services:
+`lvmd` is a gRPC service to manage LVM volumes.  It is composed of two services:
 - VGService
     - Provide volume group information: list logical volume, list and watch free bytes
 - LVService
