@@ -61,6 +61,16 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVol
 		"volume_context":    req.GetVolumeContext(),
 	})
 
+	if len(req.GetVolumeId()) == 0 {
+		return nil, status.Errorf(codes.InvalidArgument, "no volume_id is provided")
+	}
+	if len(req.GetTargetPath()) == 0 {
+		return nil, status.Errorf(codes.InvalidArgument, "no target_path is provided")
+	}
+	if req.GetVolumeCapability() == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "no volume_capability is provided")
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -205,6 +215,13 @@ func (s *nodeService) NodeUnpublishVolume(ctx context.Context, req *NodeUnpublis
 		"target_path": req.GetTargetPath(),
 	})
 
+	if len(req.GetVolumeId()) == 0 {
+		return nil, status.Errorf(codes.InvalidArgument, "no volume_id is provided")
+	}
+	if len(req.GetTargetPath()) == 0 {
+		return nil, status.Errorf(codes.InvalidArgument, "no target_path is provided")
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -250,15 +267,7 @@ func (s *nodeService) NodeExpandVolume(context.Context, *NodeExpandVolumeRequest
 
 func (s *nodeService) NodeGetCapabilities(context.Context, *NodeGetCapabilitiesRequest) (*NodeGetCapabilitiesResponse, error) {
 	return &NodeGetCapabilitiesResponse{
-		Capabilities: []*NodeServiceCapability{
-			{
-				Type: &NodeServiceCapability_Rpc{
-					Rpc: &NodeServiceCapability_RPC{
-						Type: NodeServiceCapability_RPC_GET_VOLUME_STATS,
-					},
-				},
-			},
-		},
+		Capabilities: []*NodeServiceCapability{{}},
 	}, nil
 }
 
