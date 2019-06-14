@@ -160,6 +160,9 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVol
 		return nil, err
 	}
 	if existingFsType == "" {
+		if mountOption.FsType == "" {
+			mountOption.FsType = "ext4"
+		}
 		out, err := well.CommandContext(ctx, mkfsCmd, "-t", mountOption.FsType, device).CombinedOutput()
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to mkfs: %s", out)
@@ -269,6 +272,7 @@ func (s *nodeService) NodeGetCapabilities(context.Context, *NodeGetCapabilitiesR
 	return &NodeGetCapabilitiesResponse{
 		Capabilities: []*NodeServiceCapability{
 			{
+				// TODO: add capabilities when we implement functions
 				Type: &NodeServiceCapability_Rpc{
 					Rpc: &NodeServiceCapability_RPC{
 						Type: NodeServiceCapability_RPC_UNKNOWN,

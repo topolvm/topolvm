@@ -31,6 +31,7 @@ jobs:
   micro_test:
     machine:
       image: ubuntu-1604:201903-01
+    resource_class: large
     working_directory: /home/circleci/work
     steps:
       - checkout
@@ -92,7 +93,7 @@ jobs:
           name: Run test
           command: |
             cd microtest
-            make GINKGO=/home/circleci/.go_workspace/bin/ginkgo CONTAINER_BUILDER=docker test
+            make GOPATH=/home/circleci/.go_workspace GINKGO=/home/circleci/.go_workspace/bin/ginkgo CONTAINER_BUILDER=docker test
             sudo $(which csi-sanity) -ginkgo.v -test.v --csi.controllerendpoint /var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/controller/csi-topolvm.sock --csi.endpoint /var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
           environment:
             CIRCLECI_EXECUTOR: machine

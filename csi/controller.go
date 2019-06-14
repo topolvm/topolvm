@@ -3,6 +3,7 @@ package csi
 import (
 	"context"
 	"strconv"
+	"strings"
 
 	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/topolvm"
@@ -23,22 +24,29 @@ type controllerService struct {
 }
 
 func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRequest) (*CreateVolumeResponse, error) {
+	capabilities := req.GetVolumeCapabilities()
+	source := req.GetVolumeContentSource()
+
 	log.Info("CreateVolume called", map[string]interface{}{
 		"name":                       req.GetName(),
 		"required":                   req.GetCapacityRange().GetRequiredBytes(),
 		"limit":                      req.GetCapacityRange().GetLimitBytes(),
 		"parameters":                 req.GetParameters(),
 		"num_secrets":                len(req.GetSecrets()),
-		"content_source":             req.GetVolumeContentSource(),
+		"capabilities":               capabilities,
+		"content_source":             source,
 		"accessibility_requirements": req.GetAccessibilityRequirements().String(),
 	})
 
-	if req.GetVolumeContentSource() != nil {
+	if source != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "volume_content_source not supported")
+	}
+	if capabilities == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "no volume capabilities are provided")
 	}
 
 	// check required volume capabilities
-	for _, capability := range req.GetVolumeCapabilities() {
+	for _, capability := range capabilities {
 		if block := capability.GetBlock(); block != nil {
 			log.Info("CreateVolume specifies volume capability", map[string]interface{}{
 				"access_type": "block",
@@ -98,6 +106,8 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 	if name == "" {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid name")
 	}
+
+	name = strings.ToLower(name)
 
 	var sizeGb int64
 	switch size := req.GetCapacityRange().GetRequiredBytes(); {

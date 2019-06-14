@@ -115,7 +115,7 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 		if err != nil {
 			return "", err
 		}
-		log.Info("creat LogicalVolume", map[string]interface{}{
+		log.Info("create LogicalVolume", map[string]interface{}{
 			"name": name,
 		})
 	} else {
@@ -126,6 +126,15 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 			return "", status.Error(codes.AlreadyExists, "Incompatible LogicalVolume already exists")
 		}
 		// compatible LV was found
+	}
+
+	if len(node) == 0 {
+		log.Warn("node is empty. LogicalVolume is created but lv will not be created", map[string]interface{}{
+			"name":    name,
+			"node":    node,
+			"size_gb": sizeGb,
+		})
+		return "", nil
 	}
 
 	for {
