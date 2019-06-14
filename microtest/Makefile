@@ -11,7 +11,43 @@ GO_FILES=$(shell find ../ -path ../microtest -prune -o -name "*.go" -print)
 CA_FILES=./certs/ca.csr ./certs/ca.pem ./certs/ca-key.pem
 SERVER_CERT_FILES=./certs/server.csr ./certs/server.pem ./certs/server-key.pem
 
-topolvm.img: $(GO_FILES)
+# CSI sidecard containers
+EXTERNAL_PROVISIONER_VERSION=1.1.1
+NODE_DRIVER_REGISTRAR_VERSION=1.1.0
+EXTERNAL_ATTACHER_VERSION=1.1.1
+CSI_SIDECARS = \
+	external-provisioner \
+	node-driver-registrar \
+	external-attacher
+
+external-provisioner:
+	mkdir -p $(GOPATH)/src/github.com/kubernetes-csi
+	rm -rf $(GOPATH)/src/github.com/kubernetes-csi/external-provisioner
+	curl -sSLf https://github.com/kubernetes-csi/external-provisioner/archive/v$(EXTERNAL_PROVISIONER_VERSION).tar.gz | \
+        tar zxf - -C $(GOPATH)/src/github.com/kubernetes-csi/
+	mv $(GOPATH)/src/github.com/kubernetes-csi/external-provisioner-$(EXTERNAL_PROVISIONER_VERSION) \
+		$(GOPATH)/src/github.com/kubernetes-csi/external-provisioner/
+	(cd $(GOPATH)/src/github.com/kubernetes-csi/external-provisioner/; GO111MODULE=off make)
+
+node-driver-registrar:
+	mkdir -p $(GOPATH)/src/github.com/kubernetes-csi
+	rm -rf $(GOPATH)/src/github.com/kubernetes-csi/node-driver-registrar
+	curl -sSLf https://github.com/kubernetes-csi/node-driver-registrar/archive/v$(NODE_DRIVER_REGISTRAR_VERSION).tar.gz | \
+        tar zxf - -C $(GOPATH)/src/github.com/kubernetes-csi/
+	mv $(GOPATH)/src/github.com/kubernetes-csi/node-driver-registrar-$(NODE_DRIVER_REGISTRAR_VERSION) \
+		$(GOPATH)/src/github.com/kubernetes-csi/node-driver-registrar/
+	(cd $(GOPATH)/src/github.com/kubernetes-csi/node-driver-registrar/; GO111MODULE=off make)
+
+external-attacher:
+	mkdir -p $(GOPATH)/src/github.com/kubernetes-csi
+	rm -rf $(GOPATH)/src/github.com/kubernetes-csi/external-attacher
+	curl -sSLf https://github.com/kubernetes-csi/external-attacher/archive/v$(EXTERNAL_ATTACHER_VERSION).tar.gz | \
+        tar zxf - -C $(GOPATH)/src/github.com/kubernetes-csi/
+	mv $(GOPATH)/src/github.com/kubernetes-csi/external-attacher-$(EXTERNAL_ATTACHER_VERSION) \
+		$(GOPATH)/src/github.com/kubernetes-csi/external-attacher/
+	(cd $(GOPATH)/src/github.com/kubernetes-csi/external-attacher/; GO111MODULE=off make)
+
+topolvm.img: $(GO_FILES) $(CSI_SIDECARS)
 	mkdir -p build
 	CGO_ENABLED=0 go build -o build/lvmetrics ../pkg/lvmetrics
 	CGO_ENABLED=0 go build -o build/topolvm-scheduler ../pkg/topolvm-scheduler
@@ -19,6 +55,9 @@ topolvm.img: $(GO_FILES)
 	CGO_ENABLED=0 go build -o build/csi-topolvm ../pkg/csi-topolvm
 	CGO_ENABLED=0 go build -o build/topolvm-node ../pkg/topolvm-node
 	CGO_ENABLED=0 go build -o build/lvmd-fake ./lvmd-fake
+	cp -f $(GOPATH)/src/github.com/kubernetes-csi/external-provisioner/bin/csi-provisioner ./build/
+	cp -f $(GOPATH)/src/github.com/kubernetes-csi/node-driver-registrar/bin/csi-node-driver-registrar ./build/
+	cp -f $(GOPATH)/src/github.com/kubernetes-csi/external-attacher/bin/csi-attacher ./build/
 	$(CONTAINER_BUILDER) build -t docker.io/library/topolvm:latest .
 	rm -f $@
 	$(CONTAINER_BUILDER) save -o $@ docker.io/library/topolvm:latest
@@ -54,7 +93,7 @@ stop-lvmd: uninstall-microk8s
 	$(SUDO) dmsetup remove_all
 	rm build/backing_store
 
-test: start-lvmd topolvm.img secret hook.yml start-lvmd
+test: start-lvmd topolvm.img secret hook.yml
 	$(SNAPBIN)/microk8s.status --wait-ready
 	$(SUDO) $(SNAPBIN)/microk8s.ctr -n k8s.io images import topolvm.img
 	$(KUBECTL) delete -f lvmetrics.yml -f scheduler.yml -f hook.yml -f scandpv.yml --ignore-not-found

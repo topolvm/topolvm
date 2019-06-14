@@ -26,8 +26,10 @@ spec:
               mountPath: /run/topolvm
 
         - name: csi-provisioner
-          image: quay.io/k8scsi/csi-provisioner:v1.1.0
+          image: topolvm:latest
           imagePullPolicy: "IfNotPresent"
+          command:
+            - "/csi-provisioner"
           args:
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
             - "--feature-gates=Topology=true"
@@ -36,8 +38,10 @@ spec:
               mountPath: /run/topolvm
 
         - name: csi-attacher
-          image: quay.io/k8scsi/csi-attacher:v1.1.1
+          image: topolvm:latest
           imagePullPolicy: "IfNotPresent"
+          command:
+            - "/csi-attacher"
           args:
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
           volumeMounts:
@@ -89,8 +93,10 @@ spec:
               mountPropagation: "Bidirectional"
 
         - name: csi-registrar
-          image: quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
+          image: topolvm:latest
           imagePullPolicy: "IfNotPresent"
+          command:
+            - "/csi-node-driver-registrar"
           args:
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
             - "--kubelet-registration-path=/var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock"
