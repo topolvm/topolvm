@@ -29,19 +29,20 @@ start-lvmd:
 	if [ "$$($(SUDO) losetup -j build/backing_store)" ]; then $(SUDO) vgremove myvg; $(SUDO) pvremove $$($(SUDO) losetup -j build/backing_store | cut -d: -f1); $(SUDO) losetup -d $$($(SUDO) losetup -j build/backing_store | cut -d: -f1); fi
 	truncate --size=10G build/backing_store
 	$(SUDO) losetup -f build/backing_store
-	$(SUDO) pvcreate -ff $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
+	$(SUDO) pvcreate -fy $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
 	$(SUDO) vgcreate myvg $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
 	mkdir -p /tmp/topolvm
 	$(SUDO) systemd-run --unit=lvmd.service $(shell pwd)/build/lvmd --volume-group=myvg --listen=/tmp/topolvm/lvmd.sock
 
 stop-lvmd:
+	$(SUDO) pvremove -ffy $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
+	$(SUDO) losetup -d $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
+	rm build/backing_store
 	$(SUDO) systemctl stop lvmd.service
 	$(SUDO) systemctl disable lvmd.service
 	$(SUDO) rm /run/systemd/transient/lvmd.service
 	$(SUDO) systemctl daemon-reload
 	$(SUDO) systemctl reset-failed lvmd.service
-	$(SUDO) losetup -d $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
-	rm build/backing_store
 
 test: topolvm.img secret hook.yml
 	$(SNAPBIN)/microk8s.status --wait-ready
@@ -90,5 +91,6 @@ endif
 
 clean:
 	rm -rf $(CA_FILES) $(SERVER_CERT_FILES) hook.yml topolvm.img build/
+	$(SUDO) snap remove microk8s
 
-.PHONY: test setup
+.PHONY: test setup start-lvmd stop-lvmd clean

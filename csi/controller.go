@@ -66,26 +66,34 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 	}
 
 	// process topology
-	requirements := req.GetAccessibilityRequirements()
 	var node string
-	for _, topo := range requirements.Preferred {
-		if v, ok := topo.GetSegments()[topolvm.TopologyNodeKey]; ok {
-			node = v
-			break
-		}
-	}
-	if node == "" {
-		for _, topo := range requirements.Requisite {
+	requirements := req.GetAccessibilityRequirements()
+	switch requirements {
+	case nil:
+		// In CSI spec, controllers are required that they response OK even if accessibility_requirements field is nil.
+		// So we must create volume, and must not return error response in this case.
+		// - https://github.com/container-storage-interface/spec/blob/release-1.1/spec.md#createvolume
+		// - https://github.com/kubernetes-csi/csi-test/blob/6738ab2206eac88874f0a3ede59b40f680f59f43/pkg/sanity/controller.go#L404-L428
+	default:
+		for _, topo := range requirements.Preferred {
 			if v, ok := topo.GetSegments()[topolvm.TopologyNodeKey]; ok {
 				node = v
 				break
 			}
 		}
-	}
-	if node == "" {
-		return nil, status.Errorf(codes.InvalidArgument, "cannot find key '%s' in accessibility_requirements", topolvm.TopologyNodeKey)
-	}
+		if node == "" {
+			for _, topo := range requirements.Requisite {
+				if v, ok := topo.GetSegments()[topolvm.TopologyNodeKey]; ok {
+					node = v
+					break
+				}
+			}
+		}
+		if node == "" {
+			return nil, status.Errorf(codes.InvalidArgument, "cannot find key '%s' in accessibility_requirements", topolvm.TopologyNodeKey)
+		}
 
+	}
 	name := req.GetName()
 	if name == "" {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid name")
@@ -135,6 +143,9 @@ func (s controllerService) DeleteVolume(ctx context.Context, req *DeleteVolumeRe
 		"volume_id":   req.GetVolumeId(),
 		"num_secrets": len(req.GetSecrets()),
 	})
+	if len(req.GetVolumeId()) == 0 {
+		return nil, status.Errorf(codes.InvalidArgument, "volume_id is not provided")
+	}
 
 	err := s.service.DeleteVolume(ctx, req.GetVolumeId())
 	if err != nil {
