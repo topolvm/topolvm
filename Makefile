@@ -11,10 +11,54 @@ GO_OUT := $(GO_OUT),Mgoogle/protobuf/descriptor.proto=github.com/golang/protobuf
 GO_OUT := $(GO_OUT),Mgoogle/protobuf/wrappers.proto=$(PTYPES_PKG)/wrappers
 GO_OUT := $(GO_OUT):csi
 
+PACKAGES := unzip
+GO_FILES=$(shell find -name '*.go' -not -name '*_test.go')
+BUILD_TARGET=lvmetrics topolvm-scheduler topolvm-hook csi-topolvm topolvm-node lvmd
+
+# CSI sidecard containers
+EXTERNAL_PROVISIONER_VERSION=1.1.1
+NODE_DRIVER_REGISTRAR_VERSION=1.1.0
+EXTERNAL_ATTACHER_VERSION=1.1.1
+CSI_SIDECARS = \
+	external-provisioner \
+	node-driver-registrar \
+	external-attacher
+
+external-provisioner:
+	mkdir -p $(GOPATH)/src/github.com/kubernetes-csi
+	rm -rf $(GOPATH)/src/github.com/kubernetes-csi/external-provisioner
+	curl -sSLf https://github.com/kubernetes-csi/external-provisioner/archive/v$(EXTERNAL_PROVISIONER_VERSION).tar.gz | \
+        tar zxf - -C $(GOPATH)/src/github.com/kubernetes-csi/
+	mv $(GOPATH)/src/github.com/kubernetes-csi/external-provisioner-$(EXTERNAL_PROVISIONER_VERSION) \
+		$(GOPATH)/src/github.com/kubernetes-csi/external-provisioner/
+	(cd $(GOPATH)/src/github.com/kubernetes-csi/external-provisioner/; GO111MODULE=off make)
+	cp -f $(GOPATH)/src/github.com/kubernetes-csi/external-provisioner/bin/csi-provisioner ./build/
+
+node-driver-registrar:
+	mkdir -p $(GOPATH)/src/github.com/kubernetes-csi
+	rm -rf $(GOPATH)/src/github.com/kubernetes-csi/node-driver-registrar
+	curl -sSLf https://github.com/kubernetes-csi/node-driver-registrar/archive/v$(NODE_DRIVER_REGISTRAR_VERSION).tar.gz | \
+        tar zxf - -C $(GOPATH)/src/github.com/kubernetes-csi/
+	mv $(GOPATH)/src/github.com/kubernetes-csi/node-driver-registrar-$(NODE_DRIVER_REGISTRAR_VERSION) \
+		$(GOPATH)/src/github.com/kubernetes-csi/node-driver-registrar/
+	(cd $(GOPATH)/src/github.com/kubernetes-csi/node-driver-registrar/; GO111MODULE=off make)
+	cp -f $(GOPATH)/src/github.com/kubernetes-csi/node-driver-registrar/bin/csi-node-driver-registrar ./build/
+
+external-attacher:
+	mkdir -p $(GOPATH)/src/github.com/kubernetes-csi
+	rm -rf $(GOPATH)/src/github.com/kubernetes-csi/external-attacher
+	curl -sSLf https://github.com/kubernetes-csi/external-attacher/archive/v$(EXTERNAL_ATTACHER_VERSION).tar.gz | \
+        tar zxf - -C $(GOPATH)/src/github.com/kubernetes-csi/
+	mv $(GOPATH)/src/github.com/kubernetes-csi/external-attacher-$(EXTERNAL_ATTACHER_VERSION) \
+		$(GOPATH)/src/github.com/kubernetes-csi/external-attacher/
+	(cd $(GOPATH)/src/github.com/kubernetes-csi/external-attacher/; GO111MODULE=off make)
+	cp -f $(GOPATH)/src/github.com/kubernetes-csi/external-attacher/bin/csi-attacher ./build/
+
 csi.proto:
 	$(CURL) -o $@ https://raw.githubusercontent.com/container-storage-interface/spec/v$(CSI_VERSION)/csi.proto
 
 bin/protoc:
+	rm -rf include
 	$(CURL) -o protobuf.zip https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOBUF_VERSION)/protoc-$(PROTOBUF_VERSION)-linux-x86_64.zip
 	unzip protobuf.zip bin/protoc 'include/*'
 	rm -f protobuf.zip
@@ -45,4 +89,16 @@ test:
 
 generate: csi/csi.pb.go lvmd/proto/lvmd.pb.go docs/lvmd-protocol.md
 
-.PHONY: test generate
+build: $(BUILD_TARGET) $(CSI_SIDECARS)
+$(BUILD_TARGET): $(GO_FILES)
+	mkdir -p build
+	go build -o ./build/$@ ./pkg/$@
+
+clean:
+	rm -rf build/
+
+setup:
+	$(SUDO) apt-get update
+	$(SUDO) apt-get -y install --no-install-recommends $(PACKAGES)
+
+.PHONY: test generate build setup

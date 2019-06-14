@@ -1,4 +1,4 @@
-FROM quay.io/cybozu/ubuntu-debug:18.04
+FROM quay.io/cybozu/ubuntu:18.04
 
 # csi-topolvm node requires file command
 ENV DEBIAN_FRONTEND=noninteractive
@@ -12,4 +12,9 @@ COPY build/topolvm-scheduler /topolvm-scheduler
 COPY build/topolvm-hook /topolvm-hook
 COPY build/csi-topolvm /csi-topolvm
 COPY build/topolvm-node /topolvm-node
-COPY build/lvmd-fake /lvmd
+COPY build/lvmd /lvmd
+# CSI sidecar
+COPY build/csi-provisioner /csi-provisioner
+COPY build/csi-node-driver-registrar /csi-node-driver-registrar
+COPY build/csi-attacher /csi-attacher
+COPY LICENSE /LICENSE

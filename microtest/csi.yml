@@ -26,10 +26,8 @@ spec:
               mountPath: /run/topolvm
 
         - name: csi-provisioner
-          image: topolvm:latest
+          image: quay.io/k8scsi/csi-provisioner:v1.1.0
           imagePullPolicy: "IfNotPresent"
-          command:
-            - "/csi-provisioner"
           args:
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
             - "--feature-gates=Topology=true"
@@ -38,10 +36,8 @@ spec:
               mountPath: /run/topolvm
 
         - name: csi-attacher
-          image: topolvm:latest
+          image: quay.io/k8scsi/csi-attacher:v1.1.1
           imagePullPolicy: "IfNotPresent"
-          command:
-            - "/csi-attacher"
           args:
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
           volumeMounts:
@@ -78,9 +74,14 @@ spec:
           command:
             - /csi-topolvm
             - node
-            - --node-name=test-node
+            - --node-name=$(MY_NODE_NAME)
             - --csi-socket-name=/run/topolvm/csi-topolvm.sock
             - --lvmd-socket-name=/run/lvmd/lvmd.sock
+          env:
+            - name: MY_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           volumeMounts:
             - name: plugin-dir
               mountPath: /run/topolvm
@@ -93,10 +94,8 @@ spec:
               mountPropagation: "Bidirectional"
 
         - name: csi-registrar
-          image: topolvm:latest
+          image: quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
           imagePullPolicy: "IfNotPresent"
-          command:
-            - "/csi-node-driver-registrar"
           args:
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
             - "--kubelet-registration-path=/var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock"
@@ -115,8 +114,13 @@ spec:
           imagePullPolicy: Never
           command:
             - /topolvm-node
-            - --node-name=test-node
+            - --node-name=$(MY_NODE_NAME)
             - --lvmd-socket=/run/lvmd/lvmd.sock
+          env:
+            - name: MY_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           volumeMounts:
             - name: lvmd-socket-dir
               mountPath: /run/lvmd

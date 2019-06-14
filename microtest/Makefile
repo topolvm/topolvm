@@ -11,42 +11,6 @@ GO_FILES=$(shell find ../ -path ../microtest -prune -o -name "*.go" -print)
 CA_FILES=./certs/ca.csr ./certs/ca.pem ./certs/ca-key.pem
 SERVER_CERT_FILES=./certs/server.csr ./certs/server.pem ./certs/server-key.pem
 
-# CSI sidecard containers
-EXTERNAL_PROVISIONER_VERSION=1.1.1
-NODE_DRIVER_REGISTRAR_VERSION=1.1.0
-EXTERNAL_ATTACHER_VERSION=1.1.1
-CSI_SIDECARS = \
-	external-provisioner \
-	node-driver-registrar \
-	external-attacher
-
-external-provisioner:
-	mkdir -p $(GOPATH)/src/github.com/kubernetes-csi
-	rm -rf $(GOPATH)/src/github.com/kubernetes-csi/external-provisioner
-	curl -sSLf https://github.com/kubernetes-csi/external-provisioner/archive/v$(EXTERNAL_PROVISIONER_VERSION).tar.gz | \
-        tar zxf - -C $(GOPATH)/src/github.com/kubernetes-csi/
-	mv $(GOPATH)/src/github.com/kubernetes-csi/external-provisioner-$(EXTERNAL_PROVISIONER_VERSION) \
-		$(GOPATH)/src/github.com/kubernetes-csi/external-provisioner/
-	(cd $(GOPATH)/src/github.com/kubernetes-csi/external-provisioner/; GO111MODULE=off make)
-
-node-driver-registrar:
-	mkdir -p $(GOPATH)/src/github.com/kubernetes-csi
-	rm -rf $(GOPATH)/src/github.com/kubernetes-csi/node-driver-registrar
-	curl -sSLf https://github.com/kubernetes-csi/node-driver-registrar/archive/v$(NODE_DRIVER_REGISTRAR_VERSION).tar.gz | \
-        tar zxf - -C $(GOPATH)/src/github.com/kubernetes-csi/
-	mv $(GOPATH)/src/github.com/kubernetes-csi/node-driver-registrar-$(NODE_DRIVER_REGISTRAR_VERSION) \
-		$(GOPATH)/src/github.com/kubernetes-csi/node-driver-registrar/
-	(cd $(GOPATH)/src/github.com/kubernetes-csi/node-driver-registrar/; GO111MODULE=off make)
-
-external-attacher:
-	mkdir -p $(GOPATH)/src/github.com/kubernetes-csi
-	rm -rf $(GOPATH)/src/github.com/kubernetes-csi/external-attacher
-	curl -sSLf https://github.com/kubernetes-csi/external-attacher/archive/v$(EXTERNAL_ATTACHER_VERSION).tar.gz | \
-        tar zxf - -C $(GOPATH)/src/github.com/kubernetes-csi/
-	mv $(GOPATH)/src/github.com/kubernetes-csi/external-attacher-$(EXTERNAL_ATTACHER_VERSION) \
-		$(GOPATH)/src/github.com/kubernetes-csi/external-attacher/
-	(cd $(GOPATH)/src/github.com/kubernetes-csi/external-attacher/; GO111MODULE=off make)
-
 topolvm.img: $(GO_FILES) $(CSI_SIDECARS)
 	mkdir -p build
 	CGO_ENABLED=0 go build -o build/lvmetrics ../pkg/lvmetrics
@@ -55,9 +19,6 @@ topolvm.img: $(GO_FILES) $(CSI_SIDECARS)
 	CGO_ENABLED=0 go build -o build/csi-topolvm ../pkg/csi-topolvm
 	CGO_ENABLED=0 go build -o build/topolvm-node ../pkg/topolvm-node
 	CGO_ENABLED=0 go build -o build/lvmd-fake ./lvmd-fake
-	cp -f $(GOPATH)/src/github.com/kubernetes-csi/external-provisioner/bin/csi-provisioner ./build/
-	cp -f $(GOPATH)/src/github.com/kubernetes-csi/node-driver-registrar/bin/csi-node-driver-registrar ./build/
-	cp -f $(GOPATH)/src/github.com/kubernetes-csi/external-attacher/bin/csi-attacher ./build/
 	$(CONTAINER_BUILDER) build -t docker.io/library/topolvm:latest .
 	rm -f $@
 	$(CONTAINER_BUILDER) save -o $@ docker.io/library/topolvm:latest
@@ -78,7 +39,7 @@ start-lvmd: install-microk8s
 	mkdir -p build
 	CGO_ENABLED=0 go build -o build/lvmd ../pkg/lvmd
 	if [ "$$($(SUDO) losetup -j build/backing_store)" ]; then $(SUDO) vgremove myvg; $(SUDO) pvremove $$($(SUDO) losetup -j build/backing_store | cut -d: -f1); $(SUDO) losetup -d $$($(SUDO) losetup -j build/backing_store | cut -d: -f1); fi
-	truncate --size=10G build/backing_store
+	truncate --size=20G build/backing_store
 	$(SUDO) losetup -f build/backing_store
 	$(SUDO) pvcreate -fy $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
 	$(SUDO) vgcreate myvg $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)

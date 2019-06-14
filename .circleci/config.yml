@@ -7,7 +7,75 @@ jobs:
     steps:
       - checkout
       - run: make -f topolvm-node/Makefile SUDO="" setup
+      - run: make setup
       - run: make test
+      - run: make build
+      - run:
+          command: |
+            mkdir /tmp/workspace
+            cp -a ./build/* /tmp/workspace
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths:
+            - csi-attacher
+            - csi-node-driver-registrar
+            - csi-provisioner
+            - csi-topolvm
+            - lvmd
+            - lvmetrics
+            - topolvm-hook
+            - topolvm-node
+            - topolvm-scheduler
+  build-image:
+    docker:
+      - image: docker:stable
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - run:
+          name: Copy binaries
+          command: |
+            mkdir -p build
+            cp /tmp/workspace/* build/
+      - setup_remote_docker
+      - run:
+          name: Build image
+          command: |
+            docker build -t quay.io/cybozu/topolvm:latest .
+      - run:
+          name: Save image
+          command: |
+            mkdir -p /tmp/docker
+            docker save quay.io/cybozu/topolvm:latest -o /tmp/docker/image
+      - persist_to_workspace:
+          root: /tmp/docker
+          paths:
+            - image
+  push-image:
+    docker:
+      - image: docker:stable
+    steps:
+      - attach_workspace:
+          at: /tmp/docker
+      - setup_remote_docker
+      - run: docker load -i /tmp/docker/image
+      - run:
+          name: Push docker image to Quay.io
+          command: |
+            docker login -u $QUAY_USER -p $QUAY_PASSWORD quay.io
+            echo "pushing topolvm image ..."
+            TAG=$(echo $CIRCLE_TAG | cut -c 2-)
+            docker tag quay.io/cybozu/topolvm:latest quay.io/cybozu/topolvm:$TAG
+            docker push quay.io/cybozu/topolvm:$TAG
+            if echo $TAG | grep -q -e - ; then
+                echo ===== Skip pushing branch tags for pre-release $TAG =====
+                exit 0
+            fi
+            BRANCH=$(echo $TAG | cut -d "." -f 1-2)
+            docker tag quay.io/cybozu/topolvm:latest quay.io/cybozu/topolvm:$BRANCH
+            docker push quay.io/cybozu/topolvm:$BRANCH
+
   test_lvmd:
     machine: true
     working_directory: /home/circleci/work
@@ -31,7 +99,6 @@ jobs:
   micro_test:
     machine:
       image: ubuntu-1604:201903-01
-    resource_class: large
     working_directory: /home/circleci/work
     steps:
       - checkout
@@ -94,7 +161,12 @@ jobs:
           command: |
             cd microtest
             make GOPATH=/home/circleci/.go_workspace GINKGO=/home/circleci/.go_workspace/bin/ginkgo CONTAINER_BUILDER=docker test
-            sudo $(which csi-sanity) -ginkgo.v -test.v --csi.controllerendpoint /var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/controller/csi-topolvm.sock --csi.endpoint /var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
+            sudo $(which csi-sanity) -ginkgo.v -test.v \
+              -csi.endpoint /var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock \
+              -csi.controllerendpoint /var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/controller/csi-topolvm.sock \
+              -csi.mountdir /var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/node/mountdir \
+              -csi.stagingdir /var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/node/stagingdir \
+              -csi.testvolumesize 1073741824
           environment:
             CIRCLECI_EXECUTOR: machine
 
@@ -103,5 +175,32 @@ workflows:
   main:
     jobs:
       - build
+      - build-image:
+          requires:
+            - build
       - test_lvmd
       - micro_test
+  release:
+    jobs:
+      - build:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v.*/
+      - build-image:
+          requires:
+            - build
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v.*/
+      - push-image:
+          requires:
+            - build-image
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v.*/

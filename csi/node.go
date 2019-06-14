@@ -178,6 +178,11 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVol
 		return nil, status.Errorf(codes.Internal, "failed to mount: %s", out)
 	}
 
+	log.Info("NodePublishVolume is succeeded", map[string]interface{}{
+		"target_path": req.TargetPath,
+		"fstype":      mountOption.FsType,
+	})
+
 	return &NodePublishVolumeResponse{}, nil
 }
 

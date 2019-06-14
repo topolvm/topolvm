@@ -128,15 +128,6 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 		// compatible LV was found
 	}
 
-	if len(node) == 0 {
-		log.Warn("node is empty. LogicalVolume is created but lv will not be created", map[string]interface{}{
-			"name":    name,
-			"node":    node,
-			"size_gb": sizeGb,
-		})
-		return "", nil
-	}
-
 	for {
 		log.Info("waiting for setting 'status.volumeID'", map[string]interface{}{
 			"namespace": s.namespace,
