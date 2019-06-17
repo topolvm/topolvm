@@ -9,9 +9,6 @@ import (
 	"github.com/cybozu-go/topolvm"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	corev1 "k8s.io/api/core/v1"
-	storagev1 "k8s.io/api/storage/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // NewControllerService returns a new ControllerServer.
@@ -138,7 +135,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 		return nil, status.Errorf(codes.InvalidArgument, "capacity limit exceeded")
 	}
 
-	volumeID, err := s.service.CreateVolume(ctx, node, name, sizeGb)
+	volumeID, err := s.service.CreateVolume(ctx, node, name, sizeGb, capabilities)
 	if err != nil {
 		s, ok := status.FromError(err)
 		if !ok {
@@ -206,25 +203,16 @@ func (s controllerService) ValidateVolumeCapabilities(ctx context.Context, req *
 		return nil, status.Error(codes.InvalidArgument, "volume id is nil")
 	}
 	if len(req.GetVolumeCapabilities()) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "volume capabilities is empty")
+		return nil, status.Error(codes.InvalidArgument, "volume capabilities are empty")
 	}
 
-	pv, err := s.service.GetPVByVolumeID(ctx, req.GetVolumeId())
-	if apierrors.IsNotFound(err) {
-		return nil, status.Errorf(codes.NotFound, "persistent volume %s is not found", req.GetVolumeId())
-	} else if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
-
-	sc, err := s.service.GetStorageClass(ctx, pv.Spec.StorageClassName)
-	if apierrors.IsNotFound(err) {
-		return nil, status.Errorf(codes.NotFound, "storage class %s is not found", pv.Spec.StorageClassName)
-	} else if err != nil {
+	isValid, err := s.service.ValidateVolumeCapabilities(ctx, req.GetVolumeId(), req.GetVolumeCapabilities())
+	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	var confirmed *ValidateVolumeCapabilitiesResponse_Confirmed
-	if isValidVolumeCapabilities(pv, sc, req.GetVolumeCapabilities()) {
+	if isValid {
 		confirmed = &ValidateVolumeCapabilitiesResponse_Confirmed{
 			VolumeCapabilities: req.GetVolumeCapabilities(),
 		}
@@ -232,37 +220,6 @@ func (s controllerService) ValidateVolumeCapabilities(ctx context.Context, req *
 	return &ValidateVolumeCapabilitiesResponse{
 		Confirmed: confirmed,
 	}, nil
-}
-
-func isValidVolumeCapabilities(pv *corev1.PersistentVolume, sc *storagev1.StorageClass, capabilities []*VolumeCapability) bool {
-	for _, capability := range capabilities {
-		// we only support single node writer
-		if capability.GetAccessMode().Mode != VolumeCapability_AccessMode_SINGLE_NODE_WRITER {
-			return false
-		}
-
-		if *pv.Spec.VolumeMode == corev1.PersistentVolumeBlock {
-			if capability.GetBlock() != nil {
-				return false
-			}
-		}
-
-		if *pv.Spec.VolumeMode == corev1.PersistentVolumeFilesystem {
-			if capability.GetMount() != nil {
-				return false
-			}
-
-			fsTypeKey := "csi.storage.k8s.io/fstype"
-			fsType, ok := sc.Parameters[fsTypeKey]
-			if !ok {
-				fsType = "ext4"
-			}
-			if fsType != capability.GetMount().FsType {
-				return false
-			}
-		}
-	}
-	return true
 }
 
 func (s controllerService) ListVolumes(ctx context.Context, req *ListVolumesRequest) (*ListVolumesResponse, error) {

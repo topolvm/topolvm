@@ -8,7 +8,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
-	storagev1 "k8s.io/api/storage/v1"
 )
 
 type logicalVolume struct {
@@ -30,7 +29,7 @@ func NewLogicalVolumeService() (csi.LogicalVolumeService, error) {
 	}, nil
 }
 
-func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, name string, sizeGb int64) (string, error) {
+func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, name string, sizeGb int64, capabilities []*csi.VolumeCapability) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -71,16 +70,10 @@ func (s *logicalVolumeService) ExpandVolume(ctx context.Context, volumeID string
 	return nil
 }
 
-func (s *logicalVolumeService) GetPVByVolumeID(ctx context.Context, volumeID string) (*corev1.PersistentVolume, error) {
-	pv := new(corev1.PersistentVolume)
-	return pv, nil
-}
-
 func (s *logicalVolumeService) ListNodes(ctx context.Context) (*corev1.NodeList, error) {
 	return new(corev1.NodeList), nil
 }
 
-func (s *logicalVolumeService) GetStorageClass(ctx context.Context, storageClassName string) (*storagev1.StorageClass, error) {
-	sc := new(storagev1.StorageClass)
-	return sc, nil
+func (s *logicalVolumeService) ValidateVolumeCapabilities(ctx context.Context, name string, capabilities []*csi.VolumeCapability) (bool, error) {
+	return true, nil
 }

@@ -31,11 +31,17 @@ type logicalVolumeService struct {
 	mu        sync.Mutex
 }
 
+const (
+	volumeModeMount    = "mount"
+	volumeModeBlock    = "block"
+	fsTypeKey          = "csi.storage.k8s.io/fstype"
+	volumeModeKey      = "topolvm.cybozu.com/volumeMode"
+	indexFieldVolumeID = "status.volumeID"
+)
+
 var (
 	scheme = runtime.NewScheme()
 )
-
-const indexFieldVolumeID = "status.volumeID"
 
 // NewLogicalVolumeService returns LogicalVolumeService.
 func NewLogicalVolumeService(namespace string) (csi.LogicalVolumeService, error) {
@@ -78,7 +84,7 @@ func NewLogicalVolumeService(namespace string) (csi.LogicalVolumeService, error)
 
 }
 
-func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, name string, sizeGb int64) (string, error) {
+func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, name string, sizeGb int64, capabilities []*csi.VolumeCapability) (string, error) {
 	log.Info("k8s.CreateVolume called", map[string]interface{}{
 		"name":    name,
 		"node":    node,
@@ -88,6 +94,34 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	volumeMode := ""
+	fsType := ""
+	for _, capability := range capabilities {
+		if m := capability.GetMount(); m != nil {
+			volumeMode = volumeModeMount
+			if len(m.FsType) == 0 {
+				// external-provisioner's default file system type is "ext4"
+				fsType = "ext4"
+			} else {
+				fsType = m.FsType
+			}
+			break
+		} else if capability.GetBlock() != nil {
+			volumeMode = volumeModeBlock
+			break
+		} else {
+			continue
+		}
+	}
+	if volumeMode == "" {
+		log.Error("volume mode is not specified", map[string]interface{}{
+			"node":         node,
+			"name":         name,
+			"sizeGb":       sizeGb,
+			"capabilities": capabilities,
+		})
+	}
+
 	lv := &topolvmv1.LogicalVolume{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "LogicalVolume",
@@ -96,6 +130,10 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: s.namespace,
+			Annotations: map[string]string{
+				volumeModeKey: volumeMode,
+				fsTypeKey:     fsType,
+			},
 		},
 		Spec: topolvmv1.LogicalVolumeSpec{
 			Name:     name,
@@ -189,22 +227,49 @@ func (s *logicalVolumeService) DeleteVolume(ctx context.Context, volumeID string
 	return s.mgr.GetClient().Delete(ctx, &lvList.Items[0])
 }
 
-func (s *logicalVolumeService) GetPVByVolumeID(ctx context.Context, volumeID string) (*corev1.PersistentVolume, error) {
-	pv := new(corev1.PersistentVolume)
-	err := s.mgr.GetClient().Get(ctx, client.ObjectKey{Name: volumeID}, pv)
+func (s *logicalVolumeService) getLogicalVolumeListByVolumeID(ctx context.Context, volumeID string) (*topolvmv1.LogicalVolumeList, error) {
+	lvList := new(topolvmv1.LogicalVolumeList)
+	err := s.mgr.GetClient().List(ctx, lvList,
+		client.InNamespace(topolvm.SystemNamespace),
+		client.MatchingField(indexFieldVolumeID, volumeID))
 	if err != nil {
 		return nil, err
 	}
-	return pv, nil
+	return lvList, nil
 }
 
-func (s *logicalVolumeService) GetStorageClass(ctx context.Context, storageClassName string) (*storagev1.StorageClass, error) {
-	sc := new(storagev1.StorageClass)
-	err := s.mgr.GetClient().Get(ctx, client.ObjectKey{Name: storageClassName}, sc)
+func (s *logicalVolumeService) ValidateVolumeCapabilities(ctx context.Context, volumeID string, capabilities []*csi.VolumeCapability) (bool, error) {
+	lvList, err := s.getLogicalVolumeListByVolumeID(ctx, volumeID)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
-	return sc, nil
+	if len(lvList.Items) > 1 {
+		return false, errors.New("found multiple volumes with volumeID " + volumeID)
+	}
+	if len(lvList.Items) == 0 {
+		return false, errors.New("volume with volumeID " + volumeID + " is not found")
+	}
+	lv := lvList.Items[0]
+	return isValidVolumeCapabilities(capabilities, lv.Annotations[volumeModeKey], lv.Annotations[fsTypeKey]), nil
+}
+
+func isValidVolumeCapabilities(requestCapabilities []*csi.VolumeCapability, volumeMode, fsType string) bool {
+	supportAll := false
+	for _, capability := range requestCapabilities {
+		// we only support single node writer
+		if capability.GetAccessMode().Mode != csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER {
+			supportAll = false
+		}
+
+		if capability.GetBlock() != nil && volumeMode == volumeModeBlock {
+			supportAll = true
+		} else if m := capability.GetMount(); m != nil && volumeMode == volumeModeMount && m.FsType == fsType {
+			supportAll = true
+		} else {
+			supportAll = false
+		}
+	}
+	return supportAll
 }
 
 func (s *logicalVolumeService) ListNodes(ctx context.Context) (*corev1.NodeList, error) {
