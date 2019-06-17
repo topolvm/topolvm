@@ -7,7 +7,6 @@ import (
 	"github.com/cybozu-go/topolvm/csi"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	corev1 "k8s.io/api/core/v1"
 )
 
 type logicalVolume struct {
@@ -70,10 +69,14 @@ func (s *logicalVolumeService) ExpandVolume(ctx context.Context, volumeID string
 	return nil
 }
 
-func (s *logicalVolumeService) ListNodes(ctx context.Context) (*corev1.NodeList, error) {
-	return new(corev1.NodeList), nil
-}
-
 func (s *logicalVolumeService) ValidateVolumeCapabilities(ctx context.Context, name string, capabilities []*csi.VolumeCapability) (bool, error) {
 	return true, nil
+}
+
+func (s *logicalVolumeService) GetCapacity(ctx context.Context, requestNodeNumber string) (int64, error) {
+	return 0, nil
+}
+
+func (s *logicalVolumeService) GetMaxCapacity(ctx context.Context) (string, int64, error) {
+	return "", 0, nil
 }

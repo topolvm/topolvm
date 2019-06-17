@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -305,7 +306,7 @@ func isValidVolumeCapabilities(requestCapabilities []*csi.VolumeCapability, volu
 	}
 }
 
-func (s *logicalVolumeService) ListNodes(ctx context.Context) (*corev1.NodeList, error) {
+func (s *logicalVolumeService) listNodes(ctx context.Context) (*corev1.NodeList, error) {
 	nl := new(corev1.NodeList)
 	err := s.mgr.GetClient().List(ctx, nl)
 	if err != nil {
@@ -316,4 +317,75 @@ func (s *logicalVolumeService) ListNodes(ctx context.Context) (*corev1.NodeList,
 
 func (s *logicalVolumeService) ExpandVolume(ctx context.Context, volumeID string, sizeGb int64) error {
 	panic("implement me")
+}
+
+func (s *logicalVolumeService) GetCapacity(ctx context.Context, requestNodeNumber string) (int64, error) {
+	nl, err := s.listNodes(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	capacity := int64(0)
+	if len(requestNodeNumber) == 0 {
+		for _, node := range nl.Items {
+			c, err := s.getNodeCapacity(node)
+			if err != nil {
+				log.Warn("failed to parse annotation", map[string]interface{}{
+					"node":      node.Name,
+					log.FnError: err,
+				})
+				continue
+			}
+			capacity += c
+		}
+		return capacity, nil
+	}
+
+	for _, node := range nl.Items {
+		if nodeNumber, ok := node.Annotations[topolvm.TopologyNodeKey]; ok {
+			if requestNodeNumber != nodeNumber {
+				continue
+			}
+			c, ok := node.Annotations[topolvm.CapacityKey]
+			if !ok {
+				return 0, fmt.Errorf("%s is not found", topolvm.CapacityKey)
+			}
+			return strconv.ParseInt(c, 10, 64)
+		}
+	}
+
+	return 0, errors.New("capacity not found")
+}
+
+func (s *logicalVolumeService) GetMaxCapacity(ctx context.Context) (string, int64, error) {
+	nl, err := s.listNodes(ctx)
+	if err != nil {
+		return "", 0, err
+	}
+	var nodeName string
+	maxCapacity := int64(0)
+	for _, node := range nl.Items {
+		c, err := s.getNodeCapacity(node)
+		if err != nil {
+			log.Warn("failed to parse annotation", map[string]interface{}{
+				"node":      node.Name,
+				log.FnError: err,
+			})
+			continue
+		}
+
+		if maxCapacity < c {
+			maxCapacity = c
+			nodeName = node.Name
+		}
+	}
+	return nodeName, maxCapacity, nil
+}
+
+func (s *logicalVolumeService) getNodeCapacity(node corev1.Node) (int64, error) {
+	c, ok := node.Annotations[topolvm.CapacityKey]
+	if !ok {
+		return 0, fmt.Errorf("node %s does not have topolvm.cybozu.com/capacity", node.Name)
+	}
+	return strconv.ParseInt(c, 10, 64)
 }

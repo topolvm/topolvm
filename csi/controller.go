@@ -2,7 +2,6 @@ package csi
 
 import (
 	"context"
-	"strconv"
 	"strings"
 
 	"github.com/cybozu-go/log"
@@ -81,7 +80,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 		// - https://github.com/container-storage-interface/spec/blob/release-1.1/spec.md#createvolume
 		// - https://github.com/kubernetes-csi/csi-test/blob/6738ab2206eac88874f0a3ede59b40f680f59f43/pkg/sanity/controller.go#L404-L428
 		log.Info("decide node because accessibility_requirements not found", nil)
-		nodeName, capacity, err := s.GetMaxCapacityNode(ctx)
+		nodeName, capacity, err := s.service.GetMaxCapacity(ctx)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to get max capacity node %v", err)
 		}
@@ -241,57 +240,34 @@ func (s controllerService) GetCapacity(ctx context.Context, req *GetCapacityRequ
 		log.Warn("capability argument is not nil, but csi controller plugin ignored this argument", map[string]interface{}{})
 	}
 
-	nodeList, err := s.service.ListNodes(ctx)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
+	capacity := int64(0)
 	switch topology {
 	case nil:
-		totalCapacity := int64(0)
-		for _, node := range nodeList.Items {
-			capacity, ok := node.Annotations[topolvm.CapacityKey]
-			if !ok {
-				continue
-			}
-			res, err := strconv.ParseInt(capacity, 10, 64)
-			if err != nil {
-				return nil, status.Error(codes.Internal, err.Error())
-			}
-			totalCapacity += res
+		var err error
+		capacity, err = s.service.GetCapacity(ctx, "")
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, err.Error())
 		}
-		return &GetCapacityResponse{
-			AvailableCapacity: totalCapacity,
-		}, nil
 	default:
 		requestNodeNumber, ok := topology.Segments[topolvm.TopologyNodeKey]
 		if !ok {
 			return nil, status.Errorf(codes.Internal, "%s is not found in req.AccessibleTopology", topolvm.TopologyNodeKey)
 		}
-		for _, node := range nodeList.Items {
-			if nodeNumber, ok := node.Annotations[topolvm.TopologyNodeKey]; ok {
-				if requestNodeNumber != nodeNumber {
-					continue
-				}
-				capacity, ok := node.Annotations[topolvm.CapacityKey]
-				if !ok {
-					return nil, status.Errorf(codes.Internal, "%s is not found", topolvm.CapacityKey)
-				}
-				capacityInt, err := strconv.ParseInt(capacity, 10, 64)
-				if err != nil {
-					return nil, status.Errorf(codes.Internal, err.Error())
-				}
-				return &GetCapacityResponse{
-					AvailableCapacity: capacityInt,
-				}, nil
-			}
+		var err error
+		capacity, err = s.service.GetCapacity(ctx, requestNodeNumber)
+		if err != nil {
+			log.Info("target is not found", map[string]interface{}{
+				"accessible_topology": req.AccessibleTopology,
+			})
+			return &GetCapacityResponse{
+				AvailableCapacity: 0,
+			}, nil
 		}
-		log.Info("target is not found", map[string]interface{}{
-			"accessible_topology": req.AccessibleTopology,
-		})
-		return &GetCapacityResponse{
-			AvailableCapacity: 0,
-		}, nil
 	}
+
+	return &GetCapacityResponse{
+		AvailableCapacity: capacity,
+	}, nil
 }
 
 func (s controllerService) ControllerGetCapabilities(context.Context, *ControllerGetCapabilitiesRequest) (*ControllerGetCapabilitiesResponse, error) {
@@ -329,31 +305,4 @@ func (s controllerService) ListSnapshots(context.Context, *ListSnapshotsRequest)
 
 func (s controllerService) ControllerExpandVolume(context.Context, *ControllerExpandVolumeRequest) (*ControllerExpandVolumeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "ControllerExpandVolume not implemented")
-}
-
-func (s controllerService) GetMaxCapacityNode(ctx context.Context) (string, int64, error) {
-	nl, err := s.service.ListNodes(ctx)
-	if err != nil {
-		return "", 0, err
-	}
-	var nodeName string
-	capacity := int64(0)
-	for _, n := range nl.Items {
-		if val, ok := n.Annotations[topolvm.CapacityKey]; ok {
-			c, err := strconv.ParseInt(val, 10, 64)
-			if err != nil {
-				// the value of capacity annotation may not be convertible to int
-				log.Warn("failed to parse annotation", map[string]interface{}{
-					"node":     n.Name,
-					"capacity": val,
-				})
-				continue
-			}
-			if capacity < c {
-				capacity = c
-				nodeName = n.Name
-			}
-		}
-	}
-	return nodeName, capacity, nil
 }
