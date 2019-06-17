@@ -63,6 +63,12 @@ test: start-lvmd topolvm.img secret hook.yml
 	if ! grep -q scheduler-config.yaml $(SNAPDATA)/args/kube-scheduler; then echo "--config=$(SNAPDATA)/scheduler-config.yaml" | $(SUDO) tee -a $(SNAPDATA)/args/kube-scheduler; fi
 	$(SUDO) systemctl restart snap.microk8s.daemon-scheduler.service
 	$(GINKGO) -v .
+	$(SUDO) $$(which csi-sanity) -ginkgo.v -test.v \
+		-csi.endpoint /var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock \
+		-csi.controllerendpoint /var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/controller/csi-topolvm.sock \
+		-csi.mountdir /var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/node/mountdir \
+		-csi.stagingdir /var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/node/stagingdir \
+		-csi.testvolumesize 1073741824
 
 $(CA_FILES): ./certs/csr.json
 	cfssl gencert -initca certs/csr.json | cfssljson -bare certs/ca
@@ -88,13 +94,9 @@ ifeq ($(CONTAINER_BUILDER),podman)
 	$(SUDO) apt-get install -y podman
 endif
 	GO111MODULE=off go get -d github.com/kubernetes-csi/csi-test/cmd/csi-sanity
-ifeq ($(CIRCLECI), true)
-	(cd /home/circleci/.go_workspace/src/github.com/kubernetes-csi/csi-test/cmd/csi-sanity; GOPATH=/home/circleci/.go_workspace make install)
-else
 	(cd $(GOPATH)/src/github.com/kubernetes-csi/csi-test/cmd/csi-sanity; make install)
-endif
 
 clean: stop-lvmd
 	rm -rf $(CA_FILES) $(SERVER_CERT_FILES) hook.yml topolvm.img build/
 
-.PHONY: test setup install-microk8s uninstall-microk8s start-lvmd stop-lvmd clean
+.PHONY: install-microk8s uninstall-microk8s start-lvmd stop-lvmd test setup clean
