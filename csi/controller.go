@@ -11,6 +11,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
+var ErrVolumeNotFound := errors.New("VolumeID is not found")
+
 // NewControllerService returns a new ControllerServer.
 func NewControllerService(service LogicalVolumeService) ControllerServer {
 	return &controllerService{service: service}
@@ -207,7 +209,7 @@ func (s controllerService) ValidateVolumeCapabilities(ctx context.Context, req *
 	}
 
 	isValid, err := s.service.ValidateVolumeCapabilities(ctx, req.GetVolumeId(), req.GetVolumeCapabilities())
-	if apierrors.IsNotFound(err) {
+	if err != nil && err == ErrVolumeNotFound {
 		return nil, status.Errorf(codes.NotFound, "LogicalVolume for volume id %s is not found", req.GetVolumeId())
 	} else if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())

@@ -247,7 +247,7 @@ func (s *logicalVolumeService) ValidateVolumeCapabilities(ctx context.Context, v
 	if len(lvList.Items) > 1 {
 		return false, errors.New("found multiple volumes with volumeID " + volumeID)
 	} else if len(lvList.Items) == 0 {
-		return false, errors.New("volume with volumeID " + volumeID + " is not found")
+		return false, csi.ErrVolumeNotFound
 	}
 	lv := lvList.Items[0]
 	return isValidVolumeCapabilities(capabilities, lv.Annotations[volumeModeKey], lv.Annotations[fsTypeKey]), nil
