@@ -119,12 +119,24 @@ spec:
 		}).Should(Succeed())
 
 		By("confirming that the lv correspond to LogicalVolume resource is registered in LVM")
-		stdout, stderr, err = kubectl("get", "pvc", "-n", ns, "topo-pvc", "-o=template", "--template='{{.spec.volumeName}}'")
+		stdout, stderr, err = kubectl("get", "pvc", "-n", ns, "topo-pvc", "-o=template", "--template={{.spec.volumeName}}")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 		volName := strings.TrimSpace(string(stdout))
-		stdout, err = exec.Command("sudo", "lvdisplay", "--select", "lv_name="+volName).Output()
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s", stdout)
-		Expect(strings.TrimSpace(string(stdout))).ShouldNot(BeEmpty())
+		Eventually(func() error {
+			stdout, stderr, err = kubectl("get", "logicalvolume", "-n", "topolvm-system", volName, "-o=template", "--template={{.metadata.uid}}")
+			if err != nil {
+				return fmt.Errorf("err=%v, stdout=%s, stderr=%s", err, stdout, stderr)
+			}
+			lvName := strings.TrimSpace(string(stdout))
+			stdout, err = exec.Command("sudo", "lvdisplay", "--select", "lv_name="+lvName).Output()
+			if err != nil {
+				return fmt.Errorf("err=%v, stdout=%s", err, stdout)
+			}
+			if strings.TrimSpace(string(stdout)) == "" {
+				return fmt.Errorf("lv_name ( %s ) not found", lvName)
+			}
+			return nil
+		}).Should(Succeed())
 
 		By("deleting the Pod and PVC")
 		stdout, stderr, err = kubectlWithInput([]byte(podAndClaimYAML), "delete", "-n", ns, "-f", "-")

@@ -382,6 +382,7 @@ func (t *ThinPool) CreateVolume(name string, size uint64) (*LogicalVolume, error
 // LogicalVolume represents a logical volume.
 type LogicalVolume struct {
 	fullname string
+	// name is equivalent for LogicalVolume CRD UID
 	name     string
 	path     string
 	vg       *VolumeGroup

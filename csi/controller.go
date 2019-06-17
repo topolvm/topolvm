@@ -2,16 +2,17 @@ package csi
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/topolvm"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
-var ErrVolumeNotFound := errors.New("VolumeID is not found")
+// ErrVolumeNotFound is error message when VolumeID is not found
+var ErrVolumeNotFound = errors.New("VolumeID is not found")
 
 // NewControllerService returns a new ControllerServer.
 func NewControllerService(service LogicalVolumeService) ControllerServer {

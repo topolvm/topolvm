@@ -138,16 +138,16 @@ func (r *LogicalVolumeReconciler) removeLVIfExists(ctx context.Context, log logr
 
 	for _, v := range respList.Volumes {
 		if v.Name == lv.Name {
-			_, err := lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: lv.Name})
+			_, err := lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: string(lv.UID)})
 			if err != nil {
-				log.Error(err, "failed to remove LV", "name", lv.Name)
+				log.Error(err, "failed to remove LV", "name", lv.Name, "uid", lv.UID)
 				return err
 			}
-			log.Info("removed LV", "name", lv.Name)
+			log.Info("removed LV", "name", lv.Name, "uid", lv.UID)
 			return nil
 		}
 	}
-	log.Info("LV already removed", "name", lv.Name)
+	log.Info("LV already removed", "name", lv.Name, "uid", lv.UID)
 	return nil
 }
 
@@ -187,11 +187,11 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 	if err != nil {
 		return err
 	} else if found {
-		log.Info("set volumeID to existing LogicalVolume", "name", lv.Name, "status.volumeID", lv.Status.VolumeID)
+		log.Info("set volumeID to existing LogicalVolume", "name", lv.Name, "uid", lv.UID, "status.volumeID", lv.Status.VolumeID)
 		return nil
 	}
 
-	resp, err := lvService.CreateLV(ctx, &proto.CreateLVRequest{Name: lv.Name, SizeGb: uint64(reqBytes >> 30)})
+	resp, err := lvService.CreateLV(ctx, &proto.CreateLVRequest{Name: string(lv.UID), SizeGb: uint64(reqBytes >> 30)})
 	if err != nil {
 		s, ok := status.FromError(err)
 		if !ok {
@@ -205,11 +205,11 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 	lv.Status.VolumeID = resp.Volume.Name
 	err = r.k8sClient.Status().Update(ctx, lv)
 	if err != nil {
-		log.Error(err, "failed to update VolumeID", "name", lv.Name)
+		log.Error(err, "failed to update VolumeID", "name", lv.Name, "uid", lv.UID)
 		return err
 	}
 
-	log.Info("created new LV", "name", lv.Name, "status.volumeID", lv.Status.VolumeID)
+	log.Info("created new LV", "name", lv.Name, "uid", lv.UID, "status.volumeID", lv.Status.VolumeID)
 	return nil
 }
 

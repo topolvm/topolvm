@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -21,7 +22,11 @@ var config struct {
 }
 
 // DefaultSocketName defines the default UNIX domain socket path.
-const DefaultSocketName = "/run/topolvm/lvmd.sock"
+const (
+	DefaultSocketName = "/run/topolvm/lvmd.sock"
+	maxDevNameLength  = 127
+	k8sUIDLength      = 36
+)
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -40,6 +45,11 @@ func subMain() error {
 		return err
 	}
 
+	// the limit of the lv name length is 127 including vgname and 3.
+	// https://github.com/lvmteam/lvm2/blob/24bd35b4ce77a5111ee234f554ca139df4b7dd99/lib/metadata/metadata.c#L2386
+	if len(config.vgName) > (maxDevNameLength - k8sUIDLength - 3) {
+		return errors.New("volume-group is too long")
+	}
 	vg, err := command.FindVolumeGroup(config.vgName)
 	if err != nil {
 		return err
