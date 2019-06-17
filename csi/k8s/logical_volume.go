@@ -245,8 +245,7 @@ func (s *logicalVolumeService) ValidateVolumeCapabilities(ctx context.Context, v
 	}
 	if len(lvList.Items) > 1 {
 		return false, errors.New("found multiple volumes with volumeID " + volumeID)
-	}
-	if len(lvList.Items) == 0 {
+	} else if len(lvList.Items) == 0 {
 		return false, errors.New("volume with volumeID " + volumeID + " is not found")
 	}
 	lv := lvList.Items[0]
@@ -254,22 +253,56 @@ func (s *logicalVolumeService) ValidateVolumeCapabilities(ctx context.Context, v
 }
 
 func isValidVolumeCapabilities(requestCapabilities []*csi.VolumeCapability, volumeMode, fsType string) bool {
-	supportAll := false
-	for _, capability := range requestCapabilities {
-		// we only support single node writer
-		if capability.GetAccessMode().Mode != csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER {
-			supportAll = false
-		}
+	requestFsType := ""
+	requestAccessMode := csi.VolumeCapability_AccessMode_UNKNOWN
+	requestVolumeMode := ""
 
-		if capability.GetBlock() != nil && volumeMode == volumeModeBlock {
-			supportAll = true
-		} else if m := capability.GetMount(); m != nil && volumeMode == volumeModeMount && m.FsType == fsType {
-			supportAll = true
-		} else {
-			supportAll = false
+	for _, capability := range requestCapabilities {
+		mode := capability.GetAccessMode()
+		if mode != nil {
+			if requestAccessMode != csi.VolumeCapability_AccessMode_UNKNOWN {
+				log.Error("found multiple capability specification about access mode", nil)
+				return false
+			}
+			requestAccessMode = mode.Mode
+		}
+		if capability.GetBlock() != nil {
+			if requestVolumeMode != "" {
+				log.Error("found multiple capability specification about volume mode", nil)
+				return false
+			}
+			requestVolumeMode = volumeModeBlock
+		}
+		if m := capability.GetMount(); m != nil {
+			if requestVolumeMode != "" {
+				log.Error("found multiple capability specification about volume mode", nil)
+				return false
+			}
+			if requestFsType != "" {
+				log.Error("found multiple capability specification about fs type", nil)
+				return false
+			}
+			requestVolumeMode = volumeModeMount
+			requestFsType = m.FsType
+			if requestFsType == "" {
+				requestFsType = "ext4"
+			}
 		}
 	}
-	return supportAll
+
+	// we only support single node writer
+	if requestAccessMode != csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER {
+		return false
+	}
+
+	switch volumeMode {
+	case volumeModeMount:
+		return requestVolumeMode == volumeModeMount && requestFsType == fsType
+	case volumeModeBlock:
+		return requestVolumeMode == volumeModeBlock
+	default:
+		return false
+	}
 }
 
 func (s *logicalVolumeService) ListNodes(ctx context.Context) (*corev1.NodeList, error) {

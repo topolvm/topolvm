@@ -9,6 +9,7 @@ import (
 	"github.com/cybozu-go/topolvm"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // NewControllerService returns a new ControllerServer.
@@ -207,7 +208,9 @@ func (s controllerService) ValidateVolumeCapabilities(ctx context.Context, req *
 	}
 
 	isValid, err := s.service.ValidateVolumeCapabilities(ctx, req.GetVolumeId(), req.GetVolumeCapabilities())
-	if err != nil {
+	if apierrors.IsNotFound(err) {
+		return nil, status.Errorf(codes.NotFound, "LogicalVolume for volume id %s is not found", req.GetVolumeId())
+	} else if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
