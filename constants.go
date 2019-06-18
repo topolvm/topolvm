@@ -16,3 +16,6 @@ const TopologyNodeKey = "topology.topolvm.cybozu.com/node"
 
 // SystemNamespace is the name of namespace for TopoLVM system.
 const SystemNamespace = "topolvm-system"
+
+// VolumeModeKey is a key of LogicalVolume annotation that represents volume mode.
+const VolumeModeKey = "topolvm.cybozu.com/volumeMode"

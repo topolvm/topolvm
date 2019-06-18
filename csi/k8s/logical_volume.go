@@ -35,8 +35,8 @@ type logicalVolumeService struct {
 const (
 	volumeModeMount    = "mount"
 	volumeModeBlock    = "block"
+	defaultFsType      = "ext4"
 	fsTypeKey          = "csi.storage.k8s.io/fstype"
-	volumeModeKey      = "topolvm.cybozu.com/volumeMode"
 	indexFieldVolumeID = "status.volumeID"
 )
 
@@ -102,7 +102,7 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 			volumeMode = volumeModeMount
 			if len(m.FsType) == 0 {
 				// external-provisioner's default file system type is "ext4"
-				fsType = "ext4"
+				fsType = defaultFsType
 			} else {
 				fsType = m.FsType
 			}
@@ -132,8 +132,8 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 			Name:      name,
 			Namespace: s.namespace,
 			Annotations: map[string]string{
-				volumeModeKey: volumeMode,
-				fsTypeKey:     fsType,
+				topolvm.VolumeModeKey: volumeMode,
+				fsTypeKey:             fsType,
 			},
 		},
 		Spec: topolvmv1.LogicalVolumeSpec{
@@ -250,7 +250,7 @@ func (s *logicalVolumeService) ValidateVolumeCapabilities(ctx context.Context, v
 		return false, csi.ErrVolumeNotFound
 	}
 	lv := lvList.Items[0]
-	return isValidVolumeCapabilities(capabilities, lv.Annotations[volumeModeKey], lv.Annotations[fsTypeKey]), nil
+	return isValidVolumeCapabilities(capabilities, lv.Annotations[topolvm.VolumeModeKey], lv.Annotations[fsTypeKey]), nil
 }
 
 func isValidVolumeCapabilities(requestCapabilities []*csi.VolumeCapability, volumeMode, fsType string) bool {
