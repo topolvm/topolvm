@@ -133,5 +133,5 @@ func init() {
 	rootCmd.Flags().StringVar(&config.nodeName, "node-name", "", "The name of the node hosting csi-topolvm node service")
 	rootCmd.Flags().StringVar(&config.csiSocketName, "csi-socket-name", defaultCSISocketName, "The socket name for CSI gRPC server")
 	rootCmd.Flags().StringVar(&config.lvmdSocketName, "lvmd-socket-name", lvmd.DefaultSocketName, "The socket name for LVMD gRPC server, for node mode")
-	rootCmd.Flags().StringVar(&config.namespace, "namespace", defaultNamespace, "Namespace for LogicalVolume CRD")
+	rootCmd.Flags().StringVar(&config.namespace, "namespace", defaultNamespace, "Namespace for LogicalVolume CRD, for controller mode")
 }
