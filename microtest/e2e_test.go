@@ -1,6 +1,8 @@
 package microtest
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -10,13 +12,7 @@ import (
 )
 
 var _ = Describe("E2E test", func() {
-	testNamespacePrefix := "e2e-test"
-
-	It("should be mounted in specified path", func() {
-		ns := testNamespacePrefix + randomString(10)
-		createNamespace(ns)
-
-		By("initialize LogicalVolume CRD")
+	BeforeSuite(func() {
 		createNamespace("topolvm-system")
 		stdout, stderr, err := kubectl("apply", "-f", "../topolvm-node/config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
@@ -24,9 +20,10 @@ var _ = Describe("E2E test", func() {
 		By("initialize topolvm services")
 		stdout, stderr, err = kubectl("apply", "-f", "./csi.yml")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+	})
 
-		By("deploying Pod with PVC")
-		podYAML := `apiVersion: v1
+	testNamespacePrefix := "e2e-test"
+	podYAML := `apiVersion: v1
 kind: Pod
 metadata:
   name: ubuntu
@@ -45,6 +42,13 @@ spec:
       persistentVolumeClaim:
         claimName: topo-pvc
 `
+
+	It("should be mounted in specified path", func() {
+		ns := testNamespacePrefix + randomString(10)
+		createNamespace(ns)
+
+		By("deploying Pod with PVC")
+
 		podAndClaimYAML := `kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
@@ -58,7 +62,7 @@ spec:
   storageClassName: topolvm-provisioner
 ---
 ` + podYAML
-		stdout, stderr, err = kubectlWithInput([]byte(podAndClaimYAML), "apply", "-n", ns, "-f", "-")
+		stdout, stderr, err := kubectlWithInput([]byte(podAndClaimYAML), "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		By("confirming that the specified device exists in the Pod")
@@ -164,6 +168,72 @@ spec:
 				return fmt.Errorf("target LV exists %s", volName)
 			}
 			return nil
+		}).Should(Succeed())
+	})
+
+	It("should create a block device for Pod", func() {
+		ns := testNamespacePrefix + randomString(10)
+		createNamespace(ns)
+
+		By("deploying ubuntu Pod with PVC to mount a block device")
+		podYAML := `apiVersion: v1
+kind: Pod
+metadata:
+  name: ubuntu
+  labels:
+    app.kubernetes.io/name: ubuntu
+spec:
+  containers:
+    - name: ubuntu
+      image: quay.io/cybozu/ubuntu:18.04
+      command: ["sleep", "infinity"]
+      volumeMounts:
+        - mountPath: /test1
+          name: my-volume
+  volumes:
+    - name: my-volume
+      persistentVolumeClaim:
+        claimName: topo-pvc
+`
+		claimYAML := `kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: topo-pvc
+spec:
+  volumeMode: Block
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: topolvm-provisioner
+`
+		stdout, stderr, err := kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("confirming that a block device exists in ubuntu pod")
+		devices := struct {
+			BlockDevices []struct {
+				MountPoint string `json:"mountpoint"`
+			} `json:"blockdevices"`
+		}{}
+		Eventually(func() error {
+			stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "lsblk", "--json", "-o", "mountpoint")
+			if err != nil {
+				return fmt.Errorf("failed to lsblk. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+			err := json.Unmarshal(stdout, &devices)
+			if err != nil {
+				return err
+			}
+			for _, bd := range devices.BlockDevices {
+				if strings.Contains(bd.MountPoint, "/test1") {
+					return nil
+				}
+			}
+			return errors.New("the target device is not found: " + string(stdout))
 		}).Should(Succeed())
 	})
 })
