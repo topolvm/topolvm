@@ -1,8 +1,6 @@
 package microtest
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -175,10 +173,11 @@ spec:
 
 	It("should create a block device for Pod", func() {
 		ns := testNamespacePrefix + randomString(10)
+		deviceFile := "/dev/e2etest"
 		createNamespace(ns)
 
 		By("deploying ubuntu Pod with PVC to mount a block device")
-		podYAML := `apiVersion: v1
+		podYAML := fmt.Sprintf(`apiVersion: v1
 kind: Pod
 metadata:
   name: ubuntu
@@ -190,13 +189,13 @@ spec:
       image: quay.io/cybozu/ubuntu:18.04
       command: ["sleep", "infinity"]
       volumeDevices:
-        - devicePath: /dev/e2etest
+        - devicePath: %s
           name: my-volume
   volumes:
     - name: my-volume
       persistentVolumeClaim:
         claimName: topo-pvc
-`
+`, deviceFile)
 		claimYAML := `kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
@@ -216,34 +215,16 @@ spec:
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		By("confirming that a block device exists in ubuntu pod")
-		res := struct {
-			BlockDevices []struct {
-				Name string `json:"name"`
-			} `json:"blockdevices"`
-		}{}
 		Eventually(func() error {
-			stdout, stderr, err = kubectl("get", "-n", ns, "pvc", "topo-pvc", "--template={{.spec.volumeName}}")
+			stdout, stderr, err := kubectl("get", "-n", ns, "pvc", "topo-pvc", "--template={{.spec.volumeName}}")
 			if err != nil {
 				return fmt.Errorf("failed to get volume name of topo-pvc. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
 			}
-			volumeName := "myvg-" + strings.ReplaceAll(
-				strings.TrimSpace(string(stdout))[len("pvc-"):],
-				"-", "--")
-
-			stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "lsblk", "--json", "-o", "name", "-l")
+			stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "test", "-b", deviceFile)
 			if err != nil {
-				return fmt.Errorf("failed to lsblk. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+				return fmt.Errorf("failed to test. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
 			}
-			err := json.Unmarshal(stdout, &res)
-			if err != nil {
-				return err
-			}
-			for _, bd := range res.BlockDevices {
-				if strings.Contains(bd.Name, volumeName) {
-					return nil
-				}
-			}
-			return errors.New("the target device is not found: " + string(stdout))
+			return nil
 		}).Should(Succeed())
 	})
 })
