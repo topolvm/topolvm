@@ -13,7 +13,7 @@ GO_OUT := $(GO_OUT):csi
 
 PACKAGES := unzip
 GO_FILES=$(shell find -name '*.go' -not -name '*_test.go')
-BUILD_TARGET=lvmetrics topolvm-scheduler topolvm-hook csi-topolvm topolvm-node lvmd
+BUILD_TARGET=hypertopolvm
 
 # CSI sidecard containers
 EXTERNAL_PROVISIONER_VERSION=1.1.1

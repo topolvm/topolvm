@@ -1,3 +1,4 @@
+# TopoLVM container
 FROM quay.io/cybozu/ubuntu:18.04
 
 # csi-topolvm node requires file command
@@ -7,14 +8,18 @@ RUN apt-get update \
         file \
     && rm -rf /var/lib/apt/lists/*
 
-COPY build/lvmetrics /lvmetrics
-COPY build/topolvm-scheduler /topolvm-scheduler
-COPY build/topolvm-hook /topolvm-hook
-COPY build/csi-topolvm /csi-topolvm
-COPY build/topolvm-node /topolvm-node
-COPY build/lvmd /lvmd
+COPY build/hypertopolvm hypertopolvm
+RUN ln -s hypertopolvm csi-topolvm \
+    && ln -s hypertopolvm lvmd \
+    && ln -s hypertopolvm lvmetrics \
+    && ln -s hypertopolvm topolvm-scheduler \
+    && ln -s hypertopolvm topolvm-node \
+    && ln -s hypertopolvm topolvm-hook
+
 # CSI sidecar
 COPY build/csi-provisioner /csi-provisioner
 COPY build/csi-node-driver-registrar /csi-node-driver-registrar
 COPY build/csi-attacher /csi-attacher
 COPY LICENSE /LICENSE
+
+ENTRYPOINT ["/hypertopolvm"]

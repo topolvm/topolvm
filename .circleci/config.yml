@@ -20,12 +20,7 @@ jobs:
             - csi-attacher
             - csi-node-driver-registrar
             - csi-provisioner
-            - csi-topolvm
-            - lvmd
-            - lvmetrics
-            - topolvm-hook
-            - topolvm-node
-            - topolvm-scheduler
+            - hypertopolvm
   build-image:
     docker:
       - image: docker:stable

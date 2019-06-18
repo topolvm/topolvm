@@ -11,15 +11,17 @@ GO_FILES=$(shell find ../ -path ../microtest -prune -o -name "*.go" -print)
 CA_FILES=./certs/ca.csr ./certs/ca.pem ./certs/ca-key.pem
 SERVER_CERT_FILES=./certs/server.csr ./certs/server.pem ./certs/server-key.pem
 
-topolvm.img: $(GO_FILES) $(CSI_SIDECARS)
-	mkdir -p build
-	CGO_ENABLED=0 go build -o build/lvmetrics ../pkg/lvmetrics
-	CGO_ENABLED=0 go build -o build/topolvm-scheduler ../pkg/topolvm-scheduler
-	CGO_ENABLED=0 go build -o build/topolvm-hook ../pkg/topolvm-hook
-	CGO_ENABLED=0 go build -o build/csi-topolvm ../pkg/csi-topolvm
-	CGO_ENABLED=0 go build -o build/topolvm-node ../pkg/topolvm-node
-	CGO_ENABLED=0 go build -o build/lvmd-fake ./lvmd-fake
-	$(CONTAINER_BUILDER) build -t docker.io/library/topolvm:latest .
+topolvm.img: $(GO_FILES)
+	rm -rf tmpbin
+	mkdir -p tmpbin
+	CGO_ENABLED=0 go build -o tmpbin/hypertopolvm ../pkg/hypertopolvm
+	CGO_ENABLED=0 go build -o tmpbin/lvmd ./lvmd-fake
+	ln -s hypertopolvm ./tmpbin/csi-topolvm
+	ln -s hypertopolvm ./tmpbin/lvmetrics
+	ln -s hypertopolvm ./tmpbin/topolvm-scheduler
+	ln -s hypertopolvm ./tmpbin/topolvm-node
+	ln -s hypertopolvm ./tmpbin/topolvm-hook
+	$(CONTAINER_BUILDER) build --no-cache --rm=false -f Dockerfile -t docker.io/library/topolvm:latest tmpbin
 	rm -f $@
 	$(CONTAINER_BUILDER) save -o $@ docker.io/library/topolvm:latest
 
