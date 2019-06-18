@@ -22,10 +22,11 @@ const (
 	// DeviceDirectory is a directory where TopoLVM Node service creates device files.
 	DeviceDirectory = "/dev/topolvm"
 
-	mkfsCmd       = "/sbin/mkfs"
-	mountCmd      = "/bin/mount"
-	mountpointCmd = "/bin/mountpoint"
-	umountCmd     = "/bin/umount"
+	mkfsCmd          = "/sbin/mkfs"
+	mountCmd         = "/bin/mount"
+	mountpointCmd    = "/bin/mountpoint"
+	umountCmd        = "/bin/umount"
+	devicePermission = unix.S_IFBLK | unix.S_IRUSR | unix.S_IWUSR | unix.S_IRGRP | unix.S_IWGRP
 )
 
 // NewNodeService returns a new NodeServer.
@@ -100,9 +101,9 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVol
 		if err != nil {
 			return nil, err
 		}
-		err = unix.Mknod(req.GetTargetPath(), unix.S_IFBLK|0660, dev)
+		err = unix.Mknod(req.GetTargetPath(), devicePermission, dev)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "mknod failed for %s", req.GetTargetPath())
+			return nil, status.Errorf(codes.Internal, "mknod failed for %s. error: %v", req.GetTargetPath(), err)
 		}
 		return &NodePublishVolumeResponse{}, nil
 	}
@@ -130,9 +131,9 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVol
 		if err != nil {
 			return nil, err
 		}
-		err = unix.Mknod(device, unix.S_IFBLK|0660, dev)
+		err = unix.Mknod(device, devicePermission, dev)
 		if err != nil {
-			return nil, status.Error(codes.Internal, "failed to mknod")
+			return nil, status.Errorf(codes.Internal, "failed to mknod, %v", err)
 		}
 	default:
 		return nil, status.Errorf(codes.Internal, "failed to stat: %v", err)
@@ -142,7 +143,7 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVol
 	if err == nil {
 		out2, err := well.CommandContext(ctx, mountpointCmd, "-x", device).Output()
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "mountpoint failed for %s", device)
+			return nil, status.Errorf(codes.Internal, "mountpoint failed for %s, error: %v", device, err)
 		}
 		if bytes.Equal(out, out2) {
 			return &NodePublishVolumeResponse{}, nil
@@ -152,7 +153,7 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVol
 
 	err = os.MkdirAll(req.GetTargetPath(), 0755)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "mkdir failed, target path: "+req.GetTargetPath())
+		return nil, status.Errorf(codes.Internal, "mkdir failed, target path: %s, error: %v", req.GetTargetPath(), err)
 	}
 
 	existingFsType, err := detectFsType(ctx, device)
@@ -165,7 +166,7 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVol
 		}
 		out, err := well.CommandContext(ctx, mkfsCmd, "-t", mountOption.FsType, device).CombinedOutput()
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "failed to mkfs: %s", out)
+			return nil, status.Errorf(codes.Internal, "failed to mkfs: %s, error: %v", out, err)
 		}
 	} else {
 		log.Info("skipped mkfs, because file system already exists", map[string]interface{}{
@@ -175,7 +176,7 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVol
 
 	out, err = well.CommandContext(ctx, mountCmd, "-t", mountOption.FsType, device, req.TargetPath).CombinedOutput()
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to mount: %s", out)
+		return nil, status.Errorf(codes.Internal, "failed to mount: %s, error: %v", out, err)
 	}
 
 	log.Info("NodePublishVolume is succeeded", map[string]interface{}{
@@ -254,11 +255,11 @@ func (s *nodeService) NodeUnpublishVolume(ctx context.Context, req *NodeUnpublis
 
 		out, err := well.CommandContext(ctx, umountCmd, req.GetTargetPath()).CombinedOutput()
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "umount failed for %s: %s", req.GetTargetPath(), out)
+			return nil, status.Errorf(codes.Internal, "umount failed for %s: %s, error: %v", req.GetTargetPath(), out, err)
 		}
 		err = os.Remove(device)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "remove failed for %s", device)
+			return nil, status.Errorf(codes.Internal, "remove failed for %s, error: %v", device, err)
 		}
 	}
 

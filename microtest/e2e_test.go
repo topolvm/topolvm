@@ -23,7 +23,13 @@ var _ = Describe("E2E test", func() {
 	})
 
 	testNamespacePrefix := "e2e-test"
-	podYAML := `apiVersion: v1
+
+	It("should be mounted in specified path", func() {
+		ns := testNamespacePrefix + randomString(10)
+		createNamespace(ns)
+
+		By("deploying Pod with PVC")
+		podYAML := `apiVersion: v1
 kind: Pod
 metadata:
   name: ubuntu
@@ -42,14 +48,7 @@ spec:
       persistentVolumeClaim:
         claimName: topo-pvc
 `
-
-	It("should be mounted in specified path", func() {
-		ns := testNamespacePrefix + randomString(10)
-		createNamespace(ns)
-
-		By("deploying Pod with PVC")
-
-		podAndClaimYAML := `kind: PersistentVolumeClaim
+		claimYAML := `kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: topo-pvc
@@ -60,9 +59,10 @@ spec:
     requests:
       storage: 1Gi
   storageClassName: topolvm-provisioner
----
-` + podYAML
-		stdout, stderr, err := kubectlWithInput([]byte(podAndClaimYAML), "apply", "-n", ns, "-f", "-")
+`
+		stdout, stderr, err := kubectlWithInput([]byte(podYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		stdout, stderr, err = kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		By("confirming that the specified device exists in the Pod")
@@ -143,7 +143,9 @@ spec:
 		}).Should(Succeed())
 
 		By("deleting the Pod and PVC")
-		stdout, stderr, err = kubectlWithInput([]byte(podAndClaimYAML), "delete", "-n", ns, "-f", "-")
+		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "delete", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		stdout, stderr, err = kubectlWithInput([]byte(claimYAML), "delete", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		By("confirming that the PV is deleted")
@@ -187,8 +189,8 @@ spec:
     - name: ubuntu
       image: quay.io/cybozu/ubuntu:18.04
       command: ["sleep", "infinity"]
-      volumeMounts:
-        - mountPath: /test1
+      volumeDevices:
+        - devicePath: /dev/e2etest
           name: my-volume
   volumes:
     - name: my-volume
@@ -214,22 +216,30 @@ spec:
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		By("confirming that a block device exists in ubuntu pod")
-		devices := struct {
+		res := struct {
 			BlockDevices []struct {
-				MountPoint string `json:"mountpoint"`
+				Name string `json:"name"`
 			} `json:"blockdevices"`
 		}{}
 		Eventually(func() error {
-			stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "lsblk", "--json", "-o", "mountpoint")
+			stdout, stderr, err = kubectl("get", "-n", ns, "pvc", "topo-pvc", "--template={{.spec.volumeName}}")
+			if err != nil {
+				return fmt.Errorf("failed to get volume name of topo-pvc. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+			volumeName := "myvg-" + strings.ReplaceAll(
+				strings.TrimSpace(string(stdout))[len("pvc-"):],
+				"-", "--")
+
+			stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "lsblk", "--json", "-o", "name", "-l")
 			if err != nil {
 				return fmt.Errorf("failed to lsblk. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
 			}
-			err := json.Unmarshal(stdout, &devices)
+			err := json.Unmarshal(stdout, &res)
 			if err != nil {
 				return err
 			}
-			for _, bd := range devices.BlockDevices {
-				if strings.Contains(bd.MountPoint, "/test1") {
+			for _, bd := range res.BlockDevices {
+				if strings.Contains(bd.Name, volumeName) {
 					return nil
 				}
 			}

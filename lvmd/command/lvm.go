@@ -22,9 +22,9 @@ const (
 // ErrNotFound is returned when a VG or LV is not found.
 var ErrNotFound = errors.New("not found")
 
-// callLVM calls lvm sub-commands.
+// CallLVM calls lvm sub-commands.
 // cmd is a name of sub-command.
-func callLVM(cmd string, args ...string) error {
+func CallLVM(cmd string, args ...string) error {
 	args = append([]string{cmd}, args...)
 	c := exec.Command(lvm, args...)
 	c.Stderr = os.Stderr
@@ -150,7 +150,7 @@ func (g *VolumeGroup) Free() (uint64, error) {
 // CreateVolumeGroup calls "vgcreate" to create a volume group.
 // name is for creating volume name. device is path to a PV.
 func CreateVolumeGroup(name, device string) (*VolumeGroup, error) {
-	err := callLVM("vgcreate", "-ff", "-y", name, device)
+	err := CallLVM("vgcreate", "-ff", "-y", name, device)
 	if err != nil {
 		return nil, err
 	}
@@ -253,7 +253,7 @@ func (g *VolumeGroup) ListVolumes() ([]*LogicalVolume, error) {
 // CreateVolume creates logical volume in this volume group.
 // name is a name of creating volume. size is volume size in bytes.
 func (g *VolumeGroup) CreateVolume(name string, size uint64) (*LogicalVolume, error) {
-	if err := callLVM("lvcreate", "-n", name, "-L", fmt.Sprintf("%vg", size>>30), g.Name()); err != nil {
+	if err := CallLVM("lvcreate", "-n", name, "-L", fmt.Sprintf("%vg", size>>30), g.Name()); err != nil {
 		return nil, err
 	}
 	return g.FindVolume(name)
@@ -295,7 +295,7 @@ func (g *VolumeGroup) ListPools() ([]*ThinPool, error) {
 
 // CreatePool creates a pool for thin-provisioning volumes.
 func (g *VolumeGroup) CreatePool(name string, size uint64) (*ThinPool, error) {
-	if err := callLVM("lvcreate", "-T", fmt.Sprintf("%v/%v", g.Name(), name),
+	if err := CallLVM("lvcreate", "-T", fmt.Sprintf("%v/%v", g.Name(), name),
 		"--size", fmt.Sprintf("%vg", size>>30)); err != nil {
 		return nil, err
 	}
@@ -349,7 +349,7 @@ func (t *ThinPool) Resize(newSize uint64) error {
 	if t.size == newSize {
 		return nil
 	}
-	if err := callLVM("lvresize", "-f", "-L", fmt.Sprintf("%vb", newSize), t.fullname); err != nil {
+	if err := CallLVM("lvresize", "-f", "-L", fmt.Sprintf("%vb", newSize), t.fullname); err != nil {
 		return err
 	}
 	t.size = newSize
@@ -373,7 +373,7 @@ func (t *ThinPool) ListVolumes() ([]*LogicalVolume, error) {
 
 // CreateVolume creates a thin volume from this pool.
 func (t *ThinPool) CreateVolume(name string, size uint64) (*LogicalVolume, error) {
-	if err := callLVM("lvcreate", "-T", t.fullname, "-n", name, "-V", fmt.Sprintf("%vg", size>>30)); err != nil {
+	if err := CallLVM("lvcreate", "-T", t.fullname, "-n", name, "-V", fmt.Sprintf("%vg", size>>30)); err != nil {
 		return nil, err
 	}
 	return t.vg.FindVolume(name)
@@ -494,7 +494,7 @@ func (l *LogicalVolume) Snapshot(name string, cowSize uint64) (*LogicalVolume, e
 		if l.size < (gbSize << 30) {
 			gbSize = (l.size >> 30) << 30
 		}
-		if err := callLVM("lvcreate", "-s", "-n", name, "-L", fmt.Sprintf("%vg", gbSize), l.path); err != nil {
+		if err := CallLVM("lvcreate", "-s", "-n", name, "-L", fmt.Sprintf("%vg", gbSize), l.path); err != nil {
 			return nil, err
 		}
 
@@ -516,7 +516,7 @@ func (l *LogicalVolume) Snapshot(name string, cowSize uint64) (*LogicalVolume, e
 	} else {
 		lvcreateArgs = []string{"-s", "-k", "n", "-n", name, l.fullname}
 	}
-	if err := callLVM("lvcreate", lvcreateArgs...); err != nil {
+	if err := CallLVM("lvcreate", lvcreateArgs...); err != nil {
 		return nil, err
 	}
 	return l.vg.FindVolume(name)
@@ -531,7 +531,7 @@ func (l *LogicalVolume) Resize(newSize uint64) error {
 	if l.size == newSize {
 		return nil
 	}
-	if err := callLVM("lvresize", "-L", fmt.Sprintf("%vb", newSize), l.fullname); err != nil {
+	if err := CallLVM("lvresize", "-L", fmt.Sprintf("%vb", newSize), l.fullname); err != nil {
 		return err
 	}
 	l.size = newSize
@@ -540,13 +540,13 @@ func (l *LogicalVolume) Resize(newSize uint64) error {
 
 // Remove this volume.
 func (l *LogicalVolume) Remove() error {
-	return callLVM("lvremove", "-f", l.path)
+	return CallLVM("lvremove", "-f", l.path)
 }
 
 // Rename this volume.
 // This method also updates properties such as Name() or Path().
 func (l *LogicalVolume) Rename(name string) error {
-	if err := callLVM("lvrename", l.vg.Name(), l.name, name); err != nil {
+	if err := CallLVM("lvrename", l.vg.Name(), l.name, name); err != nil {
 		return err
 	}
 	l.fullname = fullName(name, l.vg)

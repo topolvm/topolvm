@@ -11,10 +11,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var _ = BeforeSuite(func() {
-
-})
-
 var _ = Describe("Test topolvm-hook", func() {
 	testNamespacePrefix := "hook-test"
 

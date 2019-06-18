@@ -83,7 +83,7 @@ spec:
                 fieldRef:
                   fieldPath: spec.nodeName
           volumeMounts:
-            - name: plugin-dir
+            - name: node-plugin-dir
               mountPath: /run/topolvm
             - name: lvmd-socket-dir
               mountPath: /run/lvmd
@@ -91,6 +91,9 @@ spec:
               mountPath: /dev
             - name: pod-volumes-dir
               mountPath: /var/snap/microk8s/common/var/lib/kubelet/pods
+              mountPropagation: "Bidirectional"
+            - name: csi-plugin-dir
+              mountPath: /var/snap/microk8s/common/var/lib/kubelet/plugins/kubernetes.io/csi
               mountPropagation: "Bidirectional"
 
         - name: csi-registrar
@@ -104,7 +107,7 @@ spec:
               exec:
                 command: ["/bin/sh", "-c", "rm -rf /registration/topolvm.cybozu.com /registration/topolvm.cybozu.com-reg.sock"]
           volumeMounts:
-            - name: plugin-dir
+            - name: node-plugin-dir
               mountPath: /run/topolvm
             - name: registration-dir
               mountPath: /registration
@@ -130,9 +133,13 @@ spec:
           hostPath:
             path: /var/snap/microk8s/common/var/lib/kubelet/plugins_registry/
             type: Directory
-        - name: plugin-dir
+        - name: node-plugin-dir
           hostPath:
             path: /var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/node
+            type: DirectoryOrCreate
+        - name: csi-plugin-dir
+          hostPath:
+            path: /var/snap/microk8s/common/var/lib/kubelet/plugins/kubernetes.io/csi
             type: DirectoryOrCreate
         - name: pod-volumes-dir
           hostPath:
@@ -152,5 +159,5 @@ kind: CSIDriver
 metadata:
   name: topolvm.cybozu.com
 spec:
-  attachRequired: false
+  attachRequired: true
   podInfoOnMount: false

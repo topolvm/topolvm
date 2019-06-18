@@ -70,8 +70,7 @@ jobs:
             BRANCH=$(echo $TAG | cut -d "." -f 1-2)
             docker tag quay.io/cybozu/topolvm:latest quay.io/cybozu/topolvm:$BRANCH
             docker push quay.io/cybozu/topolvm:$BRANCH
-
-  test_lvmd:
+  test-node:
     machine: true
     working_directory: /home/circleci/work
     steps:
@@ -89,9 +88,12 @@ jobs:
             curl -fsSL -o go${GO_VERSION}.linux-amd64.tar.gz https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz
             sudo tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz
       - run:
-          name: run test
+          name: run lvmd test
           command: sudo env "GO111MODULE=on" "CIRCLECI=${CIRCLECI}" "CIRCLECI_EXECUTOR=machine" /usr/local/go/bin/go test -mod=vendor -race -v ./lvmd
-  micro_test:
+      - run:
+          name: run csi node test
+          command: sudo env "GO111MODULE=on" "CIRCLECI=${CIRCLECI}" "CIRCLECI_EXECUTOR=machine" /usr/local/go/bin/go test -mod=vendor -race -v ./csi
+  microtest:
     machine:
       image: ubuntu-1604:201903-01
     working_directory: /home/circleci/work
@@ -172,8 +174,8 @@ workflows:
       - build-image:
           requires:
             - build
-      - test_lvmd
-      - micro_test
+      - test-node
+      - microtest
   release:
     jobs:
       - build:
