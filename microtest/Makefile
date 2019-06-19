@@ -46,7 +46,8 @@ start-lvmd: install-microk8s
 	$(SUDO) pvcreate -fy $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
 	$(SUDO) vgcreate myvg $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
 	# For csi_node_test.go
-	$(SUDO) lvcreate -n csi-node-test -L 1G myvg
+	$(SUDO) lvcreate -n csi-node-test-block -L 1G myvg
+	$(SUDO) lvcreate -n csi-node-test-fs -L 1G myvg
 	mkdir -p /tmp/topolvm
 	$(SUDO) systemd-run --unit=lvmd.service $(shell pwd)/build/lvmd --volume-group=myvg --listen=/tmp/topolvm/lvmd.sock
 

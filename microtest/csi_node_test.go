@@ -12,9 +12,9 @@ import (
 
 var _ = Describe("CSI Node test", func() {
 	lvmdSocket := "/tmp/topolvm/lvmd.sock"
-	volumeID := "csi-node-test"
 
 	It("should be worked NodePublishVolume successfully to create fs", func() {
+		volumeID := "csi-node-test-fs"
 		dialer := &net.Dialer{}
 		dialFunc := func(ctx context.Context, a string) (net.Conn, error) {
 			return dialer.DialContext(ctx, "unix", a)
@@ -36,9 +36,10 @@ var _ = Describe("CSI Node test", func() {
 		stdout, stderr, err := kubectl("get", "nodes", "--template={{(index .items 0).metadata.name}}")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
+		mountTargetPath := "/mnt/csi-node-test"
 		req := &csi.NodePublishVolumeRequest{
 			PublishContext:   map[string]string{},
-			TargetPath:       "/dev/csi-node-test",
+			TargetPath:       mountTargetPath,
 			VolumeCapability: mountVolCap,
 			VolumeId:         volumeID,
 		}
@@ -55,7 +56,7 @@ var _ = Describe("CSI Node test", func() {
 		By("creating volume on same target path, but requested volume and existing one are different")
 		_, err = ns.NodePublishVolume(context.Background(), &csi.NodePublishVolumeRequest{
 			PublishContext: map[string]string{},
-			TargetPath:     "/dev/csi-node-test",
+			TargetPath:     mountTargetPath,
 			VolumeCapability: &csi.VolumeCapability{
 				AccessType: &csi.VolumeCapability_Mount{
 					Mount: &csi.VolumeCapability_MountVolume{FsType: "ext4"},
@@ -71,7 +72,7 @@ var _ = Describe("CSI Node test", func() {
 		By("deleting the volume")
 		unpubReq := csi.NodeUnpublishVolumeRequest{
 			VolumeId:   volumeID,
-			TargetPath: "/dev/csi-node-test",
+			TargetPath: mountTargetPath,
 		}
 		unpubResp, err := ns.NodeUnpublishVolume(context.Background(), &unpubReq)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -84,6 +85,7 @@ var _ = Describe("CSI Node test", func() {
 	})
 
 	It("should be worked NodePublishVolume successfully to create block", func() {
+		volumeID := "csi-node-test-block"
 		dialer := &net.Dialer{}
 		dialFunc := func(ctx context.Context, a string) (net.Conn, error) {
 			return dialer.DialContext(ctx, "unix", a)
@@ -105,9 +107,10 @@ var _ = Describe("CSI Node test", func() {
 		stdout, stderr, err := kubectl("get", "nodes", "--template={{(index .items 0).metadata.name}}")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
+		deviceTargetPath := "/dev/csi-node-test"
 		req := &csi.NodePublishVolumeRequest{
 			PublishContext:   map[string]string{},
-			TargetPath:       "/dev/csi-node-test",
+			TargetPath:       deviceTargetPath,
 			VolumeCapability: blockVolCap,
 			VolumeId:         volumeID,
 		}
@@ -140,7 +143,7 @@ var _ = Describe("CSI Node test", func() {
 		By("deleting the volume")
 		unpubReq := csi.NodeUnpublishVolumeRequest{
 			VolumeId:   volumeID,
-			TargetPath: "/dev/csi-node-test",
+			TargetPath: deviceTargetPath,
 		}
 		unpubResp, err := ns.NodeUnpublishVolume(context.Background(), &unpubReq)
 		Expect(err).ShouldNot(HaveOccurred())
