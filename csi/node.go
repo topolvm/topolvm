@@ -26,7 +26,7 @@ const (
 	mountCmd         = "/bin/mount"
 	mountpointCmd    = "/bin/mountpoint"
 	umountCmd        = "/bin/umount"
-	devicePermission = unix.S_IFBLK | unix.S_IRUSR | unix.S_IWUSR | unix.S_IRGRP | unix.S_IWGRP
+	devicePermission = unix.S_IFBLK
 )
 
 // NewNodeService returns a new NodeServer.
@@ -88,7 +88,7 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVol
 		stat := new(unix.Stat_t)
 		err = unix.Stat(req.GetTargetPath(), stat)
 		if err == nil {
-			if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && stat.Mode == devicePermission {
+			if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && stat.Mode&devicePermission == devicePermission {
 				return &NodePublishVolumeResponse{}, nil
 			}
 			return nil, status.Errorf(codes.AlreadyExists,
@@ -124,7 +124,7 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVol
 	err = unix.Stat(device, stat)
 	switch err {
 	case nil:
-		if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && stat.Mode&devicePermission != 0 {
+		if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && stat.Mode&devicePermission == devicePermission {
 			return &NodePublishVolumeResponse{}, nil
 		}
 		return nil, status.Errorf(codes.AlreadyExists, "device %s exists, but it is not expected block device", device)
