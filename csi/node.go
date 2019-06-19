@@ -88,10 +88,11 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVol
 		stat := new(unix.Stat_t)
 		err = unix.Stat(req.GetTargetPath(), stat)
 		if err == nil {
-			if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && stat.Mode&unix.S_IFBLK != 0 {
+			if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && stat.Mode == devicePermission {
 				return &NodePublishVolumeResponse{}, nil
 			}
-			return nil, status.Errorf(codes.AlreadyExists, "target_path already used")
+			return nil, status.Errorf(codes.AlreadyExists,
+				"device %s exists, but it is not expected block device. expected_mode: %x, actual_mode: %x", req.GetTargetPath(), devicePermission, stat.Mode)
 		} else if err != unix.ENOENT {
 			return nil, status.Errorf(codes.Internal, "failed to stat: %v", err)
 
@@ -123,9 +124,10 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVol
 	err = unix.Stat(device, stat)
 	switch err {
 	case nil:
-		if !(stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && stat.Mode&unix.S_IFBLK != 0) {
-			return nil, status.Errorf(codes.Internal, "device %s exists, but it is not expected block device", device)
+		if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && stat.Mode&devicePermission != 0 {
+			return &NodePublishVolumeResponse{}, nil
 		}
+		return nil, status.Errorf(codes.AlreadyExists, "device %s exists, but it is not expected block device", device)
 	case unix.ENOENT:
 		dev, err := mkdev(lv.DevMajor, lv.DevMinor)
 		if err != nil {
@@ -148,7 +150,12 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVol
 		if bytes.Equal(out, out2) {
 			return &NodePublishVolumeResponse{}, nil
 		}
-		return nil, status.Errorf(codes.AlreadyExists, "target_path already used")
+
+		log.Warn("target_path already used", map[string]interface{}{
+			"target_path": req.TargetPath,
+			"fstype":      mountOption.FsType,
+		})
+		return &NodePublishVolumeResponse{}, nil
 	}
 
 	err = os.MkdirAll(req.GetTargetPath(), 0755)
@@ -164,6 +171,7 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVol
 		if mountOption.FsType == "" {
 			mountOption.FsType = "ext4"
 		}
+
 		out, err := well.CommandContext(ctx, mkfsCmd, "-t", mountOption.FsType, device).CombinedOutput()
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to mkfs: %s, error: %v", out, err)
@@ -172,6 +180,9 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVol
 		log.Info("skipped mkfs, because file system already exists", map[string]interface{}{
 			"device_path": device,
 		})
+		if existingFsType != mountOption.FsType {
+			return nil, status.Errorf(codes.InvalidArgument, "requested fs type and existing one are different, requested: %s, existing: %s", mountOption.FsType, existingFsType)
+		}
 	}
 
 	out, err = well.CommandContext(ctx, mountCmd, "-t", mountOption.FsType, device, req.TargetPath).CombinedOutput()

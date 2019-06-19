@@ -38,7 +38,7 @@ var _ = Describe("CSI Node test", func() {
 
 		req := &csi.NodePublishVolumeRequest{
 			PublishContext:   map[string]string{},
-			TargetPath:       "/test/path",
+			TargetPath:       "/dev/csi-node-test",
 			VolumeCapability: mountVolCap,
 			VolumeId:         volumeID,
 		}
@@ -55,7 +55,7 @@ var _ = Describe("CSI Node test", func() {
 		By("creating volume on same target path, but requested volume and existing one are different")
 		_, err = ns.NodePublishVolume(context.Background(), &csi.NodePublishVolumeRequest{
 			PublishContext: map[string]string{},
-			TargetPath:     "/test/path",
+			TargetPath:     "/dev/csi-node-test",
 			VolumeCapability: &csi.VolumeCapability{
 				AccessType: &csi.VolumeCapability_Mount{
 					Mount: &csi.VolumeCapability_MountVolume{FsType: "ext4"},
@@ -71,7 +71,7 @@ var _ = Describe("CSI Node test", func() {
 		By("deleting the volume")
 		unpubReq := csi.NodeUnpublishVolumeRequest{
 			VolumeId:   volumeID,
-			TargetPath: "/test/path",
+			TargetPath: "/dev/csi-node-test",
 		}
 		unpubResp, err := ns.NodeUnpublishVolume(context.Background(), &unpubReq)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -107,7 +107,7 @@ var _ = Describe("CSI Node test", func() {
 
 		req := &csi.NodePublishVolumeRequest{
 			PublishContext:   map[string]string{},
-			TargetPath:       "/test/path",
+			TargetPath:       "/dev/csi-node-test",
 			VolumeCapability: blockVolCap,
 			VolumeId:         volumeID,
 		}
@@ -124,7 +124,7 @@ var _ = Describe("CSI Node test", func() {
 		By("creating volume on same target path, but requested volume and existing one are different")
 		_, err = ns.NodePublishVolume(context.Background(), &csi.NodePublishVolumeRequest{
 			PublishContext: map[string]string{},
-			TargetPath:     "/test/invalid/path",
+			TargetPath:     "/dev/csi-node-test-invalid",
 			VolumeCapability: &csi.VolumeCapability{
 				AccessType: &csi.VolumeCapability_Block{
 					Block: &csi.VolumeCapability_BlockVolume{},
@@ -140,7 +140,7 @@ var _ = Describe("CSI Node test", func() {
 		By("deleting the volume")
 		unpubReq := csi.NodeUnpublishVolumeRequest{
 			VolumeId:   volumeID,
-			TargetPath: "/test/path",
+			TargetPath: "/dev/csi-node-test",
 		}
 		unpubResp, err := ns.NodeUnpublishVolume(context.Background(), &unpubReq)
 		Expect(err).ShouldNot(HaveOccurred())

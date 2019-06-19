@@ -53,10 +53,10 @@ start-lvmd: install-microk8s
 stop-lvmd: uninstall-microk8s
 	-$(SUDO) systemctl stop lvmd.service
 	-$(SUDO) vgremove -ffy myvg
-	$(SUDO) pvremove -ffy $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
-	$(SUDO) losetup -d $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
-	$(SUDO) dmsetup remove_all
-	rm build/backing_store
+	-$(SUDO) pvremove -ffy $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
+	-$(SUDO) losetup -d $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
+	-$(SUDO) dmsetup remove_all
+	-rm build/backing_store
 
 test: start-lvmd topolvm.img secret hook.yml
 	$(SNAPBIN)/microk8s.status --wait-ready
