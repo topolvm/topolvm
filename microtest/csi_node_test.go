@@ -126,17 +126,10 @@ var _ = Describe("CSI Node test", func() {
 
 		By("creating volume on same target path, but requested volume and existing one are different")
 		_, err = ns.NodePublishVolume(context.Background(), &csi.NodePublishVolumeRequest{
-			PublishContext: map[string]string{},
-			TargetPath:     "/dev/csi-node-test-invalid",
-			VolumeCapability: &csi.VolumeCapability{
-				AccessType: &csi.VolumeCapability_Block{
-					Block: &csi.VolumeCapability_BlockVolume{},
-				},
-				AccessMode: &csi.VolumeCapability_AccessMode{
-					Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
-				},
-			},
-			VolumeId: volumeID,
+			PublishContext:   map[string]string{},
+			TargetPath:       deviceTargetPath,
+			VolumeCapability: blockVolCap,
+			VolumeId:         volumeID + "-invalid",
 		})
 		Expect(err).Should(HaveOccurred())
 

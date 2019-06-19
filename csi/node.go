@@ -85,34 +85,17 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVol
 	}
 
 	if req.GetVolumeCapability().GetBlock() != nil {
-		stat := new(unix.Stat_t)
-		err = unix.Stat(req.GetTargetPath(), stat)
-		if err == nil {
-			if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && stat.Mode&devicePermission == devicePermission {
-				return &NodePublishVolumeResponse{}, nil
-			}
-			return nil, status.Errorf(codes.AlreadyExists,
-				"device %s exists, but it is not expected block device. expected_mode: %x, actual_mode: %x", req.GetTargetPath(), devicePermission, stat.Mode)
-		} else if err != unix.ENOENT {
-			return nil, status.Errorf(codes.Internal, "failed to stat: %v", err)
-
-		}
-
-		dev, err := mkdev(lv.DevMajor, lv.DevMinor)
-		if err != nil {
-			return nil, err
-		}
-		err = unix.Mknod(req.GetTargetPath(), devicePermission, dev)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "mknod failed for %s. error: %v", req.GetTargetPath(), err)
-		}
-		return &NodePublishVolumeResponse{}, nil
+		return s.nodePublishBlockVolume(ctx, req, lv)
 	}
+	if req.GetVolumeCapability().GetMount() != nil {
+		return s.nodePublishFilesystemVolume(ctx, req, lv)
+	}
+	return nil, status.Errorf(codes.InvalidArgument, "no supported volume capability: %v", req.GetVolumeCapability())
+}
 
+func (s *nodeService) nodePublishFilesystemVolume(ctx context.Context, req *NodePublishVolumeRequest, lv *proto.LogicalVolume) (*NodePublishVolumeResponse, error) {
+	// Check request
 	mountOption := req.GetVolumeCapability().GetMount()
-	if mountOption == nil {
-		return nil, status.Error(codes.Internal, "failed to GetMount")
-	}
 	if mountOption.FsType == "" {
 		mountOption.FsType = "ext4"
 	}
@@ -122,19 +105,22 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVol
 		return nil, status.Errorf(codes.FailedPrecondition, "unsupported access mode: %s", modeName)
 	}
 
-	existingFsType := ""
+	// Find lv and create a block device with it
 	device := filepath.Join(DeviceDirectory, req.GetVolumeId())
 	stat := new(unix.Stat_t)
-	err = unix.Stat(device, stat)
+	err := unix.Stat(device, stat)
 	switch err {
 	case nil:
-		existingFsType, err = detectFsType(ctx, device)
+		// a block device already exists, check and validate filesystem
+		fsType, err := detectFsType(ctx, device)
 		if err != nil {
 			return nil, err
 		}
-		if existingFsType != "" && existingFsType != mountOption.FsType {
-			return nil, status.Errorf(codes.InvalidArgument, "requested fs type and existing one are different, requested: %s, existing: %s", mountOption.FsType, existingFsType)
+		if fsType != "" && fsType != mountOption.FsType {
+			return nil, status.Errorf(codes.InvalidArgument, "requested fs type and existing one are different, requested: %s, existing: %s", mountOption.FsType, fsType)
 		}
+
+		// Check device
 		if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && stat.Mode&devicePermission == devicePermission {
 			return &NodePublishVolumeResponse{}, nil
 		}
@@ -152,6 +138,16 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVol
 		return nil, status.Errorf(codes.Internal, "failed to stat: %v", err)
 	}
 
+	// a block device is created, check and validate filesystem
+	fsType, err := detectFsType(ctx, device)
+	if err != nil {
+		return nil, err
+	}
+	if fsType != "" && fsType != mountOption.FsType {
+		return nil, status.Errorf(codes.InvalidArgument, "requested fs type and existing one are different, existing: %s, requested: %s", fsType, mountOption.FsType)
+	}
+
+	// Check mountpoint
 	out, err := well.CommandContext(ctx, mountpointCmd, "-d", req.GetTargetPath()).Output()
 	if err == nil {
 		out2, err := well.CommandContext(ctx, mountpointCmd, "-x", device).Output()
@@ -174,7 +170,8 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVol
 		return nil, status.Errorf(codes.Internal, "mkdir failed, target path: %s, error: %v", req.GetTargetPath(), err)
 	}
 
-	if existingFsType == "" {
+	// Format filesystem
+	if fsType == "" {
 		out, err := well.CommandContext(ctx, mkfsCmd, "-t", mountOption.FsType, device).CombinedOutput()
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to mkfs: %s, error: %v", out, err)
@@ -185,6 +182,7 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVol
 		})
 	}
 
+	// Mount filesystem
 	out, err = well.CommandContext(ctx, mountCmd, "-t", mountOption.FsType, device, req.TargetPath).CombinedOutput()
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to mount: %s, error: %v", out, err)
@@ -218,6 +216,31 @@ func detectFsType(ctx context.Context, devicePath string) (string, error) {
 		return l[len(prefix):], nil
 	}
 	return "", nil
+}
+
+func (s *nodeService) nodePublishBlockVolume(ctx context.Context, req *NodePublishVolumeRequest, lv *proto.LogicalVolume) (*NodePublishVolumeResponse, error) {
+	// Find lv and create a block device with it
+	stat := new(unix.Stat_t)
+	err := unix.Stat(req.GetTargetPath(), stat)
+	if err == nil {
+		if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && stat.Mode&devicePermission == devicePermission {
+			return &NodePublishVolumeResponse{}, nil
+		}
+		return nil, status.Errorf(codes.AlreadyExists,
+			"device %s exists, but it is not expected block device. expected_mode: %x, actual_mode: %x", req.GetTargetPath(), devicePermission, stat.Mode)
+	} else if err != unix.ENOENT {
+		return nil, status.Errorf(codes.Internal, "failed to stat: %v", err)
+	}
+
+	dev, err := mkdev(lv.DevMajor, lv.DevMinor)
+	if err != nil {
+		return nil, err
+	}
+	err = unix.Mknod(req.GetTargetPath(), devicePermission, dev)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "mknod failed for %s. error: %v", req.GetTargetPath(), err)
+	}
+	return &NodePublishVolumeResponse{}, nil
 }
 
 func (s *nodeService) findVolumeByID(listResp *proto.GetLVListResponse, name string) *proto.LogicalVolume {

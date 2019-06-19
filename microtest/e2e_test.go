@@ -149,10 +149,6 @@ spec:
 		Eventually(func() error {
 			return checkLVIsDeletedInLVM(volName)
 		}).Should(Succeed())
-
-		By("deleting the test namespace")
-		stdout, stderr, err = kubectl("delete", "ns", ns)
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 	})
 
 	It("should create a block device for Pod", func() {
@@ -279,10 +275,6 @@ spec:
 		Eventually(func() error {
 			return checkLVIsDeletedInLVM(volName)
 		}).Should(Succeed())
-
-		By("deleting the test namespace")
-		stdout, stderr, err = kubectl("delete", "ns", ns)
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 	})
 })
 
