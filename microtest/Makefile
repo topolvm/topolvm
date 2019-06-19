@@ -67,7 +67,7 @@ test: start-lvmd topolvm.img secret hook.yml
 	$(SUDO) cp scheduler-config.yaml $(SNAPDATA)/scheduler-config.yaml
 	if ! grep -q scheduler-config.yaml $(SNAPDATA)/args/kube-scheduler; then echo "--config=$(SNAPDATA)/scheduler-config.yaml" | $(SUDO) tee -a $(SNAPDATA)/args/kube-scheduler; fi
 	$(SUDO) systemctl restart snap.microk8s.daemon-scheduler.service
-	$(SUDO) bash -c "export PATH=$(PATH) GOPATH=$(GOPATH) GO111MODULE=on GOFLAGS=$(GOFLAGS); $(GINKGO) -v ."
+	$(SUDO) env PATH=$(PATH) GOPATH=$(GOPATH) GO111MODULE=on GOFLAGS=$(GOFLAGS) $(GINKGO) -v ."
 	$(SUDO) $$(which csi-sanity) -ginkgo.v -test.v \
 		-csi.endpoint /var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock \
 		-csi.controllerendpoint /var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/controller/csi-topolvm.sock \

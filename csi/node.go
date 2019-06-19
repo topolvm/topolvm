@@ -257,20 +257,23 @@ func (s *nodeService) NodeUnpublishVolume(ctx context.Context, req *NodeUnpublis
 	}
 
 	// remove device file if target_path is device, umount target_path otherwise
-	if info.Mode()&os.ModeDevice != 0 {
+	if !info.IsDir() {
 		err := os.Remove(req.GetTargetPath())
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "remove failed for %s: %v", req.GetTargetPath(), err)
 		}
 	} else {
-
 		out, err := well.CommandContext(ctx, umountCmd, req.GetTargetPath()).CombinedOutput()
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "umount failed for %s: %s, error: %v", req.GetTargetPath(), out, err)
 		}
 		err = os.Remove(device)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "remove failed for %s, error: %v", device, err)
+			return nil, status.Errorf(codes.Internal, "remove device failed for %s, error: %v", device, err)
+		}
+		err = os.RemoveAll(req.GetTargetPath())
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "remove dir failed for %s, error: %v", req.GetTargetPath(), err)
 		}
 	}
 
