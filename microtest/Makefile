@@ -91,7 +91,7 @@ setup:
 	go install github.com/cloudflare/cfssl/cmd/cfssljson
 	go install github.com/onsi/ginkgo/ginkgo
 	$(SUDO) apt-get update
-	$(SUDO) apt-get install -y snapd lvm2
+	$(SUDO) apt-get install -y snapd lvm2 xfsprogs
 ifeq ($(CONTAINER_BUILDER),podman)
 	$(SUDO) apt-get install -y podman
 endif

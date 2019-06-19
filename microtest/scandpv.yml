@@ -10,6 +10,8 @@ apiVersion: storage.k8s.io/v1
 metadata:
   name: topolvm-provisioner
 provisioner: topolvm.cybozu.com
+parameters:
+  "csi.storage.k8s.io/fstype": "xfs"
 volumeBindingMode: WaitForFirstConsumer
 ---
 apiVersion: v1

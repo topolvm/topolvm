@@ -82,6 +82,15 @@ spec:
 			return nil
 		}).Should(Succeed())
 
+		By("confirming that the lv is formatted as xfs")
+		stdout, stderr, err = kubectl("get", "pvc", "-n", ns, "topo-pvc", "-o=template", "--template={{.spec.volumeName}}")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		volName := strings.TrimSpace(string(stdout))
+		stdout, stderr, err = kubectl("get", "logicalvolume", "-n", "topolvm-system", volName, "-o=template", "--template={{.metadata.uid}}")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		stdout, err = exec.Command("sudo", "xfs_info", "/dev/myvg/"+string(stdout)).CombinedOutput()
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s", string(stdout))
+
 		By("writing file under /test1")
 		writePath := "/test1/bootstrap.log"
 		stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "cp", "/var/log/bootstrap.log", writePath)
@@ -123,7 +132,7 @@ spec:
 		By("confirming that the lv correspond to LogicalVolume resource is registered in LVM")
 		stdout, stderr, err = kubectl("get", "pvc", "-n", ns, "topo-pvc", "-o=template", "--template={{.spec.volumeName}}")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		volName := strings.TrimSpace(string(stdout))
+		volName = strings.TrimSpace(string(stdout))
 		Eventually(func() error {
 			return checkLVIsRegisteredInLVM(volName)
 		}).Should(Succeed())
