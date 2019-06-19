@@ -45,6 +45,8 @@ start-lvmd: install-microk8s
 	$(SUDO) losetup -f build/backing_store
 	$(SUDO) pvcreate -fy $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
 	$(SUDO) vgcreate myvg $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
+	# For csi_node_test.go
+	$(SUDO) lvcreate -n csi-node-test -L 1G myvg
 	mkdir -p /tmp/topolvm
 	$(SUDO) systemd-run --unit=lvmd.service $(shell pwd)/build/lvmd --volume-group=myvg --listen=/tmp/topolvm/lvmd.sock
 
@@ -64,7 +66,7 @@ test: start-lvmd topolvm.img secret hook.yml
 	$(SUDO) cp scheduler-config.yaml $(SNAPDATA)/scheduler-config.yaml
 	if ! grep -q scheduler-config.yaml $(SNAPDATA)/args/kube-scheduler; then echo "--config=$(SNAPDATA)/scheduler-config.yaml" | $(SUDO) tee -a $(SNAPDATA)/args/kube-scheduler; fi
 	$(SUDO) systemctl restart snap.microk8s.daemon-scheduler.service
-	$(GINKGO) -v .
+	$(SUDO) bash -c "export PATH=$(PATH) GOPATH=$(GOPATH) GO111MODULE=on GOFLAGS=$(GOFLAGS); $(GINKGO) -v ."
 	$(SUDO) $$(which csi-sanity) -ginkgo.v -test.v \
 		-csi.endpoint /var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock \
 		-csi.controllerendpoint /var/snap/microk8s/common/var/lib/kubelet/plugins/topolvm.cybozu.com/controller/csi-topolvm.sock \

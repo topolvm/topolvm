@@ -44,3 +44,14 @@ func randomString(n int) string {
 	}
 	return string(b)
 }
+
+var _ = BeforeSuite(func() {
+	//
+	// Prepare for E2E test
+	//
+	createNamespace("topolvm-system")
+	stdout, stderr, err := kubectl("apply", "-f", "../topolvm-node/config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml")
+	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+	stdout, stderr, err = kubectl("apply", "-f", "./csi.yml")
+	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+})

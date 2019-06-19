@@ -10,16 +10,6 @@ import (
 )
 
 var _ = Describe("E2E test", func() {
-	BeforeSuite(func() {
-		createNamespace("topolvm-system")
-		stdout, stderr, err := kubectl("apply", "-f", "../topolvm-node/config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-
-		By("initialize topolvm services")
-		stdout, stderr, err = kubectl("apply", "-f", "./csi.yml")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-	})
-
 	testNamespacePrefix := "e2e-test"
 
 	It("should be mounted in specified path", func() {
