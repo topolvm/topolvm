@@ -40,7 +40,7 @@ func (c cleanup) unpublishVolumes(ns csi.NodeServer) {
 		}
 		_, err := ns.NodeUnpublishVolume(context.Background(), req)
 		if err != nil {
-			fmt.Sprintf("failed to unpublish volume: %v", req)
+			fmt.Printf("failed to unpublish volume: %v", req)
 		}
 	}
 }
