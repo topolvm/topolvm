@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: lvmetrics
-          image: lvmetrics:latest
+          image: topolvm:latest
           imagePullPolicy: Never
           command:
             - /lvmetrics
@@ -28,7 +28,7 @@ spec:
           - name: empty-volume
             mountPath: /tmp
         - name: lvmd-fake
-          image: lvmetrics:latest
+          image: topolvm:latest
           imagePullPolicy: Never
           command:
            - /lvmd

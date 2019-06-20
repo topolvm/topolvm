@@ -3,7 +3,7 @@ topolvm-hook
 
 `topolvm-hook` is a Kubernetes [mutating admission webhook](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/) for TopoLVM.
 
-It mutate pod with pvc volume size, it's used as metric for `topolvm-shceduler`.
+It mutate pod with pvc volume size, it's used as metric for `topolvm-scheduler`.
 
 Detail of mutation
 ------------------

@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"os/exec"
-	"strings"
 	"testing"
 
 	"github.com/cybozu-go/topolvm/lvmd/command"
@@ -12,39 +11,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
-
-func makeVG(name string) (string, error) {
-	loop, err := exec.Command("losetup", "-f").Output()
-	if err != nil {
-		return "", err
-	}
-	loopDev := strings.TrimRight(string(loop), "\n")
-	err = exec.Command("truncate", "--size=3G", name).Run()
-	if err != nil {
-		return "", err
-	}
-	err = exec.Command("losetup", loopDev, name).Run()
-	if err != nil {
-		return "", err
-	}
-	err = exec.Command("vgcreate", name, loopDev).Run()
-	if err != nil {
-		return "", err
-	}
-	return loopDev, nil
-}
-
-func cleanVG(loop, name string) error {
-	err := exec.Command("vgremove", "-f", name).Run()
-	if err != nil {
-		return err
-	}
-	err = exec.Command("losetup", "-d", loop).Run()
-	if err != nil {
-		return err
-	}
-	return os.Remove(name)
-}
 
 func TestLVService(t *testing.T) {
 	uid := os.Getuid()
@@ -60,11 +26,11 @@ func TestLVService(t *testing.T) {
 	}
 
 	vgName := "test_lvservice"
-	loop, err := makeVG(vgName)
+	loop, err := MakeLoopbackVG(vgName)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer cleanVG(loop, vgName)
+	defer CleanLoopbackVG(loop, vgName)
 
 	vg, err := command.FindVolumeGroup(vgName)
 	if err != nil {

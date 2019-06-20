@@ -1,8 +1,17 @@
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
-  name: topolvm
+  name: topolvm-no-provisioner
 provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: topolvm-provisioner
+provisioner: topolvm.cybozu.com
+parameters:
+  "csi.storage.k8s.io/fstype": "xfs"
 volumeBindingMode: WaitForFirstConsumer
 ---
 apiVersion: v1
@@ -14,7 +23,7 @@ spec:
     storage: 1Gi
   accessModes:
   - ReadWriteOnce
-  storageClassName: topolvm
+  storageClassName: topolvm-no-provisioner
   local:
     path: /tmp/microtest1
   nodeAffinity:
@@ -35,7 +44,7 @@ spec:
     storage: 1Gi
   accessModes:
   - ReadWriteOnce
-  storageClassName: topolvm
+  storageClassName: topolvm-no-provisioner
   local:
     path: /tmp/microtest2
   nodeAffinity:

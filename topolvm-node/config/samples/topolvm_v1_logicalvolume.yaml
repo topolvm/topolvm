@@ -1,0 +1,9 @@
+apiVersion: topolvm.cybozu.com/v1
+kind: LogicalVolume
+metadata:
+  name: logicalvolume-sample
+spec:
+  # Add fields here
+  size: 10Gi
+  node_name: localhost
+  name: pvc-1234

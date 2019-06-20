@@ -8,5 +8,14 @@ const CapacityKey = "topolvm.cybozu.com/capacity"
 // CapacityResource is the resource name of topolvm capacity.
 const CapacityResource = corev1.ResourceName("topolvm.cybozu.com/capacity")
 
-// StorageClassName is the name of StorageClass for TopoLVM
-const StorageClassName = "topolvm"
+// PluginName is the name of the CSI plugin.
+const PluginName = "topolvm.cybozu.com"
+
+// TopologyNodeKey is a key of topology that represents node name.
+const TopologyNodeKey = "topology.topolvm.cybozu.com/node"
+
+// SystemNamespace is the name of namespace for TopoLVM system.
+const SystemNamespace = "topolvm-system"
+
+// VolumeModeKey is a key of LogicalVolume annotation that represents volume mode.
+const VolumeModeKey = "topolvm.cybozu.com/volumeMode"

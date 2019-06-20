@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: topolvm-hook
-          image: lvmetrics:latest
+          image: topolvm:latest
           imagePullPolicy: Never
           command:
             - /topolvm-hook
@@ -42,7 +42,7 @@ metadata:
   labels:
     app.kubernetes.io/name: topolvm-hook
 webhooks:
-  - name: topolvm-hook.cybozu-ne.co
+  - name: hook.topolvm.cybozu.com
     clientConfig:
       url: https://localhost:9252/mutate
       caBundle: {{CA_BUNDLE}}

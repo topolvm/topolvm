@@ -53,6 +53,9 @@ func subMain() error {
 		return dialer.DialContext(ctx, "unix", a)
 	}
 	conn, err := grpc.Dial(config.socketName, grpc.WithInsecure(), grpc.WithContextDialer(dialFunc))
+	if err != nil {
+		return err
+	}
 	defer conn.Close()
 
 	well.Go(func(ctx context.Context) error {

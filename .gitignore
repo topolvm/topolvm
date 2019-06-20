@@ -22,3 +22,6 @@
 /bin/protoc-gen-go
 /bin/protoc-gen-doc
 /include
+/build
+/microtest/build
+/microtest/tmpbin

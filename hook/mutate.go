@@ -37,7 +37,11 @@ func (h hook) hasTopolvmPVC(pod *corev1.Pod) bool {
 			continue
 		}
 
-		if *pvc.Spec.StorageClassName == topolvm.StorageClassName {
+		sc, err := h.k8sClient.StorageV1().StorageClasses().Get(*pvc.Spec.StorageClassName, metav1.GetOptions{})
+		if err != nil {
+			continue
+		}
+		if sc.Provisioner == topolvm.PluginName {
 			return true
 		}
 	}
@@ -62,7 +66,11 @@ func (h hook) calcRequested(pod *corev1.Pod) int64 {
 			continue
 		}
 
-		if *pvc.Spec.StorageClassName == topolvm.StorageClassName {
+		sc, err := h.k8sClient.StorageV1().StorageClasses().Get(*pvc.Spec.StorageClassName, metav1.GetOptions{})
+		if err != nil {
+			continue
+		}
+		if sc.Provisioner == topolvm.PluginName {
 			req, ok := pvc.Spec.Resources.Requests[corev1.ResourceRequestsStorage]
 			if ok && req.Value() != 0 {
 				requested += ((req.Value()-1)>>30 + 1) << 30

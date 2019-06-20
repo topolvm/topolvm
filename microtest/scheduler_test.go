@@ -11,16 +11,11 @@ import (
 )
 
 var _ = Describe("Test topolvm-scheduler", func() {
-	BeforeEach(func() {
-		kubectl("delete", "namespace", "scheduler-test")
-		stdout, stderr, err := kubectl("create", "namespace", "scheduler-test")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-	})
-	AfterEach(func() {
-		kubectl("delete", "namespace", "scheduler-test")
-	})
+	testNamespacePrefix := "scheduler-test"
 
 	It("should be deployed topolvm-scheduler pod", func() {
+		ns := testNamespacePrefix + randomString(10)
+		createNamespace(ns)
 		Eventually(func() error {
 			result, stderr, err := kubectl("get", "-n=kube-system", "pods", "--selector=app.kubernetes.io/name=topolvm-scheduler", "-o=json")
 			if err != nil {
@@ -50,11 +45,13 @@ var _ = Describe("Test topolvm-scheduler", func() {
 	})
 
 	It("should schedule pod if requested capacity is sufficient", func() {
-		podYml := `apiVersion: v1
+		ns := testNamespacePrefix + randomString(10)
+		createNamespace(ns)
+		podYml := fmt.Sprintf(`apiVersion: v1
 kind: Pod
 metadata:
   name: testhttpd
-  namespace: scheduler-test
+  namespace: %s
   labels:
     app.kubernetes.io/name: testhttpd
 spec:
@@ -66,12 +63,12 @@ spec:
         topolvm.cybozu.com/capacity: 1Gi
       limits:
         topolvm.cybozu.com/capacity: 1Gi
-`
+`, ns)
 		stdout, stderr, err := kubectlWithInput([]byte(podYml), "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		Eventually(func() error {
-			result, stderr, err := kubectl("get", "-n=scheduler-test", "pods/testhttpd", "-o=json")
+			result, stderr, err := kubectl("get", "-n", ns, "pods/testhttpd", "-o=json")
 			if err != nil {
 				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
 			}
@@ -93,12 +90,13 @@ spec:
 	})
 
 	It("should not schedule pod if requested capacity is not sufficient", func() {
-
-		podYml := `apiVersion: v1
+		ns := testNamespacePrefix + randomString(10)
+		createNamespace(ns)
+		podYml := fmt.Sprintf(`apiVersion: v1
 kind: Pod
 metadata:
   name: testhttpd
-  namespace: scheduler-test
+  namespace: %s
   labels:
     app.kubernetes.io/name: testhttpd
 spec:
@@ -110,12 +108,12 @@ spec:
         topolvm.cybozu.com/capacity: 10Gi
       limits:
         topolvm.cybozu.com/capacity: 10Gi
-`
+`, ns)
 		stdout, stderr, err := kubectlWithInput([]byte(podYml), "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		Eventually(func() error {
-			result, stderr, err := kubectl("get", "-n=scheduler-test", "pods/testhttpd", "-o=json")
+			result, stderr, err := kubectl("get", "-n", ns, "pods/testhttpd", "-o=json")
 			if err != nil {
 				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
 			}

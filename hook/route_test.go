@@ -10,6 +10,7 @@ import (
 	"k8s.io/api/admission/v1beta1"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -17,13 +18,19 @@ import (
 )
 
 func testMutate(t *testing.T) {
-	scn := "topolvm"
+	sc := storagev1.StorageClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-sc",
+		},
+		Provisioner: "topolvm.cybozu.com",
+	}
+
 	pvc := corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-pvc",
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
-			StorageClassName: &scn,
+			StorageClassName: &sc.Name,
 		},
 		Status: corev1.PersistentVolumeClaimStatus{
 			Phase: corev1.ClaimPending,
@@ -80,6 +87,11 @@ func testMutate(t *testing.T) {
 			Name: "default",
 		},
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = handler.k8sClient.StorageV1().StorageClasses().Create(&sc)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/topolvm/hook"
 	"github.com/cybozu-go/well"
 	"github.com/spf13/cobra"
@@ -50,6 +51,9 @@ func subMain() error {
 		Handler: h,
 	}
 
+	log.Info("start topolvm-hook", map[string]interface{}{
+		"listen": config.listenAddr,
+	})
 	err = serv.ListenAndServeTLS(config.certPath, config.keyPath)
 	if err != nil {
 		return err

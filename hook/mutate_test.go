@@ -10,6 +10,7 @@ import (
 	jsonpatch "github.com/evanphx/json-patch"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -90,7 +91,13 @@ func clear(h *hook, t *testing.T) {
 }
 
 func TestMutate(t *testing.T) {
-	scn := "topolvm"
+	sc := storagev1.StorageClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-sc",
+		},
+		Provisioner: "topolvm.cybozu.com",
+	}
+
 	testCases := []struct {
 		inputPvcs      []*corev1.PersistentVolumeClaim
 		inputResources bool
@@ -103,7 +110,7 @@ func TestMutate(t *testing.T) {
 						Name: "test-pvc",
 					},
 					Spec: corev1.PersistentVolumeClaimSpec{
-						StorageClassName: &scn,
+						StorageClassName: &sc.Name,
 					},
 					Status: corev1.PersistentVolumeClaimStatus{
 						Phase: corev1.ClaimPending,
@@ -135,7 +142,7 @@ func TestMutate(t *testing.T) {
 						Name: "test-pvc",
 					},
 					Spec: corev1.PersistentVolumeClaimSpec{
-						StorageClassName: &scn,
+						StorageClassName: &sc.Name,
 					},
 					Status: corev1.PersistentVolumeClaimStatus{
 						Phase: corev1.ClaimBound,
@@ -152,7 +159,7 @@ func TestMutate(t *testing.T) {
 						Name: "test-pvc",
 					},
 					Spec: corev1.PersistentVolumeClaimSpec{
-						StorageClassName: &scn,
+						StorageClassName: &sc.Name,
 						Resources: corev1.ResourceRequirements{
 							Limits: corev1.ResourceList{
 								corev1.ResourceRequestsStorage: *resource.NewQuantity(5<<30, resource.BinarySI),
@@ -192,7 +199,7 @@ func TestMutate(t *testing.T) {
 						Name: "test-pvc1",
 					},
 					Spec: corev1.PersistentVolumeClaimSpec{
-						StorageClassName: &scn,
+						StorageClassName: &sc.Name,
 						Resources: corev1.ResourceRequirements{
 							Requests: corev1.ResourceList{
 								corev1.ResourceRequestsStorage: *resource.NewQuantity(3<<29, resource.BinarySI),
@@ -208,7 +215,7 @@ func TestMutate(t *testing.T) {
 						Name: "test-pvc2",
 					},
 					Spec: corev1.PersistentVolumeClaimSpec{
-						StorageClassName: &scn,
+						StorageClassName: &sc.Name,
 						Resources: corev1.ResourceRequirements{
 							Requests: corev1.ResourceList{
 								corev1.ResourceRequestsStorage: *resource.NewQuantity(3<<29, resource.BinarySI),
@@ -245,7 +252,7 @@ func TestMutate(t *testing.T) {
 						Name: "test-pvc",
 					},
 					Spec: corev1.PersistentVolumeClaimSpec{
-						StorageClassName: &scn,
+						StorageClassName: &sc.Name,
 					},
 					Status: corev1.PersistentVolumeClaimStatus{
 						Phase: corev1.ClaimPending,
@@ -270,6 +277,11 @@ func TestMutate(t *testing.T) {
 
 	hook := hook{
 		testclient.NewSimpleClientset(),
+	}
+
+	_, err := hook.k8sClient.StorageV1().StorageClasses().Create(&sc)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	for _, tt := range testCases {

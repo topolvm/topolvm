@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: topolvm-scheduler
-          image: lvmetrics:latest
+          image: topolvm:latest
           imagePullPolicy: Never
           command:
             - /topolvm-scheduler
