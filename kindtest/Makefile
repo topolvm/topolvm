@@ -18,10 +18,10 @@ topolvm.img: $(GO_FILES)
 	ln -s hypertopolvm ./tmpbin/topolvm-hook
 	docker build --no-cache --rm=false -f Dockerfile -t topolvm:dev tmpbin
 
-install-kind:
+launch-kind:
 	kind create cluster --config topolvm-cluster.yaml
 
-uninstall-kind:
+shutdown-kind:
 	kind delete cluster
 
 start-lvmd:
@@ -71,10 +71,11 @@ setup:
 	go install github.com/cloudflare/cfssl/cmd/cfssl
 	go install github.com/cloudflare/cfssl/cmd/cfssljson
 	go install github.com/onsi/ginkgo/ginkgo
+	go get sigs.k8s.io/kind@v0.3.0
 	$(SUDO) apt-get update
 	$(SUDO) apt-get install -y lvm2 xfsprogs
 
 clean: stop-lvmd
 	rm -rf $(CA_FILES) $(SERVER_CERT_FILES) hook-secret.yml topolvm.img build/
 
-.PHONY: install-kind uninstall-kind start-lvmd stop-lvmd test setup clean
+.PHONY: launch-kind shutdown-kind start-lvmd stop-lvmd test setup clean
