@@ -1,0 +1,124 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: scheduler-policy-role
+  namespace: kube-system
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["configmaps", "endpoints"]
+    verbs: ["get", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: scheduler-policy-role-binding
+  namespace: kube-system
+subjects:
+  - kind: User
+    name: system:kube-scheduler
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: scheduler-policy-role
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: kube-system
+  name: topolvm-scheduler
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kube-system:topolvm-scheduler
+  namespace: kube-system
+rules:
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kube-system:topolvm-scheduler
+  namespace: kube-system
+subjects:
+  - kind: ServiceAccount
+    name: topolvm-scheduler
+    namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kube-system:topolvm-scheduler
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: topolvm-scheduler
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: topolvm-scheduler
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: topolvm-scheduler
+    spec:
+      serviceAccountName: topolvm-scheduler
+      containers:
+        - name: topolvm-scheduler
+          image: topolvm:dev
+          imagePullPolicy: Never
+          command:
+            - /topolvm-scheduler
+            - --listen=:9251
+            - --divisor=1
+            - --spare=1
+          livenessProbe:
+            httpGet:
+              path: /status
+              port: 9251
+      hostNetwork: true
+      tolerations:
+        - key: CriticalAddonsOnly
+          operator: Exists
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/master
+                    operator: Exists
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: topolvm-scheduler-policy
+  namespace: kube-system
+data:
+ policy.cfg : |
+  {
+    "kind" : "Policy",
+    "apiVersion" : "v1",
+    "extenders" :
+      [{
+        "urlPrefix": "http://127.0.0.1:9251/",
+        "filterVerb": "predicate",
+        "prioritizeVerb": "prioritize",
+        "nodeCacheCapable": false,
+        "weight": 1,
+        "managedResources":
+        [{
+          "name": "topolvm.cybozu.com/capacity",
+          "ignoredByScheduler": true
+        }]
+      }]
+  }
+

@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 
 	"github.com/cybozu-go/topolvm/lvmd/proto"
 	topolvmv1 "github.com/cybozu-go/topolvm/topolvm-node/api/v1"
@@ -10,6 +12,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -54,11 +57,11 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 
 	lv := new(topolvmv1.LogicalVolume)
 	if err := r.k8sClient.Get(ctx, req.NamespacedName, lv); err != nil {
-		log.Error(err, "unable to fetch LogicalVolume")
+		if !apierrs.IsNotFound(err) {
+			log.Error(err, "unable to fetch LogicalVolume")
+		}
 		return ctrl.Result{}, ignoreNotFound(err)
 	}
-
-	log.Info("RECONCILE!!", "LogicalVolume", lv)
 
 	if lv.ObjectMeta.DeletionTimestamp.IsZero() {
 		if lv.Status.Code != codes.OK {
@@ -78,6 +81,7 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 			}
 			err = r.createLV(ctx, log, lv, vgService, lvService)
 			if err != nil {
+				log.Error(err, "failed to create LV", "name", lv.Name)
 				return ctrl.Result{}, err
 			}
 			return ctrl.Result{}, nil
@@ -93,6 +97,7 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		log.Info("start finalizing LogicalVolume", "name", lv.Name)
 		err := r.removeLVIfExists(ctx, log, lv, vgService, lvService)
 		if err != nil {
+			log.Error(err, "failed to remove LV", "name", lv.Name)
 			return ctrl.Result{}, err
 		}
 		_, err = ctrl.CreateOrUpdate(ctx, r.k8sClient, lv, func() error {
@@ -120,7 +125,18 @@ func (r *LogicalVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *LogicalVolumeReconciler) updateStatusWithError(ctx context.Context, logger logr.Logger, lv *topolvmv1.LogicalVolume, code codes.Code, message string) error {
 	lv.Status.Code = code
 	lv.Status.Message = message
-	err := r.k8sClient.Status().Update(ctx, lv)
+	patch, err := json.Marshal(map[string]interface{}{
+		"status": map[string]interface{}{
+			"code":     code,
+			"message":  message,
+			"volumeID": lv.Status.VolumeID,
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	err = r.k8sClient.Status().Patch(ctx, lv, client.ConstantPatch(types.MergePatchType, patch))
 	if err != nil {
 		logger.Error(err, "unable to update LogicalVolume status")
 	}
@@ -154,6 +170,7 @@ func (r *LogicalVolumeReconciler) removeLVIfExists(ctx context.Context, log logr
 func (r *LogicalVolumeReconciler) updateVolumeIfExists(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume, vgService proto.VGServiceClient) (found bool, err error) {
 	respList, err := vgService.GetLVList(ctx, &proto.Empty{})
 	if err != nil {
+		log.Error(err, "failed to get list of LV")
 		err := r.updateStatusWithError(ctx, log, lv, codes.Internal, "failed to get list of LV")
 		return false, err
 	}
@@ -161,7 +178,17 @@ func (r *LogicalVolumeReconciler) updateVolumeIfExists(ctx context.Context, log 
 	for _, v := range respList.Volumes {
 		if v.Name == lv.Name {
 			lv.Status.VolumeID = lv.Name
-			err := r.k8sClient.Status().Update(ctx, lv)
+			patch, err := json.Marshal(map[string]interface{}{
+				"status": map[string]interface{}{
+					"volumeID": lv.Name,
+					"code":     lv.Status.Code,
+					"message":  lv.Status.Message,
+				},
+			})
+			if err != nil {
+				return false, err
+			}
+			err = r.k8sClient.Status().Patch(ctx, lv, client.ConstantPatch(types.MergePatchType, patch))
 			if err != nil {
 				log.Error(err, "failed to add VolumeID", "name", lv.Name)
 				return true, err
@@ -177,6 +204,7 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 
 	reqBytes, ok := lv.Spec.Size.AsInt64()
 	if !ok {
+		log.Error(errors.New("not ok"), "failed to interpret spec.size as int64")
 		err := r.updateStatusWithError(ctx, log, lv, codes.Internal, "failed to interpret spec.size as int64")
 		return err
 	}
@@ -195,15 +223,28 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 	if err != nil {
 		s, ok := status.FromError(err)
 		if !ok {
+			log.Error(err, err.Error())
 			err := r.updateStatusWithError(ctx, log, lv, codes.Internal, err.Error())
 			return err
 		}
+		log.Error(err, s.Message())
 		err := r.updateStatusWithError(ctx, log, lv, s.Code(), s.Message())
 		return err
 	}
 
 	lv.Status.VolumeID = resp.Volume.Name
-	err = r.k8sClient.Status().Update(ctx, lv)
+	patch, err := json.Marshal(map[string]interface{}{
+		"status": map[string]interface{}{
+			"volumeID": resp.Volume.Name,
+			"code":     lv.Status.Code,
+			"message":  lv.Status.Message,
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	err = r.k8sClient.Status().Patch(ctx, lv, client.ConstantPatch(types.MergePatchType, patch))
 	if err != nil {
 		log.Error(err, "failed to update VolumeID", "name", lv.Name, "uid", lv.UID)
 		return err
@@ -219,7 +260,6 @@ type logicalVolumeFilter struct {
 }
 
 func (f logicalVolumeFilter) Create(e event.CreateEvent) bool {
-	f.log.Info("CREATE", "event", e)
 	var lv *topolvmv1.LogicalVolume
 	lv = e.Object.(*topolvmv1.LogicalVolume)
 	if lv == nil {
@@ -232,17 +272,14 @@ func (f logicalVolumeFilter) Create(e event.CreateEvent) bool {
 }
 
 func (f logicalVolumeFilter) Delete(e event.DeleteEvent) bool {
-	f.log.Info("DELETE", "event", e)
 	return false
 }
 
 func (f logicalVolumeFilter) Update(e event.UpdateEvent) bool {
-	f.log.Info("UPDATE", "event", e)
 	return true
 }
 
 func (f logicalVolumeFilter) Generic(e event.GenericEvent) bool {
-	f.log.Info("GENERIC", "event", e)
 	return true
 }
 

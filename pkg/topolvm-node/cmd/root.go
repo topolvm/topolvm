@@ -42,6 +42,7 @@ func init() {
 	fs.String("metrics-addr", ":28080", "Bind address for the metrics endpoint")
 	fs.String("lvmd-socket", "/run/topolvm/lvmd.sock", "UNIX domain socket of lvmd service")
 	fs.String("node-name", "", "The name of the node hosting topolvm-node service")
+	fs.Bool("development", false, "Use development logger config")
 
 	if err := viper.BindPFlags(fs); err != nil {
 		panic(err)
@@ -69,7 +70,7 @@ var rootCmd = &cobra.Command{
 }
 
 func subMain() error {
-	ctrl.SetLogger(zap.Logger(false))
+	ctrl.SetLogger(zap.Logger(viper.GetBool("development")))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{Scheme: scheme, MetricsBindAddress: viper.GetString("metrics-addr")})
 	if err != nil {

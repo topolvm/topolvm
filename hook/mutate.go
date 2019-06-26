@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/topolvm"
 	"k8s.io/api/admission/v1beta1"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
@@ -30,6 +31,11 @@ func (h hook) hasTopolvmPVC(pod *corev1.Pod) bool {
 
 		pvc, err := h.k8sClient.CoreV1().PersistentVolumeClaims(pod.Namespace).Get(claimName, metav1.GetOptions{})
 		if err != nil {
+			log.Error("failed to get pvc", map[string]interface{}{
+				"pod":       pod.Name,
+				"namespace": pod.Namespace,
+				"pvc":       claimName,
+			})
 			continue
 		}
 
@@ -39,6 +45,11 @@ func (h hook) hasTopolvmPVC(pod *corev1.Pod) bool {
 
 		sc, err := h.k8sClient.StorageV1().StorageClasses().Get(*pvc.Spec.StorageClassName, metav1.GetOptions{})
 		if err != nil {
+			log.Error("failed to get sc", map[string]interface{}{
+				"pod":       pod.Name,
+				"namespace": pod.Namespace,
+				"sc":        *pvc.Spec.StorageClassName,
+			})
 			continue
 		}
 		if sc.Provisioner == topolvm.PluginName {
@@ -59,6 +70,11 @@ func (h hook) calcRequested(pod *corev1.Pod) int64 {
 
 		pvc, err := h.k8sClient.CoreV1().PersistentVolumeClaims(pod.Namespace).Get(claimName, metav1.GetOptions{})
 		if err != nil {
+			log.Error("failed to get pvc", map[string]interface{}{
+				"pod":       pod.Name,
+				"namespace": pod.Namespace,
+				"pvc":       claimName,
+			})
 			continue
 		}
 
@@ -68,6 +84,11 @@ func (h hook) calcRequested(pod *corev1.Pod) int64 {
 
 		sc, err := h.k8sClient.StorageV1().StorageClasses().Get(*pvc.Spec.StorageClassName, metav1.GetOptions{})
 		if err != nil {
+			log.Error("failed to get sc", map[string]interface{}{
+				"pod":       pod.Name,
+				"namespace": pod.Namespace,
+				"sc":        *pvc.Spec.StorageClassName,
+			})
 			continue
 		}
 		if sc.Provisioner == topolvm.PluginName {
@@ -154,6 +175,12 @@ func (h hook) mutatePod(ar *admissionv1beta1.AdmissionReview) (*admissionv1beta1
 		return nil, err
 	}
 
+	log.Info("mutate pod", map[string]interface{}{
+		"pod":       req.Name,
+		"namespace": req.Namespace,
+		"requested": requested,
+	})
+
 	return &admissionv1beta1.AdmissionResponse{
 		Allowed: true,
 		Patch:   patch,
@@ -170,11 +197,15 @@ func (h hook) mutate(w http.ResponseWriter, r *http.Request) {
 	reader := http.MaxBytesReader(w, r.Body, 10<<20)
 	err := json.NewDecoder(reader).Decode(&input)
 	if err != nil {
+		log.Error("bad request", map[string]interface{}{})
 		http.Error(w, "bad request", http.StatusBadRequest)
 	}
 
 	result, err := h.mutatePod(&input)
 	if err != nil {
+		log.Error("failed to mutate", map[string]interface{}{
+			"name": input.Request.Name,
+		})
 		result = &admissionv1beta1.AdmissionResponse{
 			Result: &metav1.Status{
 				Message: err.Error(),

@@ -21,10 +21,10 @@ func (h hook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		log.FnHTTPHost:    r.Host,
 		log.FnRequestSize: r.ContentLength,
 	}
-	log.Info("access topolvm-hook", fields)
 
 	switch r.URL.Path {
 	case "/mutate":
+		log.Info("access topolvm-hook", fields)
 		h.mutate(w, r)
 	case "/status":
 		status(w, r)
