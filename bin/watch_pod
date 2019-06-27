@@ -7,7 +7,7 @@ label="$2"
 container="$3"
 
 tail_once() {
-  sudo /snap/bin/microk8s.kubectl logs -f -n ${namespace} -l ${label} -c ${container}
+  sudo /tmp/kubernetes/kubectl logs -f -n ${namespace} -l ${label} -c ${container}
 }
 
 tail_forever() {

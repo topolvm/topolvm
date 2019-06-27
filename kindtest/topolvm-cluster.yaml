@@ -10,7 +10,7 @@ kubeadmConfigPatches:
   kind: ClusterConfiguration
   metadata:
     name: config
-  kubernetesVersion: "v1.14.1"
+  kubernetesVersion: "v@KUBERNETES_VERSION@"
   networking:
     serviceSubnet: 10.0.0.0/16
   scheduler:
@@ -32,11 +32,17 @@ nodes:
   extraMounts:
     - containerPath: /tmp/topolvm
       hostPath: /tmp/topolvm
+    - containerPath: /var/lib/kubelet
+      hostPath: /tmp/topolvm/kubelet1
 - role: worker
   extraMounts:
     - containerPath: /tmp/topolvm
       hostPath: /tmp/topolvm
+    - containerPath: /var/lib/kubelet
+      hostPath: /tmp/topolvm/kubelet2
 - role: worker
   extraMounts:
     - containerPath: /tmp/topolvm
       hostPath: /tmp/topolvm
+    - containerPath: /var/lib/kubelet
+      hostPath: /tmp/topolvm/kubelet3
