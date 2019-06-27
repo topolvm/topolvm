@@ -2,12 +2,18 @@ SUDO=sudo
 GOFLAGS=-mod=vendor
 export GOFLAGS
 GINKGO=$(GOPATH)/bin/ginkgo
-KUBECTL=/tmp/kubernetes/kubectl
+KUBECTL=/usr/local/bin/kubectl
 KUBERNETES_VERSION=1.14.1
 
-GO_FILES=$(shell find ../ -path ../microtest -prune -o -name "*.go" -print)
+GO_FILES := $(shell find .. -path ../vendor -prune -o -path ../kindtest -prune -o -name '*.go' -print)
 CA_FILES=./certs/ca.csr ./certs/ca.pem ./certs/ca-key.pem
 SERVER_CERT_FILES=./certs/server.csr ./certs/server.pem ./certs/server-key.pem
+KUBECONFIG := $(shell kind get kubeconfig-path --name=kind)
+export KUBECONFIG
+
+$(KUBECTL):
+	curl -sfL https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl -o $(KUBECTL)
+	chmod 755 $(KUBECTL)
 
 topolvm.img: $(GO_FILES)
 	rm -rf tmpbin
@@ -19,16 +25,18 @@ topolvm.img: $(GO_FILES)
 	ln -s hypertopolvm ./tmpbin/topolvm-node
 	ln -s hypertopolvm ./tmpbin/topolvm-hook
 	docker build --no-cache --rm=false -f Dockerfile -t topolvm:dev tmpbin
+	docker save -o $@ topolvm:dev
 
 /tmp/topolvm/scheduler-config.yaml: scheduler-config.yaml
 	mkdir -p /tmp/topolvm
-	sed s/@KUBERNETES_VERSION@/$(KUBERNETES_VERSION)/ scheduler-config.yaml > $@
+	cp $< $@
 
-launch-kind: /tmp/topolvm/scheduler-config.yaml
-	env KUBECONFIG= kind create cluster --config topolvm-cluster.yaml --loglevel debug --image kindest/node:v$(KUBERNETES_VERSION)
+launch-kind:
+	sed s/@KUBERNETES_VERSION@/$(KUBERNETES_VERSION)/ topolvm-cluster.yaml > /tmp/topolvm-cluster.yaml
+	env KUBECONFIG= kind create cluster --config /tmp/topolvm-cluster.yaml --loglevel debug --image kindest/node:v$(KUBERNETES_VERSION)
 
 shutdown-kind:
-	kind delete cluster
+	kind delete cluster || true
 
 start-lvmd:
 	mkdir -p build
@@ -38,6 +46,9 @@ start-lvmd:
 	$(SUDO) losetup -f build/backing_store
 	$(SUDO) pvcreate -fy $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
 	$(SUDO) vgcreate myvg $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
+	# For csi_node_test.go
+	$(SUDO) lvcreate -n csi-node-test-block -L 1G myvg
+	$(SUDO) lvcreate -n csi-node-test-fs -L 1G myvg
 	mkdir -p /tmp/topolvm
 	$(SUDO) systemd-run --unit=lvmd.service $(shell pwd)/build/lvmd --volume-group=myvg --listen=/tmp/topolvm/lvmd.sock
 
@@ -49,8 +60,11 @@ stop-lvmd:
 	$(SUDO) dmsetup remove_all
 	rm build/backing_store
 
-test: secret
-	kind load docker-image topolvm:dev
+test: topolvm.img
+	$(MAKE) shutdown-kind
+	$(MAKE) launch-kind
+	$(MAKE) secret
+	kind load image-archive topolvm.img
 	$(KUBECTL) delete -f lvmetrics.yml -f scheduler.yml -f hook-secret.yml -f hook.yml -f scandpv.yml --ignore-not-found
 	$(KUBECTL) apply -f lvmetrics.yml -f scheduler.yml -f hook-secret.yml -f hook.yml -f scandpv.yml
 	docker cp ./kube-scheduler.yaml kind-control-plane:/etc/kubernetes/manifests/kube-scheduler.yaml
@@ -59,13 +73,7 @@ test: secret
 	$(KUBECTL) create namespace topolvm-system
 	$(KUBECTL) apply -f ../topolvm-node/config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml
 	$(KUBECTL) apply -f csi.yml
-
-sanity-test: topolvm.img secret hook-secret.yml
-	mkdir -p /tmp/topolvm/kubelet{1,2,3}
-	kind load docker-image topolvm:dev
-	$(KUBECTL) delete -f lvmetrics.yml -f scheduler.yml -f hook.yml -f scandpv.yml --ignore-not-found
-	$(KUBECTL) apply -f lvmetrics.yml -f scheduler.yml -f hook.yml -f scandpv.yml
-	$(SUDO) env PATH=$(PATH) GOPATH=$(GOPATH) GO111MODULE=on GOFLAGS=$(GOFLAGS) KUBECONFIG=$(KUBECONFIG) $(GINKGO) -v .
+	$(SUDO) env PATH=$(PATH) GOPATH=$(GOPATH) GO111MODULE=on GOFLAGS=$(GOFLAGS) KUBECONFIG=$(KUBECONFIG) $(GINKGO) --failFast -v .
 	$(SUDO) $$(which csi-sanity) -ginkgo.v -test.v \
 		-csi.endpoint /var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock \
 		-csi.controllerendpoint /var/lib/kubelet/plugins/topolvm.cybozu.com/controller/csi-topolvm.sock \
@@ -86,10 +94,7 @@ secret: $(SERVER_CERT_FILES)
 	$(KUBECTL) delete -n=kube-system secret topolvm-hook-certs --ignore-not-found
 	$(KUBECTL) create -n=kube-system secret generic topolvm-hook-certs --from-file=certs/server.pem --from-file=certs/server-key.pem
 
-setup:
-	mkdir -p /tmp/kubernetes
-	curl -L https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl -o $(KUBECTL)
-	chmod 755 $(KUBECTL)
+setup: $(KUBECTL)
 	go install github.com/cloudflare/cfssl/cmd/cfssl
 	go install github.com/cloudflare/cfssl/cmd/cfssljson
 	go install github.com/onsi/ginkgo/ginkgo

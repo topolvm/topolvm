@@ -1,11 +1,9 @@
 package kindtest
 
 import (
-	"errors"
 	"fmt"
 	"math/rand"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -22,6 +20,8 @@ func TestMtest(t *testing.T) {
 		}
 	}
 
+	rand.Seed(time.Now().UnixNano())
+
 	RegisterFailHandler(Fail)
 
 	SetDefaultEventuallyPollingInterval(time.Second)
@@ -36,6 +36,7 @@ func createNamespace(ns string) {
 	Eventually(func() error {
 		return waitCreatingDefaultSA(ns)
 	}).Should(Succeed())
+	fmt.Fprintln(os.Stderr, "created namespace: "+ns)
 }
 
 func randomString(n int) string {
@@ -47,26 +48,3 @@ func randomString(n int) string {
 	}
 	return string(b)
 }
-
-var _ = BeforeSuite(func() {
-	//
-	// Prepare for E2E test
-	//
-	createNamespace("topolvm-system")
-	stdout, stderr, err := kubectl("apply", "-f", "../topolvm-node/config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml")
-	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-	stdout, stderr, err = kubectl("apply", "-f", "./csi.yml")
-	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-	Eventually(func() error {
-		stdout, stderr, err = kubectl("get", "pod", "-n=kube-system", "-o=custom-columns=:.status.phase", "--no-headers")
-		if err != nil {
-			return fmt.Errorf("stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
-		}
-		for _, l := range strings.Split(strings.TrimSpace(string(stdout)), "\n") {
-			if l != "Running" {
-				return errors.New("there is a pod not running")
-			}
-		}
-		return nil
-	}).Should(Succeed())
-})

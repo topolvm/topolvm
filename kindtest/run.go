@@ -20,9 +20,9 @@ func execAtLocal(cmd string, input []byte, args ...string) ([]byte, []byte, erro
 }
 
 func kubectl(args ...string) ([]byte, []byte, error) {
-	return execAtLocal("/tmp/kubernetes/kubectl", nil, args...)
+	return execAtLocal("kubectl", nil, args...)
 }
 
 func kubectlWithInput(input []byte, args ...string) ([]byte, []byte, error) {
-	return execAtLocal("/tmp/kubernetes/kubectl", input, args...)
+	return execAtLocal("kubectl", input, args...)
 }
