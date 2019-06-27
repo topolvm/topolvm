@@ -2,7 +2,6 @@ package well
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/cybozu-go/log"
@@ -121,16 +120,12 @@ func (e *Environment) Wait() error {
 // channel is closed.
 func (e *Environment) Go(f func(ctx context.Context) error) {
 	e.mu.RLock()
-	fmt.Println("e.mu.RLock(): 123")
 	if e.stopped {
 		e.mu.RUnlock()
-		fmt.Println("e.mu.RUnlock(): 126")
 		return
 	}
 	e.wg.Add(1)
-	fmt.Println("e.wg.Add(1): 130")
 	e.mu.RUnlock()
-	fmt.Println("e.mu.RUnlock(): 130")
 
 	go func() {
 		ctx, cancel := context.WithCancel(e.ctx)
