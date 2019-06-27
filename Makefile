@@ -11,6 +11,7 @@ GO_OUT := $(GO_OUT),Mgoogle/protobuf/descriptor.proto=github.com/golang/protobuf
 GO_OUT := $(GO_OUT),Mgoogle/protobuf/wrappers.proto=$(PTYPES_PKG)/wrappers
 GO_OUT := $(GO_OUT):csi
 
+SUDO=sudo
 PACKAGES := unzip
 GO_FILES=$(shell find -name '*.go' -not -name '*_test.go')
 BUILD_TARGET=hypertopolvm

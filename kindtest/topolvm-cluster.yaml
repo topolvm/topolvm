@@ -3,10 +3,14 @@ apiVersion: kind.sigs.k8s.io/v1alpha3
 # patch the generated kubeadm config with some extra settings
 kubeadmConfigPatches:
 - |
+  # When update to Kubernetes 1.15, make sure to change the
+  # apiVersion to "kubeadm.k8s.io/v1beta2".  Also make sure
+  # to change the node image in Makefile (--image kindtest/node)
   apiVersion: kubeadm.k8s.io/v1beta1
   kind: ClusterConfiguration
   metadata:
     name: config
+  kubernetesVersion: "v1.14.1"
   networking:
     serviceSubnet: 10.0.0.0/16
   scheduler:
@@ -22,7 +26,7 @@ nodes:
 - role: control-plane
   extraMounts:
     - containerPath: /mnt/host/scheduler-config.yaml
-      hostPath: /home/ikezoe/go/src/github.com/cybozu-go/topolvm/kindtest/scheduler-config.yaml
+      hostPath: /tmp/topolvm/scheduler-config.yaml
 # the three workers
 - role: worker
   extraMounts:

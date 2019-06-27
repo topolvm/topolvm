@@ -1,2 +1,4 @@
 *.img
 hook-secret.yml
+/build
+/tmpbin

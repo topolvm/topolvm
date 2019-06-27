@@ -7,7 +7,7 @@ jobs:
     steps:
       - checkout
       - run: make -f topolvm-node/Makefile SUDO="" setup
-      - run: make setup
+      - run: make setup SUDO=""
       - run: make test
       - run: make build
       - run:

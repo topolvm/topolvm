@@ -75,4 +75,3 @@ setup:
 	$(SUDO) mv /tmp/kubebuilder_$(KUBEBUILDER_VERSION)_$(GOOS)_$(GOARCH) /usr/local/kubebuilder
 	$(SUDO) curl -o /usr/local/kubebuilder/bin/kustomize -sL https://go.kubebuilder.io/kustomize/$(GOOS)/$(GOARCH)
 	$(SUDO) chmod a+x /usr/local/kubebuilder/bin/kustomize
-	GOFLAGS="" go install github.com/jstemmer/go-junit-report

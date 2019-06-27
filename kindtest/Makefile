@@ -18,8 +18,12 @@ topolvm.img: $(GO_FILES)
 	ln -s hypertopolvm ./tmpbin/topolvm-hook
 	docker build --no-cache --rm=false -f Dockerfile -t topolvm:dev tmpbin
 
-launch-kind:
-	kind create cluster --config topolvm-cluster.yaml
+/tmp/topolvm/scheduler-config.yaml: scheduler-config.yaml
+	mkdir -p /tmp/topolvm
+	cp scheduler-config.yaml /tmp/topolvm/
+
+launch-kind: /tmp/topolvm/scheduler-config.yaml
+	env KUBECONFIG= kind create cluster --config topolvm-cluster.yaml --loglevel debug --image kindest/node:v1.14.1
 
 shutdown-kind:
 	kind delete cluster
@@ -71,7 +75,7 @@ setup:
 	go install github.com/cloudflare/cfssl/cmd/cfssl
 	go install github.com/cloudflare/cfssl/cmd/cfssljson
 	go install github.com/onsi/ginkgo/ginkgo
-	go get sigs.k8s.io/kind@v0.3.0
+	cd /tmp; env GOFLAGS= GO111MODULE=on go get sigs.k8s.io/kind@v0.4.0
 	$(SUDO) apt-get update
 	$(SUDO) apt-get install -y lvm2 xfsprogs
 
