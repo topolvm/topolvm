@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("E2E test", func() {
+var _ = FDescribe("E2E test", func() {
 	testNamespacePrefix := "e2e-test"
 
 	It("should be mounted in specified path", func() {
