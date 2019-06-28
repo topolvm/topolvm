@@ -36,15 +36,18 @@ nodes:
       hostPath: /tmp/topolvm
     - containerPath: /var/lib/kubelet
       hostPath: /tmp/topolvm/kubelet1
+      propagation: Bidirectional
 - role: worker
   extraMounts:
     - containerPath: /tmp/topolvm
       hostPath: /tmp/topolvm
     - containerPath: /var/lib/kubelet
       hostPath: /tmp/topolvm/kubelet2
+      propagation: Bidirectional
 - role: worker
   extraMounts:
     - containerPath: /tmp/topolvm
       hostPath: /tmp/topolvm
     - containerPath: /var/lib/kubelet
       hostPath: /tmp/topolvm/kubelet3
+      propagation: Bidirectional
