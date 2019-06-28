@@ -1,6 +1,7 @@
 package kindtest
 
 import (
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -9,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = FDescribe("E2E test", func() {
+var _ = Describe("E2E test", func() {
 	testNamespacePrefix := "e2e-test"
 
 	It("should be mounted in specified path", func() {
@@ -70,16 +71,17 @@ spec:
 				return fmt.Errorf("failed to check mount point. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
 			}
 			return nil
-		}).Should(Succeed())
 
-		By("confirming that the lv is formatted as xfs")
-		stdout, stderr, err = kubectl("get", "pvc", "-n", ns, "topo-pvc", "-o=template", "--template={{.spec.volumeName}}")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		volName := strings.TrimSpace(string(stdout))
-		stdout, stderr, err = kubectl("get", "logicalvolume", "-n", "topolvm-system", volName, "-o=template", "--template={{.metadata.uid}}")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		stdout, err = exec.Command("sudo", "xfs_info", "/dev/myvg/"+string(stdout)).CombinedOutput()
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s", string(stdout))
+			stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "grep", "/test1", "/proc/mounts")
+			if err != nil {
+				return err
+			}
+			fields := strings.Fields(string(stdout))
+			if fields[2] != "xfs" {
+				return errors.New("/test1 is not xfs")
+			}
+			return nil
+		}).Should(Succeed())
 
 		By("writing file under /test1")
 		writePath := "/test1/bootstrap.log"
@@ -122,7 +124,7 @@ spec:
 		By("confirming that the lv correspond to LogicalVolume resource is registered in LVM")
 		stdout, stderr, err = kubectl("get", "pvc", "-n", ns, "topo-pvc", "-o=template", "--template={{.spec.volumeName}}")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		volName = strings.TrimSpace(string(stdout))
+		volName := strings.TrimSpace(string(stdout))
 		Eventually(func() error {
 			return checkLVIsRegisteredInLVM(volName)
 		}).Should(Succeed())

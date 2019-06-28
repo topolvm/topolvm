@@ -53,12 +53,11 @@ roleRef:
   name: topolvm-system:topolvm-scheduler
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: DaemonSet
 metadata:
   name: topolvm-scheduler
   namespace: topolvm-system
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: topolvm-scheduler
@@ -81,17 +80,16 @@ spec:
             httpGet:
               path: /status
               port: 9251
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: topolvm-scheduler
-  namespace: topolvm-system
-spec:
-  selector:
-    app.kubernetes.io/name: topolvm-scheduler
-  ports:
-    - protocol: TCP
-      port: 80
-      targetPort: 9251
-
+      hostNetwork: true
+      tolerations:
+        - key: CriticalAddonsOnly
+          operator: Exists
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/master
+                    operator: Exists

@@ -1,6 +1,8 @@
 package kindtest
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
 	"os"
@@ -9,6 +11,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	appsv1 "k8s.io/api/apps/v1"
 )
 
 func TestMtest(t *testing.T) {
@@ -51,7 +54,59 @@ func randomString(n int) string {
 
 var _ = BeforeSuite(func() {
 	fmt.Println("Waiting for mutating webhook to get ready")
-	kubectl("-n=kube-system", "wait", "--for=condition=Available", "deployments/topolvm-hook")
-	// wait for kube-proxy to update IPVS rules
+	Eventually(func() error {
+		stdout, stderr, err := kubectl("-n=kube-system", "get", "ds/kindnet", "-o", "json")
+		if err != nil {
+			return errors.New(string(stderr))
+		}
+
+		var ds appsv1.DaemonSet
+		err = json.Unmarshal(stdout, &ds)
+		if err != nil {
+			return err
+		}
+
+		if ds.Status.NumberReady != 4 {
+			return fmt.Errorf("numberReady is not 4: %d", ds.Status.NumberReady)
+		}
+		return nil
+	}).Should(Succeed())
 	time.Sleep(5 * time.Second)
+	Eventually(func() error {
+		stdout, stderr, err := kubectl("-n=kube-system", "get", "ds/kindnet", "-o", "json")
+		if err != nil {
+			return errors.New(string(stderr))
+		}
+
+		var ds appsv1.DaemonSet
+		err = json.Unmarshal(stdout, &ds)
+		if err != nil {
+			return err
+		}
+
+		if ds.Status.NumberReady != 4 {
+			return fmt.Errorf("numberReady is not 4: %d", ds.Status.NumberReady)
+		}
+		return nil
+	}).Should(Succeed())
+
+	podYAML := `apiVersion: v1
+kind: Pod
+metadata:
+  name: ubuntu
+  labels:
+    app.kubernetes.io/name: ubuntu
+spec:
+  containers:
+    - name: ubuntu
+      image: quay.io/cybozu/ubuntu:18.04
+      command: ["sleep", "infinity"]
+`
+	Eventually(func() error {
+		_, stderr, err := kubectlWithInput([]byte(podYAML), "apply", "-f", "-")
+		if err != nil {
+			return errors.New(string(stderr))
+		}
+		return nil
+	}).Should(Succeed())
 })
