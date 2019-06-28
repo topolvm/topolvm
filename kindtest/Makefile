@@ -31,7 +31,8 @@ topolvm.img: $(GO_FILES)
 	mkdir -p /tmp/topolvm
 	cp $< $@
 
-launch-kind:
+launch-kind: /tmp/topolvm/scheduler-config.yaml
+	$(SUDO) rm -rf /tmp/topolvm/kubelet*
 	sed s/@KUBERNETES_VERSION@/$(KUBERNETES_VERSION)/ topolvm-cluster.yaml > /tmp/topolvm-cluster.yaml
 	env KUBECONFIG= kind create cluster --config /tmp/topolvm-cluster.yaml --loglevel debug --image kindest/node:v$(KUBERNETES_VERSION)
 
