@@ -16,10 +16,9 @@ kubeadmConfigPatches:
   scheduler:
     extraVolumes:
       - name: "config"
-        hostPath: /mnt/host/scheduler-config.yaml
-        mountPath: /var/lib/scheduler/scheduler-config.yaml
+        hostPath: /mnt/host/scheduler
+        mountPath: /var/lib/scheduler
         readOnly: true
-        pathType: File
     extraArgs:
       config: /var/lib/scheduler/scheduler-config.yaml
 # 1 control plane node and 3 workers
@@ -27,8 +26,8 @@ nodes:
 # the control plane node config
 - role: control-plane
   extraMounts:
-    - containerPath: /mnt/host/scheduler-config.yaml
-      hostPath: /tmp/topolvm/scheduler-config.yaml
+    - containerPath: /mnt/host/scheduler
+      hostPath: /tmp/topolvm/scheduler
 # the three workers
 - role: worker
   extraMounts:

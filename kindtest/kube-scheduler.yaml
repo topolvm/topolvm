@@ -6,7 +6,7 @@ metadata:
     component: kube-scheduler
     tier: control-plane
   name: kube-scheduler
-  namespace: kube-system
+  namespace: topolvm-system
 spec:
   containers:
   - command:

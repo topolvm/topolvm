@@ -1,14 +1,14 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  namespace: kube-system
+  namespace: topolvm-system
   name: csi-topolvm-controller
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: kube-system:csi-topolvm-controller
-  namespace: kube-system
+  name: topolvm-system:csi-topolvm-controller
+  namespace: topolvm-system
 rules:
   - apiGroups: ["topolvm.cybozu.com"]
     resources: ["logicalvolumes", "logicalvolumes/status"]
@@ -17,16 +17,16 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: kube-system:csi-topolvm-controller
-  namespace: kube-system
+  name: topolvm-system:csi-topolvm-controller
+  namespace: topolvm-system
 subjects:
   - kind: ServiceAccount
     name: csi-topolvm-controller
-    namespace: kube-system
+    namespace: topolvm-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: kube-system:csi-topolvm-controller
+  name: topolvm-system:csi-topolvm-controller
 
 
 ---
@@ -68,7 +68,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: csi-topolvm-controller
-    namespace: kube-system
+    namespace: topolvm-system
 roleRef:
   kind: ClusterRole
   name: external-provisioner-runner
@@ -78,7 +78,7 @@ roleRef:
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  namespace: kube-system
+  namespace: topolvm-system
   name: external-provisioner-cfg
 rules:
 - apiGroups: [""]
@@ -93,11 +93,11 @@ kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: csi-provisioner-role-cfg
-  namespace: kube-system
+  namespace: topolvm-system
 subjects:
   - kind: ServiceAccount
     name: csi-topolvm-controller
-    namespace: kube-system
+    namespace: topolvm-system
 roleRef:
   kind: Role
   name: external-provisioner-cfg
@@ -131,7 +131,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: csi-topolvm-controller
-    namespace: kube-system
+    namespace: topolvm-system
 roleRef:
   kind: ClusterRole
   name: external-attacher-runner
@@ -141,7 +141,7 @@ roleRef:
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  namespace: kube-system
+  namespace: topolvm-system
   name: external-attacher-cfg
 rules:
   - apiGroups: [""]
@@ -156,11 +156,11 @@ kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: csi-attacher-role-cfg
-  namespace: kube-system
+  namespace: topolvm-system
 subjects:
   - kind: ServiceAccount
     name: csi-topolvm-controller
-    namespace: kube-system
+    namespace: topolvm-system
 roleRef:
   kind: Role
   name: external-attacher-cfg
@@ -171,7 +171,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: csi-topolvm-controller
-  namespace: kube-system
+  namespace: topolvm-system
 spec:
   selector:
     matchLabels:
@@ -224,14 +224,14 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  namespace: kube-system
+  namespace: topolvm-system
   name: csi-topolvm-node
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: kube-system:csi-topolvm-node
-  namespace: kube-system
+  name: topolvm-system:csi-topolvm-node
+  namespace: topolvm-system
 rules:
   - apiGroups: ["topolvm.cybozu.com"]
     resources: ["logicalvolumes", "logicalvolumes/status"]
@@ -240,16 +240,16 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: kube-system:csi-topolvm-node
-  namespace: kube-system
+  name: topolvm-system:csi-topolvm-node
+  namespace: topolvm-system
 subjects:
   - kind: ServiceAccount
     name: csi-topolvm-node
-    namespace: kube-system
+    namespace: topolvm-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: kube-system:csi-topolvm-node
+  name: topolvm-system:csi-topolvm-node
 
 
 ---
@@ -257,7 +257,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: csi-topolvm-node
-  namespace: kube-system
+  namespace: topolvm-system
 spec:
   selector:
     matchLabels:

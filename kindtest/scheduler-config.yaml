@@ -3,9 +3,8 @@ kind: KubeSchedulerConfiguration
 schedulerName: default-scheduler
 algorithmSource:
   policy:
-    configMap:
-      namespace: kube-system
-      name: topolvm-scheduler-policy
+    file:
+      path: /var/lib/scheduler/scheduler-policy.cfg
 leaderElection:
   leaderElect: true
   lockObjectName: topolvm-scheduler

@@ -12,8 +12,8 @@ KUBECONFIG := $(shell kind get kubeconfig-path --name=kind)
 export KUBECONFIG
 
 $(KUBECTL):
-	curl -sfL https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl -o $(KUBECTL)
-	chmod 755 $(KUBECTL)
+	$(SUDO) curl -sfL https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl -o $(KUBECTL)
+	$(SUDO) chmod 755 $(KUBECTL)
 
 topolvm.img: $(GO_FILES)
 	rm -rf tmpbin
@@ -27,11 +27,15 @@ topolvm.img: $(GO_FILES)
 	docker build --no-cache --rm=false -f Dockerfile -t topolvm:dev tmpbin
 	docker save -o $@ topolvm:dev
 
-/tmp/topolvm/scheduler-config.yaml: scheduler-config.yaml
-	mkdir -p /tmp/topolvm
+/tmp/topolvm/scheduler/scheduler-config.yaml: scheduler-config.yaml
+	mkdir -p /tmp/topolvm/scheduler
 	cp $< $@
 
-launch-kind: /tmp/topolvm/scheduler-config.yaml
+/tmp/topolvm/scheduler/scheduler-policy.cfg: scheduler-policy.cfg
+	mkdir -p /tmp/topolvm/scheduler
+	cp $< $@
+
+launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml /tmp/topolvm/scheduler/scheduler-policy.cfg
 	$(SUDO) rm -rf /tmp/topolvm/kubelet*
 	sed s/@KUBERNETES_VERSION@/$(KUBERNETES_VERSION)/ topolvm-cluster.yaml > /tmp/topolvm-cluster.yaml
 	env KUBECONFIG= kind create cluster --config /tmp/topolvm-cluster.yaml --loglevel debug --image kindest/node:v$(KUBERNETES_VERSION)
@@ -46,10 +50,10 @@ start-lvmd:
 	truncate --size=20G build/backing_store
 	$(SUDO) losetup -f build/backing_store
 	$(SUDO) pvcreate -fy $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
-	$(SUDO) vgcreate myvg $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
+	$(SUDO) vgcreate -y myvg $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
 	# For csi_node_test.go
-	$(SUDO) lvcreate -n csi-node-test-block -L 1G myvg
-	$(SUDO) lvcreate -n csi-node-test-fs -L 1G myvg
+	$(SUDO) lvcreate -y -n csi-node-test-block -L 1G myvg
+	$(SUDO) lvcreate -y -n csi-node-test-fs -L 1G myvg
 	mkdir -p /tmp/topolvm
 	$(SUDO) systemd-run --unit=lvmd.service $(shell pwd)/build/lvmd --volume-group=myvg --listen=/tmp/topolvm/lvmd.sock
 
@@ -60,15 +64,19 @@ stop-lvmd:
 	$(SUDO) losetup -d $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
 	$(SUDO) dmsetup remove_all
 	rm build/backing_store
+	for d in $$($(SUDO) find /tmp/topolvm -type d); do \
+		if $(SUDO) mountpoint -q $$d; then \
+			$(SUDO) umount $$d; \
+		fi; \
+	done
 
-test: topolvm.img
+test: topolvm.img hook-secret.yml
 	$(MAKE) shutdown-kind
 	$(MAKE) launch-kind
+	$(KUBECTL) apply -f namespace.yml
 	$(MAKE) secret
 	kind load image-archive topolvm.img
-	$(KUBECTL) delete -f lvmetrics.yml -f scheduler.yml -f hook-secret.yml -f hook.yml -f scandpv.yml --ignore-not-found
 	$(KUBECTL) apply -f lvmetrics.yml -f scheduler.yml -f hook-secret.yml -f hook.yml -f scandpv.yml
-	$(KUBECTL) create namespace topolvm-system
 	$(KUBECTL) apply -f ../topolvm-node/config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml
 	$(KUBECTL) apply -f csi.yml
 	$(SUDO) env PATH=$(PATH) GOPATH=$(GOPATH) GO111MODULE=on GOFLAGS=$(GOFLAGS) KUBECONFIG=$(KUBECONFIG) $(GINKGO) --failFast -v .
@@ -89,8 +97,8 @@ hook-secret.yml: hook-secret.yml.template $(CA_FILES)
 	./patch_capem.sh
 
 secret: $(SERVER_CERT_FILES)
-	$(KUBECTL) delete -n=kube-system secret topolvm-hook-certs --ignore-not-found
-	$(KUBECTL) create -n=kube-system secret generic topolvm-hook-certs --from-file=certs/server.pem --from-file=certs/server-key.pem
+	$(KUBECTL) delete -n=topolvm-system secret topolvm-hook-certs --ignore-not-found
+	$(KUBECTL) create -n=topolvm-system secret generic topolvm-hook-certs --from-file=certs/server.pem --from-file=certs/server-key.pem
 
 setup: $(KUBECTL)
 	go install github.com/cloudflare/cfssl/cmd/cfssl
