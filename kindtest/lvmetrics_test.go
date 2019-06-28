@@ -15,7 +15,7 @@ var _ = Describe("Test for lvmetrics", func() {
 
 	It("should be deployed lvmetrics pod", func() {
 		Eventually(func() error {
-			result, stderr, err := kubectl("get", "-n=kube-system", "pods", "--selector=app.kubernetes.io/name=lvmetrics", "-o=json")
+			result, stderr, err := kubectl("get", "-n=topolvm-system", "pods", "--selector=app.kubernetes.io/name=lvmetrics", "-o=json")
 			if err != nil {
 				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
 			}

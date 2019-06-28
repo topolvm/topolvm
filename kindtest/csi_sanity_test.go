@@ -45,7 +45,7 @@ func (c cleanup) unpublishVolumes(ns csi.NodeServer) {
 	}
 }
 
-var _ = Describe("CSI sanity test", func() {
+var _ = FDescribe("CSI sanity test", func() {
 	var (
 		cl   cleanup
 		conn *grpc.ClientConn

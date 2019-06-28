@@ -10,14 +10,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var _ = FDescribe("Test topolvm-scheduler", func() {
+var _ = Describe("Test topolvm-scheduler", func() {
 	testNamespacePrefix := "scheduler-test"
 
 	It("should be deployed topolvm-scheduler pod", func() {
 		ns := testNamespacePrefix + randomString(10)
 		createNamespace(ns)
 		Eventually(func() error {
-			result, stderr, err := kubectl("get", "-n=kube-system", "pods", "--selector=app.kubernetes.io/name=topolvm-scheduler", "-o=json")
+			result, stderr, err := kubectl("get", "-n=topolvm-system", "pods", "--selector=app.kubernetes.io/name=topolvm-scheduler", "-o=json")
 			if err != nil {
 				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
 			}
@@ -105,9 +105,9 @@ spec:
     image: quay.io/cybozu/testhttpd:0
     resources:
       requests:
-        topolvm.cybozu.com/capacity: 10Gi
+        topolvm.cybozu.com/capacity: 20Gi
       limits:
-        topolvm.cybozu.com/capacity: 10Gi
+        topolvm.cybozu.com/capacity: 20Gi
 `, ns)
 		stdout, stderr, err := kubectlWithInput([]byte(podYml), "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
