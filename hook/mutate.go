@@ -22,7 +22,7 @@ type patchOperation struct {
 
 const defaultSize = 1 << 30
 
-func (h hook) hasTopolvmPVC(pod *corev1.Pod) bool {
+func (h hook) hasTopolvmPVC(pod *corev1.Pod) (bool, error) {
 	for _, vol := range pod.Spec.Volumes {
 		if vol.PersistentVolumeClaim == nil {
 			continue
@@ -36,7 +36,7 @@ func (h hook) hasTopolvmPVC(pod *corev1.Pod) bool {
 				"namespace": pod.Namespace,
 				"pvc":       claimName,
 			})
-			continue
+			return false, err
 		}
 
 		if pvc.Status.Phase != corev1.ClaimPending {
@@ -50,13 +50,13 @@ func (h hook) hasTopolvmPVC(pod *corev1.Pod) bool {
 				"namespace": pod.Namespace,
 				"sc":        *pvc.Spec.StorageClassName,
 			})
-			continue
+			return false, err
 		}
 		if sc.Provisioner == topolvm.PluginName {
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
 func (h hook) calcRequested(pod *corev1.Pod) int64 {
@@ -163,7 +163,11 @@ func (h hook) mutatePod(ar *admissionv1beta1.AdmissionReview) (*admissionv1beta1
 	if err != nil {
 		return nil, err
 	}
-	if !h.hasTopolvmPVC(pod) {
+	hasPVC, err := h.hasTopolvmPVC(pod)
+	if err != nil {
+		return nil, err
+	}
+	if !hasPVC {
 		return &admissionv1beta1.AdmissionResponse{
 			Allowed: true,
 		}, nil

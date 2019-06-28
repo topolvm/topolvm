@@ -42,6 +42,11 @@ launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml /tmp/topolvm/scheduler
 
 shutdown-kind:
 	kind delete cluster || true
+	for d in $$($(SUDO) find /tmp/topolvm -type d); do \
+		if $(SUDO) mountpoint -q $$d; then \
+			$(SUDO) umount $$d; \
+		fi; \
+	done
 
 start-lvmd:
 	mkdir -p build
@@ -64,11 +69,6 @@ stop-lvmd:
 	$(SUDO) losetup -d $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
 	$(SUDO) dmsetup remove_all
 	rm build/backing_store
-	for d in $$($(SUDO) find /tmp/topolvm -type d); do \
-		if $(SUDO) mountpoint -q $$d; then \
-			$(SUDO) umount $$d; \
-		fi; \
-	done
 
 test: topolvm.img hook-secret.yml
 	$(MAKE) shutdown-kind
@@ -111,4 +111,4 @@ setup: $(KUBECTL)
 clean: stop-lvmd
 	rm -rf $(CA_FILES) $(SERVER_CERT_FILES) hook-secret.yml topolvm.img build/
 
-.PHONY: launch-kind shutdown-kind start-lvmd stop-lvmd test sanity-test setup clean
+.PHONY: launch-kind shutdown-kind start-lvmd stop-lvmd test setup clean
