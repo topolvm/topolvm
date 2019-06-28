@@ -48,9 +48,9 @@ spec:
       storage: 1Gi
   storageClassName: topolvm-provisioner
 `
-		stdout, stderr, err := kubectlWithInput([]byte(podYAML), "apply", "-n", ns, "-f", "-")
+		stdout, stderr, err := kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		stdout, stderr, err = kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
+		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		By("confirming that the specified device exists in the Pod")

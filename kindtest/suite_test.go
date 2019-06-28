@@ -48,3 +48,10 @@ func randomString(n int) string {
 	}
 	return string(b)
 }
+
+var _ = BeforeSuite(func() {
+	fmt.Println("Waiting for mutating webhook to get ready")
+	kubectl("-n=kube-system", "wait", "--for=condition=Available", "deployments/topolvm-hook")
+	// wait for kube-proxy to update IPVS rules
+	time.Sleep(5 * time.Second)
+})

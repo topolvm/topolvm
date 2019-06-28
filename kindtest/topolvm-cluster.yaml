@@ -20,6 +20,8 @@ kubeadmConfigPatches:
         mountPath: /var/lib/scheduler/scheduler-config.yaml
         readOnly: true
         pathType: File
+    extraArgs:
+      config: /var/lib/scheduler/scheduler-config.yaml
 # 1 control plane node and 3 workers
 nodes:
 # the control plane node config

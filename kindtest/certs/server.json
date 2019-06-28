@@ -2,7 +2,8 @@
     "CN": "topolvm-hook",
     "hosts": [
         "localhost",
-        "127.0.0.1"
+        "127.0.0.1",
+        "topolvm-hook.kube-system.svc"
     ],
     "key": {
         "algo": "rsa",

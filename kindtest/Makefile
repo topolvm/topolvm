@@ -3,7 +3,7 @@ GOFLAGS=-mod=vendor
 export GOFLAGS
 GINKGO=$(GOPATH)/bin/ginkgo
 KUBECTL=/usr/local/bin/kubectl
-KUBERNETES_VERSION=1.14.1
+KUBERNETES_VERSION=1.14.3
 
 GO_FILES := $(shell find .. -path ../vendor -prune -o -path ../kindtest -prune -o -name '*.go' -print)
 CA_FILES=./certs/ca.csr ./certs/ca.pem ./certs/ca-key.pem
@@ -68,9 +68,6 @@ test: topolvm.img
 	kind load image-archive topolvm.img
 	$(KUBECTL) delete -f lvmetrics.yml -f scheduler.yml -f hook-secret.yml -f hook.yml -f scandpv.yml --ignore-not-found
 	$(KUBECTL) apply -f lvmetrics.yml -f scheduler.yml -f hook-secret.yml -f hook.yml -f scandpv.yml
-	docker cp ./kube-scheduler.yaml kind-control-plane:/etc/kubernetes/manifests/kube-scheduler.yaml
-	# restart kube-scheduler
-	$(KUBECTL) delete -n kube-system pod kube-scheduler-kind-control-plane
 	$(KUBECTL) create namespace topolvm-system
 	$(KUBECTL) apply -f ../topolvm-node/config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml
 	$(KUBECTL) apply -f csi.yml
