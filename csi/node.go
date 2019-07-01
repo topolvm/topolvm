@@ -26,7 +26,7 @@ const (
 	mountCmd         = "/bin/mount"
 	mountpointCmd    = "/bin/mountpoint"
 	umountCmd        = "/bin/umount"
-	devicePermission = unix.S_IFBLK
+	devicePermission = 0600 | unix.S_IFBLK
 )
 
 // NewNodeService returns a new NodeServer.
@@ -121,7 +121,7 @@ func (s *nodeService) nodePublishFilesystemVolume(ctx context.Context, req *Node
 		}
 
 		// Check device
-		if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && stat.Mode&devicePermission == devicePermission {
+		if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && (stat.Mode&devicePermission) == devicePermission {
 			return &NodePublishVolumeResponse{}, nil
 		}
 		return nil, status.Errorf(codes.Internal, "device's permission is invalid. expected: %x, actual: %x", devicePermission, stat.Mode)
@@ -132,7 +132,8 @@ func (s *nodeService) nodePublishFilesystemVolume(ctx context.Context, req *Node
 		}
 		err = unix.Mknod(device, devicePermission, dev)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "mknod failed for %s. error: %v", req.GetTargetPath(), err)
+			return nil, status.Errorf(codes.Internal, "mknod failed for %s. major=%d, minor=%d, error=%v",
+				device, lv.DevMajor, lv.DevMinor, err)
 		}
 	default:
 		return nil, status.Errorf(codes.Internal, "failed to stat: %v", err)

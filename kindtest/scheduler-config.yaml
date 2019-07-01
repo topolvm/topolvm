@@ -7,8 +7,5 @@ algorithmSource:
       path: /var/lib/scheduler/scheduler-policy.cfg
 leaderElection:
   leaderElect: true
-  lockObjectName: topolvm-scheduler
-  lockObjectNamespace: kube-system
 clientConnection:
   kubeconfig: /etc/kubernetes/scheduler.conf
-

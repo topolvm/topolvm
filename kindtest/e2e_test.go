@@ -70,7 +70,6 @@ spec:
 			if err != nil {
 				return fmt.Errorf("failed to check mount point. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
 			}
-			return nil
 
 			stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "grep", "/test1", "/proc/mounts")
 			if err != nil {
