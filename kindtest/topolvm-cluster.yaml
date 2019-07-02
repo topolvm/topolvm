@@ -28,25 +28,28 @@ nodes:
   extraMounts:
     - containerPath: /mnt/host/scheduler
       hostPath: /tmp/topolvm/scheduler
+    - containerPath: /var/lib/kubelet
+      hostPath: /tmp/topolvm/controller
+      propagation: Bidirectional
 # the three workers
 - role: worker
   extraMounts:
     - containerPath: /tmp/topolvm
       hostPath: /tmp/topolvm
     - containerPath: /var/lib/kubelet
-      hostPath: /tmp/topolvm/kubelet1
+      hostPath: /tmp/topolvm/worker1
       propagation: Bidirectional
 - role: worker
   extraMounts:
     - containerPath: /tmp/topolvm
       hostPath: /tmp/topolvm
     - containerPath: /var/lib/kubelet
-      hostPath: /tmp/topolvm/kubelet2
+      hostPath: /tmp/topolvm/worker2
       propagation: Bidirectional
 - role: worker
   extraMounts:
     - containerPath: /tmp/topolvm
       hostPath: /tmp/topolvm
     - containerPath: /var/lib/kubelet
-      hostPath: /tmp/topolvm/kubelet3
+      hostPath: /tmp/topolvm/worker3
       propagation: Bidirectional

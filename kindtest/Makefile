@@ -36,7 +36,7 @@ topolvm.img: $(GO_FILES)
 	cp $< $@
 
 launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml /tmp/topolvm/scheduler/scheduler-policy.cfg
-	$(SUDO) rm -rf /tmp/topolvm/kubelet*
+	$(SUDO) rm -rf /tmp/topolvm/controller /tmp/topolvm/worker*
 	sed s/@KUBERNETES_VERSION@/$(KUBERNETES_VERSION)/ topolvm-cluster.yaml > /tmp/topolvm-cluster.yaml
 	env KUBECONFIG= kind create cluster --config /tmp/topolvm-cluster.yaml --loglevel debug --image kindest/node:v$(KUBERNETES_VERSION)
 
@@ -81,10 +81,10 @@ test: topolvm.img hook-secret.yml
 	$(KUBECTL) apply -f csi.yml
 	$(SUDO) env PATH=$(PATH) GOPATH=$(GOPATH) GO111MODULE=on GOFLAGS=$(GOFLAGS) KUBECONFIG=$(KUBECONFIG) $(GINKGO) --failFast -v .
 	$(SUDO) $$(which csi-sanity) -ginkgo.v -test.v \
-		-csi.endpoint /var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock \
-		-csi.controllerendpoint /var/lib/kubelet/plugins/topolvm.cybozu.com/controller/csi-topolvm.sock \
-		-csi.mountdir /var/lib/kubelet/plugins/topolvm.cybozu.com/node/mountdir \
-		-csi.stagingdir /var/lib/kubelet/plugins/topolvm.cybozu.com/node/stagingdir \
+		-csi.endpoint /tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/csi-topolvm.sock \
+		-csi.controllerendpoint /tmp/topolvm/controller/plugins/topolvm.cybozu.com/controller/csi-topolvm.sock \
+		-csi.mountdir /tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/mountdir \
+		-csi.stagingdir /tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/stagingdir \
 		-csi.testvolumesize 1073741824
 
 $(CA_FILES): ./certs/csr.json
