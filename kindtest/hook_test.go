@@ -11,7 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var _ = FDescribe("Test topolvm-hook", func() {
+var _ = Describe("Test topolvm-hook", func() {
 	testNamespacePrefix := "hook-test"
 
 	It("should be deployed topolvm-hook pod", func() {
