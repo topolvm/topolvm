@@ -31,27 +31,28 @@ func (c cleanup) unregister(volumeID, targetPath string) {
 	}
 }
 
-func (c cleanup) unpublishVolumes(ns csi.NodeServer) {
+func (c cleanup) unpublishVolumes(nc csi.NodeClient) {
 	By("[cleanup] unpublishVolumes")
 	for volumeID, targetPath := range c.volumes {
 		req := &csi.NodeUnpublishVolumeRequest{
 			VolumeId:   volumeID,
 			TargetPath: targetPath,
 		}
-		_, err := ns.NodeUnpublishVolume(context.Background(), req)
+		_, err := nc.NodeUnpublishVolume(context.Background(), req)
 		if err != nil {
 			fmt.Printf("failed to unpublish volume: %v", req)
 		}
 	}
+	c.volumes = nil
 }
 
-var _ = FDescribe("CSI sanity test", func() {
+var _ = Describe("CSI sanity test", func() {
 	var (
 		cl   cleanup
+		nc   csi.NodeClient
 		conn *grpc.ClientConn
-		ns   csi.NodeServer
 	)
-	lvmdSocket := "/tmp/topolvm/lvmd.sock"
+	nodeSocket := "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/csi-topolvm.sock"
 
 	BeforeEach(func() {
 		dialer := &net.Dialer{}
@@ -59,17 +60,18 @@ var _ = FDescribe("CSI sanity test", func() {
 			return dialer.DialContext(ctx, "unix", a)
 		}
 		var err error
-		conn, err = grpc.Dial(lvmdSocket, grpc.WithInsecure(), grpc.WithContextDialer(dialFunc))
+		conn, err = grpc.Dial(nodeSocket, grpc.WithInsecure(), grpc.WithContextDialer(dialFunc))
 		Expect(err).ShouldNot(HaveOccurred())
 
-		stdout, stderr, err := kubectl("get", "nodes", "--template={{(index .items 0).metadata.name}}")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		ns = csi.NewNodeService(string(stdout), conn)
+		nc = csi.NewNodeClient(conn)
 	})
 
 	AfterEach(func() {
-		cl.unpublishVolumes(ns)
-		conn.Close()
+		cl.unpublishVolumes(nc)
+		if conn != nil {
+			conn.Close()
+			conn = nil
+		}
 	})
 
 	It("should be worked NodePublishVolume successfully to create fs", func() {
@@ -93,17 +95,17 @@ var _ = FDescribe("CSI sanity test", func() {
 			VolumeCapability: mountVolCap,
 			VolumeId:         volumeID,
 		}
-		resp, err := ns.NodePublishVolume(context.Background(), req)
+		resp, err := nc.NodePublishVolume(context.Background(), req)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(resp).ShouldNot(BeNil())
 
 		By("creating Filesystem volume again to check idempotency")
-		resp, err = ns.NodePublishVolume(context.Background(), req)
+		resp, err = nc.NodePublishVolume(context.Background(), req)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(resp).ShouldNot(BeNil())
 
 		By("creating volume on same target path, but requested volume and existing one are different")
-		_, err = ns.NodePublishVolume(context.Background(), &csi.NodePublishVolumeRequest{
+		_, err = nc.NodePublishVolume(context.Background(), &csi.NodePublishVolumeRequest{
 			PublishContext: map[string]string{},
 			TargetPath:     mountTargetPath,
 			VolumeCapability: &csi.VolumeCapability{
@@ -118,24 +120,24 @@ var _ = FDescribe("CSI sanity test", func() {
 		})
 		Expect(err).Should(HaveOccurred())
 
-		By("deleting the volume")
+		By("unpublishing the volume")
 		unpubReq := csi.NodeUnpublishVolumeRequest{
 			VolumeId:   volumeID,
 			TargetPath: mountTargetPath,
 		}
-		unpubResp, err := ns.NodeUnpublishVolume(context.Background(), &unpubReq)
+		unpubResp, err := nc.NodeUnpublishVolume(context.Background(), &unpubReq)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(unpubResp).ShouldNot(BeNil())
 
-		By("deleting the volume again to check idempotency")
-		unpubResp, err = ns.NodeUnpublishVolume(context.Background(), &unpubReq)
+		By("unpublishing the volume again to check idempotency")
+		unpubResp, err = nc.NodeUnpublishVolume(context.Background(), &unpubReq)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(unpubResp).ShouldNot(BeNil())
 
 		cl.unregister(volumeID, mountTargetPath)
 	})
 
-	It("should be worked NodePublishVolume successfully to create block", func() {
+	It("should be worked NodePublishVolume successfully to create a block device", func() {
 		deviceTargetPath := "/dev/csi-node-test"
 		volumeID := "csi-node-test-block"
 		cl.register(volumeID, deviceTargetPath)
@@ -156,17 +158,17 @@ var _ = FDescribe("CSI sanity test", func() {
 			VolumeCapability: blockVolCap,
 			VolumeId:         volumeID,
 		}
-		resp, err := ns.NodePublishVolume(context.Background(), req)
+		resp, err := nc.NodePublishVolume(context.Background(), req)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(resp).ShouldNot(BeNil())
 
 		By("creating raw block volume again to check idempotency")
-		resp, err = ns.NodePublishVolume(context.Background(), req)
+		resp, err = nc.NodePublishVolume(context.Background(), req)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(resp).ShouldNot(BeNil())
 
-		By("creating volume on same target path, but requested volume and existing one are different")
-		_, err = ns.NodePublishVolume(context.Background(), &csi.NodePublishVolumeRequest{
+		By("creating volume on the same target path, but requested volume and existing one are different")
+		_, err = nc.NodePublishVolume(context.Background(), &csi.NodePublishVolumeRequest{
 			PublishContext:   map[string]string{},
 			TargetPath:       deviceTargetPath,
 			VolumeCapability: blockVolCap,
@@ -174,17 +176,17 @@ var _ = FDescribe("CSI sanity test", func() {
 		})
 		Expect(err).Should(HaveOccurred())
 
-		By("deleting the volume")
+		By("unpublishing the volume")
 		unpubReq := csi.NodeUnpublishVolumeRequest{
 			VolumeId:   volumeID,
 			TargetPath: deviceTargetPath,
 		}
-		unpubResp, err := ns.NodeUnpublishVolume(context.Background(), &unpubReq)
+		unpubResp, err := nc.NodeUnpublishVolume(context.Background(), &unpubReq)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(unpubResp).ShouldNot(BeNil())
 
 		By("deleting the volume again to check idempotency")
-		unpubResp, err = ns.NodeUnpublishVolume(context.Background(), &unpubReq)
+		unpubResp, err = nc.NodeUnpublishVolume(context.Background(), &unpubReq)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(unpubResp).ShouldNot(BeNil())
 
