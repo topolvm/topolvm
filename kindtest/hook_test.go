@@ -11,7 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var _ = Describe("Test topolvm-hook", func() {
+var _ = FDescribe("Test topolvm-hook", func() {
 	testNamespacePrefix := "hook-test"
 
 	It("should be deployed topolvm-hook pod", func() {
@@ -213,7 +213,7 @@ spec:
 		}).Should(Succeed())
 	})
 
-	It("should not annotate pod with topolvm.cybozu.com/capacity", func() {
+	It("should annotate pod with topolvm.cybozu.com/capacity", func() {
 		ns := testNamespacePrefix + randomString(10)
 		createNamespace(ns)
 
@@ -228,7 +228,7 @@ spec:
   resources:
     requests:
       storage: 1Gi
-  storageClassName: topolvm-no-provisioner
+  storageClassName: host-local
 ---
 apiVersion: v1
 kind: Pod
@@ -244,15 +244,10 @@ spec:
       volumeMounts:
         - mountPath: /test1
           name: my-volume1
-        - mountPath: /test2
-          name: my-volume2
   volumes:
     - name: my-volume1
       persistentVolumeClaim:
-        claimName: local-pvc1
-    - name: my-volume2
-      persistentVolumeClaim:
-        claimName: local-pvc2`, ns, ns)
+        claimName: local-pvc1`, ns, ns)
 		stdout, stderr, err := kubectlWithInput([]byte(yml), "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
