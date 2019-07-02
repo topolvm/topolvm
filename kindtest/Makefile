@@ -107,6 +107,8 @@ setup: $(KUBECTL)
 	cd /tmp; env GOFLAGS= GO111MODULE=on go get sigs.k8s.io/kind@v0.4.0
 	$(SUDO) apt-get update
 	$(SUDO) apt-get install -y lvm2 xfsprogs
+	GO111MODULE=off go get -d github.com/kubernetes-csi/csi-test/cmd/csi-sanity
+	(cd $(GOPATH)/src/github.com/kubernetes-csi/csi-test/cmd/csi-sanity; make install)
 
 clean: stop-lvmd
 	rm -rf $(CA_FILES) $(SERVER_CERT_FILES) hook-secret.yml topolvm.img build/
