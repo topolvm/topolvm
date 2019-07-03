@@ -11,13 +11,21 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var _ = Describe("Test topolvm-hook", func() {
-	testNamespacePrefix := "hook-test"
+const nsHookTest = "hook-test"
 
-	It("should be deployed topolvm-hook pod", func() {
-		ns := testNamespacePrefix + randomString(10)
-		createNamespace(ns)
+var _ = FContext("in hook-test namespace", func() {
+	BeforeEach(func() {
+		createNamespace(nsHookTest)
+	})
+	AfterEach(func() {
+		kubectl("delete", "namespaces/"+nsHookTest)
+	})
 
+	Describe("Test topolvm-hook", testTopoLVMHook)
+})
+
+func testTopoLVMHook() {
+	It("should have deployed topolvm-hook pod", func() {
 		Eventually(func() error {
 			result, stderr, err := kubectl("get", "-n=topolvm-system", "pods", "--selector=app.kubernetes.io/name=topolvm-hook", "-o=json")
 			if err != nil {
@@ -47,14 +55,11 @@ var _ = Describe("Test topolvm-hook", func() {
 	})
 
 	It("should annotate pod with topolvm.cybozu.com/capacity", func() {
-		ns := testNamespacePrefix + randomString(10)
-		createNamespace(ns)
-
-		yml := fmt.Sprintf(`kind: PersistentVolumeClaim
+		yml := `
+kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: local-pvc1
-  namespace: %s 
 spec:
   accessModes:
   - ReadWriteOnce
@@ -67,7 +72,6 @@ kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: local-pvc2
-  namespace: %s
 spec:
   accessModes:
   - ReadWriteOnce
@@ -80,7 +84,6 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: testhttpd
-  namespace: %s
   labels:
     app.kubernetes.io/name: testhttpd
 spec:
@@ -99,12 +102,12 @@ spec:
     - name: my-volume2
       persistentVolumeClaim:
         claimName: local-pvc2
-`, ns, ns, ns)
-		stdout, stderr, err := kubectlWithInput([]byte(yml), "apply", "-f", "-")
+`
+		stdout, stderr, err := kubectlWithInput([]byte(yml), "-n", nsHookTest, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		Eventually(func() error {
-			result, stderr, err := kubectl("get", "-n", ns, "pods/testhttpd", "-o=json")
+			result, stderr, err := kubectl("get", "-n", nsHookTest, "pods/testhttpd", "-o=json")
 			if err != nil {
 				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
 			}
@@ -136,92 +139,12 @@ spec:
 		}).Should(Succeed())
 	})
 
-	It("should replace pod annotation of topolvm.cybozu.com/capacity", func() {
-		ns := testNamespacePrefix + randomString(10)
-		createNamespace(ns)
-
-		yml := fmt.Sprintf(`kind: PersistentVolumeClaim
+	It("should not annotate pod with topolvm.cybozu.com/capacity", func() {
+		yml := `
+kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: local-pvc1
-  namespace: %s
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
-  storageClassName: topolvm-provisioner
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: testhttpd
-  namespace: %s
-  labels:
-    app.kubernetes.io/name: testhttpd
-spec:
-  containers:
-    - name: testhttpd
-      image: quay.io/cybozu/testhttpd:0
-      volumeMounts:
-        - mountPath: /test1
-          name: my-volume1
-      resources:
-        limits:
-          topolvm.cybozu.com/capacity: "1024"
-        requests:
-          topolvm.cybozu.com/capacity: "1024"
-  volumes:
-    - name: my-volume1
-      persistentVolumeClaim:
-        claimName: local-pvc1
-`, ns, ns)
-		stdout, stderr, err := kubectlWithInput([]byte(yml), "apply", "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-
-		Eventually(func() error {
-			result, stderr, err := kubectl("get", "-n", ns, "pods/testhttpd", "-o=json")
-			if err != nil {
-				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
-			}
-
-			var pod corev1.Pod
-			err = json.Unmarshal(result, &pod)
-			if err != nil {
-				return err
-			}
-
-			resources := pod.Spec.Containers[0].Resources
-			v, ok := resources.Limits[topolvm.CapacityResource]
-			if !ok {
-				return errors.New("resources.Limits is deleted")
-			}
-			if v.Value() != 1<<30 {
-				return fmt.Errorf("wrong limit value: actual=%d, expect=%d", v.Value(), 1<<30)
-			}
-
-			v, ok = resources.Requests[topolvm.CapacityResource]
-			if !ok {
-				return errors.New("resources.Requests is deleted")
-			}
-			if v.Value() != 1<<30 {
-				return fmt.Errorf("wrong request value: actual=%d, expect=%d", v.Value(), 1<<30)
-			}
-
-			return nil
-		}).Should(Succeed())
-	})
-
-	It("should annotate pod with topolvm.cybozu.com/capacity", func() {
-		ns := testNamespacePrefix + randomString(10)
-		createNamespace(ns)
-
-		yml := fmt.Sprintf(`kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: local-pvc1
-  namespace: %s
+  name: local-pvc3
 spec:
   accessModes:
   - ReadWriteOnce
@@ -233,10 +156,9 @@ spec:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: testhttpd
-  namespace: %s
+  name: testhttpd2
   labels:
-    app.kubernetes.io/name: testhttpd
+    app.kubernetes.io/name: testhttpd2
 spec:
   containers:
     - name: testhttpd
@@ -247,12 +169,13 @@ spec:
   volumes:
     - name: my-volume1
       persistentVolumeClaim:
-        claimName: local-pvc1`, ns, ns)
-		stdout, stderr, err := kubectlWithInput([]byte(yml), "apply", "-f", "-")
+        claimName: local-pvc3
+`
+		stdout, stderr, err := kubectlWithInput([]byte(yml), "-n", nsHookTest, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		Eventually(func() error {
-			result, stderr, err := kubectl("get", "-n", ns, "pods/testhttpd", "-o=json")
+			result, stderr, err := kubectl("get", "-n", nsHookTest, "pods/testhttpd2", "-o=json")
 			if err != nil {
 				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
 			}
@@ -278,43 +201,49 @@ spec:
 		}).Should(Succeed())
 	})
 
-	It("should replace pod annotation of topolvm.cybozu.com/capacity", func() {
-		ns := testNamespacePrefix + randomString(10)
-		createNamespace(ns)
-
-		yml := fmt.Sprintf(`kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: local-pvc1
-  namespace: %s
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
-  storageClassName: topolvm-provisioner
----
+	It("should not add resource for bound PVC", func() {
+		yml := `
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: local-pvc2
-  namespace: %s
+  name: bound-pvc
 spec:
   accessModes:
   - ReadWriteOnce
   resources:
     requests:
       storage: 1Gi
-  storageClassName: topolvm-no-provisioner
----
+  storageClassName: topolvm-provisioner-immediate
+`
+		_, stderr, err := kubectlWithInput([]byte(yml), "-n", nsHookTest, "apply", "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stderr=%s", string(stderr))
+
+		Eventually(func() error {
+			stdout, _, err := kubectl("-n", nsHookTest, "get", "pvc/bound-pvc", "-o", "json")
+			if err != nil {
+				return err
+			}
+
+			var pvc corev1.PersistentVolumeClaim
+			err = json.Unmarshal(stdout, &pvc)
+			if err != nil {
+				return err
+			}
+
+			if len(pvc.Spec.VolumeName) == 0 {
+				return errors.New("pvc is not bound")
+			}
+			fmt.Println("pvc bound with pv " + pvc.Spec.VolumeName)
+			return nil
+		}).Should(Succeed())
+
+		yml = `
 apiVersion: v1
 kind: Pod
 metadata:
-  name: testhttpd
-  namespace: %s
+  name: testhttpd3
   labels:
-    app.kubernetes.io/name: testhttpd
+    app.kubernetes.io/name: testhttpd3
 spec:
   containers:
     - name: testhttpd
@@ -322,54 +251,35 @@ spec:
       volumeMounts:
         - mountPath: /test1
           name: my-volume1
-        - mountPath: /test2
-          name: my-volume2
-      resources:
-        limits:
-          topolvm.cybozu.com/capacity: "2024"
-        requests:
-          topolvm.cybozu.com/capacity: "2024"
   volumes:
     - name: my-volume1
       persistentVolumeClaim:
-        claimName: local-pvc1
-    - name: my-volume2
-      persistentVolumeClaim:
-        claimName: local-pvc2
-`, ns, ns, ns)
-		stdout, stderr, err := kubectlWithInput([]byte(yml), "apply", "-f", "-")
+        claimName: bound-pvc
+`
+		stdout, stderr, err := kubectlWithInput([]byte(yml), "-n", nsHookTest, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
+		var pod *corev1.Pod
 		Eventually(func() error {
-			result, stderr, err := kubectl("get", "-n", ns, "pods/testhttpd", "-o=json")
+			stdout, stderr, err := kubectl("get", "-n", nsHookTest, "pods/testhttpd3", "-o=json")
 			if err != nil {
-				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
+				return fmt.Errorf("%v: stderr=%s", err, stderr)
 			}
 
-			var pod corev1.Pod
-			err = json.Unmarshal(result, &pod)
+			pod = new(corev1.Pod)
+			err = json.Unmarshal(stdout, pod)
 			if err != nil {
 				return err
 			}
 
-			resources := pod.Spec.Containers[0].Resources
-			v, ok := resources.Limits[topolvm.CapacityResource]
-			if !ok {
-				return errors.New("resources.Limits is deleted")
+			if len(pod.Spec.NodeName) == 0 {
+				return errors.New("pod is not scheduled")
 			}
-			if v.Value() != 1<<30 {
-				return fmt.Errorf("wrong limit value: actual=%d, expect=%d", v.Value(), 1<<30)
-			}
-
-			v, ok = resources.Requests[topolvm.CapacityResource]
-			if !ok {
-				return errors.New("resources.Requests is deleted")
-			}
-			if v.Value() != 1<<30 {
-				return fmt.Errorf("wrong request value: actual=%d, expect=%d", v.Value(), 1<<30)
-			}
-
 			return nil
 		}).Should(Succeed())
+
+		resources := pod.Spec.Containers[0].Resources
+		Expect(resources.Limits).ShouldNot(HaveKey(topolvm.CapacityResource))
+		Expect(resources.Requests).ShouldNot(HaveKey(topolvm.CapacityResource))
 	})
-})
+}

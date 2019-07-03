@@ -50,11 +50,10 @@ shutdown-kind:
 
 start-lvmd:
 	mkdir -p build
-	CGO_ENABLED=0 go build -o build/lvmd ../pkg/lvmd
-	if [ "$$($(SUDO) losetup -j build/backing_store)" ]; then $(SUDO) vgremove myvg; $(SUDO) pvremove $$($(SUDO) losetup -j build/backing_store | cut -d: -f1); $(SUDO) losetup -d $$($(SUDO) losetup -j build/backing_store | cut -d: -f1); fi
+	go build -o build/lvmd ../pkg/lvmd
+	if [ -f build/backing_store ]; then $(MAKE) stop-lvmd; fi
 	truncate --size=20G build/backing_store
 	$(SUDO) losetup -f build/backing_store
-	$(SUDO) pvcreate -fy $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
 	$(SUDO) vgcreate -y myvg $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
 	# For csi_node_test.go
 	$(SUDO) lvcreate -y -n csi-node-test-block -L 1G myvg
@@ -63,12 +62,13 @@ start-lvmd:
 	$(SUDO) systemd-run --unit=lvmd.service $(shell pwd)/build/lvmd --volume-group=myvg --listen=/tmp/topolvm/lvmd.sock
 
 stop-lvmd:
-	-$(SUDO) systemctl stop lvmd.service
-	-$(SUDO) vgremove -ffy myvg
-	$(SUDO) pvremove -ffy $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
-	$(SUDO) losetup -d $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
-	$(SUDO) dmsetup remove_all
-	rm build/backing_store
+	if systemctl is-active -q lvmd.service; then $(SUDO) systemctl stop lvmd.service; fi
+	if [ -f build/backing_store ]; then \
+		$(SUDO) vgremove -ffy myvg; \
+		$(SUDO) pvremove -ffy $$($(SUDO) losetup -j build/backing_store | cut -d: -f1); \
+		$(SUDO) losetup -d $$($(SUDO) losetup -j build/backing_store | cut -d: -f1); \
+		rm -f build/backing_store; \
+	fi
 
 test: topolvm.img hook-secret.yml
 	$(MAKE) shutdown-kind
@@ -76,16 +76,10 @@ test: topolvm.img hook-secret.yml
 	$(KUBECTL) apply -f namespace.yml
 	$(MAKE) secret
 	kind load image-archive topolvm.img
-	$(KUBECTL) apply -f lvmetrics.yml -f scheduler.yml -f hook-secret.yml -f hook.yml -f scandpv.yml
+	$(KUBECTL) apply -f lvmetrics.yml -f scheduler.yml -f hook-secret.yml -f hook.yml -f provisioner.yml
 	$(KUBECTL) apply -f ../topolvm-node/config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml
 	$(KUBECTL) apply -f csi.yml
 	$(SUDO) env PATH=$(PATH) GOPATH=$(GOPATH) GO111MODULE=on GOFLAGS=$(GOFLAGS) KUBECONFIG=$(KUBECONFIG) $(GINKGO) --failFast -v .
-	$(SUDO) $$(which csi-sanity) -ginkgo.v -test.v \
-		-csi.endpoint /tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/csi-topolvm.sock \
-		-csi.controllerendpoint /tmp/topolvm/controller/plugins/topolvm.cybozu.com/controller/csi-topolvm.sock \
-		-csi.mountdir /tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/mountdir \
-		-csi.stagingdir /tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/stagingdir \
-		-csi.testvolumesize 1073741824
 
 $(CA_FILES): ./certs/csr.json
 	cfssl gencert -initca certs/csr.json | cfssljson -bare certs/ca
@@ -106,9 +100,7 @@ setup: $(KUBECTL)
 	go install github.com/onsi/ginkgo/ginkgo
 	cd /tmp; env GOFLAGS= GO111MODULE=on go get sigs.k8s.io/kind@v0.4.0
 	$(SUDO) apt-get update
-	$(SUDO) apt-get install -y lvm2 xfsprogs
-	GO111MODULE=off go get -d github.com/kubernetes-csi/csi-test/cmd/csi-sanity
-	(cd $(GOPATH)/src/github.com/kubernetes-csi/csi-test/cmd/csi-sanity; make install)
+	$(SUDO) apt-get install -y lvm2 xfsprogs btrfs-progs
 
 clean: stop-lvmd
 	rm -rf $(CA_FILES) $(SERVER_CERT_FILES) hook-secret.yml topolvm.img build/

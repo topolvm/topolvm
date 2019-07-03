@@ -64,53 +64,57 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	}
 
 	if lv.ObjectMeta.DeletionTimestamp.IsZero() {
-		if lv.Status.Code != codes.OK {
-			return ctrl.Result{}, nil
+		lv = &topolvmv1.LogicalVolume{}
+		lv.Namespace = req.NamespacedName.Namespace
+		lv.Name = req.NamespacedName.Name
+		_, err := ctrl.CreateOrUpdate(ctx, r.k8sClient, lv, func() error {
+			if !containsString(lv.Finalizers, finalizerName) {
+				lv.Finalizers = append(lv.Finalizers, finalizerName)
+			}
+			return nil
+		})
+		if err != nil {
+			log.Error(err, "failed to set finalizer", "name", lv.Name)
+			return ctrl.Result{}, err
 		}
 
 		if lv.Status.VolumeID == "" {
-			_, err := ctrl.CreateOrUpdate(ctx, r.k8sClient, lv, func() error {
-				if !containsString(lv.Finalizers, finalizerName) {
-					lv.Finalizers = append(lv.Finalizers, finalizerName)
-				}
-				return nil
-			})
-			if err != nil {
-				log.Error(err, "failed to set finalizer", "name", lv.Name)
-				return ctrl.Result{}, err
-			}
 			err = r.createLV(ctx, log, lv, vgService, lvService)
 			if err != nil {
 				log.Error(err, "failed to create LV", "name", lv.Name)
 				return ctrl.Result{}, err
 			}
-			return ctrl.Result{}, nil
 		}
+		return ctrl.Result{}, nil
 		//
 		// TODO: handle requests to expand volume, here
 		//
-	} else {
-		if !containsString(lv.Finalizers, finalizerName) {
-			// Our finalizer has finished, so the reconciler can do nothing.
-			return ctrl.Result{}, nil
-		}
-		log.Info("start finalizing LogicalVolume", "name", lv.Name)
-		err := r.removeLVIfExists(ctx, log, lv, vgService, lvService)
-		if err != nil {
-			log.Error(err, "failed to remove LV", "name", lv.Name)
-			return ctrl.Result{}, err
-		}
-		_, err = ctrl.CreateOrUpdate(ctx, r.k8sClient, lv, func() error {
-			lv.Finalizers = removeString(lv.Finalizers, finalizerName)
-			return nil
-		})
-		if err != nil {
-			log.Error(err, "failed to remove finalizers from LogicalVolume", "name", lv.Name)
-			return ctrl.Result{}, err
-		}
+	}
+
+	// finalization
+	if !containsString(lv.Finalizers, finalizerName) {
+		// Our finalizer has finished, so the reconciler can do nothing.
 		return ctrl.Result{}, nil
 	}
 
+	log.Info("start finalizing LogicalVolume", "name", lv.Name)
+	err := r.removeLVIfExists(ctx, log, lv, vgService, lvService)
+	if err != nil {
+		log.Error(err, "failed to remove LV", "name", lv.Name)
+		return ctrl.Result{}, err
+	}
+
+	lv = &topolvmv1.LogicalVolume{}
+	lv.Namespace = req.NamespacedName.Namespace
+	lv.Name = req.NamespacedName.Name
+	_, err = ctrl.CreateOrUpdate(ctx, r.k8sClient, lv, func() error {
+		lv.Finalizers = removeString(lv.Finalizers, finalizerName)
+		return nil
+	})
+	if err != nil {
+		log.Error(err, "failed to remove finalizers from LogicalVolume", "name", lv.Name)
+		return ctrl.Result{}, err
+	}
 	return ctrl.Result{}, nil
 }
 
@@ -153,7 +157,7 @@ func (r *LogicalVolumeReconciler) removeLVIfExists(ctx context.Context, log logr
 	}
 
 	for _, v := range respList.Volumes {
-		if v.Name == lv.Name {
+		if v.Name == string(lv.UID) {
 			_, err := lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: string(lv.UID)})
 			if err != nil {
 				log.Error(err, "failed to remove LV", "name", lv.Name, "uid", lv.UID)

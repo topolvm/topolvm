@@ -12,6 +12,7 @@ replace (
 require (
 	github.com/GeertJohan/go.rice v1.0.0 // indirect
 	github.com/cloudflare/cfssl v0.0.0-20190510060611-9c027c93ba9e
+	github.com/container-storage-interface/spec v1.1.0 // indirect
 	github.com/cybozu-go/log v1.5.0
 	github.com/cybozu-go/well v1.8.1
 	github.com/evanphx/json-patch v4.2.0+incompatible
@@ -26,6 +27,7 @@ require (
 	github.com/jmoiron/sqlx v1.2.0 // indirect
 	github.com/json-iterator/go v1.1.6 // indirect
 	github.com/kisielk/sqlstruct v0.0.0-20150923205031-648daed35d49 // indirect
+	github.com/kubernetes-csi/csi-test v2.0.1+incompatible
 	github.com/lib/pq v1.1.1 // indirect
 	github.com/mattn/go-sqlite3 v1.10.0 // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect

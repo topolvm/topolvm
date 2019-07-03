@@ -53,6 +53,7 @@ var _ = Describe("Test for lvmetrics", func() {
 			"--noheadings",
 			"--units=b",
 			"--nosuffix",
+			"myvg",
 		)
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", targetBytes, stderr)
 		stdout, stderr, err := kubectl("get", "nodes", "-o=json")

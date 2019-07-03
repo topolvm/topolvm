@@ -14,6 +14,13 @@ parameters:
   "csi.storage.k8s.io/fstype": "xfs"
 volumeBindingMode: WaitForFirstConsumer
 ---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: topolvm-provisioner-immediate
+provisioner: topolvm.cybozu.com
+volumeBindingMode: Immediate
+---
 apiVersion: v1
 kind: PersistentVolume
 metadata:
