@@ -101,7 +101,6 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	log.Info("start finalizing LogicalVolume", "name", lv.Name)
 	err := r.removeLVIfExists(ctx, log, lv, vgService, lvService)
 	if err != nil {
-		log.Error(err, "failed to remove LV", "name", lv.Name)
 		return ctrl.Result{}, err
 	}
 
