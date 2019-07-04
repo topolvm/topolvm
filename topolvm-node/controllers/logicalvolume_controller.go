@@ -70,23 +70,18 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 			return ctrl.Result{}, nil
 		}
 
-		lv = &topolvmv1.LogicalVolume{}
-		lv.Namespace = req.NamespacedName.Namespace
-		lv.Name = req.NamespacedName.Name
-		_, err := ctrl.CreateOrUpdate(ctx, r.k8sClient, lv, func() error {
-			if !containsString(lv.Finalizers, finalizerName) {
-				lv.Finalizers = append(lv.Finalizers, finalizerName)
+		if !containsString(lv.Finalizers, finalizerName) {
+			lv2 := lv.DeepCopy()
+			lv2.Finalizers = append(lv2.Finalizers, finalizerName)
+			patch := client.MergeFrom(lv)
+			if err := r.k8sClient.Patch(ctx, lv2, patch); err != nil {
+				log.Error(err, "failed to add finalizer", "name", lv.Name)
+				return ctrl.Result{Requeue: true}, err
 			}
-			return nil
-		})
-		if err != nil {
-			log.Error(err, "failed to set finalizer", "name", lv.Name)
-			return ctrl.Result{}, err
 		}
 
 		if lv.Status.VolumeID == "" {
-			err = r.createLV(ctx, log, lv, vgService, lvService)
-			if err != nil {
+			if err := r.createLV(ctx, log, lv, vgService, lvService); err != nil {
 				log.Error(err, "failed to create LV", "name", lv.Name)
 				return ctrl.Result{}, err
 			}
@@ -110,16 +105,12 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		return ctrl.Result{}, err
 	}
 
-	lv = &topolvmv1.LogicalVolume{}
-	lv.Namespace = req.NamespacedName.Namespace
-	lv.Name = req.NamespacedName.Name
-	_, err = ctrl.CreateOrUpdate(ctx, r.k8sClient, lv, func() error {
-		lv.Finalizers = removeString(lv.Finalizers, finalizerName)
-		return nil
-	})
-	if err != nil {
-		log.Error(err, "failed to remove finalizers from LogicalVolume", "name", lv.Name)
-		return ctrl.Result{}, err
+	lv2 := lv.DeepCopy()
+	lv2.Finalizers = removeString(lv2.Finalizers, finalizerName)
+	patch := client.MergeFrom(lv)
+	if err := r.k8sClient.Patch(ctx, lv2, patch); err != nil {
+		log.Error(err, "failed to remove finalizer", "name", lv.Name)
+		return ctrl.Result{Requeue: true}, err
 	}
 	return ctrl.Result{}, nil
 }
