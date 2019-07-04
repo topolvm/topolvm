@@ -57,7 +57,7 @@ func (c cleanup) unpublishVolumes(nc csi.NodeClient) {
 	c.volumes = nil
 }
 
-var _ = Describe("Additional CSI sanity test", func() {
+var _ = FDescribe("Additional CSI sanity test", func() {
 	var (
 		cl   cleanup
 		nc   csi.NodeClient
