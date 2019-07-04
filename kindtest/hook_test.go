@@ -13,7 +13,7 @@ import (
 
 const nsHookTest = "hook-test"
 
-var _ = FContext("in hook-test namespace", func() {
+var _ = Context("in hook-test namespace", func() {
 	BeforeEach(func() {
 		createNamespace(nsHookTest)
 	})

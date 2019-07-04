@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/cybozu-go/topolvm/csi"
+	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/kubernetes-csi/csi-test/pkg/sanity"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
