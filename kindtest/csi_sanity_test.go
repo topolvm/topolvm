@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-var _ = Describe("CSI sanity test", func() {
+var _ = FDescribe("CSI sanity test", func() {
 	sanity.GinkgoTest(&sanity.Config{
 		Address:           "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/csi-topolvm.sock",
 		ControllerAddress: "/tmp/topolvm/controller/plugins/topolvm.cybozu.com/controller/csi-topolvm.sock",
@@ -57,7 +57,7 @@ func (c cleanup) unpublishVolumes(nc csi.NodeClient) {
 	c.volumes = nil
 }
 
-var _ = FDescribe("Additional CSI sanity test", func() {
+var _ = Describe("Additional CSI sanity test", func() {
 	var (
 		cl   cleanup
 		nc   csi.NodeClient
