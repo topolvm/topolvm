@@ -15,14 +15,9 @@ import (
 )
 
 func TestMtest(t *testing.T) {
-	circleci := os.Getenv("CIRCLECI") == "true"
-	if circleci {
-		executorType := os.Getenv("CIRCLECI_EXECUTOR")
-		if executorType != "machine" {
-			t.Skip("run on machine executor")
-		}
+	if os.Getenv("KINDTEST") == "" {
+		t.Skip("Run under kindtest/")
 	}
-
 	rand.Seed(time.Now().UnixNano())
 
 	RegisterFailHandler(Fail)

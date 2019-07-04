@@ -79,7 +79,14 @@ test: topolvm.img hook-secret.yml
 	$(KUBECTL) apply -f lvmetrics.yml -f scheduler.yml -f hook-secret.yml -f hook.yml -f provisioner.yml
 	$(KUBECTL) apply -f ../topolvm-node/config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml
 	$(KUBECTL) apply -f csi.yml
-	$(SUDO) env PATH=$(PATH) GOPATH=$(GOPATH) GO111MODULE=on GOFLAGS=$(GOFLAGS) KUBECONFIG=$(KUBECONFIG) $(GINKGO) --failFast -v .
+	$(SUDO) env \
+		PATH=$(PATH) \
+		GOPATH=$(GOPATH) \
+		GO111MODULE=on \
+		GOFLAGS=$(GOFLAGS) \
+		KUBECONFIG=$(KUBECONFIG) \
+		KINDTEST=1 \
+		$(GINKGO) --failFast -v .
 
 $(CA_FILES): ./certs/csr.json
 	cfssl gencert -initca certs/csr.json | cfssljson -bare certs/ca

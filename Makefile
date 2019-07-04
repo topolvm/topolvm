@@ -99,6 +99,7 @@ clean:
 	rm -rf build/
 
 setup:
+	make -f topolvm-node/Makefile setup SUDO=$(SUDO)
 	$(SUDO) apt-get update
 	$(SUDO) apt-get -y install --no-install-recommends $(PACKAGES)
 

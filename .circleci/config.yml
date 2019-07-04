@@ -6,7 +6,6 @@ jobs:
     working_directory: /work
     steps:
       - checkout
-      - run: make -f topolvm-node/Makefile SUDO="" setup
       - run: make setup SUDO=""
       - run: make test
       - run: make build
