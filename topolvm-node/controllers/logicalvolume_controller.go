@@ -2,8 +2,6 @@ package controllers
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 
 	"github.com/cybozu-go/topolvm/lvmd/proto"
 	topolvmv1 "github.com/cybozu-go/topolvm/topolvm-node/api/v1"
@@ -12,7 +10,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -128,24 +125,16 @@ func (r *LogicalVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *LogicalVolumeReconciler) updateStatusWithError(ctx context.Context, logger logr.Logger, lv *topolvmv1.LogicalVolume, code codes.Code, message string) error {
-	lv.Status.Code = code
-	lv.Status.Message = message
-	patch, err := json.Marshal(map[string]interface{}{
-		"status": map[string]interface{}{
-			"code":     code,
-			"message":  message,
-			"volumeID": lv.Status.VolumeID,
-		},
-	})
-	if err != nil {
+	lv2 := lv.DeepCopy()
+	lv2.Status.Code = code
+	lv2.Status.Message = message
+	patch := client.MergeFrom(lv)
+
+	if err := r.k8sClient.Status().Patch(ctx, lv2, patch); err != nil {
+		logger.Error(err, "unable to update LogicalVolume status")
 		return err
 	}
-
-	err = r.k8sClient.Status().Patch(ctx, lv, client.ConstantPatch(types.MergePatchType, patch))
-	if err != nil {
-		logger.Error(err, "unable to update LogicalVolume status")
-	}
-	return err
+	return nil
 }
 
 func (r *LogicalVolumeReconciler) removeLVIfExists(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume, vgService proto.VGServiceClient, lvService proto.LVServiceClient) error {
@@ -181,21 +170,12 @@ func (r *LogicalVolumeReconciler) updateVolumeIfExists(ctx context.Context, log 
 	}
 
 	for _, v := range respList.Volumes {
-		if v.Name == lv.Name {
-			lv.Status.VolumeID = lv.Name
-			patch, err := json.Marshal(map[string]interface{}{
-				"status": map[string]interface{}{
-					"volumeID": lv.Name,
-					"code":     lv.Status.Code,
-					"message":  lv.Status.Message,
-				},
-			})
-			if err != nil {
-				return false, err
-			}
-			err = r.k8sClient.Status().Patch(ctx, lv, client.ConstantPatch(types.MergePatchType, patch))
-			if err != nil {
-				log.Error(err, "failed to add VolumeID", "name", lv.Name)
+		if v.Name == string(lv.UID) {
+			lv2 := lv.DeepCopy()
+			lv2.Status.VolumeID = v.Name
+			patch := client.MergeFrom(lv)
+			if err := r.k8sClient.Status().Patch(ctx, lv2, patch); err != nil {
+				log.Error(err, "failed to update VolumeID in status", "name", lv.Name)
 				return true, err
 			}
 			return true, nil
@@ -207,19 +187,14 @@ func (r *LogicalVolumeReconciler) updateVolumeIfExists(ctx context.Context, log 
 func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume,
 	vgService proto.VGServiceClient, lvService proto.LVServiceClient) error {
 
-	reqBytes, ok := lv.Spec.Size.AsInt64()
-	if !ok {
-		log.Error(errors.New("not ok"), "failed to interpret spec.size as int64")
-		err := r.updateStatusWithError(ctx, log, lv, codes.Internal, "failed to interpret spec.size as int64")
-		return err
-	}
+	reqBytes := lv.Spec.Size.Value()
 
-	// This function's logic is not atomic, so it is possible that LV is created but LogicalVolume.status is not updated.
-	// We check existence the LV to ensure idempotence of createLV.
+	// In case the controller crashed just after LVM LV creation, LV may already exist.
 	found, err := r.updateVolumeIfExists(ctx, log, lv, vgService)
 	if err != nil {
 		return err
-	} else if found {
+	}
+	if found {
 		log.Info("set volumeID to existing LogicalVolume", "name", lv.Name, "uid", lv.UID, "status.volumeID", lv.Status.VolumeID)
 		return nil
 	}
@@ -237,25 +212,15 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 		return err
 	}
 
-	lv.Status.VolumeID = resp.Volume.Name
-	patch, err := json.Marshal(map[string]interface{}{
-		"status": map[string]interface{}{
-			"volumeID": resp.Volume.Name,
-			"code":     lv.Status.Code,
-			"message":  lv.Status.Message,
-		},
-	})
-	if err != nil {
-		return err
-	}
-
-	err = r.k8sClient.Status().Patch(ctx, lv, client.ConstantPatch(types.MergePatchType, patch))
-	if err != nil {
+	lv2 := lv.DeepCopy()
+	lv2.Status.VolumeID = resp.Volume.Name
+	patch := client.MergeFrom(lv)
+	if err := r.k8sClient.Status().Patch(ctx, lv2, patch); err != nil {
 		log.Error(err, "failed to update VolumeID", "name", lv.Name, "uid", lv.UID)
 		return err
 	}
 
-	log.Info("created new LV", "name", lv.Name, "uid", lv.UID, "status.volumeID", lv.Status.VolumeID)
+	log.Info("created new LV", "name", lv2.Name, "uid", lv2.UID, "status.volumeID", lv2.Status.VolumeID)
 	return nil
 }
 

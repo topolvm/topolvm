@@ -21,9 +21,10 @@ type LogicalVolumeSpec struct {
 type LogicalVolumeStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	VolumeID string     `json:"volumeID"`
-	Code     codes.Code `json:"code"`
-	Message  string     `json:"message"`
+	VolumeID string            `json:"volumeID,omitempty""`
+	Used     resource.Quantity `json:"used,omitempty""`
+	Code     codes.Code        `json:"code,omitempty""`
+	Message  string            `json:"message,omitempty""`
 }
 
 // +kubebuilder:object:root=true
