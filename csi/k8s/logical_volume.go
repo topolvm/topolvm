@@ -329,15 +329,7 @@ func (s *logicalVolumeService) GetCapacity(ctx context.Context, requestNodeNumbe
 	capacity := int64(0)
 	if len(requestNodeNumber) == 0 {
 		for _, node := range nl.Items {
-			c, err := s.getNodeCapacity(node)
-			if err != nil {
-				log.Warn("failed to parse annotation", map[string]interface{}{
-					"node":      node.Name,
-					log.FnError: err,
-				})
-				continue
-			}
-			capacity += c
+			capacity += s.getNodeCapacity(node)
 		}
 		return capacity, nil
 	}
@@ -364,16 +356,9 @@ func (s *logicalVolumeService) GetMaxCapacity(ctx context.Context) (string, int6
 		return "", 0, err
 	}
 	var nodeName string
-	maxCapacity := int64(0)
+	var maxCapacity int64
 	for _, node := range nl.Items {
-		c, err := s.getNodeCapacity(node)
-		if err != nil {
-			log.Warn("failed to parse annotation", map[string]interface{}{
-				"node":      node.Name,
-				log.FnError: err,
-			})
-			continue
-		}
+		c := s.getNodeCapacity(node)
 
 		if maxCapacity < c {
 			maxCapacity = c
@@ -383,10 +368,11 @@ func (s *logicalVolumeService) GetMaxCapacity(ctx context.Context) (string, int6
 	return nodeName, maxCapacity, nil
 }
 
-func (s *logicalVolumeService) getNodeCapacity(node corev1.Node) (int64, error) {
+func (s *logicalVolumeService) getNodeCapacity(node corev1.Node) int64 {
 	c, ok := node.Annotations[topolvm.CapacityKey]
 	if !ok {
-		return 0, fmt.Errorf("node %s does not have topolvm.cybozu.com/capacity", node.Name)
+		return 0
 	}
-	return strconv.ParseInt(c, 10, 64)
+	val, _ := strconv.ParseInt(c, 10, 64)
+	return val
 }

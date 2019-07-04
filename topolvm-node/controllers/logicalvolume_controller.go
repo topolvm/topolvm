@@ -64,6 +64,12 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	}
 
 	if lv.ObjectMeta.DeletionTimestamp.IsZero() {
+		// When lv.Status.Code is not codes.OK (== 0), CreateLV has already failed.
+		// LogicalVolume CRD will be deleted soon by the controller.
+		if lv.Status.Code != codes.OK {
+			return ctrl.Result{}, nil
+		}
+
 		lv = &topolvmv1.LogicalVolume{}
 		lv.Namespace = req.NamespacedName.Namespace
 		lv.Name = req.NamespacedName.Name
