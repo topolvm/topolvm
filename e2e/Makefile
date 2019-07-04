@@ -108,7 +108,12 @@ setup: $(KUBECTL)
 	go install github.com/onsi/ginkgo/ginkgo
 	cd /tmp; env GOFLAGS= GO111MODULE=on go get sigs.k8s.io/kind@v0.4.0
 	$(SUDO) apt-get update
-	$(SUDO) apt-get install -y lvm2 xfsprogs btrfs-progs
+	$(SUDO) apt-get install -y lvm2 xfsprogs
+	if apt-cache show btrfs-progs; then \
+		$(SUDO) apt-get install -y btrfs-progs; \
+	else \
+		$(SUDO) apt-get install -y btrfs-tools; \
+	fi
 
 clean: stop-lvmd
 	rm -rf $(CA_FILES) $(SERVER_CERT_FILES) hook-secret.yml topolvm.img build/

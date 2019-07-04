@@ -95,7 +95,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 		if nodeName == "" {
 			return nil, status.Error(codes.Internal, "can not find any node")
 		}
-		if capacity < (requestGb<<30) {
+		if capacity < (requestGb << 30) {
 			return nil, status.Errorf(codes.Internal, "can not find enough volume space %d", capacity)
 		}
 		node = nodeName
