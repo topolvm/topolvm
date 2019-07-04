@@ -35,7 +35,7 @@ func (s *vgService) GetLVList(context.Context, *proto.Empty) (*proto.GetLVListRe
 		log.Error("failed to list volumes", map[string]interface{}{
 			log.FnError: err,
 		})
-		return nil, status.Errorf(codes.Internal, err.Error())
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	vols := make([]*proto.LogicalVolume, len(lvs))
@@ -56,7 +56,7 @@ func (s *vgService) GetFreeBytes(context.Context, *proto.Empty) (*proto.GetFreeB
 		log.Error("failed to free VG", map[string]interface{}{
 			log.FnError: err,
 		})
-		return nil, status.Errorf(codes.Internal, err.Error())
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return &proto.GetFreeBytesResponse{
@@ -67,7 +67,7 @@ func (s *vgService) GetFreeBytes(context.Context, *proto.Empty) (*proto.GetFreeB
 func (s *vgService) send(server proto.VGService_WatchServer) error {
 	vgFree, err := s.vg.Free()
 	if err != nil {
-		return status.Errorf(codes.Internal, err.Error())
+		return status.Error(codes.Internal, err.Error())
 	}
 	return server.Send(&proto.WatchResponse{
 		FreeBytes: vgFree,

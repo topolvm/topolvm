@@ -154,8 +154,9 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 		if err != nil {
 			return "", err
 		}
-		log.Info("create LogicalVolume", map[string]interface{}{
-			"name": name,
+		log.Info("created LogicalVolume CRD", map[string]interface{}{
+			"name":      name,
+			"namespace": s.namespace,
 		})
 	} else {
 		// LV with same name was found; check compatibility

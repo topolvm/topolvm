@@ -34,7 +34,7 @@ func (s lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*pro
 		log.Error("failed to free VG", map[string]interface{}{
 			log.FnError: err,
 		})
-		return nil, status.Errorf(codes.Internal, err.Error())
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	if free < requested {
@@ -51,7 +51,7 @@ func (s lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*pro
 			"name":      req.GetName(),
 			"requested": requested,
 		})
-		return nil, status.Errorf(codes.Internal, err.Error())
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 	s.notify()
 
@@ -76,7 +76,7 @@ func (s lvService) RemoveLV(_ context.Context, req *proto.RemoveLVRequest) (*pro
 		log.Error("failed to list volumes", map[string]interface{}{
 			log.FnError: err,
 		})
-		return nil, status.Errorf(codes.Internal, err.Error())
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	for _, lv := range lvs {
@@ -90,7 +90,7 @@ func (s lvService) RemoveLV(_ context.Context, req *proto.RemoveLVRequest) (*pro
 				log.FnError: err,
 				"name":      lv.Name(),
 			})
-			return nil, status.Errorf(codes.Internal, err.Error())
+			return nil, status.Error(codes.Internal, err.Error())
 		}
 		s.notify()
 
@@ -117,7 +117,7 @@ func (s lvService) ResizeLV(_ context.Context, req *proto.ResizeLVRequest) (*pro
 			log.FnError: err,
 			"name":      req.GetName(),
 		})
-		return nil, status.Errorf(codes.Internal, err.Error())
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	requested := req.GetSizeGb() << 30
@@ -130,7 +130,7 @@ func (s lvService) ResizeLV(_ context.Context, req *proto.ResizeLVRequest) (*pro
 			"requested": requested,
 			"current":   current,
 		})
-		return nil, status.Errorf(codes.OutOfRange, "shrinking volume size is not allowed")
+		return nil, status.Error(codes.OutOfRange, "shrinking volume size is not allowed")
 	}
 
 	free, err := s.vg.Free()
@@ -139,7 +139,7 @@ func (s lvService) ResizeLV(_ context.Context, req *proto.ResizeLVRequest) (*pro
 			log.FnError: err,
 			"name":      req.GetName(),
 		})
-		return nil, status.Errorf(codes.Internal, err.Error())
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 	if free < (requested - current) {
 		log.Error("no enough space left on VG", map[string]interface{}{
@@ -161,7 +161,7 @@ func (s lvService) ResizeLV(_ context.Context, req *proto.ResizeLVRequest) (*pro
 			"current":   current,
 			"free":      free,
 		})
-		return nil, status.Errorf(codes.Internal, err.Error())
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 	s.notify()
 
