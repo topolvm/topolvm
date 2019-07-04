@@ -13,7 +13,7 @@ import (
 
 const nsHookTest = "hook-test"
 
-var _ = FContext("in hook-test namespace", func() {
+var _ = FDescribe("in hook-test namespace", func() {
 	BeforeEach(func() {
 		createNamespace(nsHookTest)
 	})
@@ -21,11 +21,8 @@ var _ = FContext("in hook-test namespace", func() {
 		kubectl("delete", "namespaces/"+nsHookTest)
 	})
 
-	Describe("Test topolvm-hook", testTopoLVMHook)
-})
-
-func testTopoLVMHook() {
-	It("should have deployed topolvm-hook pod", func() {
+	It("should test hooks", func() {
+		By("waiting hook pod become ready")
 		Eventually(func() error {
 			result, stderr, err := kubectl("get", "-n=topolvm-system", "pods", "--selector=app.kubernetes.io/name=topolvm-hook", "-o=json")
 			if err != nil {
@@ -52,9 +49,8 @@ func testTopoLVMHook() {
 
 			return errors.New("topolvm-hook is not yet ready")
 		}).Should(Succeed())
-	})
 
-	It("should annotate pod with topolvm.cybozu.com/capacity", func() {
+		By("checking pod is annotated with topolvm.cybozu.com/capacity")
 		yml := `
 kind: PersistentVolumeClaim
 apiVersion: v1
@@ -137,10 +133,9 @@ spec:
 
 			return nil
 		}).Should(Succeed())
-	})
 
-	It("should not annotate pod with topolvm.cybozu.com/capacity", func() {
-		yml := `
+		By("checking pod is not annotated with topolvm.cybozu.com/capacity")
+		yml = `
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
@@ -171,7 +166,7 @@ spec:
       persistentVolumeClaim:
         claimName: local-pvc3
 `
-		stdout, stderr, err := kubectlWithInput([]byte(yml), "-n", nsHookTest, "apply", "-f", "-")
+		stdout, stderr, err = kubectlWithInput([]byte(yml), "-n", nsHookTest, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		Eventually(func() error {
@@ -199,10 +194,9 @@ spec:
 
 			return nil
 		}).Should(Succeed())
-	})
 
-	It("should not add resource for bound PVC", func() {
-		yml := `
+		By("checking resource for bound PVC is not added")
+		yml = `
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
@@ -215,7 +209,7 @@ spec:
       storage: 1Gi
   storageClassName: topolvm-provisioner-immediate
 `
-		_, stderr, err := kubectlWithInput([]byte(yml), "-n", nsHookTest, "apply", "-f", "-")
+		_, stderr, err = kubectlWithInput([]byte(yml), "-n", nsHookTest, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stderr=%s", string(stderr))
 
 		Eventually(func() error {
@@ -256,7 +250,7 @@ spec:
       persistentVolumeClaim:
         claimName: bound-pvc
 `
-		stdout, stderr, err := kubectlWithInput([]byte(yml), "-n", nsHookTest, "apply", "-f", "-")
+		stdout, stderr, err = kubectlWithInput([]byte(yml), "-n", nsHookTest, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		var pod *corev1.Pod
@@ -282,4 +276,4 @@ spec:
 		Expect(resources.Limits).ShouldNot(HaveKey(topolvm.CapacityResource))
 		Expect(resources.Requests).ShouldNot(HaveKey(topolvm.CapacityResource))
 	})
-}
+})
