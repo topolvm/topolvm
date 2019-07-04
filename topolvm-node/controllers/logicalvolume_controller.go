@@ -63,6 +63,11 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		return ctrl.Result{}, ignoreNotFound(err)
 	}
 
+	if lv.Spec.NodeName != r.nodeName {
+		log.Info("unfilterd logical volue", "nodeName", lv.Spec.NodeName)
+		return ctrl.Result{}, nil
+	}
+
 	if lv.ObjectMeta.DeletionTimestamp.IsZero() {
 		// When lv.Status.Code is not codes.OK (== 0), CreateLV has already failed.
 		// LogicalVolume CRD will be deleted soon by the controller.
@@ -259,9 +264,7 @@ type logicalVolumeFilter struct {
 	nodeName string
 }
 
-func (f logicalVolumeFilter) Create(e event.CreateEvent) bool {
-	var lv *topolvmv1.LogicalVolume
-	lv = e.Object.(*topolvmv1.LogicalVolume)
+func (f logicalVolumeFilter) filter(lv *topolvmv1.LogicalVolume) bool {
 	if lv == nil {
 		return false
 	}
@@ -271,16 +274,20 @@ func (f logicalVolumeFilter) Create(e event.CreateEvent) bool {
 	return false
 }
 
+func (f logicalVolumeFilter) Create(e event.CreateEvent) bool {
+	return f.filter(e.Object.(*topolvmv1.LogicalVolume))
+}
+
 func (f logicalVolumeFilter) Delete(e event.DeleteEvent) bool {
-	return false
+	return f.filter(e.Object.(*topolvmv1.LogicalVolume))
 }
 
 func (f logicalVolumeFilter) Update(e event.UpdateEvent) bool {
-	return true
+	return f.filter(e.ObjectNew.(*topolvmv1.LogicalVolume))
 }
 
 func (f logicalVolumeFilter) Generic(e event.GenericEvent) bool {
-	return true
+	return f.filter(e.Object.(*topolvmv1.LogicalVolume))
 }
 
 func containsString(slice []string, s string) bool {
