@@ -167,12 +167,26 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 
 ---
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: v1
+kind: Service
 metadata:
   name: csi-topolvm-controller
   namespace: topolvm-system
 spec:
+  selector:
+    app.kubernetes.io/name: csi-topolvm-controller
+  ports:
+    - name: dummy
+      port: 12345
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: csi-topolvm-controller
+  namespace: topolvm-system
+spec:
+  serviceName: csi-topolvm-controller
+  replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: csi-topolvm-controller
@@ -182,6 +196,8 @@ spec:
         app.kubernetes.io/name: csi-topolvm-controller
     spec:
       serviceAccountName: csi-topolvm-controller
+      nodeSelector:
+        kubernetes.io/hostname: kind-worker
       containers:
         - name: controller
           image: topolvm:dev

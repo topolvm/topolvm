@@ -12,10 +12,10 @@ import (
 	"google.golang.org/grpc"
 )
 
-var _ = FDescribe("CSI sanity test", func() {
+var _ = Describe("CSI sanity test", func() {
 	sanity.GinkgoTest(&sanity.Config{
 		Address:           "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/csi-topolvm.sock",
-		ControllerAddress: "/tmp/topolvm/controller/plugins/topolvm.cybozu.com/controller/csi-topolvm.sock",
+		ControllerAddress: "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/controller/csi-topolvm.sock",
 		TargetPath:        "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/mountdir",
 		StagingPath:       "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/stagingdir",
 		TestVolumeSize:    1073741824,

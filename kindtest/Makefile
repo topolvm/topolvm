@@ -62,6 +62,7 @@ start-lvmd:
 	$(SUDO) systemd-run --unit=lvmd.service $(shell pwd)/build/lvmd --volume-group=myvg --listen=/tmp/topolvm/lvmd.sock
 
 stop-lvmd:
+	$(MAKE) shutdown-kind
 	if systemctl is-active -q lvmd.service; then $(SUDO) systemctl stop lvmd.service; fi
 	if [ -f build/backing_store ]; then \
 		$(SUDO) vgremove -ffy myvg; \
