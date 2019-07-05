@@ -35,21 +35,21 @@ nodes:
 - role: worker
   extraMounts:
     - containerPath: /tmp/topolvm
-      hostPath: /tmp/topolvm
+      hostPath: /tmp/topolvm/lvmd1
     - containerPath: /var/lib/kubelet
       hostPath: /tmp/topolvm/worker1
       propagation: Bidirectional
 - role: worker
   extraMounts:
     - containerPath: /tmp/topolvm
-      hostPath: /tmp/topolvm
+      hostPath: /tmp/topolvm/lvmd2
     - containerPath: /var/lib/kubelet
       hostPath: /tmp/topolvm/worker2
       propagation: Bidirectional
 - role: worker
   extraMounts:
     - containerPath: /tmp/topolvm
-      hostPath: /tmp/topolvm
+      hostPath: /tmp/topolvm/lvmd3
     - containerPath: /var/lib/kubelet
       hostPath: /tmp/topolvm/worker3
       propagation: Bidirectional

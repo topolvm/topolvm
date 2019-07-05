@@ -51,25 +51,30 @@ shutdown-kind:
 start-lvmd:
 	mkdir -p build
 	go build -o build/lvmd ../pkg/lvmd
-	if [ -f build/backing_store ]; then $(MAKE) stop-lvmd; fi
-	truncate --size=20G build/backing_store
-	$(SUDO) losetup -f build/backing_store
-	$(SUDO) vgcreate -y myvg $$($(SUDO) losetup -j build/backing_store | cut -d: -f1)
-	# For csi_node_test.go
-	$(SUDO) lvcreate -y -n csi-node-test-block -L 1G myvg
-	$(SUDO) lvcreate -y -n csi-node-test-fs -L 1G myvg
-	mkdir -p /tmp/topolvm
-	$(SUDO) systemd-run --unit=lvmd.service $(shell pwd)/build/lvmd --volume-group=myvg --listen=/tmp/topolvm/lvmd.sock --spare=1
+	if [ -f build/backing_store1 ] || [ -f build/backing_store2 ] || [ -f build/backing_store3 ]; then $(MAKE) stop-lvmd; fi
+
+	for i in $$(seq 3); do \
+		mkdir -p /tmp/topolvm/worker$$i; \
+		mkdir -p /tmp/topolvm/lvmd$$i; \
+		truncate --size=20G build/backing_store$$i; \
+		$(SUDO) losetup -f build/backing_store$$i; \
+		$(SUDO) vgcreate -y myvg$$i $$($(SUDO) losetup -j build/backing_store$$i | cut -d: -f1); \
+		$(SUDO) lvcreate -y -n csi-node-test-block -L 1G myvg$$i; \
+		$(SUDO) lvcreate -y -n csi-node-test-fs -L 1G myvg$$i; \
+		$(SUDO) systemd-run --unit=lvmd$$i.service $(shell pwd)/build/lvmd --volume-group=myvg$$i --listen=/tmp/topolvm/lvmd$$i/lvmd.sock --spare=1; \
+	done
 
 stop-lvmd:
 	$(MAKE) shutdown-kind
-	if systemctl is-active -q lvmd.service; then $(SUDO) systemctl stop lvmd.service; fi
-	if [ -f build/backing_store ]; then \
-		$(SUDO) vgremove -ffy myvg; \
-		$(SUDO) pvremove -ffy $$($(SUDO) losetup -j build/backing_store | cut -d: -f1); \
-		$(SUDO) losetup -d $$($(SUDO) losetup -j build/backing_store | cut -d: -f1); \
-		rm -f build/backing_store; \
-	fi
+	for i in $$(seq 3); do \
+		if systemctl is-active -q lvmd$$i.service; then $(SUDO) systemctl stop lvmd$$i.service; fi; \
+		if [ -f build/backing_store$$i ]; then \
+			$(SUDO) vgremove -ffy myvg$$i; \
+			$(SUDO) pvremove -ffy $$($(SUDO) losetup -j build/backing_store$$i | cut -d: -f1); \
+			$(SUDO) losetup -d $$($(SUDO) losetup -j build/backing_store$$i | cut -d: -f1); \
+			rm -f build/backing_store$$i; \
+		fi; \
+	done
 
 test: topolvm.img hook-secret.yml
 	$(MAKE) shutdown-kind
