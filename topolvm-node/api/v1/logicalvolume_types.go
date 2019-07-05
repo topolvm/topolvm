@@ -53,9 +53,6 @@ func (lv *LogicalVolume) IsCompatibleWith(lv2 *LogicalVolume) bool {
 	if lv.Spec.Name != lv2.Spec.Name {
 		return false
 	}
-	if lv.Spec.NodeName != lv2.Spec.NodeName {
-		return false
-	}
 	if lv.Spec.Size.Cmp(lv2.Spec.Size) != 0 {
 		return false
 	}
