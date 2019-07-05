@@ -5,7 +5,7 @@ GINKGO=$(GOPATH)/bin/ginkgo
 KUBECTL=/usr/local/bin/kubectl
 KUBERNETES_VERSION=1.14.3
 
-GO_FILES := $(shell find .. -path ../vendor -prune -o -path ../kindtest -prune -o -name '*.go' -print)
+GO_FILES := $(shell find .. -path ../vendor -prune -o -path ../e2e -prune -o -name '*.go' -print)
 CA_FILES=./certs/ca.csr ./certs/ca.pem ./certs/ca-key.pem
 SERVER_CERT_FILES=./certs/server.csr ./certs/server.pem ./certs/server-key.pem
 KUBECONFIG := $(shell kind get kubeconfig-path --name=kind)
@@ -86,7 +86,7 @@ test: topolvm.img hook-secret.yml
 		GO111MODULE=on \
 		GOFLAGS=$(GOFLAGS) \
 		KUBECONFIG=$(KUBECONFIG) \
-		KINDTEST=1 \
+		E2ETEST=1 \
 		$(GINKGO) --failFast -v .
 
 $(CA_FILES): ./certs/csr.json
@@ -118,4 +118,4 @@ setup: $(KUBECTL)
 clean: stop-lvmd
 	rm -rf $(CA_FILES) $(SERVER_CERT_FILES) hook-secret.yml topolvm.img build/
 
-.PHONY: launch-kind shutdown-kind start-lvmd stop-lvmd test setup clean
+.PHONY: launch-kind shutdown-kind start-lvmd stop-lvmd test secret setup clean

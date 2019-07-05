@@ -1,6 +1,6 @@
 // +build tools
 
-package kindtest
+package e2e
 
 import (
 	_ "github.com/cloudflare/cfssl/cmd/cfssl"

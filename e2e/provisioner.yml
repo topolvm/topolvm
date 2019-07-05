@@ -32,7 +32,7 @@ spec:
   - ReadWriteOnce
   storageClassName: host-local
   local:
-    path: /tmp/kindtest1
+    path: /tmp/e2etest1
   nodeAffinity:
     required:
       nodeSelectorTerms:
@@ -53,7 +53,7 @@ spec:
   - ReadWriteOnce
   storageClassName: host-local
   local:
-    path: /tmp/kindtest2
+    path: /tmp/e2etest2
   nodeAffinity:
     required:
       nodeSelectorTerms:

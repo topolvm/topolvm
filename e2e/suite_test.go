@@ -1,4 +1,4 @@
-package kindtest
+package e2e
 
 import (
 	"encoding/json"
@@ -15,8 +15,8 @@ import (
 )
 
 func TestMtest(t *testing.T) {
-	if os.Getenv("KINDTEST") == "" {
-		t.Skip("Run under kindtest/")
+	if os.Getenv("E2ETEST") == "" {
+		t.Skip("Run under e2e/")
 	}
 	rand.Seed(time.Now().UnixNano())
 
@@ -47,43 +47,31 @@ func randomString(n int) string {
 	return string(b)
 }
 
+func waitKindnet() error {
+	stdout, stderr, err := kubectl("-n=kube-system", "get", "ds/kindnet", "-o", "json")
+	if err != nil {
+		return errors.New(string(stderr))
+	}
+
+	var ds appsv1.DaemonSet
+	err = json.Unmarshal(stdout, &ds)
+	if err != nil {
+		return err
+	}
+
+	if ds.Status.NumberReady != 4 {
+		return fmt.Errorf("numberReady is not 4: %d", ds.Status.NumberReady)
+	}
+	return nil
+}
+
 var _ = BeforeSuite(func() {
 	fmt.Println("Waiting for mutating webhook to get ready")
-	Eventually(func() error {
-		stdout, stderr, err := kubectl("-n=kube-system", "get", "ds/kindnet", "-o", "json")
-		if err != nil {
-			return errors.New(string(stderr))
-		}
 
-		var ds appsv1.DaemonSet
-		err = json.Unmarshal(stdout, &ds)
-		if err != nil {
-			return err
-		}
-
-		if ds.Status.NumberReady != 4 {
-			return fmt.Errorf("numberReady is not 4: %d", ds.Status.NumberReady)
-		}
-		return nil
-	}).Should(Succeed())
+	// Because kindnet will crash. we need to confirm its readiness twice.
+	Eventually(waitKindnet).Should(Succeed())
 	time.Sleep(5 * time.Second)
-	Eventually(func() error {
-		stdout, stderr, err := kubectl("-n=kube-system", "get", "ds/kindnet", "-o", "json")
-		if err != nil {
-			return errors.New(string(stderr))
-		}
-
-		var ds appsv1.DaemonSet
-		err = json.Unmarshal(stdout, &ds)
-		if err != nil {
-			return err
-		}
-
-		if ds.Status.NumberReady != 4 {
-			return fmt.Errorf("numberReady is not 4: %d", ds.Status.NumberReady)
-		}
-		return nil
-	}).Should(Succeed())
+	Eventually(waitKindnet).Should(Succeed())
 
 	podYAML := `apiVersion: v1
 kind: Pod

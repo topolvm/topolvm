@@ -2,7 +2,7 @@ End-to-end tests of TopoLVM using kind
 =====================================
 
 This directory contains codes for end-to-end tests of TopoLVM.
-Since the tests make use of [kind (Kubernetes IN Docker)][kind], this is called "kindtest".
+Since the tests make use of [kind (Kubernetes IN Docker)][kind], this is called "e2e" test.
 
 Setup environment
 -----------------

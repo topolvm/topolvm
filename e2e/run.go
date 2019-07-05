@@ -1,4 +1,4 @@
-package kindtest
+package e2e
 
 import (
 	"bytes"
