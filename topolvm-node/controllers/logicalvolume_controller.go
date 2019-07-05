@@ -54,58 +54,65 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 
 	lv := new(topolvmv1.LogicalVolume)
 	if err := r.k8sClient.Get(ctx, req.NamespacedName, lv); err != nil {
-		log.Error(err, "unable to fetch LogicalVolume")
+		if !apierrs.IsNotFound(err) {
+			log.Error(err, "unable to fetch LogicalVolume")
+		}
 		return ctrl.Result{}, ignoreNotFound(err)
 	}
 
-	log.Info("RECONCILE!!", "LogicalVolume", lv)
+	if lv.Spec.NodeName != r.nodeName {
+		log.Info("unfilterd logical volue", "nodeName", lv.Spec.NodeName)
+		return ctrl.Result{}, nil
+	}
 
 	if lv.ObjectMeta.DeletionTimestamp.IsZero() {
+		// When lv.Status.Code is not codes.OK (== 0), CreateLV has already failed.
+		// LogicalVolume CRD will be deleted soon by the controller.
 		if lv.Status.Code != codes.OK {
 			return ctrl.Result{}, nil
 		}
 
-		if lv.Status.VolumeID == "" {
-			_, err := ctrl.CreateOrUpdate(ctx, r.k8sClient, lv, func() error {
-				if !containsString(lv.Finalizers, finalizerName) {
-					lv.Finalizers = append(lv.Finalizers, finalizerName)
-				}
-				return nil
-			})
-			if err != nil {
-				log.Error(err, "failed to set finalizer", "name", lv.Name)
-				return ctrl.Result{}, err
+		if !containsString(lv.Finalizers, finalizerName) {
+			lv2 := lv.DeepCopy()
+			lv2.Finalizers = append(lv2.Finalizers, finalizerName)
+			patch := client.MergeFrom(lv)
+			if err := r.k8sClient.Patch(ctx, lv2, patch); err != nil {
+				log.Error(err, "failed to add finalizer", "name", lv.Name)
+				return ctrl.Result{Requeue: true}, err
 			}
-			err = r.createLV(ctx, log, lv, vgService, lvService)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-			return ctrl.Result{}, nil
 		}
+
+		if lv.Status.VolumeID == "" {
+			if err := r.createLV(ctx, log, lv, vgService, lvService); err != nil {
+				log.Error(err, "failed to create LV", "name", lv.Name)
+				return ctrl.Result{}, err
+			}
+		}
+		return ctrl.Result{}, nil
 		//
 		// TODO: handle requests to expand volume, here
 		//
-	} else {
-		if !containsString(lv.Finalizers, finalizerName) {
-			// Our finalizer has finished, so the reconciler can do nothing.
-			return ctrl.Result{}, nil
-		}
-		log.Info("start finalizing LogicalVolume", "name", lv.Name)
-		err := r.removeLVIfExists(ctx, log, lv, vgService, lvService)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		_, err = ctrl.CreateOrUpdate(ctx, r.k8sClient, lv, func() error {
-			lv.Finalizers = removeString(lv.Finalizers, finalizerName)
-			return nil
-		})
-		if err != nil {
-			log.Error(err, "failed to remove finalizers from LogicalVolume", "name", lv.Name)
-			return ctrl.Result{}, err
-		}
+	}
+
+	// finalization
+	if !containsString(lv.Finalizers, finalizerName) {
+		// Our finalizer has finished, so the reconciler can do nothing.
 		return ctrl.Result{}, nil
 	}
 
+	log.Info("start finalizing LogicalVolume", "name", lv.Name)
+	err := r.removeLVIfExists(ctx, log, lv, vgService, lvService)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	lv2 := lv.DeepCopy()
+	lv2.Finalizers = removeString(lv2.Finalizers, finalizerName)
+	patch := client.MergeFrom(lv)
+	if err := r.k8sClient.Patch(ctx, lv2, patch); err != nil {
+		log.Error(err, "failed to remove finalizer", "name", lv.Name)
+		return ctrl.Result{Requeue: true}, err
+	}
 	return ctrl.Result{}, nil
 }
 
@@ -118,13 +125,16 @@ func (r *LogicalVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *LogicalVolumeReconciler) updateStatusWithError(ctx context.Context, logger logr.Logger, lv *topolvmv1.LogicalVolume, code codes.Code, message string) error {
-	lv.Status.Code = code
-	lv.Status.Message = message
-	err := r.k8sClient.Status().Update(ctx, lv)
-	if err != nil {
+	lv2 := lv.DeepCopy()
+	lv2.Status.Code = code
+	lv2.Status.Message = message
+	patch := client.MergeFrom(lv)
+
+	if err := r.k8sClient.Status().Patch(ctx, lv2, patch); err != nil {
 		logger.Error(err, "unable to update LogicalVolume status")
+		return err
 	}
-	return err
+	return nil
 }
 
 func (r *LogicalVolumeReconciler) removeLVIfExists(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume, vgService proto.VGServiceClient, lvService proto.LVServiceClient) error {
@@ -137,7 +147,7 @@ func (r *LogicalVolumeReconciler) removeLVIfExists(ctx context.Context, log logr
 	}
 
 	for _, v := range respList.Volumes {
-		if v.Name == lv.Name {
+		if v.Name == string(lv.UID) {
 			_, err := lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: string(lv.UID)})
 			if err != nil {
 				log.Error(err, "failed to remove LV", "name", lv.Name, "uid", lv.UID)
@@ -154,16 +164,18 @@ func (r *LogicalVolumeReconciler) removeLVIfExists(ctx context.Context, log logr
 func (r *LogicalVolumeReconciler) updateVolumeIfExists(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume, vgService proto.VGServiceClient) (found bool, err error) {
 	respList, err := vgService.GetLVList(ctx, &proto.Empty{})
 	if err != nil {
+		log.Error(err, "failed to get list of LV")
 		err := r.updateStatusWithError(ctx, log, lv, codes.Internal, "failed to get list of LV")
 		return false, err
 	}
 
 	for _, v := range respList.Volumes {
-		if v.Name == lv.Name {
-			lv.Status.VolumeID = lv.Name
-			err := r.k8sClient.Status().Update(ctx, lv)
-			if err != nil {
-				log.Error(err, "failed to add VolumeID", "name", lv.Name)
+		if v.Name == string(lv.UID) {
+			lv2 := lv.DeepCopy()
+			lv2.Status.VolumeID = v.Name
+			patch := client.MergeFrom(lv)
+			if err := r.k8sClient.Status().Patch(ctx, lv2, patch); err != nil {
+				log.Error(err, "failed to update VolumeID in status", "name", lv.Name)
 				return true, err
 			}
 			return true, nil
@@ -175,18 +187,14 @@ func (r *LogicalVolumeReconciler) updateVolumeIfExists(ctx context.Context, log 
 func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume,
 	vgService proto.VGServiceClient, lvService proto.LVServiceClient) error {
 
-	reqBytes, ok := lv.Spec.Size.AsInt64()
-	if !ok {
-		err := r.updateStatusWithError(ctx, log, lv, codes.Internal, "failed to interpret spec.size as int64")
-		return err
-	}
+	reqBytes := lv.Spec.Size.Value()
 
-	// This function's logic is not atomic, so it is possible that LV is created but LogicalVolume.status is not updated.
-	// We check existence the LV to ensure idempotence of createLV.
+	// In case the controller crashed just after LVM LV creation, LV may already exist.
 	found, err := r.updateVolumeIfExists(ctx, log, lv, vgService)
 	if err != nil {
 		return err
-	} else if found {
+	}
+	if found {
 		log.Info("set volumeID to existing LogicalVolume", "name", lv.Name, "uid", lv.UID, "status.volumeID", lv.Status.VolumeID)
 		return nil
 	}
@@ -195,21 +203,24 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 	if err != nil {
 		s, ok := status.FromError(err)
 		if !ok {
+			log.Error(err, err.Error())
 			err := r.updateStatusWithError(ctx, log, lv, codes.Internal, err.Error())
 			return err
 		}
+		log.Error(err, s.Message())
 		err := r.updateStatusWithError(ctx, log, lv, s.Code(), s.Message())
 		return err
 	}
 
-	lv.Status.VolumeID = resp.Volume.Name
-	err = r.k8sClient.Status().Update(ctx, lv)
-	if err != nil {
+	lv2 := lv.DeepCopy()
+	lv2.Status.VolumeID = resp.Volume.Name
+	patch := client.MergeFrom(lv)
+	if err := r.k8sClient.Status().Patch(ctx, lv2, patch); err != nil {
 		log.Error(err, "failed to update VolumeID", "name", lv.Name, "uid", lv.UID)
 		return err
 	}
 
-	log.Info("created new LV", "name", lv.Name, "uid", lv.UID, "status.volumeID", lv.Status.VolumeID)
+	log.Info("created new LV", "name", lv2.Name, "uid", lv2.UID, "status.volumeID", lv2.Status.VolumeID)
 	return nil
 }
 
@@ -218,10 +229,7 @@ type logicalVolumeFilter struct {
 	nodeName string
 }
 
-func (f logicalVolumeFilter) Create(e event.CreateEvent) bool {
-	f.log.Info("CREATE", "event", e)
-	var lv *topolvmv1.LogicalVolume
-	lv = e.Object.(*topolvmv1.LogicalVolume)
+func (f logicalVolumeFilter) filter(lv *topolvmv1.LogicalVolume) bool {
 	if lv == nil {
 		return false
 	}
@@ -231,19 +239,20 @@ func (f logicalVolumeFilter) Create(e event.CreateEvent) bool {
 	return false
 }
 
+func (f logicalVolumeFilter) Create(e event.CreateEvent) bool {
+	return f.filter(e.Object.(*topolvmv1.LogicalVolume))
+}
+
 func (f logicalVolumeFilter) Delete(e event.DeleteEvent) bool {
-	f.log.Info("DELETE", "event", e)
-	return false
+	return f.filter(e.Object.(*topolvmv1.LogicalVolume))
 }
 
 func (f logicalVolumeFilter) Update(e event.UpdateEvent) bool {
-	f.log.Info("UPDATE", "event", e)
-	return true
+	return f.filter(e.ObjectNew.(*topolvmv1.LogicalVolume))
 }
 
 func (f logicalVolumeFilter) Generic(e event.GenericEvent) bool {
-	f.log.Info("GENERIC", "event", e)
-	return true
+	return f.filter(e.Object.(*topolvmv1.LogicalVolume))
 }
 
 func containsString(slice []string, s string) bool {

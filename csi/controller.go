@@ -3,6 +3,7 @@ package csi
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/cybozu-go/log"
@@ -39,10 +40,10 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 	})
 
 	if source != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "volume_content_source not supported")
+		return nil, status.Error(codes.InvalidArgument, "volume_content_source not supported")
 	}
 	if capabilities == nil {
-		return nil, status.Errorf(codes.InvalidArgument, "no volume capabilities are provided")
+		return nil, status.Error(codes.InvalidArgument, "no volume capabilities are provided")
 	}
 
 	// check required volume capabilities
@@ -58,7 +59,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 				"flags":       mount.GetMountFlags(),
 			})
 		} else {
-			return nil, status.Errorf(codes.InvalidArgument, "unknown or empty access_type")
+			return nil, status.Error(codes.InvalidArgument, "unknown or empty access_type")
 		}
 
 		if mode := capability.GetAccessMode(); mode != nil {
@@ -73,11 +74,15 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 		}
 	}
 
+	requestGb, err := convertRequestCapacity(req.GetCapacityRange().GetRequiredBytes(), req.GetCapacityRange().GetLimitBytes())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
 	// process topology
 	var node string
 	requirements := req.GetAccessibilityRequirements()
-	switch requirements {
-	case nil:
+	if requirements == nil {
 		// In CSI spec, controllers are required that they response OK even if accessibility_requirements field is nil.
 		// So we must create volume, and must not return error response in this case.
 		// - https://github.com/container-storage-interface/spec/blob/release-1.1/spec.md#createvolume
@@ -88,13 +93,13 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 			return nil, status.Errorf(codes.Internal, "failed to get max capacity node %v", err)
 		}
 		if nodeName == "" {
-			return nil, status.Errorf(codes.Internal, "can not find any node")
+			return nil, status.Error(codes.Internal, "can not find any node")
 		}
-		if capacity < req.GetCapacityRange().GetLimitBytes() {
+		if capacity < (requestGb << 30) {
 			return nil, status.Errorf(codes.Internal, "can not find enough volume space %d", capacity)
 		}
 		node = nodeName
-	default:
+	} else {
 		for _, topo := range requirements.Preferred {
 			if v, ok := topo.GetSegments()[topolvm.TopologyNodeKey]; ok {
 				node = v
@@ -112,44 +117,27 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 		if node == "" {
 			return nil, status.Errorf(codes.InvalidArgument, "cannot find key '%s' in accessibility_requirements", topolvm.TopologyNodeKey)
 		}
-
 	}
+
 	name := req.GetName()
 	if name == "" {
-		return nil, status.Errorf(codes.InvalidArgument, "invalid name")
+		return nil, status.Error(codes.InvalidArgument, "invalid name")
 	}
 
 	name = strings.ToLower(name)
 
-	var sizeGb int64
-	switch size := req.GetCapacityRange().GetRequiredBytes(); {
-	case size < 0:
-		return nil, status.Errorf(codes.InvalidArgument, "required capacity must not be negative")
-	case size == 0:
-		sizeGb = 1
-	default:
-		sizeGb = (size-1)>>30 + 1
-	}
-
-	switch limit := req.GetCapacityRange().GetLimitBytes(); {
-	case limit < 0:
-		return nil, status.Errorf(codes.InvalidArgument, "capacity limit must not be negative")
-	case limit > 0 && sizeGb<<30 > limit:
-		return nil, status.Errorf(codes.InvalidArgument, "capacity limit exceeded")
-	}
-
-	volumeID, err := s.service.CreateVolume(ctx, node, name, sizeGb, capabilities)
+	volumeID, err := s.service.CreateVolume(ctx, node, name, requestGb, capabilities)
 	if err != nil {
-		s, ok := status.FromError(err)
+		_, ok := status.FromError(err)
 		if !ok {
-			return nil, status.Errorf(codes.Internal, err.Error())
+			return nil, status.Error(codes.Internal, err.Error())
 		}
-		return nil, s.Err()
+		return nil, err
 	}
 
 	return &CreateVolumeResponse{
 		Volume: &Volume{
-			CapacityBytes: sizeGb << 30,
+			CapacityBytes: requestGb << 30,
 			VolumeId:      volumeID,
 			AccessibleTopology: []*Topology{
 				{
@@ -160,13 +148,33 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 	}, nil
 }
 
+func convertRequestCapacity(requestBytes, limitBytes int64) (int64, error) {
+	if requestBytes < 0 {
+		return 0, errors.New("required capacity must not be negative")
+	}
+	if limitBytes < 0 {
+		return 0, errors.New("capacity limit must not be negative")
+	}
+
+	if limitBytes != 0 && requestBytes > limitBytes {
+		return 0, fmt.Errorf(
+			"requested capacity exceeds limit capacity: request=%d limit=%d", requestBytes, limitBytes,
+		)
+	}
+
+	if requestBytes == 0 {
+		return 1, nil
+	}
+	return (requestBytes-1)>>30 + 1, nil
+}
+
 func (s controllerService) DeleteVolume(ctx context.Context, req *DeleteVolumeRequest) (*DeleteVolumeResponse, error) {
 	log.Info("DeleteVolume called", map[string]interface{}{
 		"volume_id":   req.GetVolumeId(),
 		"num_secrets": len(req.GetSecrets()),
 	})
 	if len(req.GetVolumeId()) == 0 {
-		return nil, status.Errorf(codes.InvalidArgument, "volume_id is not provided")
+		return nil, status.Error(codes.InvalidArgument, "volume_id is not provided")
 	}
 
 	err := s.service.DeleteVolume(ctx, req.GetVolumeId())
@@ -175,22 +183,22 @@ func (s controllerService) DeleteVolume(ctx context.Context, req *DeleteVolumeRe
 			"volume_id": req.GetVolumeId(),
 			"error":     err.Error(),
 		})
-		s, ok := status.FromError(err)
+		_, ok := status.FromError(err)
 		if !ok {
-			return nil, status.Errorf(codes.Internal, err.Error())
+			return nil, status.Error(codes.Internal, err.Error())
 		}
-		return nil, s.Err()
+		return nil, err
 	}
 
 	return &DeleteVolumeResponse{}, nil
 }
 
 func (s controllerService) ControllerPublishVolume(context.Context, *ControllerPublishVolumeRequest) (*ControllerPublishVolumeResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "ControllerPublishVolume not implemented")
+	return nil, status.Error(codes.Unimplemented, "ControllerPublishVolume not implemented")
 }
 
 func (s controllerService) ControllerUnpublishVolume(context.Context, *ControllerUnpublishVolumeRequest) (*ControllerUnpublishVolumeResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "ControllerUnpublishVolume not implemented")
+	return nil, status.Error(codes.Unimplemented, "ControllerUnpublishVolume not implemented")
 }
 
 func (s controllerService) ValidateVolumeCapabilities(ctx context.Context, req *ValidateVolumeCapabilitiesRequest) (*ValidateVolumeCapabilitiesResponse, error) {
@@ -228,7 +236,7 @@ func (s controllerService) ValidateVolumeCapabilities(ctx context.Context, req *
 }
 
 func (s controllerService) ListVolumes(ctx context.Context, req *ListVolumesRequest) (*ListVolumesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "ListVolumes not implemented")
+	return nil, status.Error(codes.Unimplemented, "ListVolumes not implemented")
 }
 
 func (s controllerService) GetCapacity(ctx context.Context, req *GetCapacityRequest) (*GetCapacityResponse, error) {
@@ -249,7 +257,7 @@ func (s controllerService) GetCapacity(ctx context.Context, req *GetCapacityRequ
 		var err error
 		capacity, err = s.service.GetCapacity(ctx, "")
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, err.Error())
+			return nil, status.Error(codes.Internal, err.Error())
 		}
 	default:
 		requestNodeNumber, ok := topology.Segments[topolvm.TopologyNodeKey]
@@ -295,17 +303,17 @@ func (s controllerService) ControllerGetCapabilities(context.Context, *Controlle
 }
 
 func (s controllerService) CreateSnapshot(context.Context, *CreateSnapshotRequest) (*CreateSnapshotResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "CreateSnapshot not implemented")
+	return nil, status.Error(codes.Unimplemented, "CreateSnapshot not implemented")
 }
 
 func (s controllerService) DeleteSnapshot(context.Context, *DeleteSnapshotRequest) (*DeleteSnapshotResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "DeleteSnapshot not implemented")
+	return nil, status.Error(codes.Unimplemented, "DeleteSnapshot not implemented")
 }
 
 func (s controllerService) ListSnapshots(context.Context, *ListSnapshotsRequest) (*ListSnapshotsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "ListSnapshots not implemented")
+	return nil, status.Error(codes.Unimplemented, "ListSnapshots not implemented")
 }
 
 func (s controllerService) ControllerExpandVolume(context.Context, *ControllerExpandVolumeRequest) (*ControllerExpandVolumeResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "ControllerExpandVolume not implemented")
+	return nil, status.Error(codes.Unimplemented, "ControllerExpandVolume not implemented")
 }

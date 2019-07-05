@@ -23,5 +23,5 @@
 /bin/protoc-gen-doc
 /include
 /build
-/microtest/build
-/microtest/tmpbin
+/e2e/build
+/e2e/tmpbin

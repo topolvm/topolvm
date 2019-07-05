@@ -1,0 +1,19 @@
+{
+    "CN": "topolvm-hook",
+    "hosts": [
+        "localhost",
+        "127.0.0.1",
+        "topolvm-hook.topolvm-system.svc"
+    ],
+    "key": {
+        "algo": "rsa",
+        "size": 2048
+    },
+    "names": [
+        {
+            "C": "JP",
+            "ST": "Tokyo",
+            "L": "Chuoh-ku"
+        }
+    ]
+}

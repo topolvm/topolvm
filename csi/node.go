@@ -26,7 +26,7 @@ const (
 	mountCmd         = "/bin/mount"
 	mountpointCmd    = "/bin/mountpoint"
 	umountCmd        = "/bin/umount"
-	devicePermission = unix.S_IFBLK
+	devicePermission = 0600 | unix.S_IFBLK
 )
 
 // NewNodeService returns a new NodeServer.
@@ -44,11 +44,11 @@ type nodeService struct {
 }
 
 func (s *nodeService) NodeStageVolume(context.Context, *NodeStageVolumeRequest) (*NodeStageVolumeResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "NodeStageVolume not implemented")
+	return nil, status.Error(codes.Unimplemented, "NodeStageVolume not implemented")
 }
 
 func (s *nodeService) NodeUnstageVolume(context.Context, *NodeUnstageVolumeRequest) (*NodeUnstageVolumeResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "NodeUnstageVolume not implemented")
+	return nil, status.Error(codes.Unimplemented, "NodeUnstageVolume not implemented")
 }
 
 func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVolumeRequest) (*NodePublishVolumeResponse, error) {
@@ -63,13 +63,13 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *NodePublishVol
 	})
 
 	if len(req.GetVolumeId()) == 0 {
-		return nil, status.Errorf(codes.InvalidArgument, "no volume_id is provided")
+		return nil, status.Error(codes.InvalidArgument, "no volume_id is provided")
 	}
 	if len(req.GetTargetPath()) == 0 {
-		return nil, status.Errorf(codes.InvalidArgument, "no target_path is provided")
+		return nil, status.Error(codes.InvalidArgument, "no target_path is provided")
 	}
 	if req.GetVolumeCapability() == nil {
-		return nil, status.Errorf(codes.InvalidArgument, "no volume_capability is provided")
+		return nil, status.Error(codes.InvalidArgument, "no volume_capability is provided")
 	}
 
 	s.mu.Lock()
@@ -121,7 +121,7 @@ func (s *nodeService) nodePublishFilesystemVolume(ctx context.Context, req *Node
 		}
 
 		// Check device
-		if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && stat.Mode&devicePermission == devicePermission {
+		if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && (stat.Mode&devicePermission) == devicePermission {
 			return &NodePublishVolumeResponse{}, nil
 		}
 		return nil, status.Errorf(codes.Internal, "device's permission is invalid. expected: %x, actual: %x", devicePermission, stat.Mode)
@@ -132,7 +132,8 @@ func (s *nodeService) nodePublishFilesystemVolume(ctx context.Context, req *Node
 		}
 		err = unix.Mknod(device, devicePermission, dev)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "mknod failed for %s. error: %v", req.GetTargetPath(), err)
+			return nil, status.Errorf(codes.Internal, "mknod failed for %s. major=%d, minor=%d, error=%v",
+				device, lv.DevMajor, lv.DevMinor, err)
 		}
 	default:
 		return nil, status.Errorf(codes.Internal, "failed to stat: %v", err)
@@ -267,10 +268,10 @@ func (s *nodeService) NodeUnpublishVolume(ctx context.Context, req *NodeUnpublis
 	})
 
 	if len(req.GetVolumeId()) == 0 {
-		return nil, status.Errorf(codes.InvalidArgument, "no volume_id is provided")
+		return nil, status.Error(codes.InvalidArgument, "no volume_id is provided")
 	}
 	if len(req.GetTargetPath()) == 0 {
-		return nil, status.Errorf(codes.InvalidArgument, "no target_path is provided")
+		return nil, status.Error(codes.InvalidArgument, "no target_path is provided")
 	}
 
 	s.mu.Lock()
@@ -328,11 +329,11 @@ func (s *nodeService) nodeUnpublishBlockVolume(req *NodeUnpublishVolumeRequest) 
 }
 
 func (s *nodeService) NodeGetVolumeStats(ctx context.Context, req *NodeGetVolumeStatsRequest) (*NodeGetVolumeStatsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "NodeGetVolumeStats not implemented")
+	return nil, status.Error(codes.Unimplemented, "NodeGetVolumeStats not implemented")
 }
 
 func (s *nodeService) NodeExpandVolume(context.Context, *NodeExpandVolumeRequest) (*NodeExpandVolumeResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "NodeExpandVolume not implemented")
+	return nil, status.Error(codes.Unimplemented, "NodeExpandVolume not implemented")
 }
 
 func (s *nodeService) NodeGetCapabilities(context.Context, *NodeGetCapabilitiesRequest) (*NodeGetCapabilitiesResponse, error) {
