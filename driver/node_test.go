@@ -1,4 +1,4 @@
-package csi
+package driver
 
 import (
 	"context"

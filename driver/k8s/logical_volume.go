@@ -11,6 +11,7 @@ import (
 	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/csi"
+	"github.com/cybozu-go/topolvm/driver"
 	topolvmv1 "github.com/cybozu-go/topolvm/topolvm-node/api/v1"
 	"github.com/cybozu-go/well"
 	"google.golang.org/grpc/codes"
@@ -45,7 +46,7 @@ var (
 )
 
 // NewLogicalVolumeService returns LogicalVolumeService.
-func NewLogicalVolumeService(namespace string) (csi.LogicalVolumeService, error) {
+func NewLogicalVolumeService(namespace string) (driver.LogicalVolumeService, error) {
 	err := topolvmv1.AddToScheme(scheme)
 	if err != nil {
 		return nil, err
@@ -248,7 +249,7 @@ func (s *logicalVolumeService) ValidateVolumeCapabilities(ctx context.Context, v
 	if len(lvList.Items) > 1 {
 		return false, errors.New("found multiple volumes with volumeID " + volumeID)
 	} else if len(lvList.Items) == 0 {
-		return false, csi.ErrVolumeNotFound
+		return false, driver.ErrVolumeNotFound
 	}
 	lv := lvList.Items[0]
 	return isValidVolumeCapabilities(capabilities, lv.Annotations[topolvm.VolumeModeKey], lv.Annotations[fsTypeKey]), nil

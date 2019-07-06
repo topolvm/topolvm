@@ -1,4 +1,4 @@
-package csi
+package driver
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 
 	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/topolvm"
+	"github.com/cybozu-go/topolvm/csi"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -16,7 +17,7 @@ import (
 var ErrVolumeNotFound = errors.New("VolumeID is not found")
 
 // NewControllerService returns a new ControllerServer.
-func NewControllerService(service LogicalVolumeService) ControllerServer {
+func NewControllerService(service LogicalVolumeService) csi.ControllerServer {
 	return &controllerService{service: service}
 }
 
@@ -24,7 +25,7 @@ type controllerService struct {
 	service LogicalVolumeService
 }
 
-func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRequest) (*CreateVolumeResponse, error) {
+func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	capabilities := req.GetVolumeCapabilities()
 	source := req.GetVolumeContentSource()
 
@@ -63,12 +64,12 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 		}
 
 		if mode := capability.GetAccessMode(); mode != nil {
-			modeName := VolumeCapability_AccessMode_Mode_name[int32(mode.GetMode())]
+			modeName := csi.VolumeCapability_AccessMode_Mode_name[int32(mode.GetMode())]
 			log.Info("CreateVolume specifies volume capability", map[string]interface{}{
 				"access_mode": modeName,
 			})
 			// we only support SINGLE_NODE_WRITER
-			if mode.GetMode() != VolumeCapability_AccessMode_SINGLE_NODE_WRITER {
+			if mode.GetMode() != csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER {
 				return nil, status.Errorf(codes.InvalidArgument, "unsupported access mode: %s", modeName)
 			}
 		}
@@ -135,11 +136,11 @@ func (s controllerService) CreateVolume(ctx context.Context, req *CreateVolumeRe
 		return nil, err
 	}
 
-	return &CreateVolumeResponse{
-		Volume: &Volume{
+	return &csi.CreateVolumeResponse{
+		Volume: &csi.Volume{
 			CapacityBytes: requestGb << 30,
 			VolumeId:      volumeID,
-			AccessibleTopology: []*Topology{
+			AccessibleTopology: []*csi.Topology{
 				{
 					Segments: map[string]string{topolvm.TopologyNodeKey: node},
 				},
@@ -168,7 +169,7 @@ func convertRequestCapacity(requestBytes, limitBytes int64) (int64, error) {
 	return (requestBytes-1)>>30 + 1, nil
 }
 
-func (s controllerService) DeleteVolume(ctx context.Context, req *DeleteVolumeRequest) (*DeleteVolumeResponse, error) {
+func (s controllerService) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
 	log.Info("DeleteVolume called", map[string]interface{}{
 		"volume_id":   req.GetVolumeId(),
 		"num_secrets": len(req.GetSecrets()),
@@ -190,18 +191,18 @@ func (s controllerService) DeleteVolume(ctx context.Context, req *DeleteVolumeRe
 		return nil, err
 	}
 
-	return &DeleteVolumeResponse{}, nil
+	return &csi.DeleteVolumeResponse{}, nil
 }
 
-func (s controllerService) ControllerPublishVolume(context.Context, *ControllerPublishVolumeRequest) (*ControllerPublishVolumeResponse, error) {
+func (s controllerService) ControllerPublishVolume(context.Context, *csi.ControllerPublishVolumeRequest) (*csi.ControllerPublishVolumeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "ControllerPublishVolume not implemented")
 }
 
-func (s controllerService) ControllerUnpublishVolume(context.Context, *ControllerUnpublishVolumeRequest) (*ControllerUnpublishVolumeResponse, error) {
+func (s controllerService) ControllerUnpublishVolume(context.Context, *csi.ControllerUnpublishVolumeRequest) (*csi.ControllerUnpublishVolumeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "ControllerUnpublishVolume not implemented")
 }
 
-func (s controllerService) ValidateVolumeCapabilities(ctx context.Context, req *ValidateVolumeCapabilitiesRequest) (*ValidateVolumeCapabilitiesResponse, error) {
+func (s controllerService) ValidateVolumeCapabilities(ctx context.Context, req *csi.ValidateVolumeCapabilitiesRequest) (*csi.ValidateVolumeCapabilitiesResponse, error) {
 	log.Info("ValidateVolumeCapabilities called", map[string]interface{}{
 		"volume_id":           req.GetVolumeId(),
 		"volume_context":      req.GetVolumeContext(),
@@ -224,22 +225,22 @@ func (s controllerService) ValidateVolumeCapabilities(ctx context.Context, req *
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	var confirmed *ValidateVolumeCapabilitiesResponse_Confirmed
+	var confirmed *csi.ValidateVolumeCapabilitiesResponse_Confirmed
 	if isValid {
-		confirmed = &ValidateVolumeCapabilitiesResponse_Confirmed{
+		confirmed = &csi.ValidateVolumeCapabilitiesResponse_Confirmed{
 			VolumeCapabilities: req.GetVolumeCapabilities(),
 		}
 	}
-	return &ValidateVolumeCapabilitiesResponse{
+	return &csi.ValidateVolumeCapabilitiesResponse{
 		Confirmed: confirmed,
 	}, nil
 }
 
-func (s controllerService) ListVolumes(ctx context.Context, req *ListVolumesRequest) (*ListVolumesResponse, error) {
+func (s controllerService) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (*csi.ListVolumesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "ListVolumes not implemented")
 }
 
-func (s controllerService) GetCapacity(ctx context.Context, req *GetCapacityRequest) (*GetCapacityResponse, error) {
+func (s controllerService) GetCapacity(ctx context.Context, req *csi.GetCapacityRequest) (*csi.GetCapacityResponse, error) {
 	topology := req.GetAccessibleTopology()
 	capabilities := req.GetVolumeCapabilities()
 	log.Info("GetCapacity called", map[string]interface{}{
@@ -270,31 +271,31 @@ func (s controllerService) GetCapacity(ctx context.Context, req *GetCapacityRequ
 			log.Info("target is not found", map[string]interface{}{
 				"accessible_topology": req.AccessibleTopology,
 			})
-			return &GetCapacityResponse{
+			return &csi.GetCapacityResponse{
 				AvailableCapacity: 0,
 			}, nil
 		}
 	}
 
-	return &GetCapacityResponse{
+	return &csi.GetCapacityResponse{
 		AvailableCapacity: capacity,
 	}, nil
 }
 
-func (s controllerService) ControllerGetCapabilities(context.Context, *ControllerGetCapabilitiesRequest) (*ControllerGetCapabilitiesResponse, error) {
-	return &ControllerGetCapabilitiesResponse{
-		Capabilities: []*ControllerServiceCapability{
+func (s controllerService) ControllerGetCapabilities(context.Context, *csi.ControllerGetCapabilitiesRequest) (*csi.ControllerGetCapabilitiesResponse, error) {
+	return &csi.ControllerGetCapabilitiesResponse{
+		Capabilities: []*csi.ControllerServiceCapability{
 			{
-				Type: &ControllerServiceCapability_Rpc{
-					Rpc: &ControllerServiceCapability_RPC{
-						Type: ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
+				Type: &csi.ControllerServiceCapability_Rpc{
+					Rpc: &csi.ControllerServiceCapability_RPC{
+						Type: csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
 					},
 				},
 			},
 			{
-				Type: &ControllerServiceCapability_Rpc{
-					Rpc: &ControllerServiceCapability_RPC{
-						Type: ControllerServiceCapability_RPC_GET_CAPACITY,
+				Type: &csi.ControllerServiceCapability_Rpc{
+					Rpc: &csi.ControllerServiceCapability_RPC{
+						Type: csi.ControllerServiceCapability_RPC_GET_CAPACITY,
 					},
 				},
 			},
@@ -302,18 +303,18 @@ func (s controllerService) ControllerGetCapabilities(context.Context, *Controlle
 	}, nil
 }
 
-func (s controllerService) CreateSnapshot(context.Context, *CreateSnapshotRequest) (*CreateSnapshotResponse, error) {
+func (s controllerService) CreateSnapshot(context.Context, *csi.CreateSnapshotRequest) (*csi.CreateSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "CreateSnapshot not implemented")
 }
 
-func (s controllerService) DeleteSnapshot(context.Context, *DeleteSnapshotRequest) (*DeleteSnapshotResponse, error) {
+func (s controllerService) DeleteSnapshot(context.Context, *csi.DeleteSnapshotRequest) (*csi.DeleteSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "DeleteSnapshot not implemented")
 }
 
-func (s controllerService) ListSnapshots(context.Context, *ListSnapshotsRequest) (*ListSnapshotsResponse, error) {
+func (s controllerService) ListSnapshots(context.Context, *csi.ListSnapshotsRequest) (*csi.ListSnapshotsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "ListSnapshots not implemented")
 }
 
-func (s controllerService) ControllerExpandVolume(context.Context, *ControllerExpandVolumeRequest) (*ControllerExpandVolumeResponse, error) {
+func (s controllerService) ControllerExpandVolume(context.Context, *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "ControllerExpandVolume not implemented")
 }
