@@ -1,22 +1,33 @@
 package e2e
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os/exec"
+	"strconv"
 	"strings"
 
+	"github.com/cybozu-go/topolvm"
+	topolvmv1 "github.com/cybozu-go/topolvm/topolvm-node/api/v1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 )
 
-var _ = Describe("E2E test", func() {
-	testNamespacePrefix := "e2e-test"
+var _ = FDescribe("E2E test", func() {
+	testNamespacePrefix := "e2etest-"
+	var ns string
+	BeforeEach(func() {
+		ns = testNamespacePrefix + randomString(10)
+		createNamespace(ns)
+	})
+
+	AfterEach(func() {
+		kubectl("delete", "namespaces/"+ns)
+	})
 
 	It("should be mounted in specified path", func() {
-		ns := testNamespacePrefix + randomString(10)
-		createNamespace(ns)
-
 		By("deploying Pod with PVC")
 		podYAML := `apiVersion: v1
 kind: Pod
@@ -153,9 +164,7 @@ spec:
 	})
 
 	It("should create a block device for Pod", func() {
-		ns := testNamespacePrefix + randomString(10)
 		deviceFile := "/dev/e2etest"
-		createNamespace(ns)
 
 		By("deploying ubuntu Pod with PVC to mount a block device")
 		podYAML := fmt.Sprintf(`apiVersion: v1
@@ -276,6 +285,80 @@ spec:
 		Eventually(func() error {
 			return checkLVIsDeletedInLVM(volName)
 		}).Should(Succeed())
+	})
+
+	It("should choose a node with the largest capacity when volumeBindingMode == Immediate is specified", func() {
+		By("getting the node with max capacity")
+		stdout, stderr, err := kubectl("get", "nodes", "-o", "json")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		var nodes corev1.NodeList
+		err = json.Unmarshal(stdout, &nodes)
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s", stdout)
+
+		var maxCapNode string
+		var maxCapacity int
+		for _, node := range nodes.Items {
+			if node.Name == "kind-control-plane" {
+				continue
+			}
+			strCap, ok := node.Annotations[topolvm.CapacityKey]
+			Expect(ok).To(Equal(true), "capacity is not annotated: "+node.Name)
+			cap, err := strconv.Atoi(strCap)
+			Expect(err).ShouldNot(HaveOccurred())
+			fmt.Printf("%s: %d bytes", node.Name, cap)
+			if cap > maxCapacity {
+				maxCapacity = cap
+				maxCapNode = node.GetName()
+			}
+		}
+		Expect(maxCapNode).NotTo(Equal(""))
+
+		By("creating pvc")
+		claimYAML := `kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: topo-pvc
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: topolvm-provisioner-immediate
+`
+		stdout, stderr, err = kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		var volumeName string
+		Eventually(func() error {
+			stdout, stderr, err = kubectl("get", "-n", ns, "pvc", "topo-pvc", "-o", "json")
+			if err != nil {
+				return fmt.Errorf("failed to get PVC. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+
+			var pvc corev1.PersistentVolumeClaim
+			err = json.Unmarshal(stdout, &pvc)
+			if err != nil {
+				return fmt.Errorf("failed to unmarshal PVC. stdout: %s, err: %v", stdout, err)
+			}
+
+			if pvc.Spec.VolumeName == "" {
+				return errors.New("pvc.Spec.VolumeName should not be empty")
+			}
+
+			volumeName = pvc.Spec.VolumeName
+			return nil
+		}).Should(Succeed())
+
+		By("confirming that the logical volume was scheduled onto the node with max capacity")
+		stdout, stderr, err = kubectl("get", "-n", ns, "logicalvolumes", volumeName, "-o", "json")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		var lv topolvmv1.LogicalVolume
+		err = json.Unmarshal(stdout, &lv)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		Expect(lv.Spec.NodeName).To(Equal(maxCapNode))
 	})
 })
 
