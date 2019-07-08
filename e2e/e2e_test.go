@@ -487,6 +487,108 @@ spec:
 			return nil
 		}).Should(Succeed())
 	})
+
+	It("should schedule pods and volumes according to topolvm-scheduler", func() {
+		/*
+			Check the operation of topolvm-scheduler in multi-node(3-node) environment.
+			As preparation, set the capacity of each node as follows.
+			- node1: 20 / 20 GB (targetNode)
+			- node2:  8 / 20 GB
+			- node3:  8 / 20 GB
+
+			# 1st case: test for `prioritize`
+			Try to create 8GB PVC. Then
+			- node1: 20 / 20 GB -> `prioritize` 4 -> selected
+			- node2:  8 / 20 GB -> `prioritize` 3
+			- node3:  8 / 20 GB -> `prioritize` 3
+
+			# 2nd case: test for `predicate` (1)
+			Try to create 10GB PVC. Then
+			- node1: 12 / 20 GB -> selected
+			- node2:  8 / 20 GB -> filtered (insufficient capacity)
+			- node3:  8 / 20 GB -> filtered (insufficient capacity)
+
+			# 3rd case: test for `predicate` (2)
+			Try to create 10GB PVC. Then it cause error.
+			- node1:  2 / 20 GB -> filtered (insufficient capacity)
+			- node2:  8 / 20 GB -> filtered (insufficient capacity)
+			- node3:  8 / 20 GB -> filtered (insufficient capacity)
+		*/
+		var targetNode string
+
+		By("initializing node capacity")
+		claimYAML := `kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: topo-pvc-dummy-1
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 12Gi
+  storageClassName: topolvm-provisioner-immediate
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: topo-pvc-dummy-2
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 12Gi
+  storageClassName: topolvm-provisioner-immediate
+`
+		stdout, stderr, err := kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		Eventually(func() error {
+			stdout, stderr, err = kubectl("get", "-n", ns, "pvc", "-o", "json")
+			if err != nil {
+				return fmt.Errorf("failed to get PVC(topo-pvc-dummy-1). stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+
+			var pvcList corev1.PersistentVolumeClaimList
+			err = json.Unmarshal(stdout, &pvcList)
+			if err != nil {
+				return fmt.Errorf("failed to unmarshal PVC. stdout: %s, err: %v", stdout, err)
+			}
+
+			for _, pvc := range pvcList.Items {
+				if pvc.Spec.VolumeName != "" {
+					return errors.New("pvc.Spec.VolumeName should not be empty")
+				}
+			}
+			return nil
+		}).Should(Succeed())
+
+		By("selecting a targetNode")
+		stdout, stderr, err = kubectl("get", "-n", ns, "node", "-o", "json")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		var nodeList corev1.NodeList
+		err = json.Unmarshal(stdout, &nodeList)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		for _, node := range nodeList.Items {
+			if node.Name == "kind-control-plane" {
+				continue
+			}
+
+			strCap, ok := node.Annotations[topolvm.CapacityKey]
+			Expect(ok).To(Equal(true), "capacity is not annotated: "+node.Name)
+			cap, err := strconv.Atoi(strCap)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			if cap == 20<<30 {
+				targetNode = node.Name
+				break
+			}
+		}
+		fmt.Printf("targetNode: %s\n", targetNode)
+	})
 })
 
 func waitCreatingDefaultSA(ns string) error {
