@@ -11,7 +11,7 @@ type LogicalVolumeService interface {
 	CreateVolume(ctx context.Context, node string, name string, sizeGb int64, capabilities []*csi.VolumeCapability) (string, error)
 	DeleteVolume(ctx context.Context, volumeID string) error
 	ExpandVolume(ctx context.Context, volumeID string, sizeGb int64) error
-	ValidateVolumeCapabilities(ctx context.Context, volumeID string, capabilities []*csi.VolumeCapability) (bool, error)
+	VolumeExists(ctx context.Context, volumeID string) error
 	GetCapacity(ctx context.Context, requestNodeNumber string) (int64, error)
 	GetMaxCapacity(ctx context.Context) (string, int64, error)
 }

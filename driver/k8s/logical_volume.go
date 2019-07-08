@@ -34,10 +34,6 @@ type logicalVolumeService struct {
 }
 
 const (
-	volumeModeMount    = "mount"
-	volumeModeBlock    = "block"
-	defaultFsType      = "ext4"
-	fsTypeKey          = "csi.storage.k8s.io/fstype"
 	indexFieldVolumeID = "status.volumeID"
 )
 
@@ -96,34 +92,6 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	volumeMode := ""
-	fsType := ""
-	for _, capability := range capabilities {
-		if m := capability.GetMount(); m != nil {
-			volumeMode = volumeModeMount
-			if len(m.FsType) == 0 {
-				// external-provisioner's default file system type is "ext4"
-				fsType = defaultFsType
-			} else {
-				fsType = m.FsType
-			}
-			break
-		} else if capability.GetBlock() != nil {
-			volumeMode = volumeModeBlock
-			break
-		} else {
-			continue
-		}
-	}
-	if volumeMode == "" {
-		log.Error("volume mode is not specified", map[string]interface{}{
-			"node":         node,
-			"name":         name,
-			"sizeGb":       sizeGb,
-			"capabilities": capabilities,
-		})
-	}
-
 	lv := &topolvmv1.LogicalVolume{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "LogicalVolume",
@@ -132,10 +100,6 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: s.namespace,
-			Annotations: map[string]string{
-				topolvm.VolumeModeKey: volumeMode,
-				fsTypeKey:             fsType,
-			},
 		},
 		Spec: topolvmv1.LogicalVolumeSpec{
 			Name:     name,
@@ -241,71 +205,19 @@ func (s *logicalVolumeService) getLogicalVolumeListByVolumeID(ctx context.Contex
 	return lvList, nil
 }
 
-func (s *logicalVolumeService) ValidateVolumeCapabilities(ctx context.Context, volumeID string, capabilities []*csi.VolumeCapability) (bool, error) {
+func (s *logicalVolumeService) VolumeExists(ctx context.Context, volumeID string) error {
 	lvList, err := s.getLogicalVolumeListByVolumeID(ctx, volumeID)
 	if err != nil {
-		return false, err
+		return err
 	}
+
 	if len(lvList.Items) > 1 {
-		return false, errors.New("found multiple volumes with volumeID " + volumeID)
-	} else if len(lvList.Items) == 0 {
-		return false, driver.ErrVolumeNotFound
+		return errors.New("found multiple volumes with volumeID " + volumeID)
 	}
-	lv := lvList.Items[0]
-	return isValidVolumeCapabilities(capabilities, lv.Annotations[topolvm.VolumeModeKey], lv.Annotations[fsTypeKey]), nil
-}
-
-func isValidVolumeCapabilities(requestCapabilities []*csi.VolumeCapability, volumeMode, fsType string) bool {
-	requestFsType := ""
-	requestAccessMode := csi.VolumeCapability_AccessMode_UNKNOWN
-	requestVolumeMode := ""
-
-	for _, capability := range requestCapabilities {
-		mode := capability.GetAccessMode()
-		if mode != nil {
-			if requestAccessMode != csi.VolumeCapability_AccessMode_UNKNOWN {
-				log.Error("found multiple capability specification about access mode", nil)
-				return false
-			}
-			requestAccessMode = mode.Mode
-		}
-		if capability.GetBlock() != nil {
-			if requestVolumeMode != "" {
-				log.Error("found multiple capability specification about volume mode", nil)
-				return false
-			}
-			requestVolumeMode = volumeModeBlock
-		}
-		if m := capability.GetMount(); m != nil {
-			if requestVolumeMode != "" {
-				log.Error("found multiple capability specification about volume mode", nil)
-				return false
-			}
-			if requestFsType != "" {
-				log.Error("found multiple capability specification about fs type", nil)
-				return false
-			}
-			requestVolumeMode = volumeModeMount
-			requestFsType = m.FsType
-			if requestFsType == "" {
-				requestFsType = "ext4"
-			}
-		}
+	if len(lvList.Items) == 0 {
+		return driver.ErrVolumeNotFound
 	}
-
-	// we only support single node writer
-	if requestAccessMode != csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER {
-		return false
-	}
-
-	switch volumeMode {
-	case volumeModeMount:
-		return requestVolumeMode == volumeModeMount && requestFsType == fsType
-	case volumeModeBlock:
-		return requestVolumeMode == volumeModeBlock
-	default:
-		return false
-	}
+	return nil
 }
 
 func (s *logicalVolumeService) listNodes(ctx context.Context) (*corev1.NodeList, error) {

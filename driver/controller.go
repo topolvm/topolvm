@@ -218,21 +218,23 @@ func (s controllerService) ValidateVolumeCapabilities(ctx context.Context, req *
 		return nil, status.Error(codes.InvalidArgument, "volume capabilities are empty")
 	}
 
-	isValid, err := s.service.ValidateVolumeCapabilities(ctx, req.GetVolumeId(), req.GetVolumeCapabilities())
-	if err != nil && err == ErrVolumeNotFound {
+	err := s.service.VolumeExists(ctx, req.GetVolumeId())
+	switch err {
+	case ErrVolumeNotFound:
 		return nil, status.Errorf(codes.NotFound, "LogicalVolume for volume id %s is not found", req.GetVolumeId())
-	} else if err != nil {
+	case nil:
+	default:
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	var confirmed *csi.ValidateVolumeCapabilitiesResponse_Confirmed
-	if isValid {
-		confirmed = &csi.ValidateVolumeCapabilitiesResponse_Confirmed{
-			VolumeCapabilities: req.GetVolumeCapabilities(),
-		}
-	}
+	// Since TopoLVM does not provide means to pre-provision volumes,
+	// any existing volume is valid.
 	return &csi.ValidateVolumeCapabilitiesResponse{
-		Confirmed: confirmed,
+		Confirmed: &csi.ValidateVolumeCapabilitiesResponse_Confirmed{
+			VolumeContext:      req.GetVolumeContext(),
+			VolumeCapabilities: req.GetVolumeCapabilities(),
+			Parameters:         req.GetParameters(),
+		},
 	}, nil
 }
 

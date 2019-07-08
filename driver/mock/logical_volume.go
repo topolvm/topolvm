@@ -70,8 +70,8 @@ func (s *logicalVolumeService) ExpandVolume(ctx context.Context, volumeID string
 	return nil
 }
 
-func (s *logicalVolumeService) ValidateVolumeCapabilities(ctx context.Context, name string, capabilities []*csi.VolumeCapability) (bool, error) {
-	return true, nil
+func (s *logicalVolumeService) VolumeExists(ctx context.Context, name string) error {
+	return nil
 }
 
 func (s *logicalVolumeService) GetCapacity(ctx context.Context, requestNodeNumber string) (int64, error) {
