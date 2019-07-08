@@ -368,6 +368,125 @@ spec:
 			Expect(containString(maxCapNodes, target)).To(Equal(true), "maxCapNodes: %v, target: %s", maxCapNodes, target)
 		}
 	})
+
+	It("should scheduled onto the correct node where PV exists (volumeBindingMode == Immediate)", func() {
+		By("creating pvc")
+		claimYAML := `kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: topo-pvc
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: topolvm-provisioner-immediate
+`
+		stdout, stderr, err := kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		var volumeName string
+		Eventually(func() error {
+			stdout, stderr, err = kubectl("get", "-n", ns, "pvc", "topo-pvc", "-o", "json")
+			if err != nil {
+				return fmt.Errorf("failed to get PVC. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+
+			var pvc corev1.PersistentVolumeClaim
+			err = json.Unmarshal(stdout, &pvc)
+			if err != nil {
+				return fmt.Errorf("failed to unmarshal PVC. stdout: %s, err: %v", stdout, err)
+			}
+
+			if pvc.Spec.VolumeName == "" {
+				return errors.New("pvc.Spec.VolumeName should not be empty")
+			}
+
+			volumeName = pvc.Spec.VolumeName
+			return nil
+		}).Should(Succeed())
+
+		By("getting node name of which volume is created")
+		stdout, stderr, err = kubectl("get", "-n", "topolvm-system", "logicalvolumes", volumeName, "-o", "json")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		var lv topolvmv1.LogicalVolume
+		err = json.Unmarshal(stdout, &lv)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		nodeName := lv.Spec.NodeName
+
+		By("deploying ubuntu Pod with PVC")
+		podYAML := `apiVersion: v1
+kind: Pod
+metadata:
+  name: ubuntu
+  labels:
+    app.kubernetes.io/name: ubuntu
+spec:
+  containers:
+    - name: ubuntu
+      image: quay.io/cybozu/ubuntu:18.04
+      command: ["sleep", "infinity"]
+      volumeMounts:
+        - mountPath: /test1
+          name: my-volume
+  volumes:
+    - name: my-volume
+      persistentVolumeClaim:
+        claimName: topo-pvc
+`
+
+		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("confirming that ubuntu pod is scheduled onto " + nodeName)
+		Eventually(func() error {
+			stdout, stderr, err := kubectl("get", "-n", ns, "pod", "ubuntu", "-o", "json")
+			if err != nil {
+				return fmt.Errorf("failed to create pod. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+
+			var pod corev1.Pod
+			err = json.Unmarshal(stdout, &pod)
+			if err != nil {
+				return fmt.Errorf("failed to unmarshal pod. stdout: %s, err: %v", stdout, err)
+			}
+
+			if pod.Spec.NodeName != nodeName {
+				return fmt.Errorf("pod is not yet scheduled")
+			}
+
+			return nil
+		}).Should(Succeed())
+
+		By("deleting the Pod, then recreating it")
+		stdout, stderr, err = kubectl("delete", "--now=true", "-n", ns, "pod/ubuntu")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("confirming that ubuntu pod is rescheduled onto " + nodeName)
+		Eventually(func() error {
+			stdout, stderr, err := kubectl("get", "-n", ns, "pod", "ubuntu", "-o", "json")
+			if err != nil {
+				return fmt.Errorf("failed to create pod. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+
+			var pod corev1.Pod
+			err = json.Unmarshal(stdout, &pod)
+			if err != nil {
+				return fmt.Errorf("failed to unmarshal pod. stdout: %s, err: %v", stdout, err)
+			}
+
+			if pod.Spec.NodeName != nodeName {
+				return fmt.Errorf("pod is not yet scheduled")
+			}
+
+			return nil
+		}).Should(Succeed())
+	})
 })
 
 func waitCreatingDefaultSA(ns string) error {
