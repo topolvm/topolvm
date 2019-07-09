@@ -38,7 +38,7 @@ var extenderArgs = ExtenderArgs{
 func testPredicate(t *testing.T) {
 	t.Parallel()
 
-	handler, err := NewHandler(1, 1)
+	handler, err := NewHandler(1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +80,7 @@ func testPredicate(t *testing.T) {
 func testPrioritize(t *testing.T) {
 	t.Parallel()
 
-	handler, err := NewHandler(1, 1)
+	handler, err := NewHandler(1)
 	if err != nil {
 		t.Fatal(err)
 	}

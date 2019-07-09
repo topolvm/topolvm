@@ -9,14 +9,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func filterNodes(nodes corev1.NodeList, requested int64, spare uint64) ExtenderFilterResult {
+func filterNodes(nodes corev1.NodeList, requested int64) ExtenderFilterResult {
 	if requested <= 0 {
 		return ExtenderFilterResult{
 			Nodes: &nodes,
 		}
 	}
 
-	required := spare + uint64(requested)
+	required := uint64(requested)
 	filtered := corev1.NodeList{}
 	failed := FailedNodesMap{}
 
@@ -73,7 +73,7 @@ func (s scheduler) predicate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	requested := extractRequestedSize(input.Pod)
-	result := filterNodes(*input.Nodes, requested, s.spareGB<<30)
+	result := filterNodes(*input.Nodes, requested)
 	w.Header().Set("content-type", "application/json")
 	json.NewEncoder(w).Encode(result)
 }

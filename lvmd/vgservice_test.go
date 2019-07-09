@@ -47,7 +47,7 @@ func (s *mockWatchServer) RecvMsg(m interface{}) error {
 
 func testWatch(t *testing.T, vg *command.VolumeGroup) {
 	ctx, cancel := context.WithCancel(context.Background())
-	vgService, notifier := NewVGService(vg)
+	vgService, notifier := NewVGService(vg, 1)
 
 	ch1 := make(chan struct{})
 	server1 := &mockWatchServer{
@@ -112,7 +112,7 @@ func testWatch(t *testing.T, vg *command.VolumeGroup) {
 }
 
 func testVGService(t *testing.T, vg *command.VolumeGroup) {
-	vgService, _ := NewVGService(vg)
+	vgService, _ := NewVGService(vg, 1)
 	res, err := vgService.GetLVList(context.Background(), &proto.Empty{})
 	if err != nil {
 		t.Fatal(err)
@@ -152,7 +152,8 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res2.GetFreeBytes() != freeBytes {
+	expected := freeBytes - (1 << 30)
+	if res2.GetFreeBytes() != expected {
 		t.Errorf("Free bytes mismatch: %d", res2.GetFreeBytes())
 	}
 }

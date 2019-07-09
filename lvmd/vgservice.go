@@ -12,9 +12,10 @@ import (
 )
 
 // NewVGService creates a VGServiceServer
-func NewVGService(vg *command.VolumeGroup) (proto.VGServiceServer, func()) {
+func NewVGService(vg *command.VolumeGroup, spareGB uint64) (proto.VGServiceServer, func()) {
 	svc := &vgService{
 		vg:       vg,
+		spare:    spareGB << 30,
 		watchers: make(map[int]chan struct{}),
 	}
 
@@ -22,7 +23,8 @@ func NewVGService(vg *command.VolumeGroup) (proto.VGServiceServer, func()) {
 }
 
 type vgService struct {
-	vg *command.VolumeGroup
+	vg    *command.VolumeGroup
+	spare uint64
 
 	mu             sync.Mutex
 	watcherCounter int
@@ -57,6 +59,12 @@ func (s *vgService) GetFreeBytes(context.Context, *proto.Empty) (*proto.GetFreeB
 			log.FnError: err,
 		})
 		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	if vgFree < s.spare {
+		vgFree = 0
+	} else {
+		vgFree -= s.spare
 	}
 
 	return &proto.GetFreeBytesResponse{

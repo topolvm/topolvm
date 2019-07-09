@@ -59,7 +59,7 @@ start-lvmd:
 	$(SUDO) lvcreate -y -n csi-node-test-block -L 1G myvg
 	$(SUDO) lvcreate -y -n csi-node-test-fs -L 1G myvg
 	mkdir -p /tmp/topolvm
-	$(SUDO) systemd-run --unit=lvmd.service $(shell pwd)/build/lvmd --volume-group=myvg --listen=/tmp/topolvm/lvmd.sock
+	$(SUDO) systemd-run --unit=lvmd.service $(shell pwd)/build/lvmd --volume-group=myvg --listen=/tmp/topolvm/lvmd.sock --spare=1
 
 stop-lvmd:
 	$(MAKE) shutdown-kind

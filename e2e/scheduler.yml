@@ -28,7 +28,6 @@ spec:
             - /topolvm-scheduler
             - --listen=:9251
             - --divisor=1
-            - --spare=1
           livenessProbe:
             httpGet:
               path: /status
