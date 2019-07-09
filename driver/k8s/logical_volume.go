@@ -17,7 +17,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
-	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -48,10 +47,6 @@ func NewLogicalVolumeService(namespace string) (driver.LogicalVolumeService, err
 		return nil, err
 	}
 	err = corev1.AddToScheme(scheme)
-	if err != nil {
-		return nil, err
-	}
-	err = storagev1.AddToScheme(scheme)
 	if err != nil {
 		return nil, err
 	}
