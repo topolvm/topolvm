@@ -44,6 +44,9 @@ func testPredicate(t *testing.T) {
 	}
 
 	input, err := json.Marshal(extenderArgs)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("POST", "/predicate", bytes.NewReader(input))
@@ -86,6 +89,9 @@ func testPrioritize(t *testing.T) {
 	}
 
 	input, err := json.Marshal(extenderArgs)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("POST", "/prioritize", bytes.NewReader(input))

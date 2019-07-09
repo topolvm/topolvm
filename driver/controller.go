@@ -254,7 +254,7 @@ func (s controllerService) GetCapacity(ctx context.Context, req *csi.GetCapacity
 		log.Warn("capability argument is not nil, but csi controller plugin ignored this argument", map[string]interface{}{})
 	}
 
-	capacity := int64(0)
+	var capacity int64
 	switch topology {
 	case nil:
 		var err error
