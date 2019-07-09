@@ -162,10 +162,10 @@ func TestMutate(t *testing.T) {
 						StorageClassName: &sc.Name,
 						Resources: corev1.ResourceRequirements{
 							Limits: corev1.ResourceList{
-								corev1.ResourceRequestsStorage: *resource.NewQuantity(5<<30, resource.BinarySI),
+								corev1.ResourceStorage: *resource.NewQuantity(5<<30, resource.BinarySI),
 							},
 							Requests: corev1.ResourceList{
-								corev1.ResourceRequestsStorage: *resource.NewQuantity(3<<30, resource.BinarySI),
+								corev1.ResourceStorage: *resource.NewQuantity(3<<30, resource.BinarySI),
 							},
 						},
 					},
@@ -202,7 +202,7 @@ func TestMutate(t *testing.T) {
 						StorageClassName: &sc.Name,
 						Resources: corev1.ResourceRequirements{
 							Requests: corev1.ResourceList{
-								corev1.ResourceRequestsStorage: *resource.NewQuantity(3<<29, resource.BinarySI),
+								corev1.ResourceStorage: *resource.NewQuantity(3<<29, resource.BinarySI),
 							},
 						},
 					},
@@ -218,7 +218,7 @@ func TestMutate(t *testing.T) {
 						StorageClassName: &sc.Name,
 						Resources: corev1.ResourceRequirements{
 							Requests: corev1.ResourceList{
-								corev1.ResourceRequestsStorage: *resource.NewQuantity(3<<29, resource.BinarySI),
+								corev1.ResourceStorage: *resource.NewQuantity(3<<29, resource.BinarySI),
 							},
 						},
 					},

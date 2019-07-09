@@ -2,7 +2,6 @@ package hook
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -11,6 +10,7 @@ import (
 	"k8s.io/api/admission/v1beta1"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -92,7 +92,7 @@ func (h hook) calcRequested(pod *corev1.Pod) int64 {
 			continue
 		}
 		if sc.Provisioner == topolvm.PluginName {
-			req, ok := pvc.Spec.Resources.Requests[corev1.ResourceRequestsStorage]
+			req, ok := pvc.Spec.Resources.Requests[corev1.ResourceStorage]
 			if ok && req.Value() != 0 {
 				requested += ((req.Value()-1)>>30 + 1) << 30
 			} else {
@@ -107,7 +107,7 @@ func (h hook) calcRequested(pod *corev1.Pod) int64 {
 func createPatch(request int64, pod *corev1.Pod) []patchOperation {
 	var patch []patchOperation
 
-	requestedStr := fmt.Sprintf("%v", request)
+	requestedStr := resource.NewQuantity(request, resource.DecimalSI).String()
 
 	reqPath := "/spec/containers/0/resources/requests"
 	limitPath := "/spec/containers/0/resources/limits"

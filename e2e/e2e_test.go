@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/cybozu-go/topolvm"
 	topolvmv1 "github.com/cybozu-go/topolvm/topolvm-node/api/v1"
@@ -15,7 +16,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var _ = FDescribe("E2E test", func() {
+var _ = Describe("E2E test", func() {
 	testNamespacePrefix := "e2etest-"
 	var ns string
 	BeforeEach(func() {
@@ -492,27 +493,27 @@ spec:
 		/*
 			Check the operation of topolvm-scheduler in multi-node(3-node) environment.
 			As preparation, set the capacity of each node as follows.
-			- node1: 20 / 20 GB (targetNode)
-			- node2:  8 / 20 GB
-			- node3:  8 / 20 GB
+			- node1: 18 / 18 GiB (targetNode)
+			- node2:  4 / 18 GiB
+			- node3:  4 / 18 GiB
 
 			# 1st case: test for `prioritize`
-			Try to create 8GB PVC. Then
-			- node1: 20 / 20 GB -> `prioritize` 4 -> selected
-			- node2:  8 / 20 GB -> `prioritize` 3
-			- node3:  8 / 20 GB -> `prioritize` 3
+			Try to create 8GiB PVC. Then
+			- node1: 18 / 18 GiB -> `prioritize` 4 -> selected
+			- node2:  4 / 18 GiB -> `prioritize` 2
+			- node3:  4 / 18 GiB -> `prioritize` 2
 
 			# 2nd case: test for `predicate` (1)
-			Try to create 10GB PVC. Then
-			- node1: 12 / 20 GB -> selected
-			- node2:  8 / 20 GB -> filtered (insufficient capacity)
-			- node3:  8 / 20 GB -> filtered (insufficient capacity)
+			Try to create 6GiB PVC. Then
+			- node1: 10 / 18 GiB -> selected
+			- node2:  4 / 18 GiB -> filtered (insufficient capacity)
+			- node3:  4 / 18 GiB -> filtered (insufficient capacity)
 
 			# 3rd case: test for `predicate` (2)
-			Try to create 10GB PVC. Then it cause error.
-			- node1:  2 / 20 GB -> filtered (insufficient capacity)
-			- node2:  8 / 20 GB -> filtered (insufficient capacity)
-			- node3:  8 / 20 GB -> filtered (insufficient capacity)
+			Try to create 8GiB PVC. Then it cause error.
+			- node1:  4 / 18 GiB -> filtered (insufficient capacity)
+			- node2:  4 / 18 GiB -> filtered (insufficient capacity)
+			- node3:  4 / 18 GiB -> filtered (insufficient capacity)
 		*/
 		By("initializing node capacity")
 		claimYAML := `kind: PersistentVolumeClaim
@@ -524,7 +525,7 @@ spec:
   - ReadWriteOnce
   resources:
     requests:
-      storage: 12Gi
+      storage: 14Gi
   storageClassName: topolvm-provisioner-immediate
 ---
 kind: PersistentVolumeClaim
@@ -536,7 +537,7 @@ spec:
   - ReadWriteOnce
   resources:
     requests:
-      storage: 12Gi
+      storage: 14Gi
   storageClassName: topolvm-provisioner-immediate
 `
 		stdout, stderr, err := kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
@@ -586,7 +587,7 @@ spec:
 			cap, err := strconv.Atoi(strCap)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			fmt.Printf("%s: %d", node.Name, cap)
+			fmt.Printf("%s: %d\n", node.Name, cap)
 			if cap > maxCapacity {
 				maxCapacity = cap
 				targetNode = node.Name
@@ -615,7 +616,7 @@ spec:
   - ReadWriteOnce
   resources:
     requests:
-      storage: 10Gi
+      storage: 6Gi
   storageClassName: topolvm-provisioner
 ---
 kind: PersistentVolumeClaim
@@ -627,7 +628,7 @@ spec:
   - ReadWriteOnce
   resources:
     requests:
-      storage: 10Gi
+      storage: 8Gi
   storageClassName: topolvm-provisioner
 `
 
@@ -664,7 +665,7 @@ spec:
 		}).Should(Succeed())
 		Expect(boundNode).To(Equal(targetNode), "bound: %s, target: %s", boundNode, targetNode)
 
-		By("confirming that claiming 10GB pv to the targetNode is successful")
+		By("confirming that claiming 6GB pv to the targetNode is successful")
 		stdout, stderr, err = kubectlWithInput([]byte(fmt.Sprintf(podYAMLTmpl, 2, 2)), "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 		Eventually(func() error {
@@ -673,13 +674,18 @@ spec:
 		}).Should(Succeed())
 		Expect(boundNode).To(Equal(targetNode), "bound: %s, target: %s", boundNode, targetNode)
 
-		By("confirming that claiming 10GB pv to the targetNode is unsuccessful")
+		By("confirming that claiming 8GB pv to the targetNode is unsuccessful")
 		stdout, stderr, err = kubectlWithInput([]byte(fmt.Sprintf(podYAMLTmpl, 3, 3)), "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		Eventually(func() error {
-			// TODO
-			return nil
-		}).Should(Succeed())
+
+		time.Sleep(15 * time.Second)
+
+		stdout, stderr, err = kubectl("get", "-n", ns, "pod", "ubuntu3", "-o", "json")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		var pod corev1.Pod
+		err = json.Unmarshal(stdout, &pod)
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s", stdout)
+		Expect(pod.Spec.NodeName).To(Equal(""))
 	})
 })
 
