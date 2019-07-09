@@ -11,10 +11,19 @@
 
 Command-line options are:
 
-| Option         | Default value            | Description                         |
-| -------------- | ------------------------ | ----------------------------------- |
-| `volume-group` | ""                       | target volume group name            |
-| `listen`       | `/run/topolvm/lvmd.sock` | unix domain socket endpoint of gRPC |
+| Option         | Type   | Default value            | Description                          |
+| -------------- | ------ | ------------------------ |
+| `volume-group` | string | ""                       | target volume group name             |
+| `listen`       | string | `/run/topolvm/lvmd.sock` | unix domain socket endpoint of gRPC  |
+| `spare`        | uint64 | 10                       | Storage capacity in GiB to be spared |
+
+Spare capacity
+--------------
+
+LVMd subtracts a certain amount from the free space of a volume group before
+reporting the free space of the volume group.
+
+The default spare capacity is 10 GiB.  This can be changed with `--spare` command-line flag.
 
 API specification
 -----------------

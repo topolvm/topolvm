@@ -45,8 +45,6 @@ This verb filters out nodes whose volume groups have not enough free space.
 Volume group capacity is identified from the value of `topolvm.cybozu.com/capacity`
 annotation.
 
-It keeps spare free space in each volume group as specified by `spare` command-line flag.
-
 ### `prioritize`
 
 This verb scores nodes.  The score of a node is calculated by this formula:
@@ -58,8 +56,7 @@ This verb scores nodes.  The score of a node is calculated by this formula:
 Command-line flags
 ------------------
 
-| Name      | Type    | Default | Description                          |
-| --------- | ------- | ------: | ------------------------------------ |
-| `listen`  | string  | `:8000` | HTTP listening address               |
-| `divisor` | float64 |       1 | A variable for node scoring          |
-| `spare`   | uint64  |      10 | Storage capacity in GiB to be spared |
+| Name      | Type    | Default | Description                 |
+| --------- | ------- | ------: | --------------------------- |
+| `listen`  | string  | `:8000` | HTTP listening address      |
+| `divisor` | float64 |       1 | A variable for node scoring |

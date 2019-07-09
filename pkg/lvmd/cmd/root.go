@@ -19,6 +19,7 @@ import (
 var config struct {
 	vgName     string
 	socketName string
+	spareGB    uint64
 }
 
 // DefaultSocketName defines the default UNIX domain socket path.
@@ -32,7 +33,15 @@ const (
 var rootCmd = &cobra.Command{
 	Use:   "lvmd",
 	Short: "a gRPC service to manage LVM volumes",
-	Long:  `A gRPC service to manage LVM volumes.`,
+	Long: `A gRPC service to manage LVM volumes.
+
+lvmd handles a LVM volume group and provides gRPC API to manage logical
+volumes in the volume group.
+
+If command-line option "spare" is not zero, that value multiplied by 1 GiB
+will be subtracted from the value lvmd reports as the free space of the
+volume group.
+`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 		return subMain()
@@ -66,7 +75,7 @@ func subMain() error {
 		return err
 	}
 	grpcServer := grpc.NewServer()
-	vgService, notifier := lvmd.NewVGService(vg)
+	vgService, notifier := lvmd.NewVGService(vg, config.spareGB)
 	proto.RegisterVGServiceServer(grpcServer, vgService)
 	proto.RegisterLVServiceServer(grpcServer, lvmd.NewLVService(vg, notifier))
 	well.Go(func(ctx context.Context) error {
@@ -108,4 +117,5 @@ func Execute() {
 func init() {
 	rootCmd.Flags().StringVar(&config.vgName, "volume-group", "", "LVM volume group name")
 	rootCmd.Flags().StringVar(&config.socketName, "listen", DefaultSocketName, "Unix domain socket name")
+	rootCmd.Flags().Uint64Var(&config.spareGB, "spare", 10, "storage capacity in GiB to be spared")
 }

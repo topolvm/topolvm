@@ -9,7 +9,8 @@ import (
 	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/csi"
-	"github.com/cybozu-go/topolvm/csi/k8s"
+	"github.com/cybozu-go/topolvm/driver"
+	"github.com/cybozu-go/topolvm/driver/k8s"
 	lvmd "github.com/cybozu-go/topolvm/pkg/lvmd/cmd"
 	"github.com/cybozu-go/well"
 	"github.com/spf13/cobra"
@@ -56,7 +57,7 @@ var rootCmd = &cobra.Command{
 		}
 		grpcServer := grpc.NewServer()
 
-		identityServer := csi.NewIdentityService()
+		identityServer := driver.NewIdentityService()
 		csi.RegisterIdentityServer(grpcServer, identityServer)
 
 		mode := args[0]
@@ -69,7 +70,7 @@ var rootCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
-			controllerServer := csi.NewControllerService(s)
+			controllerServer := driver.NewControllerService(s)
 			csi.RegisterControllerServer(grpcServer, controllerServer)
 			log.Info("start csi-topolvm", map[string]interface{}{
 				"mode":       mode,
@@ -86,7 +87,7 @@ var rootCmd = &cobra.Command{
 			}
 			defer conn.Close()
 
-			err = os.MkdirAll(csi.DeviceDirectory, 0755)
+			err = os.MkdirAll(driver.DeviceDirectory, 0755)
 			if err != nil {
 				return err
 			}
@@ -94,7 +95,7 @@ var rootCmd = &cobra.Command{
 			if config.nodeName == "" {
 				return fmt.Errorf("--node-name is required")
 			}
-			nodeServer := csi.NewNodeService(config.nodeName, conn)
+			nodeServer := driver.NewNodeService(config.nodeName, conn)
 			csi.RegisterNodeServer(grpcServer, nodeServer)
 			log.Info("start csi-topolvm", map[string]interface{}{
 				"mode":        mode,

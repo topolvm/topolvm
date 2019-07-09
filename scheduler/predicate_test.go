@@ -26,7 +26,6 @@ func TestFilterNodes(t *testing.T) {
 	testCases := []struct {
 		nodes     corev1.NodeList
 		requested int64
-		spare     uint64
 		expect    ExtenderFilterResult
 	}{
 		{
@@ -49,8 +48,7 @@ func TestFilterNodes(t *testing.T) {
 					},
 				},
 			},
-			requested: 1 << 30,
-			spare:     1 << 30,
+			requested: 2 << 30,
 			expect: ExtenderFilterResult{
 				Nodes: &corev1.NodeList{
 					Items: []corev1.Node{
@@ -71,7 +69,6 @@ func TestFilterNodes(t *testing.T) {
 				},
 			},
 			requested: 0,
-			spare:     1 << 30,
 			expect: ExtenderFilterResult{
 				Nodes: &corev1.NodeList{
 					Items: []corev1.Node{
@@ -84,7 +81,7 @@ func TestFilterNodes(t *testing.T) {
 	}
 
 	for _, tt := range testCases {
-		result := filterNodes(tt.nodes, tt.requested, tt.spare)
+		result := filterNodes(tt.nodes, tt.requested)
 		if len(result.Nodes.Items) != len(tt.expect.Nodes.Items) {
 			t.Fatalf("not match length of filtered NodeList: expect=%d actual=%d", len(tt.expect.Nodes.Items), len(result.Nodes.Items))
 		}

@@ -64,11 +64,8 @@ jobs:
             GO_VERSION=1.12.5
             curl -fsL https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz | sudo tar xzf - -C /usr/local
       - run:
-          name: run lvmd test
-          command: sudo env "GO111MODULE=on" "CIRCLECI=${CIRCLECI}" "CIRCLECI_EXECUTOR=machine" /usr/local/go/bin/go test -mod=vendor -race -v ./lvmd
-      - run:
-          name: run csi node test
-          command: sudo env "GO111MODULE=on" "CIRCLECI=${CIRCLECI}" "CIRCLECI_EXECUTOR=machine" /usr/local/go/bin/go test -mod=vendor -race -v ./csi
+          name: run tests
+          command: sudo env "GO111MODULE=on" "CIRCLECI=${CIRCLECI}" "CIRCLECI_EXECUTOR=machine" /usr/local/go/bin/go test -mod=vendor -race -v ./lvmd ./driver ./filesystem
   e2e:
     machine:
       image: ubuntu-1604:201903-01
@@ -112,7 +109,12 @@ workflows:
       - e2e
   release:
     jobs:
-      - build
+      - build:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v.*/
       - image:
           requires:
             - build

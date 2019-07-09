@@ -85,7 +85,7 @@ var _ = Describe("Additional CSI sanity test", func() {
 		}
 	})
 
-	It("should be worked NodePublishVolume successfully to create fs", func() {
+	It("should publish filesystem", func() {
 		volumeID := "csi-node-test-fs"
 		mountTargetPath := "/mnt/csi-node-test"
 		cl.register(volumeID, mountTargetPath)
@@ -110,12 +110,12 @@ var _ = Describe("Additional CSI sanity test", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(resp).ShouldNot(BeNil())
 
-		By("creating Filesystem volume again to check idempotency")
+		By("publishing Filesystem volume again to check idempotency")
 		resp, err = nc.NodePublishVolume(context.Background(), req)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(resp).ShouldNot(BeNil())
 
-		By("creating volume on same target path, but requested volume and existing one are different")
+		By("publishing volume on same target path, but requested volume and existing one are different")
 		_, err = nc.NodePublishVolume(context.Background(), &csi.NodePublishVolumeRequest{
 			PublishContext: map[string]string{},
 			TargetPath:     mountTargetPath,

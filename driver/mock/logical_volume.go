@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/cybozu-go/topolvm/csi"
+	"github.com/cybozu-go/topolvm/driver"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -22,7 +23,7 @@ type logicalVolumeService struct {
 }
 
 // NewLogicalVolumeService returns LogicalVolumeService.
-func NewLogicalVolumeService() (csi.LogicalVolumeService, error) {
+func NewLogicalVolumeService() (driver.LogicalVolumeService, error) {
 	return &logicalVolumeService{
 		volumes: make(map[string]logicalVolume),
 	}, nil
@@ -69,8 +70,8 @@ func (s *logicalVolumeService) ExpandVolume(ctx context.Context, volumeID string
 	return nil
 }
 
-func (s *logicalVolumeService) ValidateVolumeCapabilities(ctx context.Context, name string, capabilities []*csi.VolumeCapability) (bool, error) {
-	return true, nil
+func (s *logicalVolumeService) VolumeExists(ctx context.Context, name string) error {
+	return nil
 }
 
 func (s *logicalVolumeService) GetCapacity(ctx context.Context, requestNodeNumber string) (int64, error) {

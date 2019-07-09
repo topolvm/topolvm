@@ -7,7 +7,6 @@ import (
 
 type scheduler struct {
 	divisor float64
-	spareGB uint64
 }
 
 func (s scheduler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -24,11 +23,11 @@ func (s scheduler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // NewHandler return new http.Handler of the scheduler extender
-func NewHandler(divisor float64, spareGB uint64) (http.Handler, error) {
+func NewHandler(divisor float64) (http.Handler, error) {
 	if divisor <= 0 {
 		return nil, fmt.Errorf("invalid divisor: %f", divisor)
 	}
-	return scheduler{divisor, spareGB}, nil
+	return scheduler{divisor}, nil
 }
 
 func status(w http.ResponseWriter, r *http.Request) {
