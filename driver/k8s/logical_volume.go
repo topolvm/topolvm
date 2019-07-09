@@ -177,7 +177,7 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 func (s *logicalVolumeService) DeleteVolume(ctx context.Context, volumeID string) error {
 	lvList := new(topolvmv1.LogicalVolumeList)
 	err := s.mgr.GetClient().List(ctx, lvList,
-		client.InNamespace(topolvm.SystemNamespace),
+		client.InNamespace(s.namespace),
 		client.MatchingField(indexFieldVolumeID, volumeID))
 	if err != nil {
 		return err
@@ -197,7 +197,7 @@ func (s *logicalVolumeService) DeleteVolume(ctx context.Context, volumeID string
 func (s *logicalVolumeService) getLogicalVolumeListByVolumeID(ctx context.Context, volumeID string) (*topolvmv1.LogicalVolumeList, error) {
 	lvList := new(topolvmv1.LogicalVolumeList)
 	err := s.mgr.GetClient().List(ctx, lvList,
-		client.InNamespace(topolvm.SystemNamespace),
+		client.InNamespace(s.namespace),
 		client.MatchingField(indexFieldVolumeID, volumeID))
 	if err != nil {
 		return nil, err
