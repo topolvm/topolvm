@@ -26,3 +26,12 @@ func kubectl(args ...string) ([]byte, []byte, error) {
 func kubectlWithInput(input []byte, args ...string) ([]byte, []byte, error) {
 	return execAtLocal("kubectl", input, args...)
 }
+
+func containString(s []string, target string) bool {
+	for _, ss := range s {
+		if ss == target {
+			return true
+		}
+	}
+	return false
+}

@@ -61,7 +61,7 @@ spec:
   - ReadWriteOnce
   resources:
     requests:
-      storage: 1Gi
+      storage: 2Gi
   storageClassName: topolvm-provisioner
 ---
 kind: PersistentVolumeClaim
@@ -119,16 +119,16 @@ spec:
 			if !ok {
 				return errors.New("resources.Limits is not mutated")
 			}
-			if v.Value() != 2<<30 {
-				return fmt.Errorf("wrong limit value: actual=%d, expect=%d", v.Value(), 2<<30)
+			if v.Value() != 3<<30 {
+				return fmt.Errorf("wrong limit value: actual=%d, expect=%d", v.Value(), 3<<30)
 			}
 
 			v, ok = resources.Requests[topolvm.CapacityResource]
 			if !ok {
 				return errors.New("resources.Requests is not mutated")
 			}
-			if v.Value() != 2<<30 {
-				return fmt.Errorf("wrong request value: actual=%d, expect=%d", v.Value(), 2<<30)
+			if v.Value() != 3<<30 {
+				return fmt.Errorf("wrong request value: actual=%d, expect=%d", v.Value(), 3<<30)
 			}
 
 			return nil
@@ -145,7 +145,7 @@ spec:
   - ReadWriteOnce
   resources:
     requests:
-      storage: 1Gi
+      storage: 2Gi
   storageClassName: host-local
 ---
 apiVersion: v1

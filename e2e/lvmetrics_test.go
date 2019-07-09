@@ -48,14 +48,6 @@ var _ = Describe("Test for lvmetrics", func() {
 	})
 
 	It("should annotate capacity to node", func() {
-		targetBytes, stderr, err := execAtLocal("sudo", nil, "vgs",
-			"-o", "vg_free",
-			"--noheadings",
-			"--units=b",
-			"--nosuffix",
-			"myvg",
-		)
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", targetBytes, stderr)
 		stdout, stderr, err := kubectl("get", "nodes", "-o=json")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
@@ -64,10 +56,32 @@ var _ = Describe("Test for lvmetrics", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(nodes.Items)).To(Equal(4))
 
+		vgNameMap := map[string]string{
+			"kind-worker":        "myvg1",
+			"kind-worker2":       "myvg2",
+			"kind-worker3":       "myvg3",
+			"kind-control-plane": "",
+		}
+
 		for _, node := range nodes.Items {
-			if node.Name == "kind-control-plane" {
+			vgName, ok := vgNameMap[node.Name]
+			if !ok {
+				panic(node.Name + " does not exist")
+			}
+
+			if len(vgName) == 0 {
 				continue
 			}
+
+			By("checking " + node.Name)
+			targetBytes, stderr, err := execAtLocal("sudo", nil, "vgs",
+				"-o", "vg_free",
+				"--noheadings",
+				"--units=b",
+				"--nosuffix",
+				vgName,
+			)
+			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", targetBytes, stderr)
 			val, ok := node.Annotations[topolvm.CapacityKey]
 			Expect(ok).To(Equal(true), "capacity is not annotated: "+node.Name)
 			Expect(val).To(Equal(strings.TrimSpace(string(targetBytes))), "unexpected capacity: "+node.Name)
