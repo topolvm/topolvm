@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/cybozu-go/log"
+	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/hook"
 	"github.com/cybozu-go/well"
 	"github.com/spf13/cobra"
@@ -19,8 +20,9 @@ var config struct {
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "topolvm-hook",
-	Short: "A brief description of your application",
+	Use:     "topolvm-hook",
+	Version: topolvm.Version,
+	Short:   "A brief description of your application",
 	Long: `A longer description that spans multiple lines and likely contains
 examples and usage of using your application. For example:
 

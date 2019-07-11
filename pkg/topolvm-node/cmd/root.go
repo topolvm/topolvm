@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/cybozu-go/topolvm"
 	topolvmv1 "github.com/cybozu-go/topolvm/topolvm-node/api/v1"
 	"github.com/cybozu-go/topolvm/topolvm-node/controllers"
 	"github.com/spf13/cobra"
@@ -60,9 +61,10 @@ func init() {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "topolvm-node",
-	Short: "",
-	Long:  ``,
+	Use:     "topolvm-node",
+	Version: topolvm.Version,
+	Short:   "",
+	Long:    ``,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 		return subMain()

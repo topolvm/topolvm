@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 
+	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/lvmetrics"
 	lvmd "github.com/cybozu-go/topolvm/pkg/lvmd/cmd"
 	"github.com/cybozu-go/well"
@@ -20,8 +21,9 @@ var config struct {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "lvmetrics",
-	Short: "annotate Node with LVM volume group metrics",
+	Use:     "lvmetrics",
+	Version: topolvm.Version,
+	Short:   "annotate Node with LVM volume group metrics",
 	Long: `Annotate Node resource with LVM volume group metrics.
 
 This program should be run as a sidecar container in DaemonSet.

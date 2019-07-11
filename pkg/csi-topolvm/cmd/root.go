@@ -32,9 +32,10 @@ var config struct {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "csi-topolvm",
-	Short: "TopoLVM CSI Plugin",
-	Long:  `TopoLVM CSI Plugin`,
+	Use:     "csi-topolvm",
+	Version: topolvm.Version,
+	Short:   "TopoLVM CSI Plugin",
+	Long:    `TopoLVM CSI Plugin`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 1 || (args[0] != modeNode && args[0] != modeController) {
 			return fmt.Errorf("requires operation mode: %s or %s", modeNode, modeController)

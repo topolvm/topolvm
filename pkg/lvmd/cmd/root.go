@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/lvmd"
 	"github.com/cybozu-go/topolvm/lvmd/command"
 	"github.com/cybozu-go/topolvm/lvmd/proto"
@@ -31,8 +32,9 @@ const (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "lvmd",
-	Short: "a gRPC service to manage LVM volumes",
+	Use:     "lvmd",
+	Version: topolvm.Version,
+	Short:   "a gRPC service to manage LVM volumes",
 	Long: `A gRPC service to manage LVM volumes.
 
 lvmd handles a LVM volume group and provides gRPC API to manage logical

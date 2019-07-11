@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/scheduler"
 	"github.com/cybozu-go/well"
 	"github.com/spf13/cobra"
@@ -16,8 +17,9 @@ var config struct {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "topolvm-scheduler",
-	Short: "a scheduler-extender for TopoLVM",
+	Use:     "topolvm-scheduler",
+	Version: topolvm.Version,
+	Short:   "a scheduler-extender for TopoLVM",
 	Long: `A scheduler-extender for TopoLVM.
 
 The extender implements filter and prioritize verbs.
