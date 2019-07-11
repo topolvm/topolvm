@@ -83,6 +83,9 @@ func subMain() error {
 		return dialer.DialContext(ctx, "unix", a)
 	}
 	conn, err := grpc.Dial(viper.GetString("lvmd-socket"), grpc.WithInsecure(), grpc.WithContextDialer(dialFunc))
+	if err != nil {
+		return err
+	}
 	defer conn.Close()
 
 	err = controllers.NewLogicalVolumeReconciler(
