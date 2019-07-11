@@ -20,6 +20,7 @@ jobs:
             - csi-node-driver-registrar
             - csi-provisioner
             - hypertopolvm
+            - lvmd
   image:
     docker:
       - image: docker:stable
@@ -46,6 +47,14 @@ jobs:
             BRANCH=$(echo $TAG | cut -d "." -f 1-2)
             docker tag quay.io/cybozu/topolvm:latest quay.io/cybozu/topolvm:$BRANCH
             docker push quay.io/cybozu/topolvm:$BRANCH
+  publish-github-release:
+    docker:
+      - image: quay.io/cybozu/golang:1.12-bionic
+    steps:
+      - attach_workspace:
+          at: ./artifacts
+      - run: tar czf lvmd-${CIRCLE_TAG#v}.tar.gz -C ./artifacts lvmd
+      - run: ghr -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} ${CIRCLE_TAG} lvmd-*.tar.gz
   test-node:
     machine:
       image: ubuntu-1604:201903-01
@@ -116,6 +125,14 @@ workflows:
             tags:
               only: /^v.*/
       - image:
+          requires:
+            - build
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v.*/
+      - publish-github-release:
           requires:
             - build
           filters:

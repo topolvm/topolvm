@@ -10,7 +10,7 @@ TopoLVM
 TopoLVM is a [CSI][] plugin using LVM for Kubernetes.
 It can be considered as a specific implementation of [local persistent volumes](https://kubernetes.io/docs/concepts/storage/volumes/#local) using CSI and LVM.
 
-**Project Status**: Initial Development
+**Project Status**: Testing for production
 
 Supported environments
 ----------------------

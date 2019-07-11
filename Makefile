@@ -25,7 +25,10 @@ CSI_SIDECARS = \
 	node-driver-registrar \
 	external-attacher
 
+all: build
+
 external-provisioner:
+	mkdir -p build
 	mkdir -p $(GOPATH)/src/github.com/kubernetes-csi
 	rm -rf $(GOPATH)/src/github.com/kubernetes-csi/external-provisioner
 	curl -sSLf https://github.com/kubernetes-csi/external-provisioner/archive/v$(EXTERNAL_PROVISIONER_VERSION).tar.gz | \
@@ -36,6 +39,7 @@ external-provisioner:
 	cp -f $(GOPATH)/src/github.com/kubernetes-csi/external-provisioner/bin/csi-provisioner ./build/
 
 node-driver-registrar:
+	mkdir -p build
 	mkdir -p $(GOPATH)/src/github.com/kubernetes-csi
 	rm -rf $(GOPATH)/src/github.com/kubernetes-csi/node-driver-registrar
 	curl -sSLf https://github.com/kubernetes-csi/node-driver-registrar/archive/v$(NODE_DRIVER_REGISTRAR_VERSION).tar.gz | \
@@ -46,6 +50,7 @@ node-driver-registrar:
 	cp -f $(GOPATH)/src/github.com/kubernetes-csi/node-driver-registrar/bin/csi-node-driver-registrar ./build/
 
 external-attacher:
+	mkdir -p build
 	mkdir -p $(GOPATH)/src/github.com/kubernetes-csi
 	rm -rf $(GOPATH)/src/github.com/kubernetes-csi/external-attacher
 	curl -sSLf https://github.com/kubernetes-csi/external-attacher/archive/v$(EXTERNAL_ATTACHER_VERSION).tar.gz | \
@@ -90,7 +95,12 @@ test:
 
 generate: csi/csi.pb.go lvmd/proto/lvmd.pb.go docs/lvmd-protocol.md
 
-build: $(BUILD_TARGET) $(CSI_SIDECARS)
+build: $(BUILD_TARGET) $(CSI_SIDECARS) build/lvmd
+
+build/lvmd:
+	mkdir -p build
+	CGO_ENABLED=0 go build -o $@ ./pkg/lvmd
+
 $(BUILD_TARGET): $(GO_FILES)
 	mkdir -p build
 	go build -o ./build/$@ ./pkg/$@
@@ -103,4 +113,4 @@ setup:
 	$(SUDO) apt-get update
 	$(SUDO) apt-get -y install --no-install-recommends $(PACKAGES)
 
-.PHONY: test generate build setup
+.PHONY: all test generate build setup
