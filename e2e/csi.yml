@@ -8,7 +8,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: topolvm-system:csi-topolvm-controller
-  namespace: topolvm-system
 rules:
   - apiGroups: ["topolvm.cybozu.com"]
     resources: ["logicalvolumes", "logicalvolumes/status"]
@@ -18,7 +17,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: topolvm-system:csi-topolvm-controller
-  namespace: topolvm-system
 subjects:
   - kind: ServiceAccount
     name: csi-topolvm-controller
@@ -247,7 +245,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: topolvm-system:csi-topolvm-node
-  namespace: topolvm-system
 rules:
   - apiGroups: ["topolvm.cybozu.com"]
     resources: ["logicalvolumes", "logicalvolumes/status"]
@@ -257,7 +254,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: topolvm-system:csi-topolvm-node
-  namespace: topolvm-system
 subjects:
   - kind: ServiceAccount
     name: csi-topolvm-node
