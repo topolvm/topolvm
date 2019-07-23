@@ -15,7 +15,7 @@ require (
 	github.com/container-storage-interface/spec v1.1.0
 	github.com/cybozu-go/log v1.5.0
 	github.com/cybozu-go/well v1.8.1
-	github.com/evanphx/json-patch v4.2.0+incompatible
+	github.com/evanphx/json-patch v4.5.0+incompatible
 	github.com/go-logr/logr v0.1.0
 	github.com/go-logr/zapr v0.1.1 // indirect
 	github.com/go-sql-driver/mysql v1.4.1 // indirect
@@ -47,5 +47,5 @@ require (
 	k8s.io/apimachinery v0.0.0-20190515023456-b74e4c97951f
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 	k8s.io/klog v0.3.0
-	sigs.k8s.io/controller-runtime v0.2.0-beta.2
+	sigs.k8s.io/controller-runtime v0.2.0-beta.4
 )
