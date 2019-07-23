@@ -27,6 +27,7 @@ type LogicalVolumeStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:scope=Namespaced
 // +kubebuilder:subresource:status
 
 // LogicalVolume is the Schema for the logicalvolumes API
