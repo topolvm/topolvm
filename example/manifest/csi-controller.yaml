@@ -1,0 +1,231 @@
+---
+apiVersion: storage.k8s.io/v1beta1
+kind: CSIDriver
+metadata:
+  name: topolvm.cybozu.com
+spec:
+  attachRequired: true
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: topolvm-system
+  name: csi-topolvm-controller
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: topolvm-system:csi-topolvm-controller
+rules:
+  - apiGroups: ["topolvm.cybozu.com"]
+    resources: ["logicalvolumes", "logicalvolumes/status"]
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: topolvm-system:csi-topolvm-controller
+subjects:
+  - kind: ServiceAccount
+    namespace: topolvm-system
+    name: csi-topolvm-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: topolvm-system:csi-topolvm-controller
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: external-provisioner-runner
+rules:
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["list", "watch", "create", "update", "patch"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshots"]
+    verbs: ["get", "list"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshotcontents"]
+    verbs: ["get", "list"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["csinodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: csi-provisioner-role
+subjects:
+  - kind: ServiceAccount
+    namespace: topolvm-system
+    name: csi-topolvm-controller
+roleRef:
+  kind: ClusterRole
+  name: external-provisioner-runner
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: topolvm-system
+  name: external-provisioner-cfg
+rules:
+- apiGroups: [""]
+  resources: ["endpoints"]
+  verbs: ["get", "watch", "list", "delete", "update", "create"]
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "watch", "list", "delete", "update", "create"]
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: topolvm-system
+  name: csi-provisioner-role-cfg
+subjects:
+  - kind: ServiceAccount
+    namespace: topolvm-system
+    name: csi-topolvm-controller
+roleRef:
+  kind: Role
+  name: external-provisioner-cfg
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: external-attacher-runner
+rules:
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["csinodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["volumeattachments"]
+    verbs: ["get", "list", "watch", "update"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: csi-attacher-role
+subjects:
+  - kind: ServiceAccount
+    name: csi-topolvm-controller
+    namespace: topolvm-system
+roleRef:
+  kind: ClusterRole
+  name: external-attacher-runner
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: topolvm-system
+  name: external-attacher-cfg
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "watch", "list", "delete", "update", "create"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "watch", "list", "delete", "update", "create"]
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: csi-attacher-role-cfg
+  namespace: topolvm-system
+subjects:
+  - kind: ServiceAccount
+    name: csi-topolvm-controller
+    namespace: topolvm-system
+roleRef:
+  kind: Role
+  name: external-attacher-cfg
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: csi-topolvm-controller
+  namespace: topolvm-system
+spec:
+  selector:
+    app.kubernetes.io/name: csi-topolvm-controller
+  ports:
+    - name: dummy
+      port: 12345
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: csi-topolvm-controller
+  namespace: topolvm-system
+spec:
+  serviceName: csi-topolvm-controller
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: csi-topolvm-controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: csi-topolvm-controller
+    spec:
+      securityContext:
+        runAsUser:  10000
+        runAsGroup: 10000
+      serviceAccountName: csi-topolvm-controller
+      containers:
+        - name: controller
+          image: quay.io/cybozu/topolvm:0.1.0
+          command:
+            - /csi-topolvm
+            - controller
+            - --csi-socket-name=/run/topolvm/csi-topolvm.sock
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /run/topolvm
+
+        - name: csi-provisioner
+          image: quay.io/cybozu/topolvm:0.1.0
+          command:
+            - /csi-provisioner
+            - "--csi-address=/run/topolvm/csi-topolvm.sock"
+            - "--feature-gates=Topology=true"
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /run/topolvm
+
+        - name: csi-attacher
+          image: quay.io/cybozu/topolvm:0.1.0
+          command:
+            - /csi-attacher
+            - "--csi-address=/run/topolvm/csi-topolvm.sock"
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /run/topolvm
+
+      volumes:
+        - name: socket-dir
+          emptyDir: {}
