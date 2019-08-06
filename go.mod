@@ -15,7 +15,6 @@ require (
 	github.com/container-storage-interface/spec v1.1.0
 	github.com/cybozu-go/log v1.5.0
 	github.com/cybozu-go/well v1.8.1
-	github.com/evanphx/json-patch v4.5.0+incompatible
 	github.com/go-logr/logr v0.1.0
 	github.com/go-logr/zapr v0.1.1 // indirect
 	github.com/go-sql-driver/mysql v1.4.1 // indirect

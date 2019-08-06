@@ -2,35 +2,28 @@ package cmd
 
 import (
 	"fmt"
-	"net/http"
+	"net"
 	"os"
 
-	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/hook"
-	"github.com/cybozu-go/well"
 	"github.com/spf13/cobra"
 )
 
 var config struct {
-	listenAddr string
-	certPath   string
-	keyPath    string
+	metricsAddr string
+	webhookAddr string
+	certDir     string
 }
 
-// rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:     "topolvm-hook",
 	Version: topolvm.Version,
-	Short:   "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
+	Short:   "a webhook to mutate pods for TopoLVM",
+	Long: `topolvm-hook is a mutating webhook server for TopoLVM.
+It mutates pods with PersistentVolumeClaims to claim the storage
+capacity in spec.resources of its first container.`,
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 		return subMain()
@@ -38,35 +31,16 @@ to quickly create a Cobra application.`,
 }
 
 func subMain() error {
-	err := well.LogConfig{}.Apply()
+	h, p, err := net.SplitHostPort(config.webhookAddr)
 	if err != nil {
-		return err
+		return fmt.Errorf("invalid webhook addr: %v", err)
 	}
-
-	h, err := hook.NewHandler()
+	port, err := net.LookupPort("tcp", p)
 	if err != nil {
-		return err
+		return fmt.Errorf("invalid webhook port: %v", err)
 	}
 
-	serv := &http.Server{
-		Addr:    config.listenAddr,
-		Handler: h,
-	}
-
-	log.Info("start topolvm-hook", map[string]interface{}{
-		"listen": config.listenAddr,
-	})
-	err = serv.ListenAndServeTLS(config.certPath, config.keyPath)
-	if err != nil {
-		return err
-	}
-	err = well.Wait()
-
-	if err != nil && !well.IsSignaled(err) {
-		return err
-	}
-
-	return nil
+	return hook.Run(h, port, config.metricsAddr, config.certDir)
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -79,9 +53,7 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().StringVar(&config.listenAddr, "listen", ":8443", "listen address")
-	rootCmd.Flags().StringVar(&config.certPath, "cert", "", "certification file path")
-	rootCmd.Flags().StringVar(&config.keyPath, "key", "", "private key file path")
-	rootCmd.MarkFlagRequired("cert")
-	rootCmd.MarkFlagRequired("key")
+	rootCmd.Flags().StringVar(&config.metricsAddr, "metrics-addr", ":8080", "Listen address for metrics")
+	rootCmd.Flags().StringVar(&config.webhookAddr, "webhook-addr", ":8443", "Listen address for the webhook endpoint")
+	rootCmd.Flags().StringVar(&config.certDir, "cert-dir", "", "certificate directory")
 }

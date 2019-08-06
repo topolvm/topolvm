@@ -63,8 +63,8 @@ func init() {
 var rootCmd = &cobra.Command{
 	Use:     "topolvm-node",
 	Version: topolvm.Version,
-	Short:   "",
-	Long:    ``,
+	Short:   "a custom controller for LogicalVolume",
+	Long:    `A custom controller for TopoLVM CRD LogicalVolume.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 		return subMain()
