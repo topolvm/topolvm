@@ -19,7 +19,7 @@ $(KUBECTL):
 run: mutatingwebhooks.yaml $(SERVER_CERT_FILES)
 	$(MAKE) start-lvmd
 	$(MAKE) launch-kind
-	cp manifest/*.yaml build/
+	cp ../deploy/manifests/*.yaml build/
 	rm build/certificates.yaml build/mutatingwebhooks.yaml
 	$(MAKE) mutatingwebhooks.yaml
 	$(KUBECTL) apply -f build/namespace.yaml
@@ -41,11 +41,11 @@ setup: $(KUBECTL)
 clean: stop-lvmd
 	rm -rf build/
 
-/tmp/topolvm/scheduler/scheduler-config.yaml: scheduler/scheduler-config.yaml
+/tmp/topolvm/scheduler/scheduler-config.yaml: ../deploy/scheduler-config/scheduler-config.yaml
 	mkdir -p /tmp/topolvm/scheduler
 	cp $< $@
 
-/tmp/topolvm/scheduler/scheduler-policy.cfg: scheduler/scheduler-policy.cfg
+/tmp/topolvm/scheduler/scheduler-policy.cfg: ../deploy/scheduler-config/scheduler-policy.cfg
 	mkdir -p /tmp/topolvm/scheduler
 	cp $< $@
 
@@ -92,7 +92,7 @@ $(CA_FILES): ./certs/csr.json
 $(SERVER_CERT_FILES): $(CA_FILES) ./certs/ca-config.json ./certs/server.json
 		cfssl gencert -ca=build/certs/ca.pem -ca-key=build/certs/ca-key.pem -config=certs/ca-config.json -profile=server certs/server.json | cfssljson -bare build/certs/server
 
-mutatingwebhooks.yaml: manifest/mutatingwebhooks.yaml.template $(CA_FILES)
+mutatingwebhooks.yaml: mutatingwebhooks.yaml.template $(CA_FILES)
 		cat manifest/mutatingwebhooks.yaml.template | sed -e "s|{{CA_BUNDLE}}|${CA_PEM}|g" > build/mutatingwebhooks.yaml
 
 .PHONY: launch-kind shutdown-kind start-lvmd stop-lvmd run setup clean
