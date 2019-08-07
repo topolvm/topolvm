@@ -52,7 +52,7 @@ Other programs are packaged into container images.
 Documentation
 -------------
 
-[docs](docs/) directory contains documents about designs and specifications.
+[docs](docs/) directory contains documents about designs and specifications.  You can also find [a simple demonstration](./example/) and [how to deploy on your kubernetes](./deploy/).
 
 [releases]: https://github.com/cybozu-go/topolvm/releases
 [godoc]: https://godoc.org/github.com/cybozu-go/topolvm
