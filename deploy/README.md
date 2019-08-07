@@ -20,7 +20,7 @@ The detailed description of these manifests and how to run `lvmd` is as follows.
 Custom Resource and Storage Class Definition
 --------------------------------------------
 
-TopoLVM uses the custom resource definition of `LogicalVolume` ([manifest](./manifests/crd.yaml)) and storage class `topolvm.cybozu.com` ([manifest](./manifests/provisioner.yaml)).
+TopoLVM uses the custom resource definition of `LogicalVolume` ([manifest](./manifests/crd.yaml)) and the storage class whose provisioner is `topolvm.cybozu.com` ([manifest](./manifests/provisioner.yaml)).
 
 Components for each Node
 ------------------------
