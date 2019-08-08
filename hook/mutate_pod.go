@@ -33,7 +33,6 @@ type podMutator struct {
 // Handle implements admission.Handler interface.
 func (m podMutator) Handle(ctx context.Context, req admission.Request) admission.Response {
 	pod := &corev1.Pod{}
-
 	err := m.decoder.Decode(req, pod)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
@@ -94,9 +93,6 @@ func (m podMutator) targetStorageClasses(ctx context.Context) (map[string]bool, 
 			continue
 		}
 		targets[sc.Name] = true
-		if sc.Annotations["storageclass.kubernetes.io/is-default-class"] == "true" {
-			targets[""] = true
-		}
 	}
 	return targets, nil
 }
@@ -105,6 +101,9 @@ func (m podMutator) requestedCapacity(ctx context.Context, pod *corev1.Pod, targ
 	var total int64
 	for _, vol := range pod.Spec.Volumes {
 		if vol.PersistentVolumeClaim == nil {
+			// CSI volume type does not support direct reference from Pod
+			// and may only be referenced in a Pod via a PersistentVolumeClaim
+			// https://kubernetes.io/docs/concepts/storage/volumes/#csi
 			continue
 		}
 		pvcName := vol.PersistentVolumeClaim.ClaimName
@@ -123,15 +122,20 @@ func (m podMutator) requestedCapacity(ctx context.Context, pod *corev1.Pod, targ
 			return 0, err
 		}
 
+		if pvc.Spec.StorageClassName == nil {
+			// empty class name may appear when DefaultStorageClass admission plugin
+			// is turned off, or there are no default StorageClass.
+			// https://kubernetes.io/docs/concepts/storage/persistent-volumes/#class-1
+			continue
+		}
+		if !targets[*pvc.Spec.StorageClassName] {
+			continue
+		}
+
+		// If the Pod has a bound PVC of TopoLVM, the pod will be scheduled
+		// to the node of the existing PV.
 		if pvc.Status.Phase != corev1.ClaimPending {
-			continue
-		}
-		scName := ""
-		if pvc.Spec.StorageClassName != nil {
-			scName = *pvc.Spec.StorageClassName
-		}
-		if !targets[scName] {
-			continue
+			return 0, nil
 		}
 
 		var requested int64 = defaultSize

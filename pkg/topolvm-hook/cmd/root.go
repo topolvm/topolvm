@@ -40,7 +40,7 @@ func subMain() error {
 		return fmt.Errorf("invalid webhook port: %v", err)
 	}
 
-	return hook.Run(h, port, config.metricsAddr, config.certDir)
+	return hook.Run(nil, h, port, config.metricsAddr, config.certDir)
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

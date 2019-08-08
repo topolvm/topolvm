@@ -4,6 +4,7 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -17,16 +18,26 @@ var (
 )
 
 func init() {
-	_ = clientgoscheme.AddToScheme(scheme)
+	if err := clientgoscheme.AddToScheme(scheme); err != nil {
+		panic(err)
+	}
 
 	// +kubebuilder:scaffold:scheme
 }
 
 // Run runs the webhook server.
-func Run(webhookHost string, webhookPort int, metricsAddr, certDir string) error {
+func Run(cfg *rest.Config, webhookHost string, webhookPort int, metricsAddr, certDir string) error {
 	ctrl.SetLogger(zap.Logger(false))
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	if cfg == nil {
+		c, err := ctrl.GetConfig()
+		if err != nil {
+			return err
+		}
+		cfg = c
+	}
+
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,
 		LeaderElection:     false,
