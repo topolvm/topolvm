@@ -26,8 +26,8 @@ func init() {
 }
 
 // Run runs the webhook server.
-func Run(cfg *rest.Config, webhookHost string, webhookPort int, metricsAddr, certDir string) error {
-	ctrl.SetLogger(zap.Logger(false))
+func Run(cfg *rest.Config, webhookHost string, webhookPort int, metricsAddr, certDir string, development bool) error {
+	ctrl.SetLogger(zap.Logger(development))
 
 	if cfg == nil {
 		c, err := ctrl.GetConfig()
