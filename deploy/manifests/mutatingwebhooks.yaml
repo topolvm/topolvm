@@ -11,10 +11,10 @@ metadata:
 rules:
   - apiGroups: [""]
     resources: ["persistentvolumeclaims"]
-    verbs: ["get"]
+    verbs: ["get","list","watch"]
   - apiGroups: ["storage.k8s.io"]
     resources: ["storageclasses"]
-    verbs: ["get"]
+    verbs: ["get","list","watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -53,14 +53,12 @@ spec:
           image: quay.io/cybozu/topolvm:0.1.0
           command:
             - /topolvm-hook
-            - --listen=:9252
-            - --cert=/certs/tls.crt
-            - --key=/certs/tls.key
+            - --cert-dir=/certs
           livenessProbe:
             httpGet:
-              path: /status
-              port: 9252
-              scheme: HTTPS
+              path: /metrics
+              port: 8080
+              scheme: HTTP
           volumeMounts:
             - name: certs
               mountPath: /certs
@@ -80,7 +78,7 @@ spec:
   ports:
   - protocol: TCP
     port: 443
-    targetPort: 9252
+    targetPort: 8443
 ---
 apiVersion: admissionregistration.k8s.io/v1beta1
 kind: MutatingWebhookConfiguration

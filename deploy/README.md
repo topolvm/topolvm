@@ -1,21 +1,22 @@
 How to deploy on your Kubernetes
 ================================
 
-Component diagram including TopoLVM is as follows:
+All components except for `lvmd` can deploy as Kubernetes pods.  `lvmd` need to be run on host operating system to manage LVM logical volumes on a volume group.  Refer to the following diagram to see how components run.
 
 ![component diagram](http://www.plantuml.com/plantuml/svg/fLLFRne_5Bplfx389R_3AegFEVmK5NgeH2C4QgeguM3ifyN2Qw_yXxIg-EwrTzVsiWH8rHlxtdZyPkmnZyOIRLqjYeRG7Qa0JMRG2FMh1cadw7U1qCjKIQkL4A0NmbLShX4nQ39TVK6vWrQWzvp2gxobXfTMDKhiw_ycwEO72A7U0eynXZEWH9kE8G0RhVRSS2L1lyfG8DOIkWNjLowut1M7ef2A0NfI3ExRPUslC9hdZ4FFLbrlHg1MSWNzw7xJWEx6lizpX-BrYSDobcQ-pqDhgBYnciGXEwXV3LPp6f7fUqJPxnHKzSY-KeRI4EorU_pERK20xR7zbuVDURMrduI35ZL__ihonYpJ30t4oK1yOY2-QY3-DmFnXmt47pOG_uM1-Bg1-8A1yR8l197GAUaAg0cLFYkauSRR0dezu0yDGxV0d3XfC6B9XXX04x2K9TUdoratornLd1Bnh8IhuTQNHmR70tpAuOWawVYMO9JJD5ot7A0MSZZcmDSvSER0cUCGN8eq1bZxX0JWwMjYe6DOHKFGvvyM90iFm6qyoEJMGEqXRR1LQdTfYvubm8xlHwWS7MpEB2fVRZR2mPgfDrd-ZzeyeGTKBHVJ8vXhVFV8rMAOwCGpeiWnEWk9GK_zk5LQ-701buCMSNbi_9uwVA8ElwCE3zLbdamnKdSM4bDuJjqLO9Q7expn_n8gaS-7fvbg81RklXDBjwF3SKq4jTsxRmtpq976Cw0YtShU9mD5p7ii3QwUnwUPKTaRd_33PdPiB2bwyWYIkLhy0G00)
 
-You can see detailed description of each components [here](../docs/).  Almost all components can deploy via Kubernetes, except for `lvmd` which must be running at hosts where you want to create Logical Volumes.
+You can find detailed descriptions for each component in [docs](../docs/) directory.  
 
-Sample manifests are located at [deploy/manifests](./manifests/), which requires [cert-manager](https://github.com/jetstack/cert-manager).  After run `lvmd` with a volume group on your Node hosts, you can apply these manifests:
+Sample manifests are located at [deploy/manifests](./manifests/), which requires [cert-manager](https://github.com/jetstack/cert-manager).  After `lvmd` is setup and run on Node operating systems, you can apply these manifests:
+
 ```console
 kubectl apply -f deploy/manifests/namespace.yaml
 kubectl apply -f deploy/manifests
 ```
-Note that `topolvm-shceduler` [manifest](./manifests/scheduler.yaml) is an example of deployment using Kubernetes.  It deploys `topolvm-scheduler` as `DaemonSet` and access it via host network.  If you deploy it by different way, you can find hints in the [following section](#topolvm-scheduler) and [document](../docs/topolvm-scheduler.md).
 
-The detailed description of these manifests and how to run `lvmd` is as follows.
+Note that `topolvm-shceduler` [manifest](./manifests/scheduler.yaml) is just an example for clusters running control plane on nodes.  It deploys `topolvm-scheduler` as `DaemonSet` and access it via host network.  If the control plane of your cluster does not run on nodes, you need to tweak YAML to deploy `topolvm-scheduler` using Deployment and Service and change `urlPrefix` in [scheduler-policy.cfg](./scheduler-config/scheduler-policy.cfg).
 
+The rest of this document describes the deployment procedure in detail.
 
 Custom Resource and Storage Class Definition
 --------------------------------------------
@@ -38,7 +39,7 @@ The components for each Node are:
 mkidr -p /run/topolvm
 systemd-run --unit=lvmd.service lvmd --volume-group=<volume_group_name> --listen=/run/topolvm/lvmd.sock --spare=1
 ```
-Now `lvmd.service` is running and open its API endpoint at Unix Domain Socket `/tmp/topolvm/lvmd.sock`.  Of course, you cau write systemd service definition like [this](./systemd/lvmd.service).
+Now `lvmd.service` is running and open its API endpoint at Unix Domain Socket `/run/topolvm/lvmd.sock`.  Of course, you cau write systemd service definition like [this](./systemd/lvmd.service).
 
 Note: If you do not have any Volume Group, you can use loopback device for testing.
 ```console

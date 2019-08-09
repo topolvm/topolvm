@@ -105,7 +105,7 @@ hook-secret.yml: hook-secret.yml.template $(CA_FILES)
 
 secret: $(SERVER_CERT_FILES)
 	$(KUBECTL) delete -n=topolvm-system secret topolvm-hook-certs --ignore-not-found
-	$(KUBECTL) create -n=topolvm-system secret generic topolvm-hook-certs --from-file=certs/server.pem --from-file=certs/server-key.pem
+	$(KUBECTL) create -n=topolvm-system secret generic topolvm-hook-certs --from-file=tls.crt=certs/server.pem --from-file=tls.key=certs/server-key.pem
 
 setup: $(KUBECTL)
 	go install github.com/cloudflare/cfssl/cmd/cfssl

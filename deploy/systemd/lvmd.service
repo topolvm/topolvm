@@ -1,14 +1,14 @@
 [Unit]
 Description=lvmd for TopoLVM
-Requires=setup-var.service setup-lvmd.service
-After=setup-var.service setup-lvmd.service
+Wants=lvm2-monitor.service
+After=lvm2-monitor.service
 
 [Service]
 Type=simple
 Restart=on-failure
 RestartForceExitStatus=SIGPIPE
 ExecStartPre=/bin/mkdir -p /run/topolvm 
-ExecStart=/opt/sbin/lvmd --volume-group=myvg --listen=/tmp/topolvm/lvmd.sock --spare=1
+ExecStart=/opt/sbin/lvmd --volume-group=myvg --listen=/run/topolvm/lvmd.sock
 
 [Install]
 WantedBy=multi-user.target
