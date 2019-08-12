@@ -2,7 +2,9 @@ package driver
 
 import (
 	"context"
+	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sync"
 
@@ -233,11 +235,15 @@ func (s *nodeService) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 }
 
 func (s *nodeService) nodeUnpublishFilesystemVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest, device string) (*csi.NodeUnpublishVolumeResponse, error) {
+	before, _ := ioutil.ReadFile("/proc/mounts")
 	if err := filesystem.Unmount(device); err != nil {
 		return nil, status.Errorf(codes.Internal, "umount failed for %s: error=%v", req.GetTargetPath(), err)
 	}
 	if err := os.RemoveAll(req.GetTargetPath()); err != nil {
-		return nil, status.Errorf(codes.Internal, "remove dir failed for %s: error=%v", req.GetTargetPath(), err)
+		after, _ := ioutil.ReadFile("/proc/mounts")
+		output, _ := exec.Command("ls", "-al", req.GetTargetPath()).Output()
+		return nil, status.Errorf(codes.Internal, "remove dir failed for %s: error=%v, before=%s, after=%s, output=%s",
+			req.GetTargetPath(), err, string(before), string(after), string(output))
 	}
 	if err := os.Remove(device); err != nil {
 		return nil, status.Errorf(codes.Internal, "remove device failed for %s: error=%v", device, err)

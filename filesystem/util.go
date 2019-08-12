@@ -81,7 +81,9 @@ func Mount(device, target, fsType, opts string, readonly bool) error {
 		}
 		time.Sleep(1 * time.Second)
 	}
-	return errors.New("mounted device does not appear in /proc/mounts")
+	data, _ := ioutil.ReadFile("/proc/mounts")
+	return fmt.Errorf("mounted device does not appear in /proc/mounts: data=%s, device=%s, target=%s",
+		string(data), device, target)
 }
 
 // Unmount unmounts the device if it is mounted.
