@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/cybozu-go/log"
 	"golang.org/x/sys/unix"
@@ -69,7 +70,18 @@ func Mount(device, target, fsType, opts string, readonly bool) error {
 	if readonly {
 		flg |= unix.MS_RDONLY
 	}
-	return unix.Mount(device, target, fsType, flg, opts)
+	if err := unix.Mount(device, target, fsType, flg, opts); err != nil {
+		return err
+	}
+
+	// sometimes mount(2) seems asynchronous
+	for i := 0; i < 10; i++ {
+		if _, err := MountedDir(device); err == nil {
+			return nil
+		}
+		time.Sleep(1 * time.Second)
+	}
+	return errors.New("mounted device does not appear in /proc/mounts")
 }
 
 // Unmount unmounts the device if it is mounted.
@@ -83,7 +95,24 @@ func Unmount(device string) error {
 		return err
 	}
 
-	return unix.Unmount(d, unix.UMOUNT_NOFOLLOW)
+	if err := unix.Unmount(d, unix.UMOUNT_NOFOLLOW); err != nil {
+		return err
+	}
+
+	// sometimes umount(2) seems asynchronous
+	for i := 0; i < 10; i++ {
+		switch _, err := MountedDir(device); err {
+		case nil:
+		case ErrNotMounted:
+			return nil
+		default:
+			log.Warn("unexpected error during Unmount", map[string]interface{}{
+				log.FnError: err,
+			})
+		}
+		time.Sleep(1 * time.Second)
+	}
+	return errors.New("unmounted device does not disappear from /proc/mounts")
 }
 
 // DetectFilesystem returns filesystem type if device has a filesystem.
