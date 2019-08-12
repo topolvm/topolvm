@@ -242,8 +242,8 @@ func (s *nodeService) nodeUnpublishFilesystemVolume(ctx context.Context, req *cs
 	if err := os.RemoveAll(req.GetTargetPath()); err != nil {
 		after, _ := ioutil.ReadFile("/proc/mounts")
 		output, _ := exec.Command("ls", "-al", req.GetTargetPath()).Output()
-		return nil, status.Errorf(codes.Internal, "remove dir failed for %s: error=%v, before=%s, after=%s, output=%s",
-			req.GetTargetPath(), err, string(before), string(after), string(output))
+		return nil, status.Errorf(codes.Internal, "remove dir failed for %s: error=%v, before=%s, after=%s, output=%s, device=%s",
+			req.GetTargetPath(), err, string(before), string(after), string(output), device)
 	}
 	if err := os.Remove(device); err != nil {
 		return nil, status.Errorf(codes.Internal, "remove device failed for %s: error=%v", device, err)
