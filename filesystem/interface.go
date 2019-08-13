@@ -17,9 +17,6 @@ var (
 	// ErrFilesystemExists is an error returned when the device has a filesystem.
 	ErrFilesystemExists = errors.New("filesystem exists")
 
-	// ErrNotMounted is an error returned when the device is not mounted.
-	ErrNotMounted = errors.New("not mounted")
-
 	fsTypeMap = make(map[string]func(device string) Filesystem)
 )
 
@@ -33,17 +30,19 @@ type Filesystem interface {
 	Mkfs() error
 
 	// Mount mounts the filesystem onto the target directory.
+	// target directory must exist.
 	// If device is mounted on target, this returns nil.
 	// If readonly is true, the filesystem will be mounted as read-only.
 	Mount(target string, readonly bool) error
 
 	// Unmount unmounts if device is mounted.
+	// target directory must exist.
 	// If not mounted, this does nothing.
-	Unmount() error
+	Unmount(target string) error
 
 	// Resize resizes the filesystem to match the size of the underlying block device.
 	// It should be called while the filesystem is mounted.
-	Resize() error
+	Resize(target string) error
 }
 
 // New returns a Filesystem if fsType is supported.

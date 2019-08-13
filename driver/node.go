@@ -84,15 +84,15 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	}
 
 	if req.GetVolumeCapability().GetBlock() != nil {
-		return s.nodePublishBlockVolume(ctx, req, lv)
+		return s.nodePublishBlockVolume(req, lv)
 	}
 	if req.GetVolumeCapability().GetMount() != nil {
-		return s.nodePublishFilesystemVolume(ctx, req, lv)
+		return s.nodePublishFilesystemVolume(req, lv)
 	}
 	return nil, status.Errorf(codes.InvalidArgument, "no supported volume capability: %v", req.GetVolumeCapability())
 }
 
-func (s *nodeService) nodePublishFilesystemVolume(ctx context.Context, req *csi.NodePublishVolumeRequest, lv *proto.LogicalVolume) (*csi.NodePublishVolumeResponse, error) {
+func (s *nodeService) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequest, lv *proto.LogicalVolume) (*csi.NodePublishVolumeResponse, error) {
 	// Check request
 	mountOption := req.GetVolumeCapability().GetMount()
 	if mountOption.FsType == "" {
@@ -157,7 +157,7 @@ func (s *nodeService) nodePublishFilesystemVolume(ctx context.Context, req *csi.
 	return &csi.NodePublishVolumeResponse{}, nil
 }
 
-func (s *nodeService) nodePublishBlockVolume(ctx context.Context, req *csi.NodePublishVolumeRequest, lv *proto.LogicalVolume) (*csi.NodePublishVolumeResponse, error) {
+func (s *nodeService) nodePublishBlockVolume(req *csi.NodePublishVolumeRequest, lv *proto.LogicalVolume) (*csi.NodePublishVolumeResponse, error) {
 	// Find lv and create a block device with it
 	var stat unix.Stat_t
 	target := req.GetTargetPath()
@@ -225,19 +225,20 @@ func (s *nodeService) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 		return nil, status.Errorf(codes.Internal, "stat failed for %s: %v", target, err)
 	}
 
-	// remove device file if target_path is device, umount target_path otherwise
+	// remove device file if target_path is device, unmount target_path otherwise
 	if info.IsDir() {
-		return s.nodeUnpublishFilesystemVolume(ctx, req, device)
+		return s.nodeUnpublishFilesystemVolume(req, device)
 	}
 	return s.nodeUnpublishBlockVolume(req)
 }
 
-func (s *nodeService) nodeUnpublishFilesystemVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest, device string) (*csi.NodeUnpublishVolumeResponse, error) {
-	if err := filesystem.Unmount(device); err != nil {
-		return nil, status.Errorf(codes.Internal, "umount failed for %s: error=%v", req.GetTargetPath(), err)
+func (s *nodeService) nodeUnpublishFilesystemVolume(req *csi.NodeUnpublishVolumeRequest, device string) (*csi.NodeUnpublishVolumeResponse, error) {
+	target := req.GetTargetPath()
+	if err := filesystem.Unmount(device, target); err != nil {
+		return nil, status.Errorf(codes.Internal, "unmount failed for %s: error=%v", target, err)
 	}
-	if err := os.RemoveAll(req.GetTargetPath()); err != nil {
-		return nil, status.Errorf(codes.Internal, "remove dir failed for %s: error=%v", req.GetTargetPath(), err)
+	if err := os.RemoveAll(target); err != nil {
+		return nil, status.Errorf(codes.Internal, "remove dir failed for %s: error=%v", target, err)
 	}
 	if err := os.Remove(device); err != nil {
 		return nil, status.Errorf(codes.Internal, "remove device failed for %s: error=%v", device, err)
@@ -245,7 +246,7 @@ func (s *nodeService) nodeUnpublishFilesystemVolume(ctx context.Context, req *cs
 
 	log.Info("NodeUnpublishVolume(fs) is succeeded", map[string]interface{}{
 		"volume_id":   req.GetVolumeId(),
-		"target_path": req.GetTargetPath(),
+		"target_path": target,
 	})
 	return &csi.NodeUnpublishVolumeResponse{}, nil
 }

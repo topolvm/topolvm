@@ -59,11 +59,11 @@ func (fs ext4) Mount(target string, readonly bool) error {
 	return Mount(fs.device, target, "ext4", ext4MountOpts, readonly)
 }
 
-func (fs ext4) Unmount() error {
-	return Unmount(fs.device)
+func (fs ext4) Unmount(target string) error {
+	return Unmount(fs.device, target)
 }
 
-func (fs ext4) Resize() error {
+func (fs ext4) Resize(_ string) error {
 	out, err := exec.Command(cmdResize2fs, fs.device).CombinedOutput()
 	if err != nil {
 		out := string(out)
