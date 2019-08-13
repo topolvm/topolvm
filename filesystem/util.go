@@ -1,7 +1,6 @@
 package filesystem
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -9,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cybozu-go/log"
 	"golang.org/x/sys/unix"
 )
 
@@ -17,52 +15,65 @@ const (
 	blkidCmd = "/sbin/blkid"
 )
 
-// MountedDir returns directory where device is mounted.
-// It returns ErrNotMounted if device is not mounted.
-func MountedDir(device string) (string, error) {
-	p, err := filepath.EvalSymlinks(device)
-	if err != nil {
-		return "", err
+func isSameDevice(dev1, dev2 string) (bool, error) {
+	if dev1 == dev2 {
+		return true, nil
 	}
-	p, err = filepath.Abs(p)
+
+	var st1, st2 unix.Stat_t
+	if err := unix.Stat(dev1, &st1); err != nil {
+		return false, fmt.Errorf("stat failed for %s: %v", dev1, err)
+	}
+	if err := unix.Stat(dev2, &st2); err != nil {
+		return false, fmt.Errorf("stat failed for %s: %v", dev2, err)
+	}
+
+	return st1.Rdev == st2.Rdev, nil
+}
+
+// isMounted returns true if device is mounted on target.
+// The implementation uses /proc/mounts because btrfs uses a virtual device.
+func isMounted(device, target string) (bool, error) {
+	abs, err := filepath.Abs(target)
 	if err != nil {
-		return "", err
+		return false, err
+	}
+	target, err = filepath.EvalSymlinks(abs)
+	if err != nil {
+		return false, err
 	}
 
 	data, err := ioutil.ReadFile("/proc/mounts")
 	if err != nil {
-		return "", fmt.Errorf("reading /proc/mounts failed: %v", err)
+		return false, fmt.Errorf("could not read /proc/mounts: %v", err)
 	}
+
 	for _, line := range strings.Split(string(data), "\n") {
 		fields := strings.Fields(line)
 		if len(fields) < 2 {
 			continue
 		}
-		if fields[0] != p {
-			continue
+
+		d, err := filepath.EvalSymlinks(fields[1])
+		if err != nil {
+			return false, err
 		}
-		return fields[1], nil
+		if d == target {
+			return isSameDevice(device, fields[0])
+		}
 	}
 
-	return "", ErrNotMounted
+	return false, nil
 }
 
 // Mount mounts a block device onto target with filesystem-specific opts.
+// target directory must exist.
 func Mount(device, target, fsType, opts string, readonly bool) error {
-	switch d, err := MountedDir(device); err {
-	case nil:
-		if d == target {
-			return nil
-		}
-		log.Error("device is mounted on another directory", map[string]interface{}{
-			"device":  device,
-			"target":  target,
-			"mounted": d,
-		})
-		return errors.New("device is mounted on another directory")
-	case ErrNotMounted:
-	default:
+	switch mounted, err := isMounted(device, target); {
+	case err != nil:
 		return err
+	case mounted:
+		return nil
 	}
 
 	var flg uintptr = unix.MS_LAZYTIME
@@ -73,17 +84,15 @@ func Mount(device, target, fsType, opts string, readonly bool) error {
 }
 
 // Unmount unmounts the device if it is mounted.
-func Unmount(device string) error {
-	d, err := MountedDir(device)
-	switch err {
-	case ErrNotMounted:
-		return nil
-	case nil:
-	default:
+func Unmount(device, target string) error {
+	switch mounted, err := isMounted(device, target); {
+	case err != nil:
 		return err
+	case !mounted:
+		return nil
 	}
 
-	return unix.Unmount(d, unix.UMOUNT_NOFOLLOW)
+	return unix.Unmount(target, unix.UMOUNT_NOFOLLOW)
 }
 
 // DetectFilesystem returns filesystem type if device has a filesystem.

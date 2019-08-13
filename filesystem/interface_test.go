@@ -101,35 +101,20 @@ func testFilesystem(t *testing.T, fsType string) {
 		t.Fatal(err)
 	}
 	defer os.Remove(d)
-	badd, err := ioutil.TempDir("", "test-mount")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.Remove(badd)
 
-	if err := fs.Unmount(); err != nil {
+	if err := fs.Unmount(d); err != nil {
 		t.Error(err)
 	}
 
-	if _, err := MountedDir(dev); err != ErrNotMounted {
-		t.Error(`err != ErrNotMounted`, err)
-	}
 	if err := fs.Mount(d, false); err != nil {
 		t.Fatal(err)
 	}
 
-	d2, err := MountedDir(dev)
-	if err != nil {
+	if err := exec.Command("mountpoint", "-q", d).Run(); err != nil {
 		t.Error(err)
-	}
-	if d != d2 {
-		t.Errorf(`device is mounted on unexpected directory %s while it should be %s`, d2, d)
 	}
 	if err := fs.Mount(d, false); err != nil {
 		t.Error("mount on the same directory should succeed", err)
-	}
-	if err := fs.Mount(badd, false); err == nil {
-		t.Error("mount on another directory should fail")
 	}
 
 	// file write test
@@ -148,7 +133,7 @@ func testFilesystem(t *testing.T, fsType string) {
 	if err := exec.Command("losetup", "-c", dev).Run(); err != nil {
 		t.Fatal(err)
 	}
-	if err := fs.Resize(); err != nil {
+	if err := fs.Resize(d); err != nil {
 		t.Fatal(err)
 	}
 	if err := unix.Statfs(d, &stfs); err != nil {
@@ -160,7 +145,7 @@ func testFilesystem(t *testing.T, fsType string) {
 	}
 	t.Log("newSize:", newSize)
 
-	if err := fs.Unmount(); err != nil {
+	if err := fs.Unmount(d); err != nil {
 		t.Error(err)
 	}
 
@@ -172,7 +157,7 @@ func testFilesystem(t *testing.T, fsType string) {
 	if err == nil {
 		t.Error("os.Create should fail")
 	}
-	if err := fs.Unmount(); err != nil {
+	if err := fs.Unmount(d); err != nil {
 		t.Error(err)
 	}
 }

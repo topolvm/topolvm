@@ -59,26 +59,22 @@ func (fs xfs) Mount(target string, readonly bool) error {
 	return Mount(fs.device, target, "xfs", xfsMountOpts, readonly)
 }
 
-func (fs xfs) Unmount() error {
-	return Unmount(fs.device)
+func (fs xfs) Unmount(target string) error {
+	return Unmount(fs.device, target)
 }
 
-func (fs xfs) Resize() error {
-	d, err := MountedDir(fs.device)
-	if err != nil {
-		return err
-	}
-	out, err := exec.Command(cmdXFSGrowFS, d).CombinedOutput()
+func (fs xfs) Resize(target string) error {
+	out, err := exec.Command(cmdXFSGrowFS, target).CombinedOutput()
 	if err != nil {
 		out := string(out)
 		log.Error("failed to resize xfs filesystem", map[string]interface{}{
 			"device":    fs.device,
-			"directory": d,
+			"directory": target,
 			log.FnError: err,
 			"output":    out,
 		})
 		return fmt.Errorf("failed to resize xfs filesystem: device=%s, directory=%s, err=%v, output=%s",
-			fs.device, d, err, out)
+			fs.device, target, err, out)
 	}
 
 	return nil

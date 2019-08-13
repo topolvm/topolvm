@@ -62,26 +62,22 @@ func (fs btrfs) Mount(target string, readonly bool) error {
 	return Mount(fs.device, target, "btrfs", btrfsMountOpts, readonly)
 }
 
-func (fs btrfs) Unmount() error {
-	return Unmount(fs.device)
+func (fs btrfs) Unmount(target string) error {
+	return Unmount(fs.device, target)
 }
 
-func (fs btrfs) Resize() error {
-	d, err := MountedDir(fs.device)
-	if err != nil {
-		return err
-	}
-	out, err := exec.Command(cmdBtrfs, "filesystem", "resize", "max", d).CombinedOutput()
+func (fs btrfs) Resize(target string) error {
+	out, err := exec.Command(cmdBtrfs, "filesystem", "resize", "max", target).CombinedOutput()
 	if err != nil {
 		out := string(out)
 		log.Error("failed to resize btrfs filesystem", map[string]interface{}{
 			"device":    fs.device,
-			"directory": d,
+			"directory": target,
 			log.FnError: err,
 			"output":    out,
 		})
 		return fmt.Errorf("failed to resize btrfs filesystem: device=%s, directory=%s, err=%v, output=%s",
-			fs.device, d, err, out)
+			fs.device, target, err, out)
 	}
 
 	return nil
