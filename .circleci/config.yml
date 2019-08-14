@@ -64,7 +64,12 @@ jobs:
       - run:
           name: install lvm
           command: |
-            sudo apt-get update
+            while true; do
+                if sudo apt-get update; then
+                    break
+                fi
+                sleep 1
+            done
             sudo apt-get -y install --no-install-recommends lvm2
       - run:
           name: setup golang
