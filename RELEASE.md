@@ -33,16 +33,25 @@ It should look like:
 Bump version
 ------------
 
-1. Determine a new version number.  Let it write `$VERSION`.
+1. Determine a new version number.  Let it write `$VERSION` as `VERSION=x.y.z`.
 2. Checkout `master` branch.
-3. Update `version.go`
-4. Edit `CHANGELOG.md` for the new version ([example][]).
-5. Commit the change and add a git tag, then push them.
+3. Make a branch to release, for example by `git neco dev "$VERSION"`
+4. Update `version.go`.
+5. Edit `CHANGELOG.md` for the new version ([example][]).
+6. Commit the change and push it.
 
     ```console
     $ git commit -a -m "Bump version to $VERSION"
-    $ git tag v$VERSION
-    $ git push origin master v$VERSION
+    $ git neco review
+    ```
+
+7. Merge this branch.
+8. Checkout `master` branch.
+9. Add a git tag, then push it.
+
+    ```console
+    $ git tag "v$VERSION"
+    $ git push origin "v$VERSION"
     ```
 
 Publish GitHub release page
