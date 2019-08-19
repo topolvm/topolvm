@@ -32,6 +32,7 @@ func setupResources() {
 	wh.Name = "topolvm-hook"
 	_, err = ctrl.CreateOrUpdate(testCtx, k8sClient, wh, func() error {
 		failPolicy := admissionregistrationv1beta1.Fail
+		matchPolicy := admissionregistrationv1beta1.Equivalent
 		urlStr := "https://127.0.0.1:8443/mutate"
 		wh.Webhooks = []admissionregistrationv1beta1.Webhook{
 			{
@@ -41,6 +42,7 @@ func setupResources() {
 					CABundle: caBundle,
 					URL:      &urlStr,
 				},
+				MatchPolicy: &matchPolicy,
 				Rules: []admissionregistrationv1beta1.RuleWithOperations{
 					{
 						Operations: []admissionregistrationv1beta1.OperationType{
