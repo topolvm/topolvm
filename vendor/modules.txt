@@ -126,7 +126,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf
+# github.com/google/gofuzz v1.0.0
 github.com/google/gofuzz
 # github.com/google/uuid v1.0.0
 github.com/google/uuid
@@ -134,7 +134,7 @@ github.com/google/uuid
 github.com/googleapis/gnostic/OpenAPIv2
 github.com/googleapis/gnostic/compiler
 github.com/googleapis/gnostic/extensions
-# github.com/hashicorp/golang-lru v0.5.0
+# github.com/hashicorp/golang-lru v0.5.3
 github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
 # github.com/hashicorp/hcl v1.0.0
@@ -380,7 +380,7 @@ gopkg.in/inf.v0
 gopkg.in/tomb.v1
 # gopkg.in/yaml.v2 v2.2.1
 gopkg.in/yaml.v2
-# k8s.io/api v0.0.0-20190805141119-fdd30b57c827
+# k8s.io/api v0.0.0-20190805141119-fdd30b57c827 => k8s.io/api v0.0.0-20190805141119-fdd30b57c827
 k8s.io/api/core/v1
 k8s.io/api/storage/v1
 k8s.io/api/apps/v1
@@ -424,7 +424,7 @@ k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions
 k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1
 k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme
-# k8s.io/apimachinery v0.0.0-20190612205821-1799e75a0719
+# k8s.io/apimachinery v0.0.0-20190612205821-1799e75a0719 => k8s.io/apimachinery v0.0.0-20190612205821-1799e75a0719
 k8s.io/apimachinery/pkg/api/errors
 k8s.io/apimachinery/pkg/api/resource
 k8s.io/apimachinery/pkg/apis/meta/v1
@@ -468,7 +468,7 @@ k8s.io/apimachinery/pkg/util/cache
 k8s.io/apimachinery/pkg/util/diff
 k8s.io/apimachinery/pkg/apis/meta/internalversion
 k8s.io/apimachinery/pkg/apis/meta/v1beta1
-# k8s.io/client-go v0.0.0-20190805141520-2fe0317bcee0
+# k8s.io/client-go v0.0.0-20190805141520-2fe0317bcee0 => k8s.io/client-go v0.0.0-20190805141520-2fe0317bcee0
 k8s.io/client-go/kubernetes/scheme
 k8s.io/client-go/rest
 k8s.io/client-go/kubernetes
@@ -543,7 +543,7 @@ k8s.io/client-go/util/retry
 k8s.io/client-go/tools/clientcmd/api/v1
 # k8s.io/klog v0.3.1
 k8s.io/klog
-# k8s.io/kube-openapi v0.0.0-20190228160746-b3a7cee44a30
+# k8s.io/kube-openapi v0.0.0-20190816220812-743ec37842bf
 k8s.io/kube-openapi/pkg/util/proto
 # k8s.io/utils v0.0.0-20190506122338-8fab8cb257d5
 k8s.io/utils/integer

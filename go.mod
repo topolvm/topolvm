@@ -2,7 +2,12 @@ module github.com/cybozu-go/topolvm
 
 go 1.12
 
-replace launchpad.net/gocheck => github.com/go-check/check v0.0.0-20180628173108-788fd7840127
+replace (
+	k8s.io/api => k8s.io/api v0.0.0-20190805141119-fdd30b57c827
+	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190612205821-1799e75a0719
+	k8s.io/client-go => k8s.io/client-go v0.0.0-20190805141520-2fe0317bcee0
+	launchpad.net/gocheck => github.com/go-check/check v0.0.0-20180628173108-788fd7840127
+)
 
 require (
 	github.com/GeertJohan/go.rice v1.0.0 // indirect
@@ -20,7 +25,9 @@ require (
 	github.com/golang/groupcache v0.0.0-20180513044358-24b0969c4cb7 // indirect
 	github.com/golang/protobuf v1.3.1
 	github.com/google/certificate-transparency-go v1.0.21 // indirect
+	github.com/google/gofuzz v1.0.0 // indirect
 	github.com/googleapis/gnostic v0.2.0 // indirect
+	github.com/hashicorp/golang-lru v0.5.3 // indirect
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jmhodges/clock v0.0.0-20160418191101-880ee4c33548 // indirect
@@ -55,6 +62,7 @@ require (
 	k8s.io/apimachinery v0.0.0-20190612205821-1799e75a0719
 	k8s.io/client-go v0.0.0-20190805141520-2fe0317bcee0
 	k8s.io/klog v0.3.1
+	k8s.io/kube-openapi v0.0.0-20190816220812-743ec37842bf // indirect
 	k8s.io/utils v0.0.0-20190506122338-8fab8cb257d5 // indirect
 	sigs.k8s.io/controller-runtime v0.2.0-alpha.0
 	sigs.k8s.io/testing_frameworks v0.1.1 // indirect
