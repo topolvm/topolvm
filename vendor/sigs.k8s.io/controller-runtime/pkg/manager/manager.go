@@ -42,11 +42,9 @@ import (
 // Manager initializes shared dependencies such as Caches and Clients, and provides them to Runnables.
 // A Manager is required to create Controllers.
 type Manager interface {
-	// Add will set requested dependencies on the component, and cause the component to be
+	// Add will set reqeusted dependencies on the component, and cause the component to be
 	// started when Start is called.  Add will inject any dependencies for which the argument
-	// implements the inject interface - e.g. inject.Client.
-	// Depending on if a Runnable implements LeaderElectionRunnable interface, a Runnable can be run in either
-	// non-leaderelection mode (always running) or leader election mode (managed by leader election if enabled).
+	// implements the inject interface - e.g. inject.Client
 	Add(Runnable) error
 
 	// SetFields will set any dependencies on an object for which the object has implemented the inject
@@ -63,10 +61,7 @@ type Manager interface {
 	// GetScheme returns an initialized Scheme
 	GetScheme() *runtime.Scheme
 
-	// GetClient returns a client configured with the Config. This client may
-	// not be a fully "direct" client -- it may read from a cache, for
-	// instance.  See Options.NewClient for more information on how the default
-	// implementation works.
+	// GetClient returns a client configured with the Config
 	GetClient() client.Client
 
 	// GetFieldIndexer returns a client.FieldIndexer configured with the client
@@ -118,17 +113,6 @@ type Options struct {
 	// will use for holding the leader lock.
 	LeaderElectionID string
 
-	// LeaseDuration is the duration that non-leader candidates will
-	// wait to force acquire leadership. This is measured against time of
-	// last observed ack. Default is 15 seconds.
-	LeaseDuration *time.Duration
-	// RenewDeadline is the duration that the acting master will retry
-	// refreshing leadership before giving up. Default is 10 seconds.
-	RenewDeadline *time.Duration
-	// RetryPeriod is the duration the LeaderElector clients should wait
-	// between tries of actions. Default is 2 seconds.
-	RetryPeriod *time.Duration
-
 	// Namespace if specified restricts the manager's cache to watch objects in
 	// the desired namespace Defaults to all namespaces
 	//
@@ -138,8 +122,7 @@ type Options struct {
 	Namespace string
 
 	// MetricsBindAddress is the TCP address that the controller should bind to
-	// for serving prometheus metrics.
-	// It can be set to "0" to disable the metrics serving.
+	// for serving prometheus metrics
 	MetricsBindAddress string
 
 	// Port is the port that the webhook server serves at.
@@ -187,13 +170,6 @@ type RunnableFunc func(<-chan struct{}) error
 // Start implements Runnable
 func (r RunnableFunc) Start(s <-chan struct{}) error {
 	return r(s)
-}
-
-// LeaderElectionRunnable knows if a Runnable needs to be run in the leader election mode.
-type LeaderElectionRunnable interface {
-	// NeedLeaderElection returns true if the Runnable needs to be run in the leader election mode.
-	// e.g. controllers need to be run in leader election mode, while webhook server doesn't.
-	NeedLeaderElection() bool
 }
 
 // New returns a new Manager for creating Controllers.
@@ -246,7 +222,7 @@ func New(config *rest.Config, options Options) (Manager, error) {
 		return nil, err
 	}
 
-	// Create the metrics listener. This will throw an error if the metrics bind
+	// Create the mertics listener. This will throw an error if the metrics bind
 	// address is invalid or already in use.
 	metricsListener, err := options.newMetricsListener(options.MetricsBindAddress)
 	if err != nil {
@@ -271,9 +247,6 @@ func New(config *rest.Config, options Options) (Manager, error) {
 		internalStopper:  stop,
 		port:             options.Port,
 		host:             options.Host,
-		leaseDuration:    *options.LeaseDuration,
-		renewDeadline:    *options.RenewDeadline,
-		retryPeriod:      *options.RetryPeriod,
 	}, nil
 }
 
@@ -328,18 +301,6 @@ func setOptionsDefaults(options Options) Options {
 
 	if options.newMetricsListener == nil {
 		options.newMetricsListener = metrics.NewListener
-	}
-	leaseDuration, renewDeadline, retryPeriod := defaultLeaseDuration, defaultRenewDeadline, defaultRetryPeriod
-	if options.LeaseDuration == nil {
-		options.LeaseDuration = &leaseDuration
-	}
-
-	if options.RenewDeadline == nil {
-		options.RenewDeadline = &renewDeadline
-	}
-
-	if options.RetryPeriod == nil {
-		options.RetryPeriod = &retryPeriod
 	}
 
 	return options

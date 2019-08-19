@@ -16,6 +16,3 @@
 *.swp
 *.swo
 *~
-
-# Vscode files
-.vscode

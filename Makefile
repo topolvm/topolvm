@@ -114,4 +114,10 @@ setup:
 	$(SUDO) apt-get update
 	$(SUDO) apt-get -y install --no-install-recommends $(PACKAGES)
 
-.PHONY: all test generate build setup
+mod:
+	go mod tidy
+	go mod vendor
+	git add -f vendor
+	git add go.mod
+
+.PHONY: all test generate build clean setup mod

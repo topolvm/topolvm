@@ -22,7 +22,6 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 )
 
 var _ EventHandler = &EnqueueRequestsFromMapFunc{}
@@ -67,16 +66,6 @@ func (e *EnqueueRequestsFromMapFunc) mapAndEnqueue(q workqueue.RateLimitingInter
 	for _, req := range e.ToRequests.Map(object) {
 		q.Add(req)
 	}
-}
-
-// EnqueueRequestsFromMapFunc can inject fields into the mapper.
-
-// InjectFunc implements inject.Injector.
-func (e *EnqueueRequestsFromMapFunc) InjectFunc(f inject.Func) error {
-	if f == nil {
-		return nil
-	}
-	return f(e.ToRequests)
 }
 
 // Mapper maps an object to a collection of keys to be enqueued

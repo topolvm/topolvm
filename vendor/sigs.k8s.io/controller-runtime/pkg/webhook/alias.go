@@ -17,7 +17,7 @@ limitations under the License.
 package webhook
 
 import (
-	"gomodules.xyz/jsonpatch/v2"
+	"github.com/appscode/jsonpatch"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 

@@ -84,7 +84,6 @@ func NewResourceLock(config *rest.Config, recorderProvider recorder.Provider, op
 		options.LeaderElectionNamespace,
 		options.LeaderElectionID,
 		client.CoreV1(),
-		client.CoordinationV1(),
 		resourcelock.ResourceLockConfig{
 			Identity:      id,
 			EventRecorder: recorderProvider.GetEventRecorderFor(id),
@@ -101,7 +100,7 @@ func getInClusterNamespace() (string, error) {
 		return "", fmt.Errorf("error checking namespace file: %v", err)
 	}
 
-	// Load the namespace file and return its content
+	// Load the namespace file and return itss content
 	namespace, err := ioutil.ReadFile(inClusterNamespacePath)
 	if err != nil {
 		return "", fmt.Errorf("error reading namespace file: %v", err)

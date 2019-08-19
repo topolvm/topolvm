@@ -45,7 +45,7 @@ limitations under the License.
 //
 // Frequently asked questions about using controller-runtime and designing
 // controllers can be found at
-// https://github.com/kubernetes-sigs/controller-runtime/blob/master/FAQ.md.
+// https://github.com/kubernetes-sigs/controller-runtime/blob/master/FAQ.
 //
 // Managers
 //
@@ -64,7 +64,7 @@ limitations under the License.
 // sources (pkg/source), like Kubernetes API object changes, to event handlers
 // (pkg/handler), like "enqueue a reconcile request for the object owner".
 // Predicates (pkg/predicate) can be used to filter which events actually
-// trigger reconciles.  There are pre-written utilities for the common cases, and
+// trigger reconciles.  There are pre-written utilies for the common cases, and
 // interfaces and helpers for advanced cases.
 //
 // Reconcilers

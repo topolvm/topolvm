@@ -25,7 +25,6 @@ import (
 
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	logf "sigs.k8s.io/controller-runtime/pkg/internal/log"
 )
 
@@ -62,27 +61,7 @@ func init() {
 //
 // * $HOME/.kube/config if exists
 func GetConfig() (*rest.Config, error) {
-	return GetConfigWithContext("")
-}
-
-// GetConfigWithContext creates a *rest.Config for talking to a Kubernetes API server with a specific context.
-// If --kubeconfig is set, will use the kubeconfig file at that location.  Otherwise will assume running
-// in cluster and use the cluster provided kubeconfig.
-//
-// It also applies saner defaults for QPS and burst based on the Kubernetes
-// controller manager defaults (20 QPS, 30 burst)
-//
-// Config precedence
-//
-// * --kubeconfig flag pointing at a file
-//
-// * KUBECONFIG environment variable pointing at a file
-//
-// * In-cluster config if running in cluster
-//
-// * $HOME/.kube/config if exists
-func GetConfigWithContext(context string) (*rest.Config, error) {
-	cfg, err := loadConfig(context)
+	cfg, err := loadConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -96,15 +75,14 @@ func GetConfigWithContext(context string) (*rest.Config, error) {
 }
 
 // loadConfig loads a REST Config as per the rules specified in GetConfig
-func loadConfig(context string) (*rest.Config, error) {
-
+func loadConfig() (*rest.Config, error) {
 	// If a flag is specified with the config location, use that
 	if len(kubeconfig) > 0 {
-		return loadConfigWithContext(apiServerURL, kubeconfig, context)
+		return clientcmd.BuildConfigFromFlags(apiServerURL, kubeconfig)
 	}
-	// If an env variable is specified with the config location, use that
+	// If an env variable is specified with the config locaiton, use that
 	if len(os.Getenv("KUBECONFIG")) > 0 {
-		return loadConfigWithContext(apiServerURL, os.Getenv("KUBECONFIG"), context)
+		return clientcmd.BuildConfigFromFlags(apiServerURL, os.Getenv("KUBECONFIG"))
 	}
 	// If no explicit location, try the in-cluster config
 	if c, err := rest.InClusterConfig(); err == nil {
@@ -112,24 +90,13 @@ func loadConfig(context string) (*rest.Config, error) {
 	}
 	// If no in-cluster config, try the default location in the user's home directory
 	if usr, err := user.Current(); err == nil {
-		if c, err := loadConfigWithContext(apiServerURL, filepath.Join(usr.HomeDir, ".kube", "config"),
-			context); err == nil {
+		if c, err := clientcmd.BuildConfigFromFlags(
+			"", filepath.Join(usr.HomeDir, ".kube", "config")); err == nil {
 			return c, nil
 		}
 	}
 
 	return nil, fmt.Errorf("could not locate a kubeconfig")
-}
-
-func loadConfigWithContext(apiServerURL, kubeconfig, context string) (*rest.Config, error) {
-	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig},
-		&clientcmd.ConfigOverrides{
-			ClusterInfo: clientcmdapi.Cluster{
-				Server: apiServerURL,
-			},
-			CurrentContext: context,
-		}).ClientConfig()
 }
 
 // GetConfigOrDie creates a *rest.Config for talking to a Kubernetes apiserver.

@@ -21,8 +21,8 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/appscode/jsonpatch"
 	"github.com/go-logr/logr"
-	"gomodules.xyz/jsonpatch/v2"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -92,10 +92,6 @@ func (r *Response) Complete(req Request) error {
 
 // Handler can handle an AdmissionRequest.
 type Handler interface {
-	// Handle yields a response to an AdmissionRequest.
-	//
-	// The supplied context is extracted from the received http.Request, allowing wrapping
-	// http.Handlers to inject values into and control cancelation of downstream request processing.
 	Handle(context.Context, Request) Response
 }
 
