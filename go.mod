@@ -3,6 +3,7 @@ module github.com/cybozu-go/topolvm
 go 1.12
 
 replace (
+	github.com/appscode/jsonpatch => github.com/evanphx/json-patch v4.5.0+incompatible
 	k8s.io/api => k8s.io/api v0.0.0-20190805141119-fdd30b57c827
 	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190612205821-1799e75a0719
 	k8s.io/client-go => k8s.io/client-go v0.0.0-20190805141520-2fe0317bcee0
@@ -11,6 +12,7 @@ replace (
 
 require (
 	github.com/GeertJohan/go.rice v1.0.0 // indirect
+	github.com/appscode/jsonpatch v0.0.0-00010101000000-000000000000 // indirect
 	github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973 // indirect
 	github.com/cloudflare/cfssl v0.0.0-20190510060611-9c027c93ba9e
 	github.com/container-storage-interface/spec v1.1.0
