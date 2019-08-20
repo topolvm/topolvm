@@ -17,9 +17,9 @@ GO_FILES=$(shell find -name '*.go' -not -name '*_test.go')
 BUILD_TARGET=hypertopolvm
 
 # CSI sidecard containers
-EXTERNAL_PROVISIONER_VERSION=1.1.1
+EXTERNAL_PROVISIONER_VERSION=1.3.0
 NODE_DRIVER_REGISTRAR_VERSION=1.1.0
-EXTERNAL_ATTACHER_VERSION=1.1.1
+EXTERNAL_ATTACHER_VERSION=1.2.1
 CSI_SIDECARS = \
 	external-provisioner \
 	node-driver-registrar \
