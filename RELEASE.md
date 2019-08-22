@@ -61,7 +61,7 @@ Once a new tag is pushed to GitHub, [CircleCI][] automatically
 builds a tar archive for the new release, and uploads it to GitHub
 releases page.
 
-Visit https://github.com/cybozu-go/etcdpasswd/releases to check
+Visit https://github.com/cybozu-go/topolvm/releases to check
 the result.  You may manually edit the page to describe the release.
 
 [semver]: https://semver.org/spec/v2.0.0.html
