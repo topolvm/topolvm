@@ -3,14 +3,24 @@ topolvm-hook
 
 `topolvm-hook` is a Kubernetes [mutating admission webhook](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/) for TopoLVM.
 
-It mutate pod with pvc volume size, it's used as metric for `topolvm-scheduler`.
+It mutates pods having PersistentVolumeClaims for TopoLVM to add resource requirements in its first container.
+The added resource will be referenced by `topolvm-scheduler` to choose and score nodes for the pod.
 
-Detail of mutation
-------------------
+Mutation example
+----------------
 
-`topolvm-hook` provides `mutate` verbs for pod with its required pvc volume size. When original manifest of pod is as follows:
+Suppose the following manifest is to be applied:
 
 ```yaml
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: topolvm
+provisioner: topolvm.cybozu.com            # topolvm-scheduler works only for StorageClass with this provisioner.
+parameters:
+  "csi.storage.k8s.io/fstype": "xfs"
+volumeBindingMode: WaitForFirstConsumer
+---
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
@@ -22,7 +32,7 @@ spec:
   resources:
     requests:
       storage: 1Gi
-  storageClassName: topolvm
+  storageClassName: topolvm                # reference the above StorageClass
 ---
 apiVersion: v1
 kind: Pod
@@ -41,10 +51,10 @@ spec:
   volumes:
   - name: my-volume1
     persistentVolumeClaim:
-      claimName: local-pvc1
+      claimName: local-pvc1                # have the above PVC
 ```
 
-then, `topolvm-hook` inserts `resource` field to the first container in pod spec as follows:
+`topolvm-hook` inserts `topolvm.cybozu.com/capacity` resources to the first container as follows:
 
 ```yaml
 spec:
@@ -57,18 +67,22 @@ spec:
         topolvm.cybozu.com/capacity: "1073741824"
 ```
 
-When a pod refers multiple pvc, `topolvm-hook` calculates the summation of volume sizes and inserts it.
-Each volume size in requests is rounded up to the nearest GiB.
-If a volume size is missing in a pvc, `topolvm-hook` uses 1 GiB as default.
+Specifications
+--------------
 
-`topolvm-hook` decides which pvcs to handle by examining `storageClassName` in spec.
-It handles pvcs with `storageClassName: topolvm`, and you MUST first create a storage class named `topolvm` using TopoLVM provisioner.
+`topolvm-hook` ignores PersistentVolumeClaims already bound to PV.
+
+The requested storage size of a PVC is calculated as follows:
+- if PVC has no storage request, the size will be treated as 1 GiB.
+- if PVC has storage request, the size will be rounded up to GiB unit.
+
+When a pod has multiple unbound PVC for TopoLVM, `topolvm-hook` totals the rounded up size of each PVC.
 
 Command-line flags
 ------------------
 
-|   Name   |  Type  | Default |            Description             |
-| -------- | ------ | ------: | ---------------------------------- |
-| `listen` | string | `:8443` | HTTPS listening address            |
-| `cert`   | string |       - | path of certification file for TLS |
-| `key`    | string |       - | path of private key file for TLS   |
+| Name             | Type   | Default                                 | Description                                  |
+| ---------------- | ------ | --------------------------------------- | -------------------------------------------- |
+| `--cert-dir`     | string | `/tmp/k8s-webhook-server/serving-certs` | Directory for `tls.crt` and `tls.key` files. |
+| `--metrics-addr` | string | `:8080`                                 | Listen address for metrics.                  |
+| `--webhook-addr` | string | `:8443`                                 | Listen address for the webhook endpoint.     |
