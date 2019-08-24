@@ -14,15 +14,15 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 ## [0.1.1] - 2019-08-22
 
 ### Added
-
-- Add getting started (#18).
-- topolvm-hook: add --development flag for logs (#21).
+- A quick example to run TopoLVM on [kind](https://github.com/kubernetes-sigs/kind) (#18).
+- A deployment tutorial (#18).
 
 ### Changed
 
+- Re-implement `topolvm-hook` using Kubebuilder v2 (#19, #21).
+- Update sidecar containers for Kubernetes 1.15 (#29).
 - Update kubebuilder, controller-tools, controller-runtime, gRPC, client-go (#17, #24, #28).
-- filesystem: stabilize mount point detection (#22, #23).
-- Support Kubernetes 1.15 (#29).
+- filesystem: stabilize mount point detection (#23).
 
 ## [0.1.0] - 2019-07-11
 
