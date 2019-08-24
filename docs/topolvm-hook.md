@@ -70,7 +70,7 @@ spec:
 Specifications
 --------------
 
-`topolvm-hook` ignores PersistentVolumeClaims already bound to PV.
+`topolvm-hook` ignores pods having PVCs already bound to a TopoLVM volume.
 
 The requested storage size of a PVC is calculated as follows:
 - if PVC has no storage request, the size will be treated as 1 GiB.
