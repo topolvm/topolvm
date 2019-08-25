@@ -198,7 +198,7 @@ spec:
       serviceAccountName: csi-topolvm-controller
       containers:
         - name: controller
-          image: quay.io/cybozu/topolvm:0.1.0
+          image: quay.io/cybozu/topolvm:0.1.1
           command:
             - /csi-topolvm
             - controller
@@ -208,7 +208,7 @@ spec:
               mountPath: /run/topolvm
 
         - name: csi-provisioner
-          image: quay.io/cybozu/topolvm:0.1.0
+          image: quay.io/cybozu/topolvm:0.1.1
           command:
             - /csi-provisioner
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
@@ -218,7 +218,7 @@ spec:
               mountPath: /run/topolvm
 
         - name: csi-attacher
-          image: quay.io/cybozu/topolvm:0.1.0
+          image: quay.io/cybozu/topolvm:0.1.1
           command:
             - /csi-attacher
             - "--csi-address=/run/topolvm/csi-topolvm.sock"

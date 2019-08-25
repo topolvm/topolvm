@@ -50,7 +50,7 @@ spec:
       serviceAccountName: topolvm-hook
       containers:
         - name: topolvm-hook
-          image: quay.io/cybozu/topolvm:0.1.0
+          image: quay.io/cybozu/topolvm:0.1.1
           command:
             - /topolvm-hook
             - --cert-dir=/certs
