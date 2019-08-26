@@ -1,7 +1,11 @@
 CSI_VERSION=1.1.0
 PROTOBUF_VERSION=3.7.1
 CURL=curl -Lsf
+KUBEBUILDER_VERSION = 2.0.0
+CTRLTOOLS_VERSION = 0.2.0
 
+GOOS = $(shell go env GOOS)
+GOARCH = $(shell go env GOARCH)
 GOFLAGS = -mod=vendor
 export GOFLAGS
 
@@ -110,8 +114,13 @@ clean:
 	rm -rf build/
 
 setup:
-	make -f topolvm-node/Makefile setup SUDO=$(SUDO)
 	$(SUDO) apt-get update
 	$(SUDO) apt-get -y install --no-install-recommends $(PACKAGES)
+	curl -sL https://go.kubebuilder.io/dl/$(KUBEBUILDER_VERSION)/$(GOOS)/$(GOARCH) | tar -xz -C /tmp/
+	$(SUDO) rm -rf /usr/local/kubebuilder
+	$(SUDO) mv /tmp/kubebuilder_$(KUBEBUILDER_VERSION)_$(GOOS)_$(GOARCH) /usr/local/kubebuilder
+	$(SUDO) curl -o /usr/local/kubebuilder/bin/kustomize -sL https://go.kubebuilder.io/kustomize/$(GOOS)/$(GOARCH)
+	$(SUDO) chmod a+x /usr/local/kubebuilder/bin/kustomize
+	cd /tmp; GO111MODULE=on GOFLAGS= go get sigs.k8s.io/controller-tools/cmd/controller-gen@v$(CTRLTOOLS_VERSION)
 
 .PHONY: all test generate build setup
