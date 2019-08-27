@@ -55,9 +55,7 @@ When doing so, do not apply [./manifests/certificates.yaml](./manifests/certific
 
     ```console
     kubectl -n topolvm-system create secret tls pod-mutatingwebhook \
-        --type=kubernetes.io/tls \
-        --from-file=tls.crt=<CERTIFICATE FILE> \
-        --from-file=tls.key=<KEY FILE>
+        --cert=<CERTIFICATE FILE> --key=tls.key=<KEY FILE>
     ```
 
 3. Edit `MutatingWebhookConfiguration` in [./manifests/mutating/webhooks.yaml](./manifests/mutating/webhooks.yaml) as follows:
