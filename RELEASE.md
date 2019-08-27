@@ -33,25 +33,39 @@ It should look like:
 Bump version
 ------------
 
-1. Determine a new version number.  Let it write `$VERSION` as `VERSION=x.y.z`.
+1. Determine a new version number.  Export it as an environment variable:
+
+    ```console
+    $ VERSION=1.2.3
+    $ export VERSION
+    ```
+
 2. Checkout `master` branch.
-3. Make a branch to release, for example by `git neco dev "$VERSION"`
+3. Make a branch to release, for example by `git neco dev v$VERSION`
 4. Update `version.go`.
-5. Edit `CHANGELOG.md` for the new version ([example][]).
-6. Commit the change and push it.
+5. Update image versions in documents.
+
+    ```console
+    $ sed -r -i "s/:[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/:${VERSION}/g" \
+        example/*.template deploy/README.md deploy/manifests/*.yaml
+    ```
+
+6. Edit `CHANGELOG.md` for the new version ([example][]).
+7. Commit the change and create a pull request:
 
     ```console
     $ git commit -a -m "Bump version to $VERSION"
     $ git neco review
     ```
 
-7. Merge this branch.
-8. Checkout `master` branch.
-9. Add a git tag, then push it.
+8. Merge the new pull request.
+9. Add a new tag and push it as follows:
 
     ```console
-    $ git tag "v$VERSION"
-    $ git push origin "v$VERSION"
+    $ git checkout master
+    $ git pull
+    $ git tag v$VERSION
+    $ git push origin v$VERSION
     ```
 
 Publish GitHub release page

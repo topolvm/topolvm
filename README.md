@@ -16,10 +16,14 @@ Supported environments
 ----------------------
 
 - Kubernetes
-  - 1.14+
+  - 1.14
+  - 1.15
 - Node OS
-  - CoreOS Container Linux
-  - Other Linux distributions should work but not tested
+  - Linux with LVM2
+- Filesystems
+  - ext4
+  - xfs
+  - btrfs
 
 Features
 --------
@@ -31,29 +35,39 @@ Features
 
 ### Planned features
 
-- [Volume Expansion](https://kubernetes-csi.github.io/docs/volume-expansion.html): Once Kubernetes support for volume expansion for CSI matures to beta, we will implement it.
+- [Volume Expansion](https://kubernetes-csi.github.io/docs/volume-expansion.html): When support for Kubernetes 1.16 will be added.
 - [Snapshot](https://kubernetes-csi.github.io/docs/snapshot-restore-feature.html): When we want it.
 
 Programs
 --------
 
+A diagram of components is available in [docs/design.md](docs/design.md#diagram).
+
 This repository contains these programs:
 
 - `csi-topolvm`: Unified CSI driver.
-- `lvmd`: gRPC service to manage LVM volumes
-- `lvmetrics`: A DaemonSet sidecar container to expose storage metrics as Node annotations
-- `topolvm-scheduler`: A [scheduler extender](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/scheduler_extender.md) for TopoLVM
+- `lvmd`: gRPC service to manage LVM volumes.
+- `lvmetrics`: A DaemonSet sidecar container to expose storage metrics as Node annotations.
+- `topolvm-scheduler`: A [scheduler extender](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/scheduler_extender.md) for TopoLVM.
 - `topolvm-node`: A sidecar to communicate with CSI controller over TopoLVM [custom resources](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/).
 - `topolvm-hook`: A [MutatingAdmissionWebhook](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#mutatingadmissionwebhook) for `topolvm-scheduler`.
 
-`lvmd` is a standalone program that should run on Node OS as a systemd service.
+`lvmd` is a standalone program that should be run on Node OS as a systemd service.
 Other programs are packaged into container images.
+
+Getting started
+---------------
+
+A demonstration of TopoLVM running on [kind (Kubernetes IN Docker)][kind] is available at [example](example/) directory.
+
+For production deployments, see [deploy](deploy/) directory.
 
 Documentation
 -------------
 
-[docs](docs/) directory contains documents about designs and specifications.  You can also find [a simple demonstration](./example/) and [how to deploy on your kubernetes](./deploy/).
+[docs](docs/) directory contains documents about designs and specifications.
 
 [releases]: https://github.com/cybozu-go/topolvm/releases
 [godoc]: https://godoc.org/github.com/cybozu-go/topolvm
 [CSI]: https://github.com/container-storage-interface/spec
+[kind]: https://github.com/kubernetes-sigs/kind
