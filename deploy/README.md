@@ -176,7 +176,7 @@ Once you finish editing manifests, apply them in the following order:
 
 1. [namespace.yaml](./manifests/namespace.yaml)
 2. [crd.yaml](./manifests/crd.yaml)
-3. [psp.yaml](./manifests/psp.yaml) if your cluster has enabled [Pod Security Policies](https://kubernetes.io/docs/concepts/policy/pod-security-policy/)
+3. [psp.yaml](./manifests/psp.yaml)
 4. [certificates.yaml](./manifests/certificates.yaml) if `cert-manager` is installed
 5. [scheduler.yaml](./manifests/scheduler.yaml)
 6. [mutatingwebhooks.yaml](./manifests/mutatingwebhooks.yaml)
