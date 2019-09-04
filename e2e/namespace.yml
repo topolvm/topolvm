@@ -3,4 +3,4 @@ kind: Namespace
 metadata:
   name: topolvm-system
   labels:
-    name: topolvm-system
+    app.kubernetes.io/name: topolvm-system
