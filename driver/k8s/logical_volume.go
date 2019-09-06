@@ -243,7 +243,7 @@ func (s *logicalVolumeService) GetCapacity(ctx context.Context, requestNodeNumbe
 	}
 
 	for _, node := range nl.Items {
-		if nodeNumber, ok := node.Annotations[topolvm.TopologyNodeKey]; ok {
+		if nodeNumber, ok := node.Labels[topolvm.TopologyNodeKey]; ok {
 			if requestNodeNumber != nodeNumber {
 				continue
 			}
