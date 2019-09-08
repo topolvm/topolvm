@@ -133,3 +133,9 @@ func (s *vgService) Watch(_ *proto.Empty, server proto.VGService_WatchServer) er
 		}
 	}
 }
+
+func (s *vgService) GetWatchersCount(_ context.Context, _ *proto.Empty) (*proto.GetWatchersCountResponse, error) {
+	return &proto.GetWatchersCountResponse{
+		Count: int32(len(s.watchers)),
+	}, nil
+}

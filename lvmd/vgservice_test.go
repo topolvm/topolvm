@@ -66,6 +66,12 @@ func testWatch(t *testing.T, vg *command.VolumeGroup) {
 		t.Fatal("not received the first event")
 	}
 
+	for {
+		if res, _ := vgService.GetWatchersCount(context.Background(), &proto.Empty{}); res.Count == 1 || time.Now().After(time.Now().Add(2*time.Second)) {
+			break
+		}
+	}
+
 	notifier()
 
 	select {

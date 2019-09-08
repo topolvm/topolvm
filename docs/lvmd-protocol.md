@@ -9,6 +9,7 @@
     - [Empty](#proto.Empty)
     - [GetFreeBytesResponse](#proto.GetFreeBytesResponse)
     - [GetLVListResponse](#proto.GetLVListResponse)
+    - [GetWatchersCountResponse](#proto.GetWatchersCountResponse)
     - [LogicalVolume](#proto.LogicalVolume)
     - [RemoveLVRequest](#proto.RemoveLVRequest)
     - [ResizeLVRequest](#proto.ResizeLVRequest)
@@ -100,6 +101,21 @@ Represents the response of GetLVList.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | volumes | [LogicalVolume](#proto.LogicalVolume) | repeated | Information of volumes. |
+
+
+
+
+
+
+<a name="proto.GetWatchersCountResponse"></a>
+
+### GetWatchersCountResponse
+Represents the stream output from GetWatchersCount.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| count | [int32](#int32) |  |  |
 
 
 
@@ -200,6 +216,7 @@ Service to retrieve information of the volume group.
 | ----------- | ------------ | ------------- | ------------|
 | GetLVList | [Empty](#proto.Empty) | [GetLVListResponse](#proto.GetLVListResponse) | Get the list of logical volumes in the volume group. |
 | GetFreeBytes | [Empty](#proto.Empty) | [GetFreeBytesResponse](#proto.GetFreeBytesResponse) | Get the free space of the volume group in bytes. |
+| GetWatchersCount | [Empty](#proto.Empty) | [GetWatchersCountResponse](#proto.GetWatchersCountResponse) | Get the watch group count. |
 | Watch | [Empty](#proto.Empty) | [WatchResponse](#proto.WatchResponse) stream | Stream the volume group metrics. |
 
  

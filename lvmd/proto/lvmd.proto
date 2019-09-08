@@ -58,6 +58,11 @@ message WatchResponse {
     uint64 free_bytes = 1;  // Free space of the volume group in bytes.
 }
 
+// Represents the stream output from GetWatchersCount.
+message GetWatchersCountResponse {
+    int32 count =1;
+}
+
 // Service to manage logical volumes of the volume group.
 service LVService {
     // Create a logical volume.
@@ -74,6 +79,8 @@ service VGService {
     rpc GetLVList(Empty) returns (GetLVListResponse);
     // Get the free space of the volume group in bytes.
     rpc GetFreeBytes(Empty) returns (GetFreeBytesResponse);
+    // Get the watch group count.
+    rpc GetWatchersCount(Empty) returns  (GetWatchersCountResponse);
     // Stream the volume group metrics.
     rpc Watch(Empty) returns (stream WatchResponse);
 }
