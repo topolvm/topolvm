@@ -25,7 +25,7 @@ commands:
             make setup
             cd e2e
             if [ -n "<<parameters.kubernetes-version>>" ]; then
-              OPT="KUBERNETES_VERSION=<<parameters.kubernetes-version>>"
+              OPT="TEST_KUBERNETES_VERSION=<<parameters.kubernetes-version>>"
             fi
             make ${OPT} setup
       - run:
@@ -34,7 +34,7 @@ commands:
             cd e2e
             make start-lvmd
             if [ -n "<<parameters.kubernetes-version>>" ]; then
-              OPT="KUBERNETES_VERSION=<<parameters.kubernetes-version>>"
+              OPT="TEST_KUBERNETES_VERSION=<<parameters.kubernetes-version>>"
             fi
             make ${OPT} test
 
@@ -126,7 +126,7 @@ jobs:
     steps:
       - checkout
       - e2e-command:
-          kubernetes-version: 1.15.3
+          kubernetes-version: "1.15"
   e2e-k8s-v1_14:
     machine:
       image: ubuntu-1604:201903-01
@@ -134,7 +134,7 @@ jobs:
     steps:
       - checkout
       - e2e-command:
-          kubernetes-version: 1.14.6
+          kubernetes-version: "1.14"
 
 workflows:
   version: 2

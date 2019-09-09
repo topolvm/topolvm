@@ -6,7 +6,7 @@ kubeadmConfigPatches:
   # When update to Kubernetes 1.15, make sure to change the
   # apiVersion to "kubeadm.k8s.io/v1beta2".  Also make sure
   # to change the node image in Makefile (--image kindest/node)
-  apiVersion: kubeadm.k8s.io/v1beta1
+  apiVersion: "@KUBEADM_APIVERSION@"
   kind: ClusterConfiguration
   metadata:
     name: config
