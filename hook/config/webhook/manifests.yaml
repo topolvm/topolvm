@@ -14,7 +14,6 @@ webhooks:
       path: /mutate
   failurePolicy: Fail
   name: topolvm-hook
-  matchPolicy: Equivalent
   rules:
   - apiGroups:
     - ""

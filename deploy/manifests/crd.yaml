@@ -9,7 +9,6 @@ spec:
   names:
     kind: LogicalVolume
     plural: logicalvolumes
-  preserveUnknownFields: false
   scope: Namespaced
   subresources:
     status: {}
