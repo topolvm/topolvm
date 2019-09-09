@@ -25,20 +25,19 @@ commands:
             make setup
             cd e2e
             if [ -n "<<parameters.kubernetes-version>>" ]; then
-              make setup KUBERNETES_VERSION=<<parameters.kubernetes-version>>
-            else
-              make setup
+              OPT="KUBERNETES_VERSION=<<parameters.kubernetes-version>>"
             fi
+            make ${OPT} setup
       - run:
           name: Run test
           command: |
             cd e2e
             make start-lvmd
             if [ -n "<<parameters.kubernetes-version>>" ]; then
-              make test KUBERNETES_VERSION=<<parameters.kubernetes-version>>
-            else
-              make test
+              OPT="KUBERNETES_VERSION=<<parameters.kubernetes-version>>"
             fi
+            make ${OPT} test
+
 jobs:
   build:
     docker:
