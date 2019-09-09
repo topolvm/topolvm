@@ -191,7 +191,7 @@ Configure kube-scheduler
 If your Kubernetes cluster was installed with `kubeadm`, then reconfigure it as follows:
 
 ```yaml
-apiVersion: kubeadm.k8s.io/v1beta2
+apiVersion: kubeadm.k8s.io/v1beta1
 kind: ClusterConfiguration
 metadata:
   name: config
