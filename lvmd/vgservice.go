@@ -113,21 +113,20 @@ func (s *vgService) notifyWatchers() {
 }
 
 func (s *vgService) Watch(_ *proto.Empty, server proto.VGService_WatchServer) error {
-	err := s.send(server)
-	if err != nil {
-		return err
-	}
-
 	ch := make(chan struct{}, 1)
 	num := s.addWatcher(ch)
 	defer s.removeWatcher(num)
+
+	if err := s.send(server); err != nil {
+		return err
+	}
+
 	for {
 		select {
 		case <-server.Context().Done():
 			return server.Context().Err()
 		case <-ch:
-			err := s.send(server)
-			if err != nil {
+			if err := s.send(server); err != nil {
 				return err
 			}
 		}
