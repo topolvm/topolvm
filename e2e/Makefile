@@ -5,7 +5,10 @@ GINKGO=$(GOPATH)/bin/ginkgo
 KUBECTL=/usr/local/bin/kubectl
 KIND_VERSION=0.5.1
 
+# If you want to change the Kubernetes version for e2e test, specify this variable from command line.
+# e.g. $ make TEST_KUBERNETES_VERSION=1.14 setup test
 TEST_KUBERNETES_VERSION=1.15
+
 ifeq ($(TEST_KUBERNETES_VERSION),1.15)
 KUBERNETES_VERSION=1.15.3
 KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
@@ -46,7 +49,7 @@ topolvm.img: $(GO_FILES)
 
 launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml /tmp/topolvm/scheduler/scheduler-policy.cfg
 	$(SUDO) rm -rf /tmp/topolvm/controller /tmp/topolvm/worker*
-	sed -e "s/@KUBERNETES_VERSION@/$(KUBERNETES_VERSION)/" \
+	sed -e "s|@KUBERNETES_VERSION@|$(KUBERNETES_VERSION)|" \
 		-e "s|@KUBEADM_APIVERSION@|$(KUBEADM_APIVERSION)|" topolvm-cluster.yaml > /tmp/topolvm-cluster.yaml
 	env KUBECONFIG= kind create cluster --config /tmp/topolvm-cluster.yaml --image kindest/node:v$(KUBERNETES_VERSION)
 
