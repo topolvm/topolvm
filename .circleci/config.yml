@@ -84,6 +84,10 @@ jobs:
     machine:
       image: ubuntu-1604:201903-01
     working_directory: /home/circleci/work
+    parameters:
+      kubernetes-version:
+        type: string
+        default: ""
     steps:
       - checkout
       - run:
@@ -103,13 +107,21 @@ jobs:
           command: |
             make setup
             cd e2e
-            make setup
+            if [ -n "<<parameters.kubernetes-version>>" ]; then
+              make setup KUBERNETES_VERSION=<<parameters.kubernetes-version>>
+            else
+              make setup
+            fi
       - run:
           name: Run test
           command: |
             cd e2e
             make start-lvmd
-            make test
+            if [ -n "<<parameters.kubernetes-version>>" ]; then
+              make test KUBERNETES_VERSION=<<parameters.kubernetes-version>>
+            else
+              make test
+            fi
 
 workflows:
   version: 2
@@ -121,6 +133,8 @@ workflows:
             - build
       - test-node
       - e2e
+      - e2e:
+          kubernetes-version: 1.14.6
   release:
     jobs:
       - build:
