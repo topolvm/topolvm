@@ -100,7 +100,6 @@ webhooks:
         namespace: topolvm-system
         name: topolvm-hook
         path: /mutate
-    matchPolicy: Equivalent
     rules:
       - operations: ["CREATE"]
         apiGroups: [""]
