@@ -7,9 +7,11 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
-### Added
+## [0.1.2] - 2019-09-10
+
 ### Changed
-### Removed
+- Update kubebuilder, controller-tools, controller-runtime (#35).
+- Fix a bug in CSI GetCapacity method (#45).
 
 ## [0.1.1] - 2019-08-22
 
@@ -28,6 +30,7 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 This is the first release.
 
-[Unreleased]: https://github.com/cybozu-go/topolvm/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/cybozu-go/topolvm/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/cybozu-go/topolvm/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/cybozu-go/topolvm/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/cybozu-go/topolvm/compare/8d34ac6690b0326d1c08be34f8f4667cff47e9c0...v0.1.0
