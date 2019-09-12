@@ -10,7 +10,7 @@ spec:
   names:
     kind: LogicalVolume
     plural: logicalvolumes
-  scope: Namespaced
+  scope: Cluster
   subresources:
     status: {}
   validation:

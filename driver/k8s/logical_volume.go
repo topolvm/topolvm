@@ -27,9 +27,8 @@ import (
 )
 
 type logicalVolumeService struct {
-	mgr       manager.Manager
-	namespace string
-	mu        sync.Mutex
+	mgr manager.Manager
+	mu  sync.Mutex
 }
 
 const (
@@ -41,7 +40,7 @@ var (
 )
 
 // NewLogicalVolumeService returns LogicalVolumeService.
-func NewLogicalVolumeService(namespace string) (driver.LogicalVolumeService, error) {
+func NewLogicalVolumeService() (driver.LogicalVolumeService, error) {
 	err := topolvmv1.AddToScheme(scheme)
 	if err != nil {
 		return nil, err
@@ -71,8 +70,7 @@ func NewLogicalVolumeService(namespace string) (driver.LogicalVolumeService, err
 	})
 
 	return &logicalVolumeService{
-		mgr:       mgr,
-		namespace: namespace,
+		mgr: mgr,
 	}, nil
 
 }
@@ -93,8 +91,7 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 			APIVersion: "topolvm.cybozu.com/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: s.namespace,
+			Name: name,
 		},
 		Spec: topolvmv1.LogicalVolumeSpec{
 			Name:     name,
@@ -104,7 +101,7 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 	}
 
 	existingLV := new(topolvmv1.LogicalVolume)
-	err := s.mgr.GetClient().Get(ctx, client.ObjectKey{Namespace: s.namespace, Name: name}, existingLV)
+	err := s.mgr.GetClient().Get(ctx, client.ObjectKey{Name: name}, existingLV)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			return "", err
@@ -115,8 +112,7 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 			return "", err
 		}
 		log.Info("created LogicalVolume CRD", map[string]interface{}{
-			"name":      name,
-			"namespace": s.namespace,
+			"name": name,
 		})
 	} else {
 		// LV with same name was found; check compatibility
@@ -130,8 +126,7 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 
 	for {
 		log.Info("waiting for setting 'status.volumeID'", map[string]interface{}{
-			"namespace": s.namespace,
-			"name":      name,
+			"name": name,
 		})
 		select {
 		case <-ctx.Done():
@@ -141,11 +136,10 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 		}
 
 		var newLV topolvmv1.LogicalVolume
-		err := s.mgr.GetClient().Get(ctx, client.ObjectKey{Namespace: s.namespace, Name: name}, &newLV)
+		err := s.mgr.GetClient().Get(ctx, client.ObjectKey{Name: name}, &newLV)
 		if err != nil {
 			log.Error("failed to get LogicalVolume", map[string]interface{}{
 				log.FnError: err,
-				"namespace": s.namespace,
 				"name":      name,
 			})
 			continue
@@ -172,7 +166,6 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 func (s *logicalVolumeService) DeleteVolume(ctx context.Context, volumeID string) error {
 	lvList := new(topolvmv1.LogicalVolumeList)
 	err := s.mgr.GetClient().List(ctx, lvList,
-		client.InNamespace(s.namespace),
 		client.MatchingField(indexFieldVolumeID, volumeID))
 	if err != nil {
 		return err
@@ -192,7 +185,6 @@ func (s *logicalVolumeService) DeleteVolume(ctx context.Context, volumeID string
 func (s *logicalVolumeService) getLogicalVolumeListByVolumeID(ctx context.Context, volumeID string) (*topolvmv1.LogicalVolumeList, error) {
 	lvList := new(topolvmv1.LogicalVolumeList)
 	err := s.mgr.GetClient().List(ctx, lvList,
-		client.InNamespace(s.namespace),
 		client.MatchingField(indexFieldVolumeID, volumeID))
 	if err != nil {
 		return nil, err

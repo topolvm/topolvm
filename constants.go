@@ -14,8 +14,5 @@ const PluginName = "topolvm.cybozu.com"
 // TopologyNodeKey is a key of topology that represents node name.
 const TopologyNodeKey = "topology.topolvm.cybozu.com/node"
 
-// SystemNamespace is the name of namespace for TopoLVM system.
-const SystemNamespace = "topolvm-system"
-
 // NodeFinalizer is the name of Node finalizer of TopoLVM
 const NodeFinalizer = "topolvm.cybozu.com/node"
