@@ -4,24 +4,34 @@ Limitations
 StorageClass reclaim policy
 ---------------------------
 
-TopoLVM does not care about `Retain` policy because CSI volumes can be referenced
-only via PersistentVolumeClaims.
+TopoLVM does not care about `Retain` [reclaim policy](https://kubernetes.io/docs/concepts/storage/storage-classes/#reclaim-policy)
+because CSI volumes can be referenced only via PersistentVolumeClaims.
 
-https://kubernetes.io/docs/concepts/storage/volumes/#csi
-> The `csi` volume type does not support direct reference from Pod and may only be referenced in a Pod via a `PersistentVolumeClaim` object.
+Ref: https://kubernetes.io/docs/concepts/storage/volumes/#csi
 
-TopoLVM supports only `reclaimPolicy: Delete` on `StorageClass`.
+> The `csi` volume type does not support direct reference from Pod and may
+> only be referenced in a Pod via a `PersistentVolumeClaim` object. 
 
-`StatefulSet`s `Pod` might be `Pending` after rescheduling
-----------------------------------------------------------
+StatefulSet Pods may become pending after node removal
+------------------------------------------------------
 
-TopoLVM will cleanup PVCs on the deleting Nodes and Pods using the PVCs.
-To avoid [Storage Object In Use Protection](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#storage-object-in-use-protection), Pods need to be deleted before PVCs.
+TopoLVM removes PVCs and Pods using the PVCs when a node is being deleted.
 
-At worst cases, StatefulSet controller may create a new Pod just after
-`topolvm-controller` deletes the Pod but before it deletes the PVC.
-In this case, the PVC will anyways be deleted by `topolvm-controller`,
-and the new Pod will be in the pending state forever because StatefulSet controller
-in this case does not instantiate a new PVC from the template.
+This should reschedule Pods and PVCs using TopoLVM onto other nodes,
+but there can be a small chance that some pods may become pending state,
+i.e. not rescheduled to other nodes.
 
-To solve this problem, user needs to delete the pending `Pod` manually.
+This can happen because, for [Storage Object In Use Protection](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#storage-object-in-use-protection),
+TopoLVM needs to delete Pods before PVCs.
+
+In an unfortunate case, StatefulSet controller can re-create the deleted
+pod before TopoLVM removes the PVC.  If this happens, TopoLVM then anyway
+removes the PVC and **StatefulSet controller will not re-create the PVC
+from the volume claim template**.
+
+The re-created pod will be left without its PVC(s) defined and become pending.
+TopoLVM can do nothing for this pod because now the pod has nothing related
+to TopoLVM.
+
+The pending pod needs to be removed manually to allow StatefulSet to re-create
+new Pod and PVC.

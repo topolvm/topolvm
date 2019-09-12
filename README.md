@@ -63,6 +63,8 @@ A demonstration of TopoLVM running on [kind (Kubernetes IN Docker)][kind] is ava
 
 For production deployments, see [deploy](deploy/) directory.
 
+User manual is at [docs/user-manual.md](docs/user-manual.md).
+
 Documentation
 -------------
 
