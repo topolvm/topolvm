@@ -61,7 +61,7 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	}
 
 	if lv.Spec.NodeName != r.nodeName {
-		log.Info("unfilterd logical volue", "nodeName", lv.Spec.NodeName)
+		log.Info("unfiltered logical value", "nodeName", lv.Spec.NodeName)
 		return ctrl.Result{}, nil
 	}
 
