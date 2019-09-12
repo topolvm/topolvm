@@ -24,4 +24,4 @@ In this case, the PVC will anyways be deleted by `topolvm-controller`,
 and the new Pod will be in the pending state forever because StatefulSet controller
 in this case does not instantiate a new PVC from the template.
 
-To solve this problem, user needs to delete a pending `Pod` manually.
+To solve this problem, user needs to delete the pending `Pod` manually.
