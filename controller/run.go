@@ -1,9 +1,12 @@
 package controller
 
 import (
+	"os"
 	"time"
 
+	"github.com/cybozu-go/topolvm/controller/controllers"
 	logicalvolumev1 "github.com/cybozu-go/topolvm/topolvm-node/api/v1"
+	"github.com/spf13/viper"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -47,6 +50,25 @@ func Run(cfg *rest.Config, metricsAddr string, stalePeriod time.Duration, develo
 	})
 	if err != nil {
 		return err
+	}
+
+	lvcontroller := &controllers.LogicalVolumeReconciler{
+		Client:   mgr.GetClient(),
+		Log:      ctrl.Log.WithName("controllers").WithName("LogicalVolume"),
+		NodeName: viper.GetString("node-name"),
+	}
+	if err := lvcontroller.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "LogicalVolume")
+		os.Exit(1)
+	}
+
+	nodecontroller := &controllers.NodeReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("Node"),
+	}
+	if err := nodecontroller.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Node")
+		os.Exit(1)
 	}
 
 	// +kubebuilder:scaffold:builder
