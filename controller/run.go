@@ -75,6 +75,10 @@ func Run(cfg *rest.Config, metricsAddr string, stalePeriod time.Duration, develo
 
 	// +kubebuilder:scaffold:builder
 
+	err = mgr.GetFieldIndexer().IndexField(&corev1.PersistentVolumeClaim{}, KeySelectedNode, func(o runtime.Object) []string {
+		return []string{o.(*corev1.PersistentVolumeClaim).Annotations["volume.kubernetes.io/selected-node"]}
+	})
+
 	// pre-cache objects
 	if _, err := mgr.GetCache().GetInformer(&storagev1.StorageClass{}); err != nil {
 		return err
