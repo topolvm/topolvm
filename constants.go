@@ -14,5 +14,8 @@ const PluginName = "topolvm.cybozu.com"
 // TopologyNodeKey is a key of topology that represents node name.
 const TopologyNodeKey = "topology.topolvm.cybozu.com/node"
 
+// LogicalVolumeFinalizer is the name of LogicalVolume finalizer
+const LogicalVolumeFinalizer = "topolvm.cybozu.com/logicalvolume"
+
 // NodeFinalizer is the name of Node finalizer of TopoLVM
 const NodeFinalizer = "topolvm.cybozu.com/node"

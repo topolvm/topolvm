@@ -15,10 +15,13 @@ Details
 When a `Node` resource is deleted, `Node`'s finalizer is invoked.
 Finalizer deletes `PersistentVolumeClaim` and `Pod` that are running on deleting `Node`.
 
-### Delete stale LogicalVolumes and its associated PersistentVolumes
+### Delete stale LogicalVolumes
 
 Sometime LogicalVolumes may be left without completing finalization when the node dies.
-To delete such LogicalVolumes and its associated PersistentVolumes, `topolvm-controller` deletes them periodically. By default, it deletes LogicalVolumes whose DeletionTimestamp is behind one day from the current time.
+To delete such LogicalVolumes, `topolvm-controller` deletes them periodically by running
+finalization by on behalf of `topolvm-node`.
+
+By default, it deletes LogicalVolumes whose DeletionTimestamp is behind one day from the current time.
 
 Command-line flags
 ------------------

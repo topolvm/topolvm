@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/cybozu-go/topolvm"
 	logicalvolumev1 "github.com/cybozu-go/topolvm/topolvm-node/api/v1"
 	"github.com/go-logr/logr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -28,10 +29,64 @@ type LogicalVolumeReconciler struct {
 
 // Reconcile deletes staled LogicalVolume and PV
 func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	_ = context.Background()
+	ctx := context.Background()
 	log := r.Log.WithValues("logicalvolume", req.NamespacedName)
-	log.Info("hoge")
+
+	var lvl logicalvolumev1.LogicalVolumeList
+	err := r.List(ctx, &lvl)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	now := time.Now()
+	for _, lv := range lvl.Items {
+		if err := r.cleanup(ctx, log, &lv, now); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	return ctrl.Result{}, nil
+}
+
+func (r *LogicalVolumeReconciler) cleanup(ctx context.Context, log logr.Logger, lv *logicalvolumev1.LogicalVolume, now time.Time) error {
+	if lv.DeletionTimestamp.IsZero() {
+		return nil
+	}
+	if lv.DeletionTimestamp.Add(r.StalePeriod).After(now) {
+		return nil
+	}
+	finExists := false
+	for _, fin := range lv.Finalizers {
+		if fin == topolvm.LogicalVolumeFinalizer {
+			finExists = true
+			break
+		}
+	}
+	if !finExists {
+		return nil
+	}
+
+	log.Info("deleting stale LogicalVolume",
+		"name", lv.Name,
+		"timestamp", lv.DeletionTimestamp.String())
+
+	lv2 := lv.DeepCopy()
+	var finalizers []string
+	for _, fin := range lv2.Finalizers {
+		if fin == topolvm.LogicalVolumeFinalizer {
+			continue
+		}
+		finalizers = append(finalizers, fin)
+	}
+	lv2.Finalizers = finalizers
+
+	patch := client.MergeFrom(lv)
+	if err := r.Patch(ctx, lv2, patch); err != nil {
+		log.Error(err, "failed to patch LogicalVolume", "name", lv.Name)
+		return err
+	}
+
+	return nil
 }
 
 // SetupWithManager sets up Reconciler with Manager.

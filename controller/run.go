@@ -58,7 +58,7 @@ func Run(cfg *rest.Config, metricsAddr string, stalePeriod time.Duration, develo
 	events := make(chan event.GenericEvent, 1)
 	stopCh := ctrl.SetupSignalHandler()
 	go func() {
-		ticker := time.NewTicker(time.Second * 5)
+		ticker := time.NewTicker(10 * time.Minute)
 		for {
 			select {
 			case <-stopCh:
