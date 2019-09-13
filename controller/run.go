@@ -13,6 +13,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	// +kubebuilder:scaffold:imports
 )
@@ -54,10 +55,32 @@ func Run(cfg *rest.Config, metricsAddr string, stalePeriod time.Duration, develo
 		return err
 	}
 
+	events := make(chan event.GenericEvent, 1)
+	stopCh := ctrl.SetupSignalHandler()
+	go func() {
+		ticker := time.NewTicker(time.Second * 5)
+		for {
+			select {
+			case <-stopCh:
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				select {
+				case events <- event.GenericEvent{
+					Meta: &logicalvolumev1.LogicalVolume{},
+				}:
+				default:
+				}
+			}
+		}
+	}()
+
 	lvcontroller := &controllers.LogicalVolumeReconciler{
-		Client:   mgr.GetClient(),
-		Log:      ctrl.Log.WithName("controllers").WithName("LogicalVolume"),
-		NodeName: viper.GetString("node-name"),
+		Client:      mgr.GetClient(),
+		Log:         ctrl.Log.WithName("controllers").WithName("LogicalVolume"),
+		NodeName:    viper.GetString("node-name"),
+		Events:      events,
+		StalePeriod: stalePeriod,
 	}
 	if err := lvcontroller.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "LogicalVolume")
@@ -93,7 +116,7 @@ func Run(cfg *rest.Config, metricsAddr string, stalePeriod time.Duration, develo
 	}
 
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(stopCh); err != nil {
 		setupLog.Error(err, "problem running manager")
 		return err
 	}
