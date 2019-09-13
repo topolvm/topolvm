@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	topolvmv1 "github.com/cybozu-go/topolvm/api/v1"
+	topolvmv1 "github.com/cybozu-go/topolvm/topolvm-node/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
