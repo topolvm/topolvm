@@ -7,6 +7,8 @@ import (
 	"github.com/cybozu-go/topolvm/controller/controllers"
 	logicalvolumev1 "github.com/cybozu-go/topolvm/topolvm-node/api/v1"
 	"github.com/spf13/viper"
+	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -72,6 +74,17 @@ func Run(cfg *rest.Config, metricsAddr string, stalePeriod time.Duration, develo
 	}
 
 	// +kubebuilder:scaffold:builder
+
+	// pre-cache objects
+	if _, err := mgr.GetCache().GetInformer(&storagev1.StorageClass{}); err != nil {
+		return err
+	}
+	if _, err := mgr.GetCache().GetInformer(&corev1.Pod{}); err != nil {
+		return err
+	}
+	if _, err := mgr.GetCache().GetInformer(&corev1.PersistentVolumeClaim{}); err != nil {
+		return err
+	}
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
