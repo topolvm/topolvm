@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/cybozu-go/topolvm"
-	"github.com/cybozu-go/topolvm/controller"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -120,7 +119,7 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 	}
 
 	var pvcs corev1.PersistentVolumeClaimList
-	err = r.List(ctx, &pvcs, client.MatchingField(controller.KeySelectedNode, node.Name))
+	err = r.List(ctx, &pvcs, client.MatchingField(KeySelectedNode, node.Name))
 	if err != nil {
 		log.Error(err, "unable to fetch PersistentVolumeClaimList")
 		return err
