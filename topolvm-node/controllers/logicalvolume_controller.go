@@ -78,7 +78,7 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 			patch := client.MergeFrom(lv)
 			if err := r.k8sClient.Patch(ctx, lv2, patch); err != nil {
 				log.Error(err, "failed to add finalizer", "name", lv.Name)
-				return ctrl.Result{Requeue: true}, err
+				return ctrl.Result{}, err
 			}
 		}
 
@@ -111,7 +111,7 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	patch := client.MergeFrom(lv)
 	if err := r.k8sClient.Patch(ctx, lv2, patch); err != nil {
 		log.Error(err, "failed to remove finalizer", "name", lv.Name)
-		return ctrl.Result{Requeue: true}, err
+		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
 }
