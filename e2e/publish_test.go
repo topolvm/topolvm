@@ -6,21 +6,10 @@ import (
 	"net"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	"github.com/kubernetes-csi/csi-test/pkg/sanity"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"google.golang.org/grpc"
 )
-
-var _ = Describe("CSI sanity test", func() {
-	sanity.GinkgoTest(&sanity.Config{
-		Address:           "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/csi-topolvm.sock",
-		ControllerAddress: "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/controller/csi-topolvm.sock",
-		TargetPath:        "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/mountdir",
-		StagingPath:       "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/stagingdir",
-		TestVolumeSize:    1073741824,
-	})
-})
 
 type cleanup struct {
 	// key is volumeID, value is target path
@@ -57,7 +46,7 @@ func (c cleanup) unpublishVolumes(nc csi.NodeClient) {
 	c.volumes = nil
 }
 
-var _ = Describe("Additional CSI sanity test", func() {
+func testPublishVolume() {
 	var (
 		cl   cleanup
 		nc   csi.NodeClient
@@ -203,4 +192,4 @@ var _ = Describe("Additional CSI sanity test", func() {
 
 		cl.unregister(volumeID, deviceTargetPath)
 	})
-})
+}

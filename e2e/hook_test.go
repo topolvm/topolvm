@@ -13,7 +13,7 @@ import (
 
 const nsHookTest = "hook-test"
 
-var _ = Describe("in hook-test namespace", func() {
+func testHook() {
 	BeforeEach(func() {
 		createNamespace(nsHookTest)
 	})
@@ -276,4 +276,4 @@ spec:
 		Expect(resources.Limits).ShouldNot(HaveKey(topolvm.CapacityResource))
 		Expect(resources.Requests).ShouldNot(HaveKey(topolvm.CapacityResource))
 	})
-})
+}

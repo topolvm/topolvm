@@ -10,7 +10,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var _ = Describe("Test topolvm-scheduler", func() {
+func testScheduler() {
 	testNamespacePrefix := "scheduler-test"
 
 	It("should be deployed topolvm-scheduler pod", func() {
@@ -134,4 +134,4 @@ spec:
 		}).Should(Succeed())
 	})
 
-})
+}

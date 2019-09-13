@@ -12,8 +12,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var _ = Describe("Test for lvmetrics", func() {
-
+func testLvmetrics() {
 	It("should be deployed lvmetrics pod", func() {
 		Eventually(func() error {
 			result, stderr, err := kubectl("get", "-n=topolvm-system", "pods", "--selector=app.kubernetes.io/name=lvmetrics", "-o=json")
@@ -87,4 +86,4 @@ var _ = Describe("Test for lvmetrics", func() {
 			Expect(val).To(Equal(strings.TrimSpace(string(targetBytes))), "unexpected capacity: "+node.Name)
 		}
 	})
-})
+}

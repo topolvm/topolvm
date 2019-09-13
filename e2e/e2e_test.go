@@ -16,7 +16,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var _ = Describe("E2E test", func() {
+func testE2E() {
 	testNamespacePrefix := "e2etest-"
 	var ns string
 	BeforeEach(func() {
@@ -687,7 +687,7 @@ spec:
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s", stdout)
 		Expect(pod.Spec.NodeName).To(Equal(""))
 	})
-})
+}
 
 func waitCreatingDefaultSA(ns string) error {
 	stdout, stderr, err := kubectl("get", "sa", "-n", ns, "default")
