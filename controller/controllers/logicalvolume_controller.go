@@ -19,6 +19,7 @@ type LogicalVolumeReconciler struct {
 // +kubebuilder:rbac:groups=topolvm.cybozu.com,resources=logicalvolumes,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups="",resources=persistentvolumes,verbs=get;list;watch;delete
 
+// Reconcile deletes staled LogicalVolume and PV
 func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
 	_ = r.Log.WithValues("logicalvolume", req.NamespacedName)
@@ -28,6 +29,7 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	return ctrl.Result{}, nil
 }
 
+// SetupWithManager sets up Reconciler with Manager.
 func (r *LogicalVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&logicalvolumev1.LogicalVolume{}).

@@ -19,6 +19,7 @@ type NodeReconciler struct {
 // +kubebuilder:rbac:groups="",resources=pods;persistentvolumeclaims,verbs=get;list;watch;delete
 // +kubebuilder:rbac:groups="",resources=storageclasses,verbs=get;list;watch
 
+// Reconcile finalize Node
 func (r *NodeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
 	_ = r.Log.WithValues("node", req.NamespacedName)
@@ -28,6 +29,7 @@ func (r *NodeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
+// SetupWithManager sets up Reconciler with Manager.
 func (r *NodeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&corev1.Node{}).
