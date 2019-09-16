@@ -25,7 +25,6 @@ type LogicalVolumeReconciler struct {
 }
 
 // +kubebuilder:rbac:groups=topolvm.cybozu.com,resources=logicalvolumes,verbs=get;list;watch;update;patch
-// +kubebuilder:rbac:groups="",resources=persistentvolumes,verbs=get;list;watch;delete
 
 // Reconcile deletes staled LogicalVolume and PV
 func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {

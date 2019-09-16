@@ -27,16 +27,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - ""
-  resources:
-  - persistentvolumes
-  verbs:
-  - delete
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
+  - storage.k8s.io
   resources:
   - storageclasses
   verbs:

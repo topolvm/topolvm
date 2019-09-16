@@ -20,7 +20,7 @@ type NodeReconciler struct {
 
 // +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups="",resources=pods;persistentvolumeclaims,verbs=get;list;watch;delete
-// +kubebuilder:rbac:groups="",resources=storageclasses,verbs=get;list;watch
+// +kubebuilder:rbac:groups="storage.k8s.io",resources=storageclasses,verbs=get;list;watch
 
 // Reconcile finalize Node
 func (r *NodeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {

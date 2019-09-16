@@ -16,7 +16,8 @@ RUN ln -s hypertopolvm csi-topolvm \
     && ln -s hypertopolvm lvmetrics \
     && ln -s hypertopolvm topolvm-scheduler \
     && ln -s hypertopolvm topolvm-node \
-    && ln -s hypertopolvm topolvm-hook
+    && ln -s hypertopolvm topolvm-hook \
+    && ln -s hypertopolvm topolvm-controller
 
 # CSI sidecar
 COPY build/csi-provisioner /csi-provisioner
