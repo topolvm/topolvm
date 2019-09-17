@@ -23,8 +23,8 @@ COMMAND:
     - lvmetrics          DaemonSet sidecar container to expose storage metrics as Node annotations.
     - topolvm-scheduler  Scheduler extender.
     - topolvm-node       Sidecar to communicate with CSI controller over TopoLVM custom resources.
-	- topolvm-hook       MutatingAdmissionWebhook for topolvm-scheduler.
-	- topolvm-controller Controllers for TopoLVM.
+    - topolvm-hook       MutatingAdmissionWebhook for topolvm-scheduler.
+    - topolvm-controller Controllers for TopoLVM.
 `)
 }
 

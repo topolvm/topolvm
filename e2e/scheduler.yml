@@ -5,11 +5,36 @@ metadata:
   namespace: topolvm-system
   name: topolvm-scheduler
 ---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: topolvm-system
+  name: psp:topolvm-scheduler
+rules:
+  - apiGroups: ["policy"]
+    resources: ["podsecuritypolicies"]
+    verbs: ["use"]
+    resourceNames: ["topolvm-scheduler"]
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: topolvm-system
+  name: topolvm-scheduler:psp:topolvm-scheduler
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: psp:topolvm-scheduler
+subjects:
+- kind: ServiceAccount
+  namespace: topolvm-system
+  name: topolvm-scheduler
+---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: topolvm-scheduler
   namespace: topolvm-system
+  name: topolvm-scheduler
 spec:
   selector:
     matchLabels:
@@ -19,6 +44,9 @@ spec:
       labels:
         app.kubernetes.io/name: topolvm-scheduler
     spec:
+      securityContext:
+        runAsUser:  10000
+        runAsGroup: 10000
       serviceAccountName: topolvm-scheduler
       containers:
         - name: topolvm-scheduler
@@ -26,12 +54,13 @@ spec:
           imagePullPolicy: Never
           command:
             - /topolvm-scheduler
-            - --listen=:9251
+            - --listen=localhost:9251
             - --divisor=1
           livenessProbe:
             httpGet:
-              path: /status
+              host: localhost
               port: 9251
+              path: /status
       hostNetwork: true
       tolerations:
         - key: CriticalAddonsOnly
