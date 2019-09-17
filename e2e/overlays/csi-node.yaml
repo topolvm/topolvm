@@ -1,145 +1,46 @@
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  namespace: topolvm-system
-  name: csi-topolvm-node
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: topolvm-system:csi-topolvm-node
-rules:
-  - apiGroups: [""]
-    resources: ["nodes"]
-    verbs: ["get", "patch"]
-  - apiGroups: ["topolvm.cybozu.com"]
-    resources: ["logicalvolumes", "logicalvolumes/status"]
-    verbs: ["get", "list", "watch", "create", "update", "delete", "patch"]
-  - apiGroups: ["policy"]
-    resources: ["podsecuritypolicies"]
-    verbs: ["use"]
-    resourceNames: ["topolvm-node"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: topolvm-system:csi-topolvm-node
-subjects:
-  - kind: ServiceAccount
-    name: csi-topolvm-node
-    namespace: topolvm-system
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: topolvm-system:csi-topolvm-node
-
----
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   namespace: topolvm-system
   name: csi-topolvm-node
 spec:
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: csi-topolvm-node
   template:
-    metadata:
-      labels:
-        app.kubernetes.io/name: csi-topolvm-node
     spec:
-      serviceAccountName: csi-topolvm-node
       containers:
         - name: node
-          image: quay.io/cybozu/topolvm:0.1.2
-          securityContext:
-            privileged: true
-          command:
-            - /csi-topolvm
-            - node
-            - --node-name=$(MY_NODE_NAME)
-            - --csi-socket-name=/run/topolvm/csi-topolvm.sock
-            - --lvmd-socket-name=/run/lvmd/lvmd.sock
-          env:
-            - name: MY_NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
+          image: topolvm:dev
+          imagePullPolicy: Never
           volumeMounts:
-            - name: node-plugin-dir
-              mountPath: /run/topolvm
-            - name: lvmd-socket-dir
-              mountPath: /run/lvmd
-            - name: pod-volumes-dir
-              mountPath: /var/lib/kubelet/pods
-              mountPropagation: "Bidirectional"
-            - name: csi-plugin-dir
-              mountPath: /var/lib/kubelet/plugins/kubernetes.io/csi
-              mountPropagation: "Bidirectional"
+            - name: device-dir
+              mountPath: /dev
 
         - name: csi-registrar
-          image: quay.io/cybozu/topolvm:0.1.2
+          image: quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
+          imagePullPolicy: "IfNotPresent"
           command:
             - /csi-node-driver-registrar
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
             - "--kubelet-registration-path=/var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock"
-          lifecycle:
-            preStop:
-              exec:
-                command: ["/bin/sh", "-c", "rm -rf /registration/topolvm.cybozu.com /registration/topolvm.cybozu.com-reg.sock"]
-          volumeMounts:
-            - name: node-plugin-dir
-              mountPath: /run/topolvm
-            - name: registration-dir
-              mountPath: /registration
 
         - name: topolvm-node
-          image: quay.io/cybozu/topolvm:0.1.2
+          image: topolvm:dev
+          imagePullPolicy: Never
           command:
             - /topolvm-node
             - --node-name=$(MY_NODE_NAME)
             - --lvmd-socket=/run/lvmd/lvmd.sock
-          env:
-            - name: MY_NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-          volumeMounts:
-            - name: lvmd-socket-dir
-              mountPath: /run/lvmd
+            - --development=true
 
         - name: lvmetrics
-          image: quay.io/cybozu/topolvm:0.1.2
-          command:
-            - /lvmetrics
-            - --socket=/run/topolvm/lvmd.sock
-          env:
-            - name: NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-          volumeMounts:
-          - name: lvmd-socket-dir
-            mountPath: /run/topolvm
+          image: topolvm:dev
+          imagePullPolicy: Never
 
       volumes:
-        - name: registration-dir
-          hostPath:
-            path: /var/lib/kubelet/plugins_registry/
-            type: Directory
-        - name: node-plugin-dir
-          hostPath:
-            path: /var/lib/kubelet/plugins/topolvm.cybozu.com/node
-            type: DirectoryOrCreate
-        - name: csi-plugin-dir
-          hostPath:
-            path: /var/lib/kubelet/plugins/kubernetes.io/csi
-            type: DirectoryOrCreate
-        - name: pod-volumes-dir
-          hostPath:
-            path: /var/lib/kubelet/pods/
-            type: DirectoryOrCreate
         - name: lvmd-socket-dir
           hostPath:
-            path: /run/topolvm
+            path: /tmp/topolvm
+            type: Directory
+        - name: device-dir
+          hostPath:
+            path: /dev
             type: Directory

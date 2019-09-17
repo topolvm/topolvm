@@ -37,10 +37,6 @@ topolvm.img: $(GO_FILES)
 	ln -s hypertopolvm ./tmpbin/topolvm-scheduler
 	ln -s hypertopolvm ./tmpbin/topolvm-node
 	ln -s hypertopolvm ./tmpbin/topolvm-hook
-	(cd ../; make external-provisioner node-driver-registrar external-attacher)
-	cp ../build/csi-provisioner ./tmpbin/
-	cp ../build/csi-node-driver-registrar ./tmpbin/
-	cp ../build/csi-attacher ./tmpbin/
 	docker build --no-cache --rm=false -f Dockerfile -t topolvm:dev tmpbin
 	docker save -o $@ topolvm:dev
 
@@ -94,17 +90,13 @@ stop-lvmd:
 		fi; \
 	done
 
-test: topolvm.img scheduler.yml mutatingwebhooks.yml csi-controller.yml csi-node.yml $(SERVER_CERT_FILES)
+test: topolvm.img $(SERVER_CERT_FILES)
 	$(MAKE) shutdown-kind
 	$(MAKE) launch-kind
-	$(KUBECTL) apply -f ../deploy/manifests/namespace.yml
-	$(MAKE) secret
-	kind load image-archive topolvm.img
-	$(KUBECTL) apply -f ../deploy/manifests/psp.yaml
-	$(KUBECTL) apply -f scheduler.yml -f mutatingwebhooks.yml
-	$(KUBECTL) apply -f ../deploy/manifests/provisioner.yaml -f provisioner.yml
+	$(KUBECTL) delete -n=topolvm-system secret pod-mutatingwebhook --ignore-not-found
 	$(KUBECTL) apply -f ../deploy/manifests/crd.yaml
-	$(KUBECTL) apply -f csi-controller.yml -f csi-node.yml
+	kind load image-archive topolvm.img
+	kustomize build . | kubectl apply -f -
 	$(SUDO) env \
 		PATH=$(PATH) \
 		GOPATH=$(GOPATH) \
@@ -119,25 +111,6 @@ $(CA_FILES): ./certs/csr.json
 
 $(SERVER_CERT_FILES): $(CA_FILES) ./certs/ca-config.json ./certs/server.json
 	cfssl gencert -ca=certs/ca.pem -ca-key=certs/ca-key.pem -config=certs/ca-config.json -profile=server certs/server.json | cfssljson -bare certs/server
-
-scheduler.yml: ../deploy/manifests/scheduler.yaml
-	sed -e "s|image: quay.io/cybozu/topolvm:.*$$|image: topolvm:dev\n          imagePullPolicy: Never|g" $< >$@
-
-mutatingwebhooks.yml: $(CA_FILES)
-	./patch_capem.sh
-
-secret: $(SERVER_CERT_FILES)
-	$(KUBECTL) delete -n=topolvm-system secret pod-mutatingwebhook --ignore-not-found
-	$(KUBECTL) create -n=topolvm-system secret generic pod-mutatingwebhook --from-file=tls.crt=certs/server.pem --from-file=tls.key=certs/server-key.pem
-
-csi-controller.yml: ../deploy/manifests/csi-controller.yaml
-	sed -e "s|image: quay.io/cybozu/topolvm:.*$$|image: topolvm:dev\n          imagePullPolicy: Never|g" \
-		-e "s|          emptyDir: {}|          hostPath:\n            path: /var/lib/kubelet/plugins/topolvm.cybozu.com/controller\n            type: DirectoryOrCreate|g" \
-		-e "s|  attachRequired: true|  attachRequired: true\n  podInfoOnMount: false|g" \
-	$< >$@
-
-csi-node.yml: ../deploy/manifests/csi-node.yaml
-	sed -e "s|image: quay.io/cybozu/topolvm:.*$$|image: topolvm:dev\n          imagePullPolicy: Never|g" $< >$@
 
 setup: $(KUBECTL)
 	go install github.com/cloudflare/cfssl/cmd/cfssl

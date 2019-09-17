@@ -1,11 +1,9 @@
 package e2e
 
 import (
-	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"math/rand"
 	"os"
 	"testing"
@@ -14,10 +12,7 @@ import (
 	"github.com/kubernetes-csi/csi-test/pkg/sanity"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	k8sYaml "k8s.io/apimachinery/pkg/util/yaml"
 )
 
 func TestMtest(t *testing.T) {
@@ -71,51 +66,8 @@ func waitKindnet() error {
 	return nil
 }
 
-func replaceSchedulerYAML() ([]byte, error) {
-	f, err := os.Open("../deploy/manifests/scheduler.yml")
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	y := k8sYaml.NewYAMLReader(bufio.NewReader(f))
-	for {
-		data, err := y.Read()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return err
-		}
-
-		var ds appsv1.DaemonSet
-		err = yaml.Unmarshal(data, &ds)
-		if err != nil {
-			continue
-		}
-		for _, c := range ds.Spec.Template.Spec.Containers {
-			c.Image = "topolvm:dev"
-			c.ImagePullPolicy = corev1.PullNever
-		}
-	}
-
-	return
-
-}
-
 var _ = BeforeSuite(func() {
-	fmt.Println("Applying manifests")
-	stdout, stderr, err := kubectl("apply", "-f", "../deploy/manifests/namespace.yml")
-	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-	stdout, stderr, err = kubectl("delete", "-n=topolvm-system", "secret", "pod-mutatingwebhook", "--ignore-not-found")
-	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-	stdout, stderr, err = kubectl("create", "-n=topolvm-system", "secret", "generic", "pod-mutatingwebhook", "--from-file=tls.crt=certs/server.pem", " --from-file=tls.key=certs/server-key.pem")
-	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-	stdout, stderr, err = kubectl("apply", "-f", "../deploy/manifests/psp.yaml")
-	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 	fmt.Println("Waiting for mutating webhook to get ready")
-	data, err := replaceSchedulerYAML()
-	Expect(err).ShouldNot(HaveOccurred())
-	stdout, stderr, err = kubectlWithInput([]byte(data), "apply", "-f", "-")
-	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 	// Because kindnet will crash. we need to confirm its readiness twice.
 	Eventually(waitKindnet).Should(Succeed())

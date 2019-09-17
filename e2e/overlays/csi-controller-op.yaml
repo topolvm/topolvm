@@ -1,0 +1,2 @@
+- op: remove
+  path: /spec/template/spec/volumes/0/emptyDir

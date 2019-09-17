@@ -39,7 +39,6 @@ require (
 	golang.org/x/sys v0.0.0-20190312061237-fead79001313
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
 	google.golang.org/grpc v1.23.1
-	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/api v0.0.0-20190805141119-fdd30b57c827
 	k8s.io/apimachinery v0.0.0-20190612205821-1799e75a0719
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible

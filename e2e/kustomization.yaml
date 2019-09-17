@@ -3,13 +3,12 @@ kind: Kustomization
 bases:
   - ../deploy/manifests
 patches:
-  # - csi-controller.yaml
-  # - csi-node.yaml
+  - ./overlays/csi-controller.yaml
+  - ./overlays/csi-node.yaml
   - ./overlays/mutatingwebhooks.yaml
-  # - namespace.yaml
-  # - provisioner.yaml
-  # - psp.yaml
   - ./overlays/scheduler.yaml
+resources:
+  - ./overlays/provisioner.yaml
 generatorOptions:
   disableNameSuffixHash: true
 configurations:
@@ -35,4 +34,11 @@ patchesJson6902:
     group: admissionregistration.k8s.io
     kind: MutatingWebhookConfiguration
     name: topolvm-hook
-  path: ./overlays/op.yaml
+  path: ./overlays/mutatingwebhooks-op.yaml
+- target:
+    version: v1
+    group: apps
+    kind: StatefulSet
+    name: csi-topolvm-controller
+    namespace: topolvm-system
+  path: ./overlays/csi-controller-op.yaml
