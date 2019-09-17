@@ -1,0 +1,38 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+bases:
+  - ../deploy/manifests
+patches:
+  # - csi-controller.yaml
+  # - csi-node.yaml
+  - ./overlays/mutatingwebhooks.yaml
+  # - namespace.yaml
+  # - provisioner.yaml
+  # - psp.yaml
+  - ./overlays/scheduler.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+configurations:
+  - kustomizeconfig.yaml
+secretGenerator:
+- name: pod-mutatingwebhook
+  files:
+  - ca.crt=./certs/ca.pem
+  - tls.crt=./certs/server.pem
+  - tls.key=./certs/server-key.pem
+  type: "Opaque"
+vars:
+  - name: TLSCERT
+    objref:
+      kind: Secret
+      version: v1
+      name: pod-mutatingwebhook
+    fieldref:
+      fieldpath: data[ca.crt]
+patchesJson6902:
+- target:
+    version: v1beta1
+    group: admissionregistration.k8s.io
+    kind: MutatingWebhookConfiguration
+    name: topolvm-hook
+  path: ./overlays/op.yaml
