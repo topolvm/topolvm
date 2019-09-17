@@ -250,6 +250,7 @@ spec:
           image: quay.io/cybozu/topolvm:0.1.2
           command:
             - /topolvm-controller
+            - --metrics-addr=:8081
 
         - name: csi-provisioner
           image: quay.io/cybozu/topolvm:0.1.2

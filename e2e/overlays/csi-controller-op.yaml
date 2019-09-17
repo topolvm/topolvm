@@ -1,2 +1,4 @@
 - op: remove
   path: /spec/template/spec/volumes/0/emptyDir
+- op: remove
+  path: /spec/template/spec/securityContext

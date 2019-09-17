@@ -37,6 +37,7 @@ topolvm.img: $(GO_FILES)
 	ln -s hypertopolvm ./tmpbin/topolvm-scheduler
 	ln -s hypertopolvm ./tmpbin/topolvm-node
 	ln -s hypertopolvm ./tmpbin/topolvm-hook
+	ln -s hypertopolvm ./tmpbin/topolvm-controller
 	docker build --no-cache --rm=false -f Dockerfile -t topolvm:dev tmpbin
 	docker save -o $@ topolvm:dev
 

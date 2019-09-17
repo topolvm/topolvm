@@ -15,6 +15,7 @@ configurations:
   - kustomizeconfig.yaml
 secretGenerator:
 - name: pod-mutatingwebhook
+  namespace: topolvm-system
   files:
   - ca.crt=./certs/ca.pem
   - tls.crt=./certs/server.pem
