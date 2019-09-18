@@ -153,15 +153,23 @@ spec:
 			if err == nil {
 				var recreatedPVC corev1.PersistentVolumeClaim
 				err = json.Unmarshal(stdout, &recreatedPVC)
-				Expect(err).ShouldNot(HaveOccurred())
-				Expect(recreatedPVC.ObjectMeta.UID).ShouldNot(Equal(deletedPVC.ObjectMeta.UID))
+				if err != nil {
+					return err
+				}
+				if recreatedPVC.ObjectMeta.UID == deletedPVC.ObjectMeta.UID {
+					return fmt.Errorf("pvc is not deleted. uid: %s", string(deletedPVC.ObjectMeta.UID))
+				}
 			}
 			stdout, _, err = kubectl("-n", cleanupTest, "get", "pod", deletedPod.Name, "-o=json")
 			if err == nil {
 				var rescheduledPod corev1.Pod
 				err = json.Unmarshal(stdout, &rescheduledPod)
-				Expect(err).ShouldNot(HaveOccurred())
-				Expect(rescheduledPod.ObjectMeta.UID).ShouldNot(Equal(deletedPod.ObjectMeta.UID))
+				if err != nil {
+					return err
+				}
+				if rescheduledPod.ObjectMeta.UID == deletedPod.ObjectMeta.UID {
+					return fmt.Errorf("pod is not deleted. uid: %s", string(deletedPVC.ObjectMeta.UID))
+				}
 			}
 			return nil
 		}).Should(Succeed())
@@ -181,7 +189,7 @@ spec:
 		stdout, stderr, err = kubectl("-n", cleanupTest, "get", "pod", deletedPod.Name, "-o=json")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 		err = json.Unmarshal(stdout, &deletedPod)
-		Expect(err).Should(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 		deletedPodStatus := string(deletedPod.Status.Phase)
 		switch deletedPodStatus {
 		case "Pending":
