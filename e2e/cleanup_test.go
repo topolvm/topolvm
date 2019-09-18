@@ -3,7 +3,9 @@ package e2e
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
+	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/controller/controllers"
 	logicalvolumev1 "github.com/cybozu-go/topolvm/topolvm-node/api/v1"
@@ -106,12 +108,13 @@ spec:
 					if volume.PersistentVolumeClaim == nil {
 						continue
 					}
-					if volume.PersistentVolumeClaim.ClaimName == "test-sts-pvc" {
+					if strings.Contains(volume.PersistentVolumeClaim.ClaimName, "test-sts-pvc") {
 						deletedPod = pod
 					}
 				}
 			}
 		}
+
 		stdout, stderr, err = kubectl("-n", cleanupTest, "get", "pvc", "-o=json")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 		var deletedPVC corev1.PersistentVolumeClaim
@@ -146,9 +149,12 @@ spec:
 
 		By("confirming pvc/pod are deleted")
 		Eventually(func() error {
-			stdout, stderr, err = kubectl("-n", cleanupTest, "get", "pvc", deletedPVC.Name)
+			stdout, stderr, err = kubectl("-n", cleanupTest, "get", "pvc", deletedPVC.Name, "-o=json")
 			if err == nil {
-				return fmt.Errorf("pvc still exists: %s, stdout: %v, stderr: %v", deletedPVC.Name, stdout, stderr)
+				var recreatedPVC corev1.PersistentVolumeClaim
+				err = json.Unmarshal(stdout, &recreatedPVC)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(recreatedPVC.ObjectMeta.UID).ShouldNot(Equal(deletedPVC.ObjectMeta.UID))
 			}
 			stdout, _, err = kubectl("-n", cleanupTest, "get", "pod", deletedPod.Name, "-o=json")
 			if err == nil {
@@ -172,10 +178,24 @@ spec:
 		}).Should(Succeed())
 
 		By("confirming statefulset is ready")
-		fmt.Printf("will delete pod: %s, status: %s", deletedPod.Name, string(deletedPod.Status.Phase))
-		stdout, stderr, err = kubectl("-n", cleanupTest, "delete", "pod", deletedPod.Name)
-		fmt.Printf("delete pod: %s, status: %s, stdout: %v, stderr: %v", deletedPod.Name, string(deletedPod.Status.Phase), stdout, stderr)
+		stdout, stderr, err = kubectl("-n", cleanupTest, "get", "pod", deletedPod.Name, "-o=json")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		err = json.Unmarshal(stdout, &deletedPod)
 		Expect(err).Should(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		deletedPodStatus := string(deletedPod.Status.Phase)
+		switch deletedPodStatus {
+		case "Pending":
+			log.Info("status of deleted pod is pending", map[string]interface{}{})
+			stdout, stderr, err = kubectl("-n", cleanupTest, "delete", "pod", deletedPod.Name)
+			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		case "Running":
+			log.Info("status of deleted pod is running", map[string]interface{}{})
+		default:
+			log.Error("status of deleted pod is unexpected", map[string]interface{}{
+				"status": deletedPodStatus,
+			})
+			Fail("unexpected status of the deleted pod: " + deletedPodStatus)
+		}
 		Eventually(func() error {
 			stdout, stderr, err := kubectl("-n", cleanupTest, "get", "statefulset", statefulsetName, "-o=json")
 			if err != nil {
