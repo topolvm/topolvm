@@ -92,18 +92,21 @@ func (r *NodeReconciler) targetStorageClasses(ctx context.Context) (map[string]b
 	return targets, nil
 }
 
-func (r *NodeReconciler) getPodsByPVC(ctx context.Context, pvc *corev1.PersistentVolumeClaim) ([]*corev1.Pod, error) {
+func (r *NodeReconciler) getPodsByPVC(ctx context.Context, pvc *corev1.PersistentVolumeClaim) ([]corev1.Pod, error) {
 	var pods corev1.PodList
 	err := r.List(ctx, &pods, client.InNamespace(pvc.Namespace))
 	if err != nil {
 		return nil, err
 	}
 
-	var result []*corev1.Pod
+	var result []corev1.Pod
 	for _, pod := range pods.Items {
 		for _, volume := range pod.Spec.Volumes {
+			if volume.PersistentVolumeClaim == nil {
+				continue
+			}
 			if volume.PersistentVolumeClaim.ClaimName == pvc.Name {
-				result = append(result, &pod)
+				result = append(result, pod)
 			}
 		}
 	}
@@ -140,7 +143,7 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 		}
 
 		for _, pod := range pods {
-			err := r.Delete(ctx, pod, client.GracePeriodSeconds(1))
+			err := r.Delete(ctx, &pod, client.GracePeriodSeconds(1))
 			if err != nil {
 				log.Error(err, "unable to delete Pod", "name", pod.Name, "namespace", pod.Namespace)
 				return err
