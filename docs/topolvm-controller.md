@@ -21,11 +21,12 @@ Sometime LogicalVolumes may be left without completing finalization when the nod
 To delete such LogicalVolumes, `topolvm-controller` deletes them periodically by running
 finalization by on behalf of `topolvm-node`.
 
-By default, it deletes LogicalVolumes whose DeletionTimestamp is behind one day from the current time.
+By default, it deletes LogicalVolumes whose DeletionTimestamp is behind `24h` from the current time every `cleanup-interval` which is `10m`.
 
 Command-line flags
 ------------------
 
-| Name           | Type     | Default | Description                                                                         |
-| -------------- | -------- | ------- | ----------------------------------------------------------------------------------- |
-| `stale-period` | Duration | `24h`   | LogicalVolumes is considered as stale if its DeletionTimestamp is behind this value |
+| Name               | Type     | Default | Description                                                                         |
+| ------------------ | -------- | ------- | ----------------------------------------------------------------------------------- |
+| `stale-period`     | Duration | `24h`   | LogicalVolumes is considered as stale if its DeletionTimestamp is behind this value |
+| `cleanup-interval` | Duration | `10m`   | Cleaning up interval for LogicalVolume                                              |

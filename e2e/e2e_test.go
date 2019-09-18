@@ -40,7 +40,7 @@ spec:
   containers:
     - name: ubuntu
       image: quay.io/cybozu/ubuntu:18.04
-      command: ["sleep", "infinity"]
+      command: ["pause"]
       volumeMounts:
         - mountPath: /test1
           name: my-volume
@@ -178,7 +178,7 @@ spec:
   containers:
     - name: ubuntu
       image: quay.io/cybozu/ubuntu:18.04
-      command: ["sleep", "infinity"]
+      command: ["pause"]
       volumeDevices:
         - devicePath: %s
           name: my-volume
@@ -429,7 +429,7 @@ spec:
   containers:
     - name: ubuntu
       image: quay.io/cybozu/ubuntu:18.04
-      command: ["sleep", "infinity"]
+      command: ["pause"]
       volumeMounts:
         - mountPath: /test1
           name: my-volume
@@ -645,7 +645,7 @@ spec:
   containers:
     - name: ubuntu
       image: quay.io/cybozu/ubuntu:18.04
-      command: ["sleep", "infinity"]
+      command: ["pause"]
       volumeMounts:
         - mountPath: /test1
           name: my-volume

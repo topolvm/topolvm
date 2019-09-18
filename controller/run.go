@@ -35,7 +35,7 @@ func init() {
 }
 
 // Run runs the webhook server.
-func Run(cfg *rest.Config, metricsAddr string, stalePeriod time.Duration, development bool) error {
+func Run(cfg *rest.Config, metricsAddr string, stalePeriod time.Duration, cleanupInterval time.Duration, development bool) error {
 	ctrl.SetLogger(zap.Logger(development))
 
 	if cfg == nil {
@@ -58,7 +58,7 @@ func Run(cfg *rest.Config, metricsAddr string, stalePeriod time.Duration, develo
 	events := make(chan event.GenericEvent, 1)
 	stopCh := ctrl.SetupSignalHandler()
 	go func() {
-		ticker := time.NewTicker(10 * time.Minute)
+		ticker := time.NewTicker(cleanupInterval)
 		for {
 			select {
 			case <-stopCh:
@@ -99,7 +99,7 @@ func Run(cfg *rest.Config, metricsAddr string, stalePeriod time.Duration, develo
 	// +kubebuilder:scaffold:builder
 
 	err = mgr.GetFieldIndexer().IndexField(&corev1.PersistentVolumeClaim{}, controllers.KeySelectedNode, func(o runtime.Object) []string {
-		return []string{o.(*corev1.PersistentVolumeClaim).Annotations["volume.kubernetes.io/selected-node"]}
+		return []string{o.(*corev1.PersistentVolumeClaim).Annotations[controllers.AnnSelectedNode]}
 	})
 	if err != nil {
 		return err

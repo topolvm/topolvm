@@ -84,7 +84,7 @@ spec:
   containers:
     - name: ubuntu
       image: quay.io/cybozu/ubuntu:18.04
-      command: ["sleep", "infinity"]
+      command: ["pause"]
 `
 	Eventually(func() error {
 		_, stderr, err := kubectlWithInput([]byte(podYAML), "apply", "-f", "-")
@@ -93,6 +93,8 @@ spec:
 		}
 		return nil
 	}).Should(Succeed())
+	stdout, stderr, err := kubectlWithInput([]byte(podYAML), "delete", "-f", "-")
+	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 })
 
 var _ = Describe("TopoLVM", func() {
