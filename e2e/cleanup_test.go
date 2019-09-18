@@ -19,9 +19,6 @@ func testCleanup() {
 	BeforeEach(func() {
 		createNamespace(cleanupTest)
 	})
-	AfterEach(func() {
-		kubectl("delete", "namespaces/"+cleanupTest)
-	})
 
 	It("should be finalized by node", func() {
 		By("checking Node finalizer")
@@ -49,6 +46,7 @@ metadata:
   labels:
     app.kubernetes.io/name: test-sts-container
 spec:
+  serviceName: "` + statefulsetName + `"
   replicas: 3
   podManagementPolicy: Parallel
   selector:
@@ -143,19 +141,24 @@ spec:
 		}
 
 		By("deleting Node kind-worker3")
-		stdout, stderr, err = kubectl("delete", "node", deletedNode)
+		stdout, stderr, err = kubectl("delete", "node", deletedNode, "--wait=true")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
-		By("confirming pvc/pod")
-		_, _, err = kubectl("-n", cleanupTest, "get", "pvc", deletedPVC.Name)
-		Expect(err).Should(HaveOccurred())
-		stdout, _, err = kubectl("-n", cleanupTest, "get", "pod", deletedPod.Name, "-o=json")
-		if err == nil {
-			var rescheduledPod corev1.Pod
-			err = json.Unmarshal(stdout, &rescheduledPod)
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(rescheduledPod.ObjectMeta.UID).ShouldNot(Equal(deletedPod.ObjectMeta.UID))
-		}
+		By("confirming pvc/pod are deleted")
+		Eventually(func() error {
+			stdout, stderr, err = kubectl("-n", cleanupTest, "get", "pvc", deletedPVC.Name)
+			if err == nil {
+				return fmt.Errorf("pvc still exists: %s, stdout: %v, stderr: %v", deletedPVC.Name, stdout, stderr)
+			}
+			stdout, _, err = kubectl("-n", cleanupTest, "get", "pod", deletedPod.Name, "-o=json")
+			if err == nil {
+				var rescheduledPod corev1.Pod
+				err = json.Unmarshal(stdout, &rescheduledPod)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(rescheduledPod.ObjectMeta.UID).ShouldNot(Equal(deletedPod.ObjectMeta.UID))
+			}
+			return nil
+		}).Should(Succeed())
 
 		By("confirming logicalvolumes are deleted")
 		Eventually(func() error {
@@ -169,7 +172,9 @@ spec:
 		}).Should(Succeed())
 
 		By("confirming statefulset is ready")
+		fmt.Printf("will delete pod: %s, status: %s", deletedPod.Name, string(deletedPod.Status.Phase))
 		stdout, stderr, err = kubectl("-n", cleanupTest, "delete", "pod", deletedPod.Name)
+		fmt.Printf("delete pod: %s, status: %s, stdout: %v, stderr: %v", deletedPod.Name, string(deletedPod.Status.Phase), stdout, stderr)
 		Expect(err).Should(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 		Eventually(func() error {
 			stdout, stderr, err := kubectl("-n", cleanupTest, "get", "statefulset", statefulsetName, "-o=json")
