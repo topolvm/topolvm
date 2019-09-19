@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"time"
 
 	"github.com/cybozu-go/topolvm"
 	"github.com/go-logr/logr"
@@ -53,8 +54,8 @@ func (r *NodeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, nil
 	}
 
-	if err := r.doFinalize(ctx, log, node); err != nil {
-		return ctrl.Result{}, err
+	if result, err := r.doFinalize(ctx, log, node); err != nil {
+		return result, err
 	}
 
 	node2 := node.DeepCopy()
@@ -114,18 +115,18 @@ func (r *NodeReconciler) getPodsByPVC(ctx context.Context, pvc *corev1.Persisten
 	return result, nil
 }
 
-func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *corev1.Node) error {
+func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *corev1.Node) (ctrl.Result, error) {
 	scs, err := r.targetStorageClasses(ctx)
 	if err != nil {
 		log.Error(err, "unable to fetch StorageClass")
-		return err
+		return ctrl.Result{}, err
 	}
 
 	var pvcs corev1.PersistentVolumeClaimList
 	err = r.List(ctx, &pvcs, client.MatchingField(KeySelectedNode, node.Name))
 	if err != nil {
 		log.Error(err, "unable to fetch PersistentVolumeClaimList")
-		return err
+		return ctrl.Result{}, err
 	}
 
 	for _, pvc := range pvcs.Items {
@@ -139,27 +140,53 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 		pods, err := r.getPodsByPVC(ctx, &pvc)
 		if err != nil {
 			log.Error(err, "unable to fetch PodList for a PVC", "pvc", pvc.Name, "namespace", pvc.Namespace)
-			return err
+			return ctrl.Result{}, err
 		}
 
 		for _, pod := range pods {
+			if pod.Status.Phase != corev1.PodRunning {
+				continue
+			}
 			err := r.Delete(ctx, &pod, client.GracePeriodSeconds(1))
 			if err != nil {
-				log.Error(err, "unable to delete Pod", "name", pod.Name, "namespace", pod.Namespace)
-				return err
+				log.Error(err, "unable to delete running Pod", "name", pod.Name, "namespace", pod.Namespace)
+				return ctrl.Result{}, err
 			}
-			log.Info("deleted Pod", "name", pod.Name, "namespace", pod.Namespace)
+			log.Info("deleted running Pod", "name", pod.Name, "namespace", pod.Namespace)
+
+			// If the node is schedulable, the above deletion can be infinite loop.
+			// Following sentence is to avoid infinite loop
+			if node.Spec.Unschedulable {
+				return ctrl.Result{
+					Requeue:      true,
+					RequeueAfter: 10 * time.Second,
+				}, nil
+			}
 		}
 
 		err = r.Delete(ctx, &pvc)
 		if err != nil {
+			// If the node is schedulable, the above PVC deletion may fail.
+			// In this case, this reconciler returns error and retries.
 			log.Error(err, "unable to delete PVC", "name", pvc.Name, "namespace", pvc.Namespace)
-			return err
+			return ctrl.Result{}, err
 		}
 		log.Info("deleted PVC", "name", pvc.Name, "namespace", pvc.Namespace)
+
+		for _, pod := range pods {
+			if pod.Status.Phase == corev1.PodRunning {
+				continue
+			}
+			err := r.Delete(ctx, &pod, client.GracePeriodSeconds(1))
+			if err != nil {
+				log.Error(err, "unable to delete pending(not running) Pod", "name", pod.Name, "namespace", pod.Namespace)
+				return ctrl.Result{}, err
+			}
+			log.Info("deleted pending(not running) Pod", "name", pod.Name, "namespace", pod.Namespace)
+		}
 	}
 
-	return nil
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up Reconciler with Manager.
