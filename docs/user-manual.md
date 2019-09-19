@@ -11,6 +11,8 @@ For deployment, please read [../deploy/README.md](../deploy/README.md).
   - [Retiring nodes](#retiring-nodes)
   - [Rebooting nodes](#rebooting-nodes)
 - [Limitations](#limitations)
+- [Trouble shooting](#trouble-shooting)
+  - [StatefulSet pod is not rescheduled after node deletion](#statefulset-pod-is-not-rescheduled-after-node-deletion)
 
 StorageClass
 ------------
@@ -45,3 +47,14 @@ Limitations
 -----------
 
 See [limitations.md](limitations.md).
+
+Trouble shooting
+---------------
+
+### StatefulSet pod is not rescheduled after node deletion
+
+If you forget to mark the deleting node unschedulable by either
+`kubectl drain NODE` or `kubectl cordon NODE`, a pending pod may remain
+unschedulable.
+
+The reason and how to recover from this are described in [limitations.md](limitations.md).
