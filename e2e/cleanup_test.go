@@ -21,7 +21,9 @@ func testCleanup() {
 		createNamespace(cleanupTest)
 	})
 
-	It("should be finalized by node", func() {
+	var targetLVs []logicalvolumev1.LogicalVolume
+
+	It("should finalize the delete node", func() {
 		By("checking Node finalizer")
 		stdout, stderr, err := kubectl("get", "nodes", "-l=node-role.kubernetes.io/master!=", "-o=json")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
@@ -139,7 +141,6 @@ spec:
 		err = json.Unmarshal(stdout, &logicalVolumeList)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		var targetLVs []logicalvolumev1.LogicalVolume
 		for _, lv := range logicalVolumeList.Items {
 			if lv.Spec.NodeName == targetNode {
 				targetLVs = append(targetLVs, lv)
@@ -183,19 +184,6 @@ spec:
 			return nil
 		}).Should(Succeed())
 
-		// The deletion timestamp of logicalvolume is checked and cleaned up periodically by topolvm-controller.
-		// Thus logicalvolume resources connected to the deleted node should be cleaned up after all.
-		By("confirming logicalvolumes are deleted")
-		Eventually(func() error {
-			for _, lv := range targetLVs {
-				_, _, err := kubectl("get", "logicalvolume", lv.Name)
-				if err == nil {
-					return fmt.Errorf("logicalvolume still exists: %s", lv.Name)
-				}
-			}
-			return nil
-		}).Should(Succeed())
-
 		// The pods of statefulset would be recreated after they are deleted by the finalizer of node resource.
 		// Though, because of the deletion timing of the pvcs and pods, the recreated pods can get pending status or running status.
 		//  If they takes running status, delete them for rescheduling them
@@ -223,5 +211,19 @@ spec:
 		err = json.Unmarshal(stdout, &recreatedPVC)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(recreatedPVC.ObjectMeta.UID).ShouldNot(Equal(targetPVC.ObjectMeta.UID))
+	})
+	It("should clean up stale LogicalVolume", func() {
+		// The deletion timestamp of logicalvolume is checked and cleaned up periodically by topolvm-controller.
+		// Thus logicalvolume resources connected to the deleted node should be cleaned up after all.
+		By("confirming logicalvolumes are deleted")
+		Eventually(func() error {
+			for _, lv := range targetLVs {
+				_, _, err := kubectl("get", "logicalvolume", lv.Name)
+				if err == nil {
+					return fmt.Errorf("logicalvolume still exists: %s", lv.Name)
+				}
+			}
+			return nil
+		}).Should(Succeed())
 	})
 }
