@@ -94,6 +94,7 @@ spec:
 			return nil
 		}).Should(Succeed())
 
+		// As pvc and pod are deleted in the finalizer of node resource, comfirm the resources before deleted.
 		By("checking target pvcs/pods")
 		deletedNode := "kind-worker3"
 		var deletedPod corev1.Pod
@@ -147,6 +148,7 @@ spec:
 		stdout, stderr, err = kubectl("delete", "node", deletedNode, "--wait=true")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
+		// Confirming if the finalizer of the node resources works by checking by deleted pod's uid and pvc's uid if exist
 		By("confirming pvc/pod are deleted")
 		Eventually(func() error {
 			stdout, stderr, err = kubectl("-n", cleanupTest, "get", "pvc", deletedPVC.Name, "-o=json")
@@ -174,6 +176,8 @@ spec:
 			return nil
 		}).Should(Succeed())
 
+		// The deletion timestamp of logicalvolume is checked and cleaned up periodically by lvmetrics.
+		// Thus logicalvolume resources connected to the deleted node should be cleaned up after all.
 		By("confirming logicalvolumes are deleted")
 		Eventually(func() error {
 			for _, lv := range deleteLogicalVolumes {
@@ -185,24 +189,28 @@ spec:
 			return nil
 		}).Should(Succeed())
 
+		// The pods of statefulset would be recreated after they are deleted by the finalizer of node resource.
+		// Though, because of the deletion timing of the pvcs and pods, the recreated pods can get pending status or running status.
+		//  If they takes running status, delete them for rescheduling them
 		By("confirming statefulset is ready")
 		stdout, stderr, err = kubectl("-n", cleanupTest, "get", "pod", deletedPod.Name, "-o=json")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		err = json.Unmarshal(stdout, &deletedPod)
+		var recreatedPod corev1.Pod
+		err = json.Unmarshal(stdout, &recreatedPod)
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		deletedPodStatus := string(deletedPod.Status.Phase)
-		switch deletedPodStatus {
+		recreatedPodStatus := string(recreatedPod.Status.Phase)
+		switch recreatedPodStatus {
 		case "Pending":
-			log.Info("status of deleted pod is pending", map[string]interface{}{})
+			log.Info("status of recreated pod is pending", map[string]interface{}{})
 			stdout, stderr, err = kubectl("-n", cleanupTest, "delete", "pod", deletedPod.Name)
 			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 		case "Running":
-			log.Info("status of deleted pod is running", map[string]interface{}{})
+			log.Info("status of recreated pod is running", map[string]interface{}{})
 		default:
-			log.Error("status of deleted pod is unexpected", map[string]interface{}{
-				"status": deletedPodStatus,
+			log.Error("status of recreated pod is unexpected", map[string]interface{}{
+				"status": recreatedPodStatus,
 			})
-			Fail("unexpected status of the deleted pod: " + deletedPodStatus)
+			Fail("unexpected status of recreated pod: " + recreatedPodStatus)
 		}
 		Eventually(func() error {
 			stdout, stderr, err := kubectl("-n", cleanupTest, "get", "statefulset", statefulsetName, "-o=json")
