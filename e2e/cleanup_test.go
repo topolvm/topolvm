@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/controller/controllers"
 	logicalvolumev1 "github.com/cybozu-go/topolvm/topolvm-node/api/v1"
@@ -95,22 +94,23 @@ spec:
 		}).Should(Succeed())
 
 		// As pvc and pod are deleted in the finalizer of node resource, comfirm the resources before deleted.
-		By("checking target pvcs/pods")
-		deletedNode := "kind-worker3"
-		var deletedPod corev1.Pod
+		By("getting target pvcs/pods")
+		targetNode := "kind-worker3"
 		stdout, stderr, err = kubectl("-n", cleanupTest, "get", "pods", "-o=json")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 		var pods corev1.PodList
 		err = json.Unmarshal(stdout, &pods)
 		Expect(err).ShouldNot(HaveOccurred())
+
+		var targetPod corev1.Pod
 		for _, pod := range pods.Items {
-			if pod.Spec.NodeName == deletedNode {
+			if pod.Spec.NodeName == targetNode {
 				for _, volume := range pod.Spec.Volumes {
 					if volume.PersistentVolumeClaim == nil {
 						continue
 					}
 					if strings.Contains(volume.PersistentVolumeClaim.ClaimName, "test-sts-pvc") {
-						deletedPod = pod
+						targetPod = pod
 					}
 				}
 			}
@@ -118,69 +118,76 @@ spec:
 
 		stdout, stderr, err = kubectl("-n", cleanupTest, "get", "pvc", "-o=json")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		var deletedPVC corev1.PersistentVolumeClaim
 		var pvcs corev1.PersistentVolumeClaimList
 		err = json.Unmarshal(stdout, &pvcs)
 		Expect(err).ShouldNot(HaveOccurred())
+
+		var targetPVC corev1.PersistentVolumeClaim
 		for _, pvc := range pvcs.Items {
 			if _, ok := pvc.Annotations[controllers.AnnSelectedNode]; !ok {
 				continue
 			}
-			if pvc.Annotations[controllers.AnnSelectedNode] != deletedNode {
+			if pvc.Annotations[controllers.AnnSelectedNode] != targetNode {
 				continue
 			}
-			deletedPVC = pvc
+			targetPVC = pvc
 		}
 
 		stdout, stderr, err = kubectl("get", "logicalvolume", "-o=json")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		var deleteLogicalVolumes []logicalvolumev1.LogicalVolume
 		var logicalVolumeList logicalvolumev1.LogicalVolumeList
 		err = json.Unmarshal(stdout, &logicalVolumeList)
 		Expect(err).ShouldNot(HaveOccurred())
+
+		var targetLVs []logicalvolumev1.LogicalVolume
 		for _, lv := range logicalVolumeList.Items {
-			if lv.Spec.NodeName == deletedNode {
-				deleteLogicalVolumes = append(deleteLogicalVolumes, lv)
+			if lv.Spec.NodeName == targetNode {
+				targetLVs = append(targetLVs, lv)
 			}
 		}
 
 		By("deleting Node kind-worker3")
-		stdout, stderr, err = kubectl("delete", "node", deletedNode, "--wait=true")
+		stdout, stderr, err = kubectl("cordon", targetNode)
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		stdout, stderr, err = kubectl("delete", "node", targetNode, "--wait=true")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		// Confirming if the finalizer of the node resources works by checking by deleted pod's uid and pvc's uid if exist
 		By("confirming pvc/pod are deleted")
 		Eventually(func() error {
-			stdout, stderr, err = kubectl("-n", cleanupTest, "get", "pvc", deletedPVC.Name, "-o=json")
-			if err == nil {
-				var recreatedPVC corev1.PersistentVolumeClaim
-				err = json.Unmarshal(stdout, &recreatedPVC)
-				if err != nil {
-					return err
-				}
-				if recreatedPVC.ObjectMeta.UID == deletedPVC.ObjectMeta.UID {
-					return fmt.Errorf("pvc is not deleted. uid: %s", string(deletedPVC.ObjectMeta.UID))
-				}
+			stdout, stderr, err = kubectl("-n", cleanupTest, "get", "pvc", targetPVC.Name, "-o=json")
+			if err != nil {
+				return fmt.Errorf("can not get target pvc: err=%v, stdout=%s, stderr=%s", err, stdout, stderr)
 			}
-			stdout, _, err = kubectl("-n", cleanupTest, "get", "pod", deletedPod.Name, "-o=json")
-			if err == nil {
-				var rescheduledPod corev1.Pod
-				err = json.Unmarshal(stdout, &rescheduledPod)
-				if err != nil {
-					return err
-				}
-				if rescheduledPod.ObjectMeta.UID == deletedPod.ObjectMeta.UID {
-					return fmt.Errorf("pod is not deleted. uid: %s", string(deletedPVC.ObjectMeta.UID))
-				}
+			var recreatedPVC corev1.PersistentVolumeClaim
+			err = json.Unmarshal(stdout, &recreatedPVC)
+			if err != nil {
+				return err
+			}
+			if recreatedPVC.ObjectMeta.UID == targetPVC.ObjectMeta.UID {
+				return fmt.Errorf("pvc is not deleted. uid: %s", string(targetPVC.ObjectMeta.UID))
+			}
+
+			stdout, stderr, err = kubectl("-n", cleanupTest, "get", "pod", targetPod.Name, "-o=json")
+			if err != nil {
+				return fmt.Errorf("can not get target pod: err=%v, stdout=%s, stderr=%s", err, stdout, stderr)
+			}
+			var rescheduledPod corev1.Pod
+			err = json.Unmarshal(stdout, &rescheduledPod)
+			if err != nil {
+				return err
+			}
+			if rescheduledPod.ObjectMeta.UID == targetPod.ObjectMeta.UID {
+				return fmt.Errorf("pod is not deleted. uid: %s", string(targetPVC.ObjectMeta.UID))
 			}
 			return nil
 		}).Should(Succeed())
 
-		// The deletion timestamp of logicalvolume is checked and cleaned up periodically by lvmetrics.
+		// The deletion timestamp of logicalvolume is checked and cleaned up periodically by topolvm-controller.
 		// Thus logicalvolume resources connected to the deleted node should be cleaned up after all.
 		By("confirming logicalvolumes are deleted")
 		Eventually(func() error {
-			for _, lv := range deleteLogicalVolumes {
+			for _, lv := range targetLVs {
 				_, _, err := kubectl("get", "logicalvolume", lv.Name)
 				if err == nil {
 					return fmt.Errorf("logicalvolume still exists: %s", lv.Name)
@@ -193,25 +200,6 @@ spec:
 		// Though, because of the deletion timing of the pvcs and pods, the recreated pods can get pending status or running status.
 		//  If they takes running status, delete them for rescheduling them
 		By("confirming statefulset is ready")
-		stdout, stderr, err = kubectl("-n", cleanupTest, "get", "pod", deletedPod.Name, "-o=json")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		var recreatedPod corev1.Pod
-		err = json.Unmarshal(stdout, &recreatedPod)
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		recreatedPodStatus := string(recreatedPod.Status.Phase)
-		switch recreatedPodStatus {
-		case "Pending":
-			log.Info("status of recreated pod is pending", map[string]interface{}{})
-			stdout, stderr, err = kubectl("-n", cleanupTest, "delete", "pod", deletedPod.Name)
-			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		case "Running":
-			log.Info("status of recreated pod is running", map[string]interface{}{})
-		default:
-			log.Error("status of recreated pod is unexpected", map[string]interface{}{
-				"status": recreatedPodStatus,
-			})
-			Fail("unexpected status of recreated pod: " + recreatedPodStatus)
-		}
 		Eventually(func() error {
 			stdout, stderr, err := kubectl("-n", cleanupTest, "get", "statefulset", statefulsetName, "-o=json")
 			if err != nil {
@@ -229,11 +217,11 @@ spec:
 		}).Should(Succeed())
 
 		By("confirming pvc is recreated")
-		stdout, stderr, err = kubectl("-n", cleanupTest, "get", "pvc", deletedPVC.Name, "-o=json")
+		stdout, stderr, err = kubectl("-n", cleanupTest, "get", "pvc", targetPVC.Name, "-o=json")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 		var recreatedPVC corev1.PersistentVolumeClaim
 		err = json.Unmarshal(stdout, &recreatedPVC)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(recreatedPVC.ObjectMeta.UID).ShouldNot(Equal(deletedPVC.ObjectMeta.UID))
+		Expect(recreatedPVC.ObjectMeta.UID).ShouldNot(Equal(targetPVC.ObjectMeta.UID))
 	})
 }

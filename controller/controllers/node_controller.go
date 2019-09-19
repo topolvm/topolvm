@@ -54,7 +54,7 @@ func (r *NodeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, nil
 	}
 
-	if result, err := r.doFinalize(ctx, log, node); err != nil {
+	if result, err := r.doFinalize(ctx, log, node); result.Requeue || err != nil {
 		return result, err
 	}
 
