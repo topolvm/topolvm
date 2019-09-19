@@ -17,7 +17,7 @@ import (
 const cleanupTest = "cleanup-test"
 
 func testCleanup() {
-	BeforeEach(func() {
+	It("should create cleanup-test namespace", func() {
 		createNamespace(cleanupTest)
 	})
 
@@ -225,5 +225,10 @@ spec:
 			}
 			return nil
 		}).Should(Succeed())
+	})
+
+	It("should delete namespace", func() {
+		stdout, stderr, err := kubectl("delete", "ns", cleanupTest)
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 	})
 }
