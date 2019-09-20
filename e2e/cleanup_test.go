@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -25,20 +26,29 @@ func testCleanup() {
 
 	It("should finalize the delete node", func() {
 		By("checking Node finalizer")
-		stdout, stderr, err := kubectl("get", "nodes", "-l=node-role.kubernetes.io/master!=", "-o=json")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		var nodes corev1.NodeList
-		err = json.Unmarshal(stdout, &nodes)
-		Expect(err).ShouldNot(HaveOccurred())
-		for _, node := range nodes.Items {
-			topolvmFinalize := false
-			for _, fn := range node.Finalizers {
-				if fn == topolvm.NodeFinalizer {
-					topolvmFinalize = true
+		Eventually(func() error {
+			stdout, stderr, err := kubectl("get", "nodes", "-l=node-role.kubernetes.io/master!=", "-o=json")
+			if err != nil {
+				return fmt.Errorf("%v, stdout=%s, stderr=%s", err, stdout, stderr)
+			}
+			var nodes corev1.NodeList
+			err = json.Unmarshal(stdout, &nodes)
+			if err != nil {
+				return err
+			}
+			for _, node := range nodes.Items {
+				topolvmFinalize := false
+				for _, fn := range node.Finalizers {
+					if fn == topolvm.NodeFinalizer {
+						topolvmFinalize = true
+					}
+				}
+				if !topolvmFinalize {
+					return errors.New("topolvm finalizer does not attached")
 				}
 			}
-			Expect(topolvmFinalize).To(Equal(true))
-		}
+			return nil
+		})
 
 		statefulsetName := "test-sts"
 		By("applying statefulset")
@@ -76,7 +86,7 @@ spec:
       resources:
         requests:
           storage: 1Gi`
-		stdout, stderr, err = kubectlWithInput([]byte(statefulsetYAML), "-n", cleanupTest, "apply", "-f", "-")
+		stdout, stderr, err := kubectlWithInput([]byte(statefulsetYAML), "-n", cleanupTest, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		Eventually(func() error {

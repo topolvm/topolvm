@@ -166,23 +166,24 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 
 		err = r.Delete(ctx, &pvc)
 		if err != nil {
-			// If the node is schedulable, the above PVC deletion may fail.
-			// In this case, this reconciler returns error and retries.
 			log.Error(err, "unable to delete PVC", "name", pvc.Name, "namespace", pvc.Namespace)
 			return ctrl.Result{}, err
 		}
 		log.Info("deleted PVC", "name", pvc.Name, "namespace", pvc.Namespace)
 
+		pods, err = r.getPodsByPVC(ctx, &pvc)
+		if err != nil {
+			log.Error(err, "unable to fetch PodList for a PVC", "pvc", pvc.Name, "namespace", pvc.Namespace)
+			return ctrl.Result{}, err
+		}
+
 		for _, pod := range pods {
-			if pod.Status.Phase == corev1.PodRunning {
-				continue
-			}
 			err := r.Delete(ctx, &pod, client.GracePeriodSeconds(1))
 			if err != nil {
-				log.Error(err, "unable to delete pending(not running) Pod", "name", pod.Name, "namespace", pod.Namespace)
+				log.Error(err, "unable to delete Pod", "name", pod.Name, "namespace", pod.Namespace)
 				return ctrl.Result{}, err
 			}
-			log.Info("deleted pending(not running) Pod", "name", pod.Name, "namespace", pod.Namespace)
+			log.Info("deleted Pod", "name", pod.Name, "namespace", pod.Namespace)
 		}
 	}
 
