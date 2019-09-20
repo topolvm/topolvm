@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"time"
 
 	"github.com/cybozu-go/topolvm"
 	"github.com/go-logr/logr"
@@ -93,28 +92,6 @@ func (r *NodeReconciler) targetStorageClasses(ctx context.Context) (map[string]b
 	return targets, nil
 }
 
-func (r *NodeReconciler) getPodsByPVC(ctx context.Context, pvc *corev1.PersistentVolumeClaim) ([]corev1.Pod, error) {
-	var pods corev1.PodList
-	err := r.List(ctx, &pods, client.InNamespace(pvc.Namespace))
-	if err != nil {
-		return nil, err
-	}
-
-	var result []corev1.Pod
-	for _, pod := range pods.Items {
-		for _, volume := range pod.Spec.Volumes {
-			if volume.PersistentVolumeClaim == nil {
-				continue
-			}
-			if volume.PersistentVolumeClaim.ClaimName == pvc.Name {
-				result = append(result, pod)
-			}
-		}
-	}
-
-	return result, nil
-}
-
 func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *corev1.Node) (ctrl.Result, error) {
 	scs, err := r.targetStorageClasses(ctx)
 	if err != nil {
@@ -137,54 +114,12 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 			continue
 		}
 
-		pods, err := r.getPodsByPVC(ctx, &pvc)
-		if err != nil {
-			log.Error(err, "unable to fetch PodList for a PVC", "pvc", pvc.Name, "namespace", pvc.Namespace)
-			return ctrl.Result{}, err
-		}
-
-		for _, pod := range pods {
-			if pod.Status.Phase != corev1.PodRunning {
-				continue
-			}
-			err := r.Delete(ctx, &pod, client.GracePeriodSeconds(1))
-			if err != nil {
-				log.Error(err, "unable to delete running Pod", "name", pod.Name, "namespace", pod.Namespace)
-				return ctrl.Result{}, err
-			}
-			log.Info("deleted running Pod", "name", pod.Name, "namespace", pod.Namespace)
-
-			// If the node is schedulable, the above deletion can be infinite loop.
-			// Following sentence is to avoid infinite loop
-			if node.Spec.Unschedulable {
-				return ctrl.Result{
-					Requeue:      true,
-					RequeueAfter: 10 * time.Second,
-				}, nil
-			}
-		}
-
 		err = r.Delete(ctx, &pvc)
 		if err != nil {
 			log.Error(err, "unable to delete PVC", "name", pvc.Name, "namespace", pvc.Namespace)
 			return ctrl.Result{}, err
 		}
 		log.Info("deleted PVC", "name", pvc.Name, "namespace", pvc.Namespace)
-
-		pods, err = r.getPodsByPVC(ctx, &pvc)
-		if err != nil {
-			log.Error(err, "unable to fetch PodList for a PVC", "pvc", pvc.Name, "namespace", pvc.Namespace)
-			return ctrl.Result{}, err
-		}
-
-		for _, pod := range pods {
-			err := r.Delete(ctx, &pod, client.GracePeriodSeconds(1))
-			if err != nil {
-				log.Error(err, "unable to delete Pod", "name", pod.Name, "namespace", pod.Namespace)
-				return ctrl.Result{}, err
-			}
-			log.Info("deleted Pod", "name", pod.Name, "namespace", pod.Namespace)
-		}
 	}
 
 	return ctrl.Result{}, nil

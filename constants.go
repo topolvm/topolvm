@@ -19,3 +19,6 @@ const LogicalVolumeFinalizer = "topolvm.cybozu.com/logicalvolume"
 
 // NodeFinalizer is the name of Node finalizer of TopoLVM
 const NodeFinalizer = "topolvm.cybozu.com/node"
+
+// PVCFinalizer is the name of PVC finalizer of TopoLVM
+const PVCFinalizer = "topolvm.cybozu.com/pvc"

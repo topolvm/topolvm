@@ -96,6 +96,15 @@ func Run(cfg *rest.Config, metricsAddr string, stalePeriod time.Duration, cleanu
 		os.Exit(1)
 	}
 
+	pvccontroller := &controllers.PersistentVolumeClaimReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("PersistentVolumeClaim"),
+	}
+	if err := pvccontroller.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "PersistentVolumeClaim")
+		os.Exit(1)
+	}
+
 	// +kubebuilder:scaffold:builder
 
 	err = mgr.GetFieldIndexer().IndexField(&corev1.PersistentVolumeClaim{}, controllers.KeySelectedNode, func(o runtime.Object) []string {
