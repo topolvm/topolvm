@@ -157,9 +157,28 @@ spec:
 			}
 		}
 
-		By("deleting Node kind-worker3")
+		By("setting unschedule flag to Node kind-worker3")
 		stdout, stderr, err = kubectl("cordon", targetNode)
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("deleting topolvm-node pod")
+		stdout, stderr, err = kubectl("-n", "topolvm-system", "get", "pods", "-o=json")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		err = json.Unmarshal(stdout, &pods)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		var targetTopolvmNode string
+		for _, pod := range pods.Items {
+			if strings.HasPrefix(pod.Name, "csi-topolvm-node-") && pod.Spec.NodeName == targetNode {
+				targetTopolvmNode = pod.Name
+				break
+			}
+		}
+		Expect(targetTopolvmNode).ShouldNot(Equal(""), "cannot get csi-topolmv-node name on kind-worker3")
+		stdout, stderr, err = kubectl("-n", "topolvm-system", "delete", "pod", targetTopolvmNode)
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("deleting Node kind-worker3")
 		stdout, stderr, err = kubectl("delete", "node", targetNode, "--wait=true")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
