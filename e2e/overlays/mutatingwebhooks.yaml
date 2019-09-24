@@ -32,7 +32,7 @@ webhooks:
       service:
         namespace: topolvm-system
         name: topolvm-hook
-        path: /mutate-pod
+        path: /pod/mutate
     rules:
       - operations: ["CREATE"]
         apiGroups: [""]
@@ -50,7 +50,7 @@ webhooks:
       service:
         namespace: topolvm-system
         name: topolvm-hook
-        path: /mutate-pvc
+        path: /pvc/mutate
     rules:
       - operations: ["CREATE"]
         apiGroups: [""]

@@ -21,7 +21,7 @@ type persistentVolumeClaimMutator struct {
 	decoder *admission.Decoder
 }
 
-// +kubebuilder:webhook:path=/mutate-pvc,mutating=true,failurePolicy=fail,groups="",resources=persistentvolumeclaims,verbs=patch,versions=v1,name=pvc-hook.topolvm.cybozu.com
+// +kubebuilder:webhook:path=/pvc/mutate,mutating=true,failurePolicy=fail,groups="",resources=persistentvolumeclaims,verbs=patch,versions=v1,name=pvc-hook.topolvm.cybozu.com
 // +kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=get;list;watch
 
 // persistentVolumeClaimMutator has admission.Handler checked by compiler
