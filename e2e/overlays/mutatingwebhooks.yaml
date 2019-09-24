@@ -20,7 +20,7 @@ metadata:
   labels:
     app.kubernetes.io/name: topolvm-hook
 webhooks:
-  - name: hook.topolvm.cybozu.com
+  - name: pod-hook.topolvm.cybozu.com
     namespaceSelector:
       matchExpressions:
       - key: app.kubernetes.io/name
@@ -32,9 +32,27 @@ webhooks:
       service:
         namespace: topolvm-system
         name: topolvm-hook
-        path: /mutate
+        path: /mutate-pod
     rules:
       - operations: ["CREATE"]
         apiGroups: [""]
         apiVersions: ["v1"]
         resources: ["pods"]
+  - name: pvc-hook.topolvm.cybozu.com
+    namespaceSelector:
+      matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: NotIn
+        values: ["topolvm-system"]
+    failurePolicy: Fail
+    clientConfig:
+      caBundle: $(TLSCERT)
+      service:
+        namespace: topolvm-system
+        name: topolvm-hook
+        path: /mutate-pvc
+    rules:
+      - operations: ["CREATE"]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["persistentvolumeclaims"]
