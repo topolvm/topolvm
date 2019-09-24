@@ -18,7 +18,7 @@ type PersistentVolumeClaimReconciler struct {
 	Log logr.Logger
 }
 
-// +kubebuilder:rbac:groups="",resources=pods;persistentvolumeclaims,verbs=get;list;watch;delete
+// +kubebuilder:rbac:groups="",resources=pods;persistentvolumeclaims,verbs=get;list;watch;delete;update
 
 // Reconcile finalize PVC
 func (r *PersistentVolumeClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {

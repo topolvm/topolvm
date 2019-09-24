@@ -14,7 +14,7 @@ generatorOptions:
 configurations:
   - kustomizeconfig.yaml
 secretGenerator:
-- name: pod-mutatingwebhook
+- name: mutatingwebhook
   namespace: topolvm-system
   files:
   - ca.crt=./certs/ca.pem
@@ -26,7 +26,7 @@ vars:
     objref:
       kind: Secret
       version: v1
-      name: pod-mutatingwebhook
+      name: mutatingwebhook
     fieldref:
       fieldpath: data[ca.crt]
 patchesJson6902:

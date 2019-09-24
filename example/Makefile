@@ -24,7 +24,7 @@ run: mutatingwebhooks.yaml $(SERVER_CERT_FILES)
 	rm build/certificates.yaml build/mutatingwebhooks.yaml
 	$(MAKE) mutatingwebhooks.yaml
 	$(KUBECTL) apply -f build/namespace.yaml
-	$(KUBECTL) create -n=topolvm-system secret generic pod-mutatingwebhook --from-file=tls.crt=build/certs/server.pem --from-file=tls.key=build/certs/server-key.pem
+	$(KUBECTL) create -n=topolvm-system secret generic mutatingwebhook --from-file=tls.crt=build/certs/server.pem --from-file=tls.key=build/certs/server-key.pem
 	$(KUBECTL) apply -f build
 
 setup: $(KUBECTL)

@@ -15,7 +15,7 @@ apiVersion: admissionregistration.k8s.io/v1beta1
 kind: MutatingWebhookConfiguration
 metadata:
   annotations:
-    certmanager.k8s.io/inject-ca-from: topolvm-system/pod-mutatingwebhook
+    certmanager.k8s.io/inject-ca-from: topolvm-system/mutatingwebhook
   name: topolvm-hook
   labels:
     app.kubernetes.io/name: topolvm-hook

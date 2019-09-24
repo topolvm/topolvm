@@ -65,7 +65,7 @@ spec:
       volumes:
         - name: certs
           secret:
-            secretName: pod-mutatingwebhook
+            secretName: mutatingwebhook
 ---
 apiVersion: v1
 kind: Service
@@ -85,11 +85,11 @@ kind: MutatingWebhookConfiguration
 metadata:
   name: topolvm-hook
   annotations:
-    certmanager.k8s.io/inject-ca-from: topolvm-system/pod-mutatingwebhook
+    certmanager.k8s.io/inject-ca-from: topolvm-system/mutatingwebhook
   labels:
     app.kubernetes.io/name: topolvm-hook
 webhooks:
-  - name: hook.topolvm.cybozu.com
+  - name: pod-hook.topolvm.cybozu.com
     namespaceSelector:
       matchExpressions:
       - key: app.kubernetes.io/name
@@ -100,9 +100,26 @@ webhooks:
       service:
         namespace: topolvm-system
         name: topolvm-hook
-        path: /mutate
+        path: /mutate-pod
     rules:
       - operations: ["CREATE"]
         apiGroups: [""]
         apiVersions: ["v1"]
         resources: ["pods"]
+  - name: pvc-hook.topolvm.cybozu.com
+    namespaceSelector:
+      matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: NotIn
+        values: ["topolvm-system"]
+    failurePolicy: Fail
+    clientConfig:
+      service:
+        namespace: topolvm-system
+        name: topolvm-hook
+        path: /mutate-pvc
+    rules:
+      - operations: ["CREATE"]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["persistentvolumeclaims"]

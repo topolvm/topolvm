@@ -60,7 +60,8 @@ func Run(cfg *rest.Config, webhookHost string, webhookPort int, metricsAddr, cer
 
 	// NewDecoder never returns non-nil error
 	dec, _ := admission.NewDecoder(scheme)
-	wh.Register("/mutate", &webhook.Admission{Handler: podMutator{mgr.GetClient(), dec}})
+	wh.Register("/mutate-pod", &webhook.Admission{Handler: podMutator{mgr.GetClient(), dec}})
+	wh.Register("/mutate-pvc", &webhook.Admission{Handler: persistentVolumeClaimMutator{mgr.GetClient(), dec}})
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {

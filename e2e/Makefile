@@ -94,7 +94,7 @@ stop-lvmd:
 test: topolvm.img $(SERVER_CERT_FILES)
 	$(MAKE) shutdown-kind
 	$(MAKE) launch-kind
-	$(KUBECTL) delete -n=topolvm-system secret pod-mutatingwebhook --ignore-not-found
+	$(KUBECTL) delete -n=topolvm-system secret mutatingwebhook --ignore-not-found
 	$(KUBECTL) apply -f ../deploy/manifests/crd.yaml
 	kind load image-archive topolvm.img
 	kustomize build . | kubectl apply -f -

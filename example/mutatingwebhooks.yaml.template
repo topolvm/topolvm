@@ -65,7 +65,7 @@ spec:
       volumes:
         - name: certs
           secret:
-            secretName: pod-mutatingwebhook
+            secretName: mutatingwebhook
 ---
 apiVersion: v1
 kind: Service

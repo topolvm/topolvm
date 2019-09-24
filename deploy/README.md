@@ -54,7 +54,7 @@ When doing so, do not apply [./manifests/certificates.yaml](./manifests/certific
 2. Create Secret in `topolvm-system` namespace as follows:
 
     ```console
-    kubectl -n topolvm-system create secret tls pod-mutatingwebhook \
+    kubectl -n topolvm-system create secret tls mutatingwebhook \
         --cert=<CERTIFICATE FILE> --key=<KEY FILE>
     ```
 
