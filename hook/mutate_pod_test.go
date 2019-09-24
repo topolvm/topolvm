@@ -32,14 +32,15 @@ func setupResources() {
 	wh.Name = "topolvm-hook"
 	_, err = ctrl.CreateOrUpdate(testCtx, k8sClient, wh, func() error {
 		failPolicy := admissionregistrationv1beta1.Fail
-		urlStr := "https://127.0.0.1:8443/pod/mutate"
+		urlStr1 := "https://127.0.0.1:8443/pod/mutate"
+		urlStr2 := "https://127.0.0.1:8443/pvc/mutate"
 		wh.Webhooks = []admissionregistrationv1beta1.MutatingWebhook{
 			{
-				Name:          "hook.topolvm.cybozu.com",
+				Name:          "pod-hook.topolvm.cybozu.com",
 				FailurePolicy: &failPolicy,
 				ClientConfig: admissionregistrationv1beta1.WebhookClientConfig{
 					CABundle: caBundle,
-					URL:      &urlStr,
+					URL:      &urlStr1,
 				},
 				Rules: []admissionregistrationv1beta1.RuleWithOperations{
 					{
@@ -50,6 +51,26 @@ func setupResources() {
 							APIGroups:   []string{""},
 							APIVersions: []string{"v1"},
 							Resources:   []string{"pods"},
+						},
+					},
+				},
+			},
+			{
+				Name:          "pvc-hook.topolvm.cybozu.com",
+				FailurePolicy: &failPolicy,
+				ClientConfig: admissionregistrationv1beta1.WebhookClientConfig{
+					CABundle: caBundle,
+					URL:      &urlStr2,
+				},
+				Rules: []admissionregistrationv1beta1.RuleWithOperations{
+					{
+						Operations: []admissionregistrationv1beta1.OperationType{
+							admissionregistrationv1beta1.Create,
+						},
+						Rule: admissionregistrationv1beta1.Rule{
+							APIGroups:   []string{""},
+							APIVersions: []string{"v1"},
+							Resources:   []string{"persistentvolumeclaims"},
 						},
 					},
 				},
@@ -126,6 +147,22 @@ func setupResources() {
 		"storage": *resource.NewQuantity(2<<30-1, resource.DecimalSI),
 	}
 	err = k8sClient.Create(testCtx, pvc2)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	sc = &storagev1.StorageClass{}
+	sc.Name = "topolvm-provisioner"
+	sc.Provisioner = "topolvm.cybozu.com"
+	mode = storagev1.VolumeBindingWaitForFirstConsumer
+	sc.VolumeBindingMode = &mode
+	err = k8sClient.Create(testCtx, sc)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	sc = &storagev1.StorageClass{}
+	sc.Name = "topolvm-provisioner-immediate"
+	sc.Provisioner = "topolvm.cybozu.com"
+	mode = storagev1.VolumeBindingImmediate
+	sc.VolumeBindingMode = &mode
+	err = k8sClient.Create(testCtx, sc)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	defaultPVC := &corev1.PersistentVolumeClaim{}

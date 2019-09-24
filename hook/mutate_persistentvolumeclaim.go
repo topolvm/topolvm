@@ -41,6 +41,11 @@ func (m persistentVolumeClaimMutator) Handle(ctx context.Context, req admission.
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
+	// StorageClassName can be nil
+	if pvc.Spec.StorageClassName == nil {
+		return admission.Allowed("no request for TopoLVM")
+	}
+
 	if !targets[*pvc.Spec.StorageClassName] {
 		return admission.Allowed("no request for TopoLVM")
 	}

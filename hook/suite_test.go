@@ -72,6 +72,7 @@ var _ = BeforeSuite(func() {
 
 	By("setting up resources")
 	setupResources()
+	setupMutatePVCResources()
 }, 60)
 
 var _ = AfterSuite(func() {
