@@ -224,7 +224,7 @@ spec:
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", result, stderr)
 
 		var pvc corev1.PersistentVolumeClaim
-		err = json.Unmarshal(stdout, &pvc)
+		err = json.Unmarshal(result, &pvc)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		hasFinalizer := hasTopoLVMFinalizer(&pvc)
@@ -248,13 +248,13 @@ spec:
 		Expect(err).ShouldNot(HaveOccurred(), "stderr=%s", string(stderr))
 
 		Eventually(func() error {
-			stdout, stderr, err := kubectl("-n", nsHookTest, "get", "pvc/bound-pvc", "-o", "json")
+			result, stderr, err := kubectl("-n", nsHookTest, "get", "pvc/bound-pvc", "-o", "json")
 			if err != nil {
 				return fmt.Errorf("%v: stderr=%s", err, stderr)
 			}
 
 			var pvc corev1.PersistentVolumeClaim
-			err = json.Unmarshal(stdout, &pvc)
+			err = json.Unmarshal(result, &pvc)
 			if err != nil {
 				return err
 			}
@@ -294,13 +294,13 @@ spec:
 
 		var pod *corev1.Pod
 		Eventually(func() error {
-			stdout, stderr, err := kubectl("get", "-n", nsHookTest, "pods/testhttpd3", "-o=json")
+			result, stderr, err := kubectl("get", "-n", nsHookTest, "pods/testhttpd3", "-o=json")
 			if err != nil {
 				return fmt.Errorf("%v: stderr=%s", err, stderr)
 			}
 
 			pod = new(corev1.Pod)
-			err = json.Unmarshal(stdout, pod)
+			err = json.Unmarshal(result, pod)
 			if err != nil {
 				return err
 			}
