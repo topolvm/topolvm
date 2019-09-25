@@ -1,8 +1,6 @@
 package hook
 
 import (
-	"context"
-
 	"github.com/cybozu-go/topolvm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -11,21 +9,16 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-var testMutatePVCCtx = context.Background()
-
 const (
-	topolvmProvisionerStorageClassName          = "topolvm-provisioner"
-	topolvmProvisionerImmediateStorageClassName = "topolvm-provisioner-immediate"
-	hostLocalStorageClassName                   = "host-local"
-	mutatePVCNamespace                          = "test-mutate-pvc"
-	defaultPVCName                              = "test-pvc"
+	mutatePVCNamespace = "test-mutate-pvc"
+	defaultPVCName     = "test-pvc"
 )
 
 func setupMutatePVCResources() {
 	// Namespace and namespace resources
 	ns := &corev1.Namespace{}
 	ns.Name = mutatePVCNamespace
-	err := k8sClient.Create(testMutatePVCCtx, ns)
+	err := k8sClient.Create(testCtx, ns)
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
@@ -38,7 +31,7 @@ func createPVC(sc string, pvcName string) {
 	pvc.Spec.Resources.Requests = corev1.ResourceList{
 		"storage": *resource.NewQuantity(10<<30, resource.DecimalSI),
 	}
-	err := k8sClient.Create(testMutatePVCCtx, pvc)
+	err := k8sClient.Create(testCtx, pvc)
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
@@ -48,7 +41,7 @@ func getPVC(pvcName string) (*corev1.PersistentVolumeClaim, error) {
 		Namespace: mutatePVCNamespace,
 		Name:      pvcName,
 	}
-	err := k8sClient.Get(testMutatePVCCtx, name, pvc)
+	err := k8sClient.Get(testCtx, name, pvc)
 	return pvc, err
 }
 
