@@ -131,8 +131,8 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 func (r *NodeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	pred := predicate.Funcs{
 		CreateFunc:  func(event.CreateEvent) bool { return false },
-		DeleteFunc:  func(event.DeleteEvent) bool { return true },
-		UpdateFunc:  func(event.UpdateEvent) bool { return false },
+		DeleteFunc:  func(event.DeleteEvent) bool { return false },
+		UpdateFunc:  func(event.UpdateEvent) bool { return true },
 		GenericFunc: func(event.GenericEvent) bool { return false },
 	}
 
