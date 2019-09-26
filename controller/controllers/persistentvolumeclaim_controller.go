@@ -10,6 +10,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // PersistentVolumeClaimReconciler reconciles a PersistentVolumeClaim object
@@ -18,7 +20,8 @@ type PersistentVolumeClaimReconciler struct {
 	Log logr.Logger
 }
 
-// +kubebuilder:rbac:groups="",resources=pods;persistentvolumeclaims,verbs=get;list;watch;delete;update
+// +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;update
+// +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;delete
 
 // Reconcile finalize PVC
 func (r *PersistentVolumeClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
@@ -50,6 +53,7 @@ func (r *PersistentVolumeClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	}
 
+	// Requeue until other finalizers complete their jobs.
 	if len(pvc.Finalizers) != 1 {
 		return ctrl.Result{
 			Requeue:      true,
@@ -57,7 +61,7 @@ func (r *PersistentVolumeClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Resu
 		}, nil
 	}
 
-	pvc.Finalizers = []string{}
+	pvc.Finalizers = nil
 	if err := r.Update(ctx, pvc); err != nil {
 		log.Error(err, "failed to remove finalizer", "name", pvc.Name)
 		return ctrl.Result{}, err
@@ -88,6 +92,7 @@ func (r *PersistentVolumeClaimReconciler) getPodsByPVC(ctx context.Context, pvc 
 	}
 
 	var result []corev1.Pod
+OUTER:
 	for _, pod := range pods.Items {
 		for _, volume := range pod.Spec.Volumes {
 			if volume.PersistentVolumeClaim == nil {
@@ -95,6 +100,7 @@ func (r *PersistentVolumeClaimReconciler) getPodsByPVC(ctx context.Context, pvc 
 			}
 			if volume.PersistentVolumeClaim.ClaimName == pvc.Name {
 				result = append(result, pod)
+				continue OUTER
 			}
 		}
 	}
@@ -104,7 +110,14 @@ func (r *PersistentVolumeClaimReconciler) getPodsByPVC(ctx context.Context, pvc 
 
 // SetupWithManager sets up Reconciler with Manager.
 func (r *PersistentVolumeClaimReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	pred := predicate.Funcs{
+		CreateFunc:  func(event.CreateEvent) bool { return false },
+		DeleteFunc:  func(event.DeleteEvent) bool { return true },
+		UpdateFunc:  func(event.UpdateEvent) bool { return false },
+		GenericFunc: func(event.GenericEvent) bool { return false },
+	}
 	return ctrl.NewControllerManagedBy(mgr).
+		WithEventFilter(pred).
 		For(&corev1.PersistentVolumeClaim{}).
 		Complete(r)
 }

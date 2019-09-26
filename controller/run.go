@@ -6,7 +6,6 @@ import (
 
 	"github.com/cybozu-go/topolvm/controller/controllers"
 	logicalvolumev1 "github.com/cybozu-go/topolvm/topolvm-node/api/v1"
-	"github.com/spf13/viper"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -34,7 +33,7 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
-// Run runs the webhook server.
+// Run builds and starts the manager includes the controllers.
 func Run(cfg *rest.Config, metricsAddr string, stalePeriod time.Duration, cleanupInterval time.Duration, development bool) error {
 	ctrl.SetLogger(zap.Logger(development))
 
@@ -78,7 +77,6 @@ func Run(cfg *rest.Config, metricsAddr string, stalePeriod time.Duration, cleanu
 	lvcontroller := &controllers.LogicalVolumeReconciler{
 		Client:      mgr.GetClient(),
 		Log:         ctrl.Log.WithName("controllers").WithName("LogicalVolume"),
-		NodeName:    viper.GetString("node-name"),
 		Events:      events,
 		StalePeriod: stalePeriod,
 	}

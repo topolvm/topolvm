@@ -19,14 +19,13 @@ import (
 type LogicalVolumeReconciler struct {
 	client.Client
 	Log         logr.Logger
-	NodeName    string
 	Events      <-chan event.GenericEvent
 	StalePeriod time.Duration
 }
 
 // +kubebuilder:rbac:groups=topolvm.cybozu.com,resources=logicalvolumes,verbs=get;list;watch;update;patch
 
-// Reconcile deletes staled LogicalVolume and PV
+// Reconcile deletes stale LogicalVolume(s)
 func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("logicalvolume", req.NamespacedName)
