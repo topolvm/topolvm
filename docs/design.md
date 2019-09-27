@@ -32,6 +32,7 @@ Components
 - `topolvm-scheduler`: A [scheduler extender](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/scheduler_extender.md) for TopoLVM.
 - `topolvm-node`: A sidecar to communicate with CSI controller over TopoLVM [custom resources](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/).
 - `topolvm-hook`: A [MutatingAdmissionWebhook](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#mutatingadmissionwebhook) for `topolvm-scheduler`.
+- `topolvm-controller`: A sidecar controller for cleanup resources.
 
 ### Diagram
 
@@ -39,7 +40,7 @@ Components
 - ![#ADD8E6](https://placehold.it/15/ADD8E6/000000?text=+) Kubernetes components
 - ![#FFC0CB](https://placehold.it/15/FFC0CB/000000?text=+) Kubernetes CSI Sidecar containers
 
-![component diagram](http://www.plantuml.com/plantuml/svg/fLLFRne_5Bplfx389R_3AegFEVmK5NgeH2C4QgeguM3ifyN2Qw_yXxIg-EwrTzVsiWH8rHlxtdZyPkmnZyOIRLqjYeRG7Qa0JMRG2FMh1cadw7U1qCjKIQkL4A0NmbLShX4nQ39TVK6vWrQWzvp2gxobXfTMDKhiw_ycwEO72A7U0eynXZEWH9kE8G0RhVRSS2L1lyfG8DOIkWNjLowut1M7ef2A0NfI3ExRPUslC9hdZ4FFLbrlHg1MSWNzw7xJWEx6lizpX-BrYSDobcQ-pqDhgBYnciGXEwXV3LPp6f7fUqJPxnHKzSY-KeRI4EorU_pERK20xR7zbuVDURMrduI35ZL__ihonYpJ30t4oK1yOY2-QY3-DmFnXmt47pOG_uM1-Bg1-8A1yR8l197GAUaAg0cLFYkauSRR0dezu0yDGxV0d3XfC6B9XXX04x2K9TUdoratornLd1Bnh8IhuTQNHmR70tpAuOWawVYMO9JJD5ot7A0MSZZcmDSvSER0cUCGN8eq1bZxX0JWwMjYe6DOHKFGvvyM90iFm6qyoEJMGEqXRR1LQdTfYvubm8xlHwWS7MpEB2fVRZR2mPgfDrd-ZzeyeGTKBHVJ8vXhVFV8rMAOwCGpeiWnEWk9GK_zk5LQ-701buCMSNbi_9uwVA8ElwCE3zLbdamnKdSM4bDuJjqLO9Q7expn_n8gaS-7fvbg81RklXDBjwF3SKq4jTsxRmtpq976Cw0YtShU9mD5p7ii3QwUnwUPKTaRd_33PdPiB2bwyWYIkLhy0G00)
+![component diagram](http://www.plantuml.com/plantuml/svg/fPN1Rjmi58NtVWeqsUHVM55Opk9NL4yNbTB8ogYfgYGB0bSUD1Wim4chQjwzO6EmFPbngcwY63xEzJc-bxanbcZRrY9h2DsJ2j1g0urGlsgGTeL-PmWz5afQhOG0NOgsul8P4ODMnVOBIZje2_gLKtYIbzJmtAf6YTVwlnMw-052g3UlOupX32ZHfbVmOAFLApTSIT1FqYyGQmdTWNOdIoxt_bmGex5OVpmivsazLJjacLGCq9txSztHtN_Ua5CSh6ws_Tw6GAta5e9XLzBJlTdhvDOlBllqnrbqUfsiQgYuiPeaQnvrfy5gJWSoFiyaGoNfRKpz-wKnxBmxVj--W00RsF3ai5jUxUmdqK97tJvyPQamUpz070F4Hm7YnG3nlmM8FnmW_d20-2y2nCi1udC1XX4f1P7GE-aNKEDNmeIHXXiNY-liiRuV6JSAh1L76unOya8Ce1LOocBgnVscVvTRLN5An8CIRGsNRdaUSFbGz6G9shXKGTeUBWJXzIf0Yjs3KQsc463bQlczr09tQRo6ruWD40w7XWqZs267RAA1bpLmqi19u-1p7cGCiExgyk3nBMQ2X-qGAVhyqzbc_kAv75eXvZtAwn0Bx9JQdoiHL3msxJ2_CccDDFKeVxnu4IqyC_Kcy_zHDv5eZQhxifXWRUDs9wbcevPEEZE9D8WdaT3RQJ-KIWVNPxWqge4RkSFlkSD7xl0xxl3ONTA94dDt9v5XZa-vMm2JFJpOc_yUeXov2NCoXGPYuUexiNGt-pXjCq3TxjMtXZbqwd41eh4ioaESatPOfxhBD5watOkiDpuGM7uFTvi4zXoKRfC1pkAyXGumaCMxC2oDXihnyMj4sSXFDcCl77siyBLlGBAs5dy0)
 
 Blue arrows in the diagram indicate communications over unix domain sockets.
 Red arrows indicate communications over TCP sockets.
@@ -56,7 +57,7 @@ reference node-local metrics such as VG free capacity or IO usage.  To expose
 these metrics, TopoLVM runs a sidecar container called *lvmetrics* on each node.
 
 `lvmetrics` watches the capacity of LVM volume group and exposes it as Node
-annotations.
+annotations. Also, it adds finalizer to the `Node` resource for cleanup.
 
 Extension of the general scheduler is implemented as a [scheduler extender](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/scheduler_extender.md) called `topolvm-scheduler`.
 

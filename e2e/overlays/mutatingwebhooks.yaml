@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: topolvm-system
+  name: topolvm-hook
+spec:
+  template:
+    spec:
+      containers:
+        - name: topolvm-hook
+          image: topolvm:dev
+          imagePullPolicy: Never
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+metadata:
+  annotations:
+    certmanager.k8s.io/inject-ca-from: topolvm-system/mutatingwebhook
+  name: topolvm-hook
+  labels:
+    app.kubernetes.io/name: topolvm-hook
+webhooks:
+  - name: pod-hook.topolvm.cybozu.com
+    namespaceSelector:
+      matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: NotIn
+        values: ["topolvm-system"]
+    failurePolicy: Fail
+    clientConfig:
+      caBundle: $(TLSCERT)
+      service:
+        namespace: topolvm-system
+        name: topolvm-hook
+        path: /pod/mutate
+    rules:
+      - operations: ["CREATE"]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]
+  - name: pvc-hook.topolvm.cybozu.com
+    namespaceSelector:
+      matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: NotIn
+        values: ["topolvm-system"]
+    failurePolicy: Fail
+    clientConfig:
+      caBundle: $(TLSCERT)
+      service:
+        namespace: topolvm-system
+        name: topolvm-hook
+        path: /pvc/mutate
+    rules:
+      - operations: ["CREATE"]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["persistentvolumeclaims"]

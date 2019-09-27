@@ -36,10 +36,10 @@ spec:
 apiVersion: certmanager.k8s.io/v1alpha1
 kind: Certificate
 metadata:
-  name: pod-mutatingwebhook
+  name: mutatingwebhook
   namespace: topolvm-system
 spec:
-  secretName: pod-mutatingwebhook
+  secretName: mutatingwebhook
   duration: 8760h0m0s # 1y
   issuerRef:
     name: webhook-ca

@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 
+	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/lvmd/proto"
 	topolvmv1 "github.com/cybozu-go/topolvm/topolvm-node/api/v1"
 	"github.com/go-logr/logr"
@@ -14,8 +15,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 )
-
-const finalizerName = "logicalvolume.topolvm.cybozu.com"
 
 // NewLogicalVolumeReconciler returns LogicalVolumeReconciler.
 func NewLogicalVolumeReconciler(client client.Client, log logr.Logger, nodeName string, conn *grpc.ClientConn) *LogicalVolumeReconciler {
@@ -61,7 +60,7 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	}
 
 	if lv.Spec.NodeName != r.nodeName {
-		log.Info("unfilterd logical volue", "nodeName", lv.Spec.NodeName)
+		log.Info("unfiltered logical value", "nodeName", lv.Spec.NodeName)
 		return ctrl.Result{}, nil
 	}
 
@@ -72,9 +71,9 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 			return ctrl.Result{}, nil
 		}
 
-		if !containsString(lv.Finalizers, finalizerName) {
+		if !containsString(lv.Finalizers, topolvm.LogicalVolumeFinalizer) {
 			lv2 := lv.DeepCopy()
-			lv2.Finalizers = append(lv2.Finalizers, finalizerName)
+			lv2.Finalizers = append(lv2.Finalizers, topolvm.LogicalVolumeFinalizer)
 			patch := client.MergeFrom(lv)
 			if err := r.k8sClient.Patch(ctx, lv2, patch); err != nil {
 				log.Error(err, "failed to add finalizer", "name", lv.Name)
@@ -95,7 +94,7 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	}
 
 	// finalization
-	if !containsString(lv.Finalizers, finalizerName) {
+	if !containsString(lv.Finalizers, topolvm.LogicalVolumeFinalizer) {
 		// Our finalizer has finished, so the reconciler can do nothing.
 		return ctrl.Result{}, nil
 	}
@@ -107,7 +106,7 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	}
 
 	lv2 := lv.DeepCopy()
-	lv2.Finalizers = removeString(lv2.Finalizers, finalizerName)
+	lv2.Finalizers = removeString(lv2.Finalizers, topolvm.LogicalVolumeFinalizer)
 	patch := client.MergeFrom(lv)
 	if err := r.k8sClient.Patch(ctx, lv2, patch); err != nil {
 		log.Error(err, "failed to remove finalizer", "name", lv.Name)

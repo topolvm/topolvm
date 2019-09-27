@@ -16,7 +16,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var _ = Describe("E2E test", func() {
+func testE2E() {
 	testNamespacePrefix := "e2etest-"
 	var ns string
 	BeforeEach(func() {
@@ -40,7 +40,7 @@ spec:
   containers:
     - name: ubuntu
       image: quay.io/cybozu/ubuntu:18.04
-      command: ["sleep", "infinity"]
+      command: ["pause"]
       volumeMounts:
         - mountPath: /test1
           name: my-volume
@@ -178,7 +178,7 @@ spec:
   containers:
     - name: ubuntu
       image: quay.io/cybozu/ubuntu:18.04
-      command: ["sleep", "infinity"]
+      command: ["pause"]
       volumeDevices:
         - devicePath: %s
           name: my-volume
@@ -429,7 +429,7 @@ spec:
   containers:
     - name: ubuntu
       image: quay.io/cybozu/ubuntu:18.04
-      command: ["sleep", "infinity"]
+      command: ["pause"]
       volumeMounts:
         - mountPath: /test1
           name: my-volume
@@ -645,7 +645,7 @@ spec:
   containers:
     - name: ubuntu
       image: quay.io/cybozu/ubuntu:18.04
-      command: ["sleep", "infinity"]
+      command: ["pause"]
       volumeMounts:
         - mountPath: /test1
           name: my-volume
@@ -687,7 +687,7 @@ spec:
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s", stdout)
 		Expect(pod.Spec.NodeName).To(Equal(""))
 	})
-})
+}
 
 func waitCreatingDefaultSA(ns string) error {
 	stdout, stderr, err := kubectl("get", "sa", "-n", ns, "default")

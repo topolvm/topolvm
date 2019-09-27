@@ -4,6 +4,7 @@ export GOFLAGS
 GINKGO=$(GOPATH)/bin/ginkgo
 KUBECTL=/usr/local/bin/kubectl
 KIND_VERSION=0.5.1
+KUSTOMIZE_VERSION=3.1.0
 
 # If you want to change the Kubernetes version for e2e test, specify this variable from command line.
 # e.g. $ make TEST_KUBERNETES_VERSION=1.14 setup test
@@ -36,6 +37,7 @@ topolvm.img: $(GO_FILES)
 	ln -s hypertopolvm ./tmpbin/topolvm-scheduler
 	ln -s hypertopolvm ./tmpbin/topolvm-node
 	ln -s hypertopolvm ./tmpbin/topolvm-hook
+	ln -s hypertopolvm ./tmpbin/topolvm-controller
 	docker build --no-cache --rm=false -f Dockerfile -t topolvm:dev tmpbin
 	docker save -o $@ topolvm:dev
 
@@ -89,15 +91,13 @@ stop-lvmd:
 		fi; \
 	done
 
-test: topolvm.img hook-secret.yml
+test: topolvm.img $(SERVER_CERT_FILES)
 	$(MAKE) shutdown-kind
 	$(MAKE) launch-kind
-	$(KUBECTL) apply -f namespace.yml
-	$(MAKE) secret
+	$(KUBECTL) delete -n=topolvm-system secret mutatingwebhook --ignore-not-found
+	$(KUBECTL) apply -f ../deploy/manifests/crd.yaml
 	kind load image-archive topolvm.img
-	$(KUBECTL) apply -f lvmetrics.yml -f scheduler.yml -f hook-secret.yml -f hook.yml -f provisioner.yml
-	$(KUBECTL) apply -f ../topolvm-node/config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml
-	$(KUBECTL) apply -f csi.yml
+	kustomize build . | kubectl apply -f -
 	$(SUDO) env \
 		PATH=$(PATH) \
 		GOPATH=$(GOPATH) \
@@ -113,17 +113,13 @@ $(CA_FILES): ./certs/csr.json
 $(SERVER_CERT_FILES): $(CA_FILES) ./certs/ca-config.json ./certs/server.json
 	cfssl gencert -ca=certs/ca.pem -ca-key=certs/ca-key.pem -config=certs/ca-config.json -profile=server certs/server.json | cfssljson -bare certs/server
 
-hook-secret.yml: hook-secret.yml.template $(CA_FILES)
-	./patch_capem.sh
-
-secret: $(SERVER_CERT_FILES)
-	$(KUBECTL) delete -n=topolvm-system secret topolvm-hook-certs --ignore-not-found
-	$(KUBECTL) create -n=topolvm-system secret generic topolvm-hook-certs --from-file=tls.crt=certs/server.pem --from-file=tls.key=certs/server-key.pem
-
 setup: $(KUBECTL)
 	go install github.com/cloudflare/cfssl/cmd/cfssl
 	go install github.com/cloudflare/cfssl/cmd/cfssljson
 	go install github.com/onsi/ginkgo/ginkgo
+	curl -sSLf -O https://github.com/kubernetes-sigs/kustomize/releases/download/v$(KUSTOMIZE_VERSION)/kustomize_$(KUSTOMIZE_VERSION)_linux_amd64
+	$(SUDO) mv kustomize_$(KUSTOMIZE_VERSION)_linux_amd64 /usr/local/bin/kustomize
+	chmod +x /usr/local/bin/kustomize
 	cd /tmp; env GOFLAGS= GO111MODULE=on go get sigs.k8s.io/kind@v$(KIND_VERSION)
 	$(SUDO) apt-get update
 	$(SUDO) apt-get install -y lvm2 xfsprogs

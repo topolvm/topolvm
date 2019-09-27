@@ -12,11 +12,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var _ = Describe("Test for lvmetrics", func() {
-
-	It("should be deployed lvmetrics pod", func() {
+func testLvmetrics() {
+	It("should be deployed csi-topolvm-node pod", func() {
 		Eventually(func() error {
-			result, stderr, err := kubectl("get", "-n=topolvm-system", "pods", "--selector=app.kubernetes.io/name=lvmetrics", "-o=json")
+			result, stderr, err := kubectl("get", "-n=topolvm-system", "pods", "--selector=app.kubernetes.io/name=csi-topolvm-node", "-o=json")
 			if err != nil {
 				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
 			}
@@ -40,7 +39,7 @@ var _ = Describe("Test for lvmetrics", func() {
 					}
 				}
 				if !isReady {
-					return errors.New("lvmetrics is not yet ready: " + pod.Name)
+					return errors.New("csi-topolvm-node is not yet ready: " + pod.Name)
 				}
 			}
 			return nil
@@ -87,4 +86,4 @@ var _ = Describe("Test for lvmetrics", func() {
 			Expect(val).To(Equal(strings.TrimSpace(string(targetBytes))), "unexpected capacity: "+node.Name)
 		}
 	})
-})
+}

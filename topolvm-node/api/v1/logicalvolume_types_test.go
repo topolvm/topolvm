@@ -35,13 +35,11 @@ var _ = Describe("LogicalVolume", func() {
 		It("should create an object successfully", func() {
 
 			key = types.NamespacedName{
-				Name:      "foo",
-				Namespace: "default",
+				Name: "foo",
 			}
 			created = &LogicalVolume{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      key.Name,
-					Namespace: key.Namespace,
+					Name: key.Name,
 				},
 				Spec: LogicalVolumeSpec{
 					NodeName: "test",

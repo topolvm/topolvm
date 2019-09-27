@@ -2,7 +2,7 @@ CSI_VERSION=1.1.0
 PROTOBUF_VERSION=3.7.1
 CURL=curl -Lsf
 KUBEBUILDER_VERSION = 2.0.0
-CTRLTOOLS_VERSION = 0.2.0
+CTRLTOOLS_VERSION = 0.2.1
 
 GOOS = $(shell go env GOOS)
 GOARCH = $(shell go env GOARCH)
@@ -20,7 +20,7 @@ PACKAGES := unzip
 GO_FILES=$(shell find -name '*.go' -not -name '*_test.go')
 BUILD_TARGET=hypertopolvm
 
-# CSI sidecard containers
+# CSI sidecar containers
 EXTERNAL_PROVISIONER_VERSION=1.3.0
 NODE_DRIVER_REGISTRAR_VERSION=1.1.0
 EXTERNAL_ATTACHER_VERSION=1.2.1

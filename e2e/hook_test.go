@@ -13,7 +13,16 @@ import (
 
 const nsHookTest = "hook-test"
 
-var _ = Describe("in hook-test namespace", func() {
+func hasTopoLVMFinalizer(pvc *corev1.PersistentVolumeClaim) bool {
+	for _, fin := range pvc.Finalizers {
+		if fin == topolvm.PVCFinalizer {
+			return true
+		}
+	}
+	return false
+}
+
+func testHook() {
 	BeforeEach(func() {
 		createNamespace(nsHookTest)
 	})
@@ -50,7 +59,7 @@ var _ = Describe("in hook-test namespace", func() {
 			return errors.New("topolvm-hook is not yet ready")
 		}).Should(Succeed())
 
-		By("checking pod is annotated with topolvm.cybozu.com/capacity")
+		By("creating pod with TopoLVM PVC")
 		yml := `
 kind: PersistentVolumeClaim
 apiVersion: v1
@@ -102,6 +111,7 @@ spec:
 		stdout, stderr, err := kubectlWithInput([]byte(yml), "-n", nsHookTest, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
+		By("checking pod is annotated with topolvm.cybozu.com/capacity")
 		Eventually(func() error {
 			result, stderr, err := kubectl("get", "-n", nsHookTest, "pods/testhttpd", "-o=json")
 			if err != nil {
@@ -134,7 +144,20 @@ spec:
 			return nil
 		}).Should(Succeed())
 
-		By("checking pod is not annotated with topolvm.cybozu.com/capacity")
+		By("checking pvc has TopoLVM finalizer")
+		result, stderr, err := kubectl("get", "-n", nsHookTest, "pvc", "-o=json")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", result, stderr)
+
+		var pvcList corev1.PersistentVolumeClaimList
+		err = json.Unmarshal(result, &pvcList)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		for _, pvc := range pvcList.Items {
+			hasFinalizer := hasTopoLVMFinalizer(&pvc)
+			Expect(hasFinalizer).Should(Equal(true), "finalizer is not set: pvc=%s", pvc.Name)
+		}
+
+		By("creating pod without TopoLVM PVC")
 		yml = `
 kind: PersistentVolumeClaim
 apiVersion: v1
@@ -169,6 +192,7 @@ spec:
 		stdout, stderr, err = kubectlWithInput([]byte(yml), "-n", nsHookTest, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
+		By("checking pod is not annotated with topolvm.cybozu.com/capacity")
 		Eventually(func() error {
 			result, stderr, err := kubectl("get", "-n", nsHookTest, "pods/testhttpd2", "-o=json")
 			if err != nil {
@@ -195,6 +219,17 @@ spec:
 			return nil
 		}).Should(Succeed())
 
+		By("checking pvc does not have TopoLVM finalizer")
+		result, stderr, err = kubectl("get", "-n", nsHookTest, "pvc/local-pvc3", "-o=json")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", result, stderr)
+
+		var pvc corev1.PersistentVolumeClaim
+		err = json.Unmarshal(result, &pvc)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		hasFinalizer := hasTopoLVMFinalizer(&pvc)
+		Expect(hasFinalizer).ShouldNot(Equal(true), "finalizer is not set: pvc=%s", pvc.Name)
+
 		By("checking resource for bound PVC is not added")
 		yml = `
 kind: PersistentVolumeClaim
@@ -213,15 +248,19 @@ spec:
 		Expect(err).ShouldNot(HaveOccurred(), "stderr=%s", string(stderr))
 
 		Eventually(func() error {
-			stdout, _, err := kubectl("-n", nsHookTest, "get", "pvc/bound-pvc", "-o", "json")
+			result, stderr, err := kubectl("-n", nsHookTest, "get", "pvc/bound-pvc", "-o", "json")
+			if err != nil {
+				return fmt.Errorf("%v: stderr=%s", err, stderr)
+			}
+
+			var pvc corev1.PersistentVolumeClaim
+			err = json.Unmarshal(result, &pvc)
 			if err != nil {
 				return err
 			}
 
-			var pvc corev1.PersistentVolumeClaim
-			err = json.Unmarshal(stdout, &pvc)
-			if err != nil {
-				return err
+			if !hasTopoLVMFinalizer(&pvc) {
+				return errors.New("pvc does not have TopoLVM finalizer")
 			}
 
 			if len(pvc.Spec.VolumeName) == 0 {
@@ -255,13 +294,13 @@ spec:
 
 		var pod *corev1.Pod
 		Eventually(func() error {
-			stdout, stderr, err := kubectl("get", "-n", nsHookTest, "pods/testhttpd3", "-o=json")
+			result, stderr, err := kubectl("get", "-n", nsHookTest, "pods/testhttpd3", "-o=json")
 			if err != nil {
 				return fmt.Errorf("%v: stderr=%s", err, stderr)
 			}
 
 			pod = new(corev1.Pod)
-			err = json.Unmarshal(stdout, pod)
+			err = json.Unmarshal(result, pod)
 			if err != nil {
 				return err
 			}
@@ -276,4 +315,4 @@ spec:
 		Expect(resources.Limits).ShouldNot(HaveKey(topolvm.CapacityResource))
 		Expect(resources.Requests).ShouldNot(HaveKey(topolvm.CapacityResource))
 	})
-})
+}

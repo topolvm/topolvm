@@ -25,8 +25,8 @@ Finalizer sends `RemoveLV` request to `lvmd`.
 Command-line flags
 ------------------
 
-| Name         | Type   | Default                | Description                                         |
-| --------     | ------ | ------:                | ----------------------------------                  |
+|     Name     |  Type  |        Default         |                     Description                     |
+| ------------ | ------ | :--------------------- | --------------------------------------------------- |
 | metrics-addr | string | :28080                 | Bind address for the metrics endpoint               |
 | lvmd-socket  | string | /run/topolvm/lvmd.sock | UNIX domain socket of `lvmd` service                |
 | node-name    | string |                        | The name of the node hosting `topolvm-node` service |

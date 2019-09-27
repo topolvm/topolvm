@@ -1,0 +1,46 @@
+---
+apiVersion: storage.k8s.io/v1beta1
+kind: CSIDriver
+metadata:
+  name: topolvm.cybozu.com
+spec:
+  podInfoOnMount: false
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: csi-topolvm-controller
+  namespace: topolvm-system
+spec:
+  template:
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: kind-worker
+
+      containers:
+        - name: controller
+          image: topolvm:dev
+          imagePullPolicy: Never
+
+        - name: topolvm-controller
+          image: topolvm:dev
+          imagePullPolicy: Never
+          command:
+            - /topolvm-controller
+            - --metrics-addr=:8081
+            - --stale-period=5s
+            - --cleanup-interval=10s
+
+        - name: csi-provisioner
+          image: quay.io/k8scsi/csi-provisioner:v1.3.0
+          imagePullPolicy: "IfNotPresent"
+
+        - name: csi-attacher
+          image: quay.io/k8scsi/csi-attacher:v1.2.1
+          imagePullPolicy: "IfNotPresent"
+
+      volumes:
+        - name: socket-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins/topolvm.cybozu.com/controller
+            type: DirectoryOrCreate

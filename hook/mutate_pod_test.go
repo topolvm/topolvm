@@ -1,23 +1,18 @@
 package hook
 
 import (
-	"context"
-	"io/ioutil"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	corev1 "k8s.io/api/core/v1"
-	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var testCtx = context.Background()
-
-func strPtr(s string) *string { return &s }
+const (
+	mutatePodNamespace = "test-mutate-pod"
+	defaultPodName     = "test-pod"
+)
 
 func pvcSource(name string) *corev1.PersistentVolumeClaimVolumeSource {
 	return &corev1.PersistentVolumeClaimVolumeSource{
@@ -25,65 +20,18 @@ func pvcSource(name string) *corev1.PersistentVolumeClaimVolumeSource {
 	}
 }
 
-func setupResources() {
-	caBundle, err := ioutil.ReadFile("certs/ca.crt")
-	Expect(err).ShouldNot(HaveOccurred())
-	wh := &admissionregistrationv1beta1.MutatingWebhookConfiguration{}
-	wh.Name = "topolvm-hook"
-	_, err = ctrl.CreateOrUpdate(testCtx, k8sClient, wh, func() error {
-		failPolicy := admissionregistrationv1beta1.Fail
-		urlStr := "https://127.0.0.1:8443/mutate"
-		wh.Webhooks = []admissionregistrationv1beta1.MutatingWebhook{
-			{
-				Name:          "hook.topolvm.cybozu.com",
-				FailurePolicy: &failPolicy,
-				ClientConfig: admissionregistrationv1beta1.WebhookClientConfig{
-					CABundle: caBundle,
-					URL:      &urlStr,
-				},
-				Rules: []admissionregistrationv1beta1.RuleWithOperations{
-					{
-						Operations: []admissionregistrationv1beta1.OperationType{
-							admissionregistrationv1beta1.Create,
-						},
-						Rule: admissionregistrationv1beta1.Rule{
-							APIGroups:   []string{""},
-							APIVersions: []string{"v1"},
-							Resources:   []string{"pods"},
-						},
-					},
-				},
-			},
-		}
-		return nil
-	})
-	Expect(err).ShouldNot(HaveOccurred())
-
-	sc := &storagev1.StorageClass{}
-	sc.Name = "topolvm"
-	sc.Provisioner = "topolvm.cybozu.com"
-	mode := storagev1.VolumeBindingWaitForFirstConsumer
-	sc.VolumeBindingMode = &mode
-	err = k8sClient.Create(testCtx, sc)
-	Expect(err).ShouldNot(HaveOccurred())
-
-	sc = &storagev1.StorageClass{}
-	sc.Name = "host-local"
-	sc.Provisioner = "kubernetes.io/no-provisioner"
-	err = k8sClient.Create(testCtx, sc)
-	Expect(err).ShouldNot(HaveOccurred())
-
+func setupMutatePodResources() {
 	// Namespace and namespace resources
 	ns := &corev1.Namespace{}
-	ns.Name = "test"
-	err = k8sClient.Create(testCtx, ns)
+	ns.Name = mutatePodNamespace
+	err := k8sClient.Create(testCtx, ns)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	localPVC := &corev1.PersistentVolumeClaim{}
-	localPVC.Namespace = "test"
+	localPVC.Namespace = mutatePodNamespace
 	localPVC.Name = "local-pvc"
 	localPVC.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-	localPVC.Spec.StorageClassName = strPtr("host-local")
+	localPVC.Spec.StorageClassName = strPtr(hostLocalStorageClassName)
 	localPVC.Spec.Resources.Requests = corev1.ResourceList{
 		"storage": *resource.NewQuantity(10<<30, resource.DecimalSI),
 	}
@@ -91,10 +39,10 @@ func setupResources() {
 	Expect(err).ShouldNot(HaveOccurred())
 
 	boundPVC := &corev1.PersistentVolumeClaim{}
-	boundPVC.Namespace = "test"
+	boundPVC.Namespace = mutatePodNamespace
 	boundPVC.Name = "bound-pvc"
 	boundPVC.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-	boundPVC.Spec.StorageClassName = strPtr("topolvm")
+	boundPVC.Spec.StorageClassName = strPtr(topolvmProvisionerStorageClassName)
 	boundPVC.Spec.Resources.Requests = corev1.ResourceList{
 		"storage": *resource.NewQuantity(100<<30, resource.DecimalSI),
 	}
@@ -107,10 +55,10 @@ func setupResources() {
 	Expect(err).ShouldNot(HaveOccurred())
 
 	pvc1 := &corev1.PersistentVolumeClaim{}
-	pvc1.Namespace = "test"
+	pvc1.Namespace = mutatePodNamespace
 	pvc1.Name = "pvc1"
 	pvc1.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-	pvc1.Spec.StorageClassName = strPtr("topolvm")
+	pvc1.Spec.StorageClassName = strPtr(topolvmProvisionerStorageClassName)
 	pvc1.Spec.Resources.Requests = corev1.ResourceList{
 		"storage": *resource.NewQuantity(100<<20, resource.DecimalSI),
 	}
@@ -118,10 +66,10 @@ func setupResources() {
 	Expect(err).ShouldNot(HaveOccurred())
 
 	pvc2 := &corev1.PersistentVolumeClaim{}
-	pvc2.Namespace = "test"
+	pvc2.Namespace = mutatePodNamespace
 	pvc2.Name = "pvc2"
 	pvc2.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-	pvc2.Spec.StorageClassName = strPtr("topolvm")
+	pvc2.Spec.StorageClassName = strPtr(topolvmProvisionerStorageClassName)
 	pvc2.Spec.Resources.Requests = corev1.ResourceList{
 		"storage": *resource.NewQuantity(2<<30-1, resource.DecimalSI),
 	}
@@ -129,7 +77,7 @@ func setupResources() {
 	Expect(err).ShouldNot(HaveOccurred())
 
 	defaultPVC := &corev1.PersistentVolumeClaim{}
-	defaultPVC.Namespace = "test"
+	defaultPVC.Namespace = mutatePodNamespace
 	defaultPVC.Name = "default-pvc"
 	defaultPVC.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
 	defaultPVC.Spec.Resources.Requests = corev1.ResourceList{
@@ -141,8 +89,8 @@ func setupResources() {
 
 func testPod() *corev1.Pod {
 	pod := &corev1.Pod{}
-	pod.Namespace = "test"
-	pod.Name = "test"
+	pod.Namespace = mutatePodNamespace
+	pod.Name = defaultPodName
 	pod.Spec.Containers = []corev1.Container{
 		{
 			Name:  "container1",
@@ -159,8 +107,8 @@ func testPod() *corev1.Pod {
 func getPod() *corev1.Pod {
 	pod := &corev1.Pod{}
 	name := types.NamespacedName{
-		Namespace: "test",
-		Name:      "test",
+		Namespace: mutatePodNamespace,
+		Name:      defaultPodName,
 	}
 	err := k8sClient.Get(testCtx, name, pod)
 	ExpectWithOffset(1, err).ShouldNot(HaveOccurred())
@@ -170,8 +118,8 @@ func getPod() *corev1.Pod {
 var _ = Describe("pod mutation webhook", func() {
 	AfterEach(func() {
 		pod := &corev1.Pod{}
-		pod.Name = "test"
-		pod.Namespace = "test"
+		pod.Namespace = mutatePodNamespace
+		pod.Name = defaultPodName
 		err := k8sClient.Delete(testCtx, pod, client.GracePeriodSeconds(0))
 		Expect(err).ShouldNot(HaveOccurred())
 	})

@@ -65,12 +65,18 @@ func (n *NodePatcher) Patch(met *NodeMetrics) error {
 		return err
 	}
 
+	// Node under finalization should be ignored.
+	if !node.DeletionTimestamp.IsZero() {
+		return nil
+	}
+
 	original, err := encodeToJSON(node)
 	if err != nil {
 		return err
 	}
 
 	met.Annotate(node)
+	n.addFinalizer(node)
 
 	modified, err := encodeToJSON(node)
 	if err != nil {
@@ -94,4 +100,13 @@ func (n *NodePatcher) Patch(met *NodeMetrics) error {
 
 	_, err = n.k8sClient.CoreV1().Nodes().Patch(n.nodeName, types.StrategicMergePatchType, patch)
 	return err
+}
+
+func (n *NodePatcher) addFinalizer(node *corev1.Node) {
+	for _, fn := range node.Finalizers {
+		if fn == topolvm.NodeFinalizer {
+			return
+		}
+	}
+	node.Finalizers = append(node.Finalizers, topolvm.NodeFinalizer)
 }

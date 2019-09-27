@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kubernetes-csi/csi-test/pkg/sanity"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
@@ -83,7 +84,7 @@ spec:
   containers:
     - name: ubuntu
       image: quay.io/cybozu/ubuntu:18.04
-      command: ["sleep", "infinity"]
+      command: ["pause"]
 `
 	Eventually(func() error {
 		_, stderr, err := kubectlWithInput([]byte(podYAML), "apply", "-f", "-")
@@ -92,4 +93,24 @@ spec:
 		}
 		return nil
 	}).Should(Succeed())
+	stdout, stderr, err := kubectlWithInput([]byte(podYAML), "delete", "-f", "-")
+	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+})
+
+var _ = Describe("TopoLVM", func() {
+	Context("hook", testHook)
+	Context("lvmetrics", testLvmetrics)
+	Context("scheduler", testScheduler)
+	Context("CSI sanity", func() {
+		sanity.GinkgoTest(&sanity.Config{
+			Address:           "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/csi-topolvm.sock",
+			ControllerAddress: "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/controller/csi-topolvm.sock",
+			TargetPath:        "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/mountdir",
+			StagingPath:       "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/stagingdir",
+			TestVolumeSize:    1073741824,
+		})
+	})
+	Context("publish", testPublishVolume)
+	Context("e2e", testE2E)
+	Context("cleanup", testCleanup)
 })

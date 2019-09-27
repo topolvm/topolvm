@@ -21,6 +21,9 @@ kubeadmConfigPatches:
         readOnly: true
     extraArgs:
       config: /var/lib/scheduler/scheduler-config.yaml
+  controllerManager:
+    extraArgs:
+      "v": "5"
 # 1 control plane node and 3 workers
 nodes:
 # the control plane node config
