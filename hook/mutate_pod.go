@@ -46,6 +46,13 @@ func (m podMutator) Handle(ctx context.Context, req admission.Request) admission
 		return admission.Allowed("no volumes")
 	}
 
+	// Pods instantiated from templates may have empty name/namespace.
+	// To lookup PVC in the same namespace, we set namespace obtained from req.
+	if pod.Namespace == "" {
+		pmLogger.Info("infer pod namespace from req", "namespace", req.Namespace)
+		pod.Namespace = req.Namespace
+	}
+
 	targets, err := m.targetStorageClasses(ctx)
 	if err != nil {
 		pmLogger.Error(err, "targetStorageClasses failed")
