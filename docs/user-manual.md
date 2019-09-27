@@ -11,13 +11,33 @@ For deployment, please read [../deploy/README.md](../deploy/README.md).
   - [Retiring nodes](#retiring-nodes)
   - [Rebooting nodes](#rebooting-nodes)
 - [Limitations](#limitations)
-- [Trouble shooting](#trouble-shooting)
-  - [StatefulSet pod is not rescheduled after node deletion](#statefulset-pod-is-not-rescheduled-after-node-deletion)
 
 StorageClass
 ------------
 
-(TBD)
+An example StorageClass looks like this:
+
+```yaml
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: topolvm-provisioner
+provisioner: topolvm.cybozu.com
+parameters:
+  "csi.storage.k8s.io/fstype": "xfs"
+volumeBindingMode: WaitForFirstConsumer
+```
+
+`provisioner` must be `topolvm-provisioner`.
+
+`parameters` are optional.  To specify a filesystem type, give
+`csi.storage.k8s.io/fstype` parameter.
+
+Supported filesystems are: `ext4`, `xfs`, and `btrfs`.
+
+`volumeBindingMode` can be either `WaitForFirstConsumer` or `Immediate`.
+`WaitForFirstConsumer` is recommended because TopoLVM cannot schedule pods
+wisely if `volumeBindingMode` is `Immediate`.
 
 Node maintenance
 ----------------
@@ -47,14 +67,3 @@ Limitations
 -----------
 
 See [limitations.md](limitations.md).
-
-Trouble shooting
----------------
-
-### StatefulSet pod is not rescheduled after node deletion
-
-If you forget to mark the deleting node unschedulable by either
-`kubectl drain NODE` or `kubectl cordon NODE`, a pending pod may remain
-unschedulable.
-
-The reason and how to recover from this are described in [limitations.md](limitations.md).
