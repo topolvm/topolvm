@@ -4,7 +4,7 @@ export GOFLAGS
 GINKGO=$(GOPATH)/bin/ginkgo
 KUBECTL=/usr/local/bin/kubectl
 KIND_VERSION=0.5.1
-KUSTOMIZE_VERSION=3.1.0
+KUSTOMIZE_VERSION=3.2.0
 
 # If you want to change the Kubernetes version for e2e test, specify this variable from command line.
 # e.g. $ make TEST_KUBERNETES_VERSION=1.14 setup test
