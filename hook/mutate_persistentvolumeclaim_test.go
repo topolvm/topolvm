@@ -27,7 +27,9 @@ func createPVC(sc string, pvcName string) {
 	pvc.Namespace = mutatePVCNamespace
 	pvc.Name = pvcName
 	pvc.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-	pvc.Spec.StorageClassName = strPtr(sc)
+	if sc != "" {
+		pvc.Spec.StorageClassName = strPtr(sc)
+	}
 	pvc.Spec.Resources.Requests = corev1.ResourceList{
 		"storage": *resource.NewQuantity(10<<30, resource.DecimalSI),
 	}

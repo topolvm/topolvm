@@ -8,6 +8,7 @@ import (
 	"github.com/cybozu-go/topolvm"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
@@ -39,8 +40,13 @@ func (m persistentVolumeClaimMutator) Handle(ctx context.Context, req admission.
 
 	var sc storagev1.StorageClass
 	err = m.client.Get(ctx, types.NamespacedName{Name: *pvc.Spec.StorageClassName}, &sc)
-	if err != nil {
-		return admission.Allowed("cannot get StorageClass")
+	switch {
+	case err == nil:
+	case apierrors.IsNotFound(err):
+		// StorageClass appeared in the manifest is not exists
+		return admission.Errored(http.StatusBadRequest, err)
+	default:
+		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
 	if sc.Provisioner != topolvm.PluginName {
