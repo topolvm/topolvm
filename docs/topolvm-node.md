@@ -1,32 +1,47 @@
 topolvm-node
 ============
 
-`topolvm-node` is a Kubernetes custom controller for `LogicalVolume`.
+`topolvm-node` provides a CSI node service.  It also works as a custom
+Kubernetes controller to implement dynamic volume provisioning.
 
-It watches `LogicalVolume` resource, then manage LVM logical volume with `lvmd`.
+CSI node features
+-----------------
 
-Details
--------
+`topolvm-node` implements following optional features:
 
-`topolvm-node` watches `LogicalVolume` then sends requests to `lvmd` if required.
+<!-- TODO: add `GET_VOLUME_STATS` and `EXPAND_VOLUME` when they are implemented. -->
 
-### Create logical volume
+Dynamic volume provisioning
+---------------------------
+
+`topolvm-node` watches [`LogicalVolume`](./crd-logical-volume.md) and creates
+or deletes LVM logical volumes by sending requests to [`lvmd`](./lvmd.md).
+
+### Create a logical volume
 
 If `logicalvolume.status.volumeID` is empty,
 it means that the logical volume correspond to `LogicalVolume` is not provisioned with `lvmd`.
 So in that case, `topolvm-node` sends `CreateLV` request to `lvmd`.
 If its response is succeeded, `topolvm-node` set `logicalvolume.status.volumeID`.
 
-### Finalize
+### Finalize LogicalVolume
 
-When a `LogicalVolume` resource is deleted, `topolvm-node`'s finalizer is invoked.
-Finalizer sends `RemoveLV` request to `lvmd`.
+When a `LogicalVolume` resource is being deleted, `topolvm-node` sends 
+a `RemoveLV` request to `lvmd`.
 
 Command-line flags
 ------------------
 
-|     Name     |  Type  |        Default         |                     Description                     |
-| ------------ | ------ | :--------------------- | --------------------------------------------------- |
-| metrics-addr | string | :28080                 | Bind address for the metrics endpoint               |
-| lvmd-socket  | string | /run/topolvm/lvmd.sock | UNIX domain socket of `lvmd` service                |
-| node-name    | string |                        | The name of the node hosting `topolvm-node` service |
+| Name           | Type   | Default                         | Description                            |
+| -------------- | ------ | ------------------------------- | -------------------------------------- |
+| `csi-socket`   | string | `/run/topolvm/csi-topolvm.sock` | UNIX domain socket of `topolvm-node`.  |
+| `lvmd-socket`  | string | `/run/topolvm/lvmd.sock`        | UNIX domain socket of `lvmd` service.  |
+| `metrics-addr` | string | `:28080`                        | Bind address for the metrics endpoint. |
+| `nodename`     | string |                                 | `Node` resource name.                  |
+
+Environment variables
+---------------------
+
+- `NODE_NAME`: `Node` resource name.
+
+If both `NODE_NAME` and `nodename` flag are given, `nodename` flag is preceded.

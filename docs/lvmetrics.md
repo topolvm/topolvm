@@ -1,14 +1,24 @@
 lvmetrics
 =========
 
-`lvmetrics` is a Kubernetes application to update `Node` by annotating
-with LVM volume group metrics.
+`lvmetrics` is a sidecar container of CSI node pod to update `Node` resources.
 
-The metrics is obtained from [`lvmd`](./lvmd.md) running on the same node.
-`lvmetrics` communicates with `lvmd` via UNIX domain socket.
+Annotations
+-----------
+
+`lvmetrics` adds `topolvm.cybozu.com/capacity` annotation.
+The value is the free storage space size in bytes.
+
+`lvmetrics` obtains the free storage space size by watching [`lvmd`](./lvmd.md).
+
+Finalier
+--------
+
+`lvmetrics` adds `topolvm.cybozu.com/node` finalizer to `Node`.
+The finalizer will be processed by [`topolvm-controller`](./topolvm-controller.md)
 
 Command-line flags
------------------
+------------------
 
 | Name       | Default                  | Description                   |
 | ---------- | ------------------------ | ----------------------------- |
@@ -16,16 +26,8 @@ Command-line flags
 | `socket`   | `/run/topolvm/lvmd.sock` | UNIX domain socket of `lvmd`. |
 
 Environment variables
---------------------
+---------------------
 
 - `NODE_NAME`: `Node` resource name.
 
-If both `NODE_NAME` and `nodename` flags are given, `nodename` flag value is used.
-
-Annotations
------------
-
-`lvmetrics` adds following annotations to `Node` resource.
-If RBAC is enabled, the service account running `lvmetrics` must be granted to edit `Node`s.
-
-- `topolvm.cybozu.com/capacity`: The amount of free capacity of LVM volume group in bytes.
+If both `NODE_NAME` and `nodename` flag are given, `nodename` flag is preceded.
