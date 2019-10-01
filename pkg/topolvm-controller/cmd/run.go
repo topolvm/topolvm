@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"net"
-	"os"
 	"time"
 
 	topolvmv1 "github.com/cybozu-go/topolvm/api/v1"
@@ -36,7 +35,7 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
-// Run builds and starts the manager includes the controllers.
+// Run builds and starts the manager with leader election.
 func subMain() error {
 	ctrl.SetLogger(zap.Logger(config.development))
 
@@ -93,15 +92,15 @@ func subMain() error {
 		}
 	}()
 
-	lvcontroller := &controllers.LogicalVolumeReconciler{
+	lvcontroller := &controllers.LogicalVolumeCleanupReconciler{
 		Client:      mgr.GetClient(),
-		Log:         ctrl.Log.WithName("controllers").WithName("LogicalVolume"),
+		Log:         ctrl.Log.WithName("controllers").WithName("LogicalVolumeCleanup"),
 		Events:      events,
 		StalePeriod: config.stalePeriod,
 	}
 	if err := lvcontroller.SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "LogicalVolume")
-		os.Exit(1)
+		setupLog.Error(err, "unable to create controller", "controller", "LogicalVolumeCleanup")
+		return err
 	}
 
 	nodecontroller := &controllers.NodeReconciler{
@@ -110,7 +109,7 @@ func subMain() error {
 	}
 	if err := nodecontroller.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Node")
-		os.Exit(1)
+		return err
 	}
 
 	pvccontroller := &controllers.PersistentVolumeClaimReconciler{
@@ -119,7 +118,7 @@ func subMain() error {
 	}
 	if err := pvccontroller.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PersistentVolumeClaim")
-		os.Exit(1)
+		return err
 	}
 
 	// +kubebuilder:scaffold:builder

@@ -28,7 +28,10 @@ var rootCmd = &cobra.Command{
 
 This program should be run as a sidecar container in DaemonSet.
 As this edits Node, the service account of the Pod should have
-privilege to edit Node resources.`,
+privilege to edit Node resources.
+
+The node name where this program runs must be given by either
+NODE_NAME environment variable or --nodename flag.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 		return subMain()
@@ -43,7 +46,7 @@ func subMain() error {
 
 	nodeName := viper.GetString("nodename")
 	if len(nodeName) == 0 {
-		return errors.New("node name is not set")
+		return errors.New("Node name is not given")
 	}
 	patcher, err := lvmetrics.NewNodePatcher(nodeName)
 	if err != nil {
@@ -83,7 +86,7 @@ func Execute() {
 
 func init() {
 	rootCmd.Flags().StringVar(&config.socketName, "socket", lvmd.DefaultSocketName, "Unix domain socket name")
-	rootCmd.Flags().String("nodename", "", "node resource name")
+	rootCmd.Flags().String("nodename", "", "The resource name of the running node")
 	viper.BindEnv("nodename", "NODE_NAME")
 	viper.BindPFlag("nodename", rootCmd.Flags().Lookup("nodename"))
 }

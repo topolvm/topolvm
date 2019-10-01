@@ -9,7 +9,6 @@ import (
 	lvmd "github.com/cybozu-go/topolvm/pkg/lvmd/cmd"
 	lvmetrics "github.com/cybozu-go/topolvm/pkg/lvmetrics/cmd"
 	controller "github.com/cybozu-go/topolvm/pkg/topolvm-controller/cmd"
-	hook "github.com/cybozu-go/topolvm/pkg/topolvm-hook/cmd"
 	node "github.com/cybozu-go/topolvm/pkg/topolvm-node/cmd"
 	scheduler "github.com/cybozu-go/topolvm/pkg/topolvm-scheduler/cmd"
 )
@@ -23,7 +22,6 @@ COMMAND:
     - lvmetrics          DaemonSet sidecar container to expose storage metrics as Node annotations.
     - topolvm-scheduler  Scheduler extender.
     - topolvm-node       Sidecar to communicate with CSI controller over TopoLVM custom resources.
-    - topolvm-hook       MutatingAdmissionWebhook for topolvm-scheduler.
     - topolvm-controller Controllers for TopoLVM.
 `)
 }
@@ -50,8 +48,6 @@ func main() {
 		scheduler.Execute()
 	case "topolvm-node":
 		node.Execute()
-	case "topolvm-hook":
-		hook.Execute()
 	case "topolvm-controller":
 		controller.Execute()
 	default:

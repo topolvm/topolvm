@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/cybozu-go/topolvm"
-	"github.com/cybozu-go/topolvm/controller/controllers"
-	logicalvolumev1 "github.com/cybozu-go/topolvm/topolvm-node/api/v1"
+	topolvmv1 "github.com/cybozu-go/topolvm/api/v1"
+	"github.com/cybozu-go/topolvm/controllers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
@@ -22,7 +22,7 @@ func testCleanup() {
 		createNamespace(cleanupTest)
 	})
 
-	var targetLVs []logicalvolumev1.LogicalVolume
+	var targetLVs []topolvmv1.LogicalVolume
 
 	It("should finalize the delete node", func() {
 		By("checking Node finalizer")
@@ -147,7 +147,7 @@ spec:
 
 		stdout, stderr, err = kubectl("get", "logicalvolume", "-o=json")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		var logicalVolumeList logicalvolumev1.LogicalVolumeList
+		var logicalVolumeList topolvmv1.LogicalVolumeList
 		err = json.Unmarshal(stdout, &logicalVolumeList)
 		Expect(err).ShouldNot(HaveOccurred())
 

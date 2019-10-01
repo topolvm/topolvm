@@ -10,9 +10,9 @@ import (
 
 	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/topolvm"
+	topolvmv1 "github.com/cybozu-go/topolvm/api/v1"
 	"github.com/cybozu-go/topolvm/csi"
 	"github.com/cybozu-go/topolvm/driver"
-	topolvmv1 "github.com/cybozu-go/topolvm/topolvm-node/api/v1"
 	"github.com/cybozu-go/well"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
