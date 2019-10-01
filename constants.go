@@ -22,3 +22,9 @@ const NodeFinalizer = "topolvm.cybozu.com/node"
 
 // PVCFinalizer is the name of PVC finalizer of TopoLVM
 const PVCFinalizer = "topolvm.cybozu.com/pvc"
+
+// DefaultCSISocket is the default path of the CSI socket file.
+const DefaultCSISocket = "/run/topolvm/csi-topolvm.sock"
+
+// DefaultLVMdSocket is the default path of the lvmd socket file.
+const DefaultLVMdSocket = "/run/topolvm/lvmd.sock"

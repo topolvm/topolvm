@@ -9,7 +9,6 @@ import (
 
 	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/lvmetrics"
-	lvmd "github.com/cybozu-go/topolvm/pkg/lvmd/cmd"
 	"github.com/cybozu-go/well"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -85,7 +84,7 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().StringVar(&config.socketName, "socket", lvmd.DefaultSocketName, "Unix domain socket name")
+	rootCmd.Flags().StringVar(&config.socketName, "socket", topolvm.DefaultLVMdSocket, "Unix domain socket name to connect lvmd")
 	rootCmd.Flags().String("nodename", "", "The resource name of the running node")
 	viper.BindEnv("nodename", "NODE_NAME")
 	viper.BindPFlag("nodename", rootCmd.Flags().Lookup("nodename"))

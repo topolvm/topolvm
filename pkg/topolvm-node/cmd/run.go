@@ -4,9 +4,13 @@ import (
 	"context"
 	"errors"
 	"net"
+	"os"
 
+	"github.com/cybozu-go/topolvm"
 	topolvmv1 "github.com/cybozu-go/topolvm/api/v1"
 	"github.com/cybozu-go/topolvm/controllers"
+	"github.com/cybozu-go/topolvm/csi"
+	"github.com/cybozu-go/topolvm/driver"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -64,6 +68,21 @@ func subMain() error {
 		return err
 	}
 	// +kubebuilder:scaffold:builder
+
+	// Add gRPC server to manager.
+	if err := os.MkdirAll(driver.DeviceDirectory, 0755); err != nil {
+		return err
+	}
+	grpcServer := grpc.NewServer()
+	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityService())
+	// grpc.ClientConn can be shared with multiple stubs/services.
+	// https://github.com/grpc/grpc-go/tree/master/examples/features/multiplex
+	csi.RegisterNodeServer(grpcServer, driver.NewNodeService(nodename, conn))
+
+	err = mgr.Add(topolvm.NewGRPCRunner(grpcServer, config.csiSocket, false))
+	if err != nil {
+		return err
+	}
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {

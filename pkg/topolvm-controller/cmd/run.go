@@ -5,9 +5,14 @@ import (
 	"net"
 	"time"
 
+	"github.com/cybozu-go/topolvm"
 	topolvmv1 "github.com/cybozu-go/topolvm/api/v1"
 	"github.com/cybozu-go/topolvm/controllers"
+	"github.com/cybozu-go/topolvm/csi"
+	"github.com/cybozu-go/topolvm/driver"
+	"github.com/cybozu-go/topolvm/driver/k8s"
 	"github.com/cybozu-go/topolvm/hook"
+	"google.golang.org/grpc"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -137,6 +142,20 @@ func subMain() error {
 		return err
 	}
 	if _, err := mgr.GetCache().GetInformer(&corev1.PersistentVolumeClaim{}); err != nil {
+		return err
+	}
+
+	// Add gRPC server to manager.
+	s, err := k8s.NewLogicalVolumeService()
+	if err != nil {
+		return err
+	}
+	grpcServer := grpc.NewServer()
+	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityService())
+	csi.RegisterControllerServer(grpcServer, driver.NewControllerService(s))
+
+	err = mgr.Add(topolvm.NewGRPCRunner(grpcServer, config.csiSocket, true))
+	if err != nil {
 		return err
 	}
 
