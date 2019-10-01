@@ -1,0 +1,7 @@
+version: "2"
+domain: cybozu.com
+repo: github.com/cybozu-go/topolvm
+resources:
+- group: topolvm
+  version: v1
+  kind: LogicalVolume

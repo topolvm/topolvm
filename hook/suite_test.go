@@ -15,6 +15,8 @@ import (
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,6 +33,7 @@ var cfg *rest.Config
 var k8sClient client.Client
 var testEnv *envtest.Environment
 var testCtx = context.Background()
+var stopCh = make(chan struct{})
 
 const (
 	topolvmProvisionerStorageClassName          = "topolvm-provisioner"
@@ -43,7 +46,7 @@ func strPtr(s string) *string { return &s }
 func modePtr(m storagev1.VolumeBindingMode) *storagev1.VolumeBindingMode { return &m }
 
 func setupCommonResources() {
-	caBundle, err := ioutil.ReadFile("certs/ca.crt")
+	caBundle, err := ioutil.ReadFile("testdata/ca.crt")
 	Expect(err).ShouldNot(HaveOccurred())
 	wh := &admissionregistrationv1beta1.MutatingWebhookConfiguration{}
 	wh.Name = "topolvm-hook"
@@ -151,14 +154,16 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
 
+	scheme := runtime.NewScheme()
+	err = clientgoscheme.AddToScheme(scheme)
+	Expect(err).ToNot(HaveOccurred())
+
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme})
 	Expect(err).ToNot(HaveOccurred())
 	Expect(k8sClient).ToNot(BeNil())
 
 	By("running webhook server")
-	certDir, err := filepath.Abs("./certs")
-	Expect(err).ToNot(HaveOccurred())
-	go Run(cfg, "127.0.0.1", 8443, "localhost:8999", certDir, false)
+	go run(stopCh, cfg, scheme, "127.0.0.1", 8443)
 	d := &net.Dialer{Timeout: time.Second}
 	Eventually(func() error {
 		conn, err := tls.DialWithDialer(d, "tcp", "127.0.0.1:8443", &tls.Config{
@@ -179,6 +184,7 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
+	close(stopCh)
 	err := testEnv.Stop()
 	Expect(err).ToNot(HaveOccurred())
 })
