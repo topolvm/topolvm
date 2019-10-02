@@ -42,7 +42,7 @@ func init() {
 // This struct overrides Serve and ListenAndServe* methods.
 //
 // http.Server members are replaced as following:
-//    - Handler is replaced with a wrapper handler.
+//    - Handler is replaced with a wrapper handler that logs requests.
 //    - ReadTimeout is set to 30 seconds if it is zero.
 //    - ConnState is replaced with the one provided by the framework.
 type HTTPServer struct {
@@ -71,7 +71,7 @@ type HTTPServer struct {
 }
 
 // StdResponseWriter is the interface implemented by
-// the ResponseWriter from http.Server.
+// the ResponseWriter from http.Server for non-HTTP/2 requests.
 //
 // HTTPServer's ResponseWriter implements this as well.
 type StdResponseWriter interface {
@@ -81,6 +81,23 @@ type StdResponseWriter interface {
 	http.CloseNotifier
 	http.Hijacker
 	WriteString(data string) (int, error)
+}
+
+// StdResponseWriter2 is the interface implemented by
+// the ResponseWriter from http.Server for HTTP/2 requests.
+//
+// HTTPServer's ResponseWriter implements this as well.
+type StdResponseWriter2 interface {
+	http.ResponseWriter
+	http.Flusher
+	http.CloseNotifier
+	http.Pusher
+	WriteString(data string) (int, error)
+}
+
+type logWriter interface {
+	Status() int
+	Size() int64
 }
 
 type logResponseWriter struct {
@@ -112,11 +129,65 @@ func (w *logResponseWriter) WriteString(data string) (int, error) {
 	return n, err
 }
 
+func (w *logResponseWriter) Status() int {
+	return w.status
+}
+
+func (w *logResponseWriter) Size() int64 {
+	return w.size
+}
+
+type logResponseWriter2 struct {
+	StdResponseWriter2
+	status int
+	size   int64
+}
+
+func (w *logResponseWriter2) WriteHeader(status int) {
+	w.status = status
+	w.StdResponseWriter2.WriteHeader(status)
+}
+
+func (w *logResponseWriter2) Write(data []byte) (int, error) {
+	n, err := w.StdResponseWriter2.Write(data)
+	w.size += int64(n)
+	return n, err
+}
+
+func (w *logResponseWriter2) WriteString(data string) (int, error) {
+	n, err := w.StdResponseWriter2.WriteString(data)
+	w.size += int64(n)
+	return n, err
+}
+
+func (w *logResponseWriter2) Status() int {
+	return w.status
+}
+
+func (w *logResponseWriter2) Size() int64 {
+	return w.size
+}
+
+func createLogWriter(w http.ResponseWriter) (http.ResponseWriter, logWriter) {
+	if srw1, ok := w.(StdResponseWriter); ok {
+		t := &logResponseWriter{srw1, http.StatusOK, 0}
+		return t, t
+	}
+
+	if srw2, ok := w.(StdResponseWriter2); ok {
+		t := &logResponseWriter2{srw2, http.StatusOK, 0}
+		return t, t
+	}
+
+	panic("unexpected ResponseWriter implementation")
+}
+
 // ServeHTTP implements http.Handler interface.
 func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 
-	lw := &logResponseWriter{w.(StdResponseWriter), http.StatusOK, 0}
+	w, lw := createLogWriter(w)
+
 	ctx, cancel := context.WithCancel(s.Env.ctx)
 	defer cancel()
 
@@ -126,21 +197,22 @@ func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx = WithRequestID(ctx, reqid)
 
-	s.handler.ServeHTTP(lw, r.WithContext(ctx))
+	s.handler.ServeHTTP(w, r.WithContext(ctx))
+	status := lw.Status()
 
 	fields := map[string]interface{}{
 		log.FnType:           "access",
 		log.FnResponseTime:   time.Since(startTime).Seconds(),
 		log.FnProtocol:       r.Proto,
-		log.FnHTTPStatusCode: lw.status,
+		log.FnHTTPStatusCode: status,
 		log.FnHTTPMethod:     r.Method,
 		log.FnURL:            r.RequestURI,
 		log.FnHTTPHost:       r.Host,
 		log.FnRequestSize:    r.ContentLength,
-		log.FnResponseSize:   lw.size,
+		log.FnResponseSize:   lw.Size(),
 	}
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
+	if err == nil {
 		fields[log.FnRemoteAddress] = ip
 	}
 	ua := r.Header.Get("User-Agent")
@@ -153,9 +225,9 @@ func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	lv := log.LvInfo
 	switch {
-	case 500 <= lw.status:
+	case 500 <= status:
 		lv = log.LvError
-	case 400 <= lw.status:
+	case 400 <= status:
 		lv = log.LvWarn
 	}
 	s.AccessLog.Log(lv, "well: access", fields)
