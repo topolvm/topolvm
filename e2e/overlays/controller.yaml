@@ -7,27 +7,24 @@ spec:
   podInfoOnMount: false
 ---
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
-  name: csi-topolvm-controller
+  name: controller
   namespace: topolvm-system
 spec:
   template:
     spec:
+      replicas: 1
       nodeSelector:
         kubernetes.io/hostname: kind-worker
 
       containers:
-        - name: controller
-          image: topolvm:dev
-          imagePullPolicy: Never
-
         - name: topolvm-controller
           image: topolvm:dev
           imagePullPolicy: Never
           command:
             - /topolvm-controller
-            - --metrics-addr=:8081
+            - --cert-dir=/certs
             - --stale-period=5s
             - --cleanup-interval=10s
 

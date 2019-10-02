@@ -2,12 +2,12 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   namespace: topolvm-system
-  name: csi-topolvm-node
+  name: node
 spec:
   template:
     spec:
       containers:
-        - name: node
+        - name: topolvm-node
           image: topolvm:dev
           imagePullPolicy: Never
           volumeMounts:
@@ -17,15 +17,6 @@ spec:
         - name: csi-registrar
           image: quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
           imagePullPolicy: "IfNotPresent"
-
-        - name: topolvm-node
-          image: topolvm:dev
-          imagePullPolicy: Never
-          command:
-            - /topolvm-node
-            - --node-name=$(MY_NODE_NAME)
-            - --lvmd-socket=/run/lvmd/lvmd.sock
-            - --development=true
 
         - name: lvmetrics
           image: topolvm:dev

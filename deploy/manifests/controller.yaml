@@ -11,12 +11,12 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   namespace: topolvm-system
-  name: csi-topolvm-controller
+  name: controller
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: topolvm-system:csi-topolvm-controller
+  name: topolvm-system:controller
 rules:
   - apiGroups: [""]
     resources: ["nodes"]
@@ -37,21 +37,21 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: topolvm-system:csi-topolvm-controller
+  name: topolvm-system:controller
 subjects:
   - kind: ServiceAccount
     namespace: topolvm-system
-    name: csi-topolvm-controller
+    name: controller
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: topolvm-system:csi-topolvm-controller
+  name: topolvm-system:controller
 ---
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   namespace: topolvm-system
-  name: csi-controller-leader-election
+  name: leader-election
 rules:
   - apiGroups: [""]
     resources: ["configmaps"]
@@ -67,14 +67,14 @@ kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   namespace: topolvm-system
-  name: csi-controller-leader-election
+  name: leader-election
 subjects:
   - kind: ServiceAccount
-    name: csi-topolvm-controller
     namespace: topolvm-system
+    name: controller
 roleRef:
   kind: Role
-  name: csi-controller-leader-election
+  name: leader-election
   apiGroup: rbac.authorization.k8s.io
 ---
 kind: ClusterRole
@@ -114,7 +114,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     namespace: topolvm-system
-    name: csi-topolvm-controller
+    name: controller
 roleRef:
   kind: ClusterRole
   name: external-provisioner-runner
@@ -126,9 +126,6 @@ metadata:
   namespace: topolvm-system
   name: external-provisioner-cfg
 rules:
-- apiGroups: [""]
-  resources: ["endpoints"]
-  verbs: ["get", "watch", "list", "delete", "update", "create"]
 - apiGroups: ["coordination.k8s.io"]
   resources: ["leases"]
   verbs: ["get", "watch", "list", "delete", "update", "create"]
@@ -141,7 +138,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     namespace: topolvm-system
-    name: csi-topolvm-controller
+    name: controller
 roleRef:
   kind: Role
   name: external-provisioner-cfg
@@ -171,8 +168,8 @@ metadata:
   name: csi-attacher-role
 subjects:
   - kind: ServiceAccount
-    name: csi-topolvm-controller
     namespace: topolvm-system
+    name: controller
 roleRef:
   kind: ClusterRole
   name: external-attacher-runner
@@ -184,9 +181,6 @@ metadata:
   namespace: topolvm-system
   name: external-attacher-cfg
 rules:
-  - apiGroups: [""]
-    resources: ["configmaps"]
-    verbs: ["get", "watch", "list", "delete", "update", "create"]
   - apiGroups: ["coordination.k8s.io"]
     resources: ["leases"]
     verbs: ["get", "watch", "list", "delete", "update", "create"]
@@ -198,7 +192,7 @@ metadata:
   namespace: topolvm-system
 subjects:
   - kind: ServiceAccount
-    name: csi-topolvm-controller
+    name: controller
     namespace: topolvm-system
 roleRef:
   kind: Role
@@ -209,51 +203,66 @@ roleRef:
 apiVersion: v1
 kind: Service
 metadata:
-  name: csi-topolvm-controller
+  name: controller
   namespace: topolvm-system
 spec:
   selector:
-    app.kubernetes.io/name: csi-topolvm-controller
+    app.kubernetes.io/name: controller
   ports:
-    - name: dummy
-      port: 12345
+  - protocol: TCP
+    port: 443
+    targetPort: 8443
 ---
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
-  name: csi-topolvm-controller
+  name: controller
   namespace: topolvm-system
 spec:
-  serviceName: csi-topolvm-controller
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
-      app.kubernetes.io/name: csi-topolvm-controller
+      app.kubernetes.io/name: controller
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: csi-topolvm-controller
+        app.kubernetes.io/name: controller
     spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                - controller
+            topologyKey: "kubernetes.io/hostname"
       securityContext:
         runAsUser:  10000
         runAsGroup: 10000
-      serviceAccountName: csi-topolvm-controller
+      serviceAccountName: controller
       containers:
-        - name: controller
-          image: quay.io/cybozu/topolvm:0.1.2
-          command:
-            - /csi-topolvm
-            - controller
-            - --csi-socket-name=/run/topolvm/csi-topolvm.sock
-          volumeMounts:
-            - name: socket-dir
-              mountPath: /run/topolvm
-
         - name: topolvm-controller
           image: quay.io/cybozu/topolvm:0.1.2
           command:
             - /topolvm-controller
-            - --metrics-addr=:8081
+            - --cert-dir=/certs
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: 8080
+              scheme: HTTP
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: 8080
+              scheme: HTTP
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /run/topolvm
+            - name: certs
+              mountPath: /certs
 
         - name: csi-provisioner
           image: quay.io/cybozu/topolvm:0.1.2
@@ -261,6 +270,9 @@ spec:
             - /csi-provisioner
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
             - "--feature-gates=Topology=true"
+            - --enable-leader-election
+            - --leader-election-namespace=topolvm-system
+            - --leader-election-type=leases
           volumeMounts:
             - name: socket-dir
               mountPath: /run/topolvm
@@ -270,6 +282,9 @@ spec:
           command:
             - /csi-attacher
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
+            - --leader-election
+            - --leader-election-namespace=topolvm-system
+            - --leader-election-type=leases
           volumeMounts:
             - name: socket-dir
               mountPath: /run/topolvm
@@ -277,3 +292,6 @@ spec:
       volumes:
         - name: socket-dir
           emptyDir: {}
+        - name: certs
+          secret:
+            secretName: mutatingwebhook

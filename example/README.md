@@ -1,13 +1,19 @@
 Demonstration with kind
 =======================
 
-You can see a demonstration of how TopoLVM provisioner works with the following commands. This demonstration using [kind](https://github.com/kubernetes-sigs/kind) and loopback device on your host.
+This directory contains scripts to run TopoLVM in a demonstration environment.
+It uses [kind](https://github.com/kubernetes-sigs/kind) to run Kubernetes
+and loopback block devices to run `lvmd`.
+
+To start the demonstration environment, run the following commands:
+
 ```console
-$ cd example
-$ make setup run
+$ make setup
+$ make run
 ```
 
-TopoLVM provisions an LVM logical volume and bind it with a PersistentVolumeClaim as follows:
+An LVM logical volume will be created and bound with a PersistentVolumeClaim as follows:
+
 ```console
 $ kubectl get pvc
 % NAME          STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS          AGE
@@ -21,7 +27,4 @@ $ sudo lvscan
 % ACTIVE '/dev/myvg/05e33db5-b7ee-11e9-8da2-0242ac110002' [1.00 GiB] inherit
 ```
 
-Clean up the generated files.
-```console
-$ make clean
-```
+To stop the demonstration environment, run `make clean`.

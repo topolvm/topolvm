@@ -15,7 +15,7 @@ spec:
     readOnly: false
   - pathPrefix: "/run/topolvm"
     readOnly: false
-  hostNetwork: true
+  hostNetwork: false
   runAsUser:
     rule: 'RunAsAny'
   seLinux:

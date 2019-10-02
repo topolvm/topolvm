@@ -2,16 +2,16 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   namespace: topolvm-system
-  name: csi-topolvm-node
+  name: node
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: topolvm-system:csi-topolvm-node
+  name: topolvm-system:node
 rules:
   - apiGroups: [""]
     resources: ["nodes"]
-    verbs: ["get", "patch"]
+    verbs: ["get", "update", "patch"]
   - apiGroups: ["topolvm.cybozu.com"]
     resources: ["logicalvolumes", "logicalvolumes/status"]
     verbs: ["get", "list", "watch", "create", "update", "delete", "patch"]
@@ -23,45 +23,42 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: topolvm-system:csi-topolvm-node
+  name: topolvm-system:node
 subjects:
   - kind: ServiceAccount
-    name: csi-topolvm-node
+    name: node
     namespace: topolvm-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: topolvm-system:csi-topolvm-node
+  name: topolvm-system:node
 
 ---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   namespace: topolvm-system
-  name: csi-topolvm-node
+  name: node
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/name: csi-topolvm-node
+      app.kubernetes.io/name: node
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: csi-topolvm-node
+        app.kubernetes.io/name: node
     spec:
-      serviceAccountName: csi-topolvm-node
+      serviceAccountName: node
       containers:
-        - name: node
+        - name: topolvm-node
           image: quay.io/cybozu/topolvm:0.1.2
           securityContext:
             privileged: true
           command:
-            - /csi-topolvm
-            - node
-            - --node-name=$(MY_NODE_NAME)
-            - --csi-socket-name=/run/topolvm/csi-topolvm.sock
-            - --lvmd-socket-name=/run/lvmd/lvmd.sock
+            - /topolvm-node
+            - --lvmd-socket=/run/lvmd/lvmd.sock
           env:
-            - name: MY_NODE_NAME
+            - name: NODE_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
@@ -93,26 +90,10 @@ spec:
             - name: registration-dir
               mountPath: /registration
 
-        - name: topolvm-node
-          image: quay.io/cybozu/topolvm:0.1.2
-          command:
-            - /topolvm-node
-            - --node-name=$(MY_NODE_NAME)
-            - --lvmd-socket=/run/lvmd/lvmd.sock
-          env:
-            - name: MY_NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-          volumeMounts:
-            - name: lvmd-socket-dir
-              mountPath: /run/lvmd
-
         - name: lvmetrics
           image: quay.io/cybozu/topolvm:0.1.2
           command:
             - /lvmetrics
-            - --socket=/run/topolvm/lvmd.sock
           env:
             - name: NODE_NAME
               valueFrom:

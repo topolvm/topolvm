@@ -10,22 +10,17 @@ GO_FILES := $(shell find .. -path ../vendor -prune -o -path ../e2e -prune -o -na
 CA_FILES=./build/certs/ca.csr ./build/certs/ca.pem ./build/certs/ca-key.pem
 SERVER_CERT_FILES=./build/certs/server.csr ./build/certs/server.pem ./build/certs/server-key.pem
 KUBECONFIG := $(shell kind get kubeconfig-path --name=kind)
-CA_PEM := $(shell cat certs/ca.pem | base64 -w 0)
 export KUBECONFIG
 
 $(KUBECTL):
 	$(SUDO) curl -sfL https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl -o $(KUBECTL)
 	$(SUDO) chmod 755 $(KUBECTL)
 
-run: mutatingwebhooks.yaml $(SERVER_CERT_FILES)
+run: $(SERVER_CERT_FILES)
 	$(MAKE) start-lvmd
 	$(MAKE) launch-kind
-	cp ../deploy/manifests/*.yaml build/
-	rm build/certificates.yaml build/mutatingwebhooks.yaml
-	$(MAKE) mutatingwebhooks.yaml
-	$(KUBECTL) apply -f build/namespace.yaml
-	$(KUBECTL) create -n=topolvm-system secret generic mutatingwebhook --from-file=tls.crt=build/certs/server.pem --from-file=tls.key=build/certs/server-key.pem
-	$(KUBECTL) apply -f build
+	$(KUBECTL) apply -k .
+	$(KUBECTL) wait --for=condition=Ready -n topolvm-system deployments/controller
 
 setup: $(KUBECTL)
 	cd /tmp; env GOFLAGS= GO111MODULE=on go get sigs.k8s.io/kind@v$(KIND_VERSION)
@@ -87,13 +82,10 @@ stop-lvmd:
 	fi; \
 
 $(CA_FILES): ./certs/csr.json
-		mkdir -p build/certs
-		cfssl gencert -initca certs/csr.json | cfssljson -bare ./build/certs/ca
+	mkdir -p build/certs
+	cfssl gencert -initca certs/csr.json | cfssljson -bare ./build/certs/ca
 
 $(SERVER_CERT_FILES): $(CA_FILES) ./certs/ca-config.json ./certs/server.json
-		cfssl gencert -ca=build/certs/ca.pem -ca-key=build/certs/ca-key.pem -config=certs/ca-config.json -profile=server certs/server.json | cfssljson -bare build/certs/server
-
-mutatingwebhooks.yaml: mutatingwebhooks.yaml.template $(CA_FILES)
-		cat manifest/mutatingwebhooks.yaml.template | sed -e "s|{{CA_BUNDLE}}|${CA_PEM}|g" > build/mutatingwebhooks.yaml
+	cfssl gencert -ca=build/certs/ca.pem -ca-key=build/certs/ca-key.pem -config=certs/ca-config.json -profile=server certs/server.json | cfssljson -bare build/certs/server
 
 .PHONY: launch-kind shutdown-kind start-lvmd stop-lvmd run setup clean

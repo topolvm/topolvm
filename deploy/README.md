@@ -4,10 +4,10 @@ Deploying TopoLVM
 An overview of setup is as follows:
 
 1. Deploy [lvmd][] as a systemd service on Node OS.
-2. Prepare [cert-manager][] for your Kubernetes cluster.  This is for [topolvm-hook][].
+2. Prepare [cert-manager][] for your Kubernetes cluster.  This is for [topolvm-controller][].
 3. Determine how [topolvm-scheduler][] to be run:
-   - If your Kubernetes have control plane nodes, `topolvm-scheduler` should be run as DaemonSet.
-   - Otherwise, `topolvm-scheduler` should be run as Deployment and Service.
+   - If your Kubernetes have control plane nodes, `topolvm-scheduler` should be deployed as DaemonSet.
+   - Otherwise, `topolvm-scheduler` should be deployed as Deployment and Service.
 4. Apply manifests for TopoLVM.
 5. Configure `kube-scheduler` to use `topolvm-scheduler`.
 6. Prepare StorageClasses for TopoLVM.
@@ -41,7 +41,7 @@ To setup `lvmd`:
 cert-manager
 ------------
 
-[cert-manager][] is used to issue self-signed TLS certificate for [topolvm-hook][].
+[cert-manager][] is used to issue self-signed TLS certificate for [topolvm-controller][].
 Follow the [documentation](https://docs.cert-manager.io/en/latest/getting-started/install/kubernetes.html) to install it into your Kubernetes cluster.
 
 ### Prepare the certificate without cert-manager
@@ -50,7 +50,7 @@ You can prepare the certificate manually without `cert-manager`.
 When doing so, do not apply [./manifests/certificates.yaml](./manifests/certificates.yaml).
 
 1. Prepare PEM encoded self-signed certificate and key files.  
-    The certificate must be valid for hostname `topolvm-hook.topolvm-system.svc`.
+    The certificate must be valid for hostname `controller.topolvm-system.svc`.
 2. Create Secret in `topolvm-system` namespace as follows:
 
     ```console
@@ -67,10 +67,15 @@ When doing so, do not apply [./manifests/certificates.yaml](./manifests/certific
       name: topolvm-hook
     # snip
     webhooks:
-      - name: hook.topolvm.cybozu.com
+      - name: pvc-hook.topolvm.cybozu.com
         # snip
         clientConfig:
           caBundle: |  # PEM encoded CA certificate that signs the server certificate
+            ...
+      - name: pod-hook.topolvm.cybozu.com
+        # snip
+        clientConfig:
+          caBundle: |  # The same CA certificate as above
             ...
     ```
 
@@ -180,8 +185,8 @@ Once you finish editing manifests, apply them in the following order:
 4. [certificates.yaml](./manifests/certificates.yaml) if `cert-manager` is installed
 5. [scheduler.yaml](./manifests/scheduler.yaml)
 6. [mutatingwebhooks.yaml](./manifests/mutatingwebhooks.yaml)
-7. [csi-controller.yaml](./manifests/csi-controller.yaml)
-8. [csi-node.yaml](./manifests/csi-node.yaml)
+7. [controller.yaml](./manifests/controller.yaml)
+8. [node.yaml](./manifests/node.yaml)
 
 Configure kube-scheduler
 ------------------------
@@ -220,4 +225,4 @@ See [./manifests/podpvc.yaml](./manifests/podpvc.yaml) for how to use TopoLVM pr
 [lvmd]: ../docs/lvmd.md
 [cert-manager]: https://github.com/jetstack/cert-manager
 [topolvm-scheduler]: ../docs/topolvm-scheduler.md
-[topolvm-hook]: ../docs/topolvm-hook.md
+[topolvm-controller]: ../docs/topolvm-controller.md

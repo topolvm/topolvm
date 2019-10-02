@@ -14,6 +14,9 @@ type gRPCServerRunner struct {
 	leaderElection bool
 }
 
+var _ manager.Runnable = gRPCServerRunner{}
+var _ manager.LeaderElectionRunnable = gRPCServerRunner{}
+
 // NewGRPCRunner creates controller-runtime's manager.Runnable for a gRPC server.
 // The server will listen on UNIX domain socket at sockFile.
 // If leaderElection is true, the server will run only when it is elected as leader.

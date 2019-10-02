@@ -148,7 +148,9 @@ func subMain() error {
 	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityService())
 	csi.RegisterControllerServer(grpcServer, driver.NewControllerService(s))
 
-	err = mgr.Add(topolvm.NewGRPCRunner(grpcServer, config.csiSocket, true))
+	// gRPC service itself should run even when the manager is *not* a leader
+	// because CSI sidecar containers choose a leader.
+	err = mgr.Add(topolvm.NewGRPCRunner(grpcServer, config.csiSocket, false))
 	if err != nil {
 		return err
 	}
