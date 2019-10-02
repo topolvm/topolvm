@@ -8,6 +8,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -129,6 +130,13 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 
 // SetupWithManager sets up Reconciler with Manager.
 func (r *NodeReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	err := mgr.GetFieldIndexer().IndexField(&corev1.PersistentVolumeClaim{}, KeySelectedNode, func(o runtime.Object) []string {
+		return []string{o.(*corev1.PersistentVolumeClaim).Annotations[AnnSelectedNode]}
+	})
+	if err != nil {
+		return err
+	}
+
 	pred := predicate.Funcs{
 		CreateFunc:  func(event.CreateEvent) bool { return false },
 		DeleteFunc:  func(event.DeleteEvent) bool { return false },

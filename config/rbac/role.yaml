@@ -48,8 +48,18 @@ rules:
   resources:
   - logicalvolumes
   verbs:
+  - create
+  - delete
   - get
   - list
   - patch
   - update
   - watch
+- apiGroups:
+  - topolvm.cybozu.com
+  resources:
+  - logicalvolumes/status
+  verbs:
+  - get
+  - patch
+  - update

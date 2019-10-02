@@ -128,12 +128,6 @@ func subMain() error {
 
 	// +kubebuilder:scaffold:builder
 
-	err = mgr.GetFieldIndexer().IndexField(&corev1.PersistentVolumeClaim{}, controllers.KeySelectedNode, func(o runtime.Object) []string {
-		return []string{o.(*corev1.PersistentVolumeClaim).Annotations[controllers.AnnSelectedNode]}
-	})
-	if err != nil {
-		return err
-	}
 	// pre-cache objects
 	if _, err := mgr.GetCache().GetInformer(&storagev1.StorageClass{}); err != nil {
 		return err
@@ -146,7 +140,7 @@ func subMain() error {
 	}
 
 	// Add gRPC server to manager.
-	s, err := k8s.NewLogicalVolumeService()
+	s, err := k8s.NewLogicalVolumeService(mgr)
 	if err != nil {
 		return err
 	}

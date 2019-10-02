@@ -6,15 +6,17 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/csi"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 // ErrVolumeNotFound is error message when VolumeID is not found
 var ErrVolumeNotFound = errors.New("VolumeID is not found")
+
+var ctrlLogger = logf.Log.WithName("driver").WithName("controller")
 
 // NewControllerService returns a new ControllerServer.
 func NewControllerService(service LogicalVolumeService) csi.ControllerServer {
@@ -29,16 +31,15 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 	capabilities := req.GetVolumeCapabilities()
 	source := req.GetVolumeContentSource()
 
-	log.Info("CreateVolume called", map[string]interface{}{
-		"name":                       req.GetName(),
-		"required":                   req.GetCapacityRange().GetRequiredBytes(),
-		"limit":                      req.GetCapacityRange().GetLimitBytes(),
-		"parameters":                 req.GetParameters(),
-		"num_secrets":                len(req.GetSecrets()),
-		"capabilities":               capabilities,
-		"content_source":             source,
-		"accessibility_requirements": req.GetAccessibilityRequirements().String(),
-	})
+	ctrlLogger.Info("CreateVolume called",
+		"name", req.GetName(),
+		"required", req.GetCapacityRange().GetRequiredBytes(),
+		"limit", req.GetCapacityRange().GetLimitBytes(),
+		"parameters", req.GetParameters(),
+		"num_secrets", len(req.GetSecrets()),
+		"capabilities", capabilities,
+		"content_source", source,
+		"accessibility_requirements", req.GetAccessibilityRequirements().String())
 
 	if source != nil {
 		return nil, status.Error(codes.InvalidArgument, "volume_content_source not supported")
@@ -50,24 +51,19 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 	// check required volume capabilities
 	for _, capability := range capabilities {
 		if block := capability.GetBlock(); block != nil {
-			log.Info("CreateVolume specifies volume capability", map[string]interface{}{
-				"access_type": "block",
-			})
+			ctrlLogger.Info("CreateVolume specifies volume capability", "access_type", "block")
 		} else if mount := capability.GetMount(); mount != nil {
-			log.Info("CreateVolume specifies volume capability", map[string]interface{}{
-				"access_type": "mount",
-				"fs_type":     mount.GetFsType(),
-				"flags":       mount.GetMountFlags(),
-			})
+			ctrlLogger.Info("CreateVolume specifies volume capability",
+				"access_type", "mount",
+				"fs_type", mount.GetFsType(),
+				"flags", mount.GetMountFlags())
 		} else {
 			return nil, status.Error(codes.InvalidArgument, "unknown or empty access_type")
 		}
 
 		if mode := capability.GetAccessMode(); mode != nil {
 			modeName := csi.VolumeCapability_AccessMode_Mode_name[int32(mode.GetMode())]
-			log.Info("CreateVolume specifies volume capability", map[string]interface{}{
-				"access_mode": modeName,
-			})
+			ctrlLogger.Info("CreateVolume specifies volume capability", "access_mode", modeName)
 			// we only support SINGLE_NODE_WRITER
 			if mode.GetMode() != csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER {
 				return nil, status.Errorf(codes.InvalidArgument, "unsupported access mode: %s", modeName)
@@ -88,7 +84,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 		// So we must create volume, and must not return error response in this case.
 		// - https://github.com/container-storage-interface/spec/blob/release-1.1/spec.md#createvolume
 		// - https://github.com/kubernetes-csi/csi-test/blob/6738ab2206eac88874f0a3ede59b40f680f59f43/pkg/sanity/controller.go#L404-L428
-		log.Info("decide node because accessibility_requirements not found", nil)
+		ctrlLogger.Info("decide node because accessibility_requirements not found")
 		nodeName, capacity, err := s.service.GetMaxCapacity(ctx)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to get max capacity node %v", err)
@@ -170,20 +166,16 @@ func convertRequestCapacity(requestBytes, limitBytes int64) (int64, error) {
 }
 
 func (s controllerService) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
-	log.Info("DeleteVolume called", map[string]interface{}{
-		"volume_id":   req.GetVolumeId(),
-		"num_secrets": len(req.GetSecrets()),
-	})
+	ctrlLogger.Info("DeleteVolume called",
+		"volume_id", req.GetVolumeId(),
+		"num_secrets", len(req.GetSecrets()))
 	if len(req.GetVolumeId()) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "volume_id is not provided")
 	}
 
 	err := s.service.DeleteVolume(ctx, req.GetVolumeId())
 	if err != nil {
-		log.Error("DeleteVolume failed", map[string]interface{}{
-			"volume_id": req.GetVolumeId(),
-			"error":     err.Error(),
-		})
+		ctrlLogger.Error(err, "DeleteVolume failed", "volume_id", req.GetVolumeId())
 		_, ok := status.FromError(err)
 		if !ok {
 			return nil, status.Error(codes.Internal, err.Error())
@@ -203,13 +195,12 @@ func (s controllerService) ControllerUnpublishVolume(context.Context, *csi.Contr
 }
 
 func (s controllerService) ValidateVolumeCapabilities(ctx context.Context, req *csi.ValidateVolumeCapabilitiesRequest) (*csi.ValidateVolumeCapabilitiesResponse, error) {
-	log.Info("ValidateVolumeCapabilities called", map[string]interface{}{
-		"volume_id":           req.GetVolumeId(),
-		"volume_context":      req.GetVolumeContext(),
-		"volume_capabilities": req.GetVolumeCapabilities(),
-		"parameters":          req.GetParameters(),
-		"num_secrets":         len(req.GetSecrets()),
-	})
+	ctrlLogger.Info("ValidateVolumeCapabilities called",
+		"volume_id", req.GetVolumeId(),
+		"volume_context", req.GetVolumeContext(),
+		"volume_capabilities", req.GetVolumeCapabilities(),
+		"parameters", req.GetParameters(),
+		"num_secrets", len(req.GetSecrets()))
 
 	if len(req.GetVolumeId()) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "volume id is nil")
@@ -245,13 +236,12 @@ func (s controllerService) ListVolumes(ctx context.Context, req *csi.ListVolumes
 func (s controllerService) GetCapacity(ctx context.Context, req *csi.GetCapacityRequest) (*csi.GetCapacityResponse, error) {
 	topology := req.GetAccessibleTopology()
 	capabilities := req.GetVolumeCapabilities()
-	log.Info("GetCapacity called", map[string]interface{}{
-		"volume_capabilities": capabilities,
-		"parameters":          req.GetParameters(),
-		"accessible_topology": topology,
-	})
+	ctrlLogger.Info("GetCapacity called",
+		"volume_capabilities", capabilities,
+		"parameters", req.GetParameters(),
+		"accessible_topology", topology)
 	if capabilities != nil {
-		log.Warn("capability argument is not nil, but csi controller plugin ignored this argument", map[string]interface{}{})
+		ctrlLogger.Info("capability argument is not nil, but TopoLVM ignores it")
 	}
 
 	var capacity int64
@@ -270,9 +260,7 @@ func (s controllerService) GetCapacity(ctx context.Context, req *csi.GetCapacity
 		var err error
 		capacity, err = s.service.GetCapacity(ctx, requestNodeNumber)
 		if err != nil {
-			log.Info("target is not found", map[string]interface{}{
-				"accessible_topology": req.AccessibleTopology,
-			})
+			ctrlLogger.Info("target is not found", "accessible_topology", req.AccessibleTopology)
 			return &csi.GetCapacityResponse{
 				AvailableCapacity: 0,
 			}, nil

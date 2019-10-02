@@ -3,11 +3,13 @@ package driver
 import (
 	"context"
 
-	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/csi"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
+
+var idLogger = logf.Log.WithName("driver").WithName("identity")
 
 // NewIdentityService returns a new IdentityServer.
 func NewIdentityService() csi.IdentityServer {
@@ -18,9 +20,7 @@ type identityService struct {
 }
 
 func (s identityService) GetPluginInfo(ctx context.Context, req *csi.GetPluginInfoRequest) (*csi.GetPluginInfoResponse, error) {
-	log.Info("GetPluginInfo", map[string]interface{}{
-		"req": req.String(),
-	})
+	idLogger.Info("GetPluginInfo", "req", req.String())
 	return &csi.GetPluginInfoResponse{
 		Name:          topolvm.PluginName,
 		VendorVersion: topolvm.Version,
@@ -28,9 +28,7 @@ func (s identityService) GetPluginInfo(ctx context.Context, req *csi.GetPluginIn
 }
 
 func (s identityService) GetPluginCapabilities(ctx context.Context, req *csi.GetPluginCapabilitiesRequest) (*csi.GetPluginCapabilitiesResponse, error) {
-	log.Info("GetPluginCapabilities", map[string]interface{}{
-		"req": req.String(),
-	})
+	idLogger.Info("GetPluginCapabilities", "req", req.String())
 	return &csi.GetPluginCapabilitiesResponse{
 		Capabilities: []*csi.PluginCapability{
 			{
@@ -52,9 +50,7 @@ func (s identityService) GetPluginCapabilities(ctx context.Context, req *csi.Get
 }
 
 func (s identityService) Probe(ctx context.Context, req *csi.ProbeRequest) (*csi.ProbeResponse, error) {
-	log.Info("Probe", map[string]interface{}{
-		"req": req.String(),
-	})
+	idLogger.Info("Probe", "req", req.String())
 	return &csi.ProbeResponse{
 		Ready: &wrappers.BoolValue{
 			Value: true,

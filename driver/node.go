@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/csi"
 	"github.com/cybozu-go/topolvm/filesystem"
@@ -15,6 +14,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 const (
@@ -27,6 +27,8 @@ const (
 	umountCmd        = "/bin/umount"
 	devicePermission = 0600 | unix.S_IFBLK
 )
+
+var nodeLogger = logf.Log.WithName("driver").WithName("node")
 
 // NewNodeService returns a new NodeServer.
 func NewNodeService(nodeName string, conn *grpc.ClientConn) csi.NodeServer {
@@ -51,15 +53,14 @@ func (s *nodeService) NodeUnstageVolume(context.Context, *csi.NodeUnstageVolumeR
 }
 
 func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
-	log.Info("NodePublishVolume called", map[string]interface{}{
-		"volume_id":         req.GetVolumeId(),
-		"publish_context":   req.GetPublishContext(),
-		"target_path":       req.GetTargetPath(),
-		"volume_capability": req.GetVolumeCapability(),
-		"read_only":         req.GetReadonly(),
-		"num_secrets":       len(req.GetSecrets()),
-		"volume_context":    req.GetVolumeContext(),
-	})
+	nodeLogger.Info("NodePublishVolume called",
+		"volume_id", req.GetVolumeId(),
+		"publish_context", req.GetPublishContext(),
+		"target_path", req.GetTargetPath(),
+		"volume_capability", req.GetVolumeCapability(),
+		"read_only", req.GetReadonly(),
+		"num_secrets", len(req.GetSecrets()),
+		"volume_context", req.GetVolumeContext())
 
 	if len(req.GetVolumeId()) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "no volume_id is provided")
@@ -148,11 +149,10 @@ func (s *nodeService) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequ
 		return nil, status.Errorf(codes.Internal, "mount failed: volume=%s, error=%v", req.GetVolumeId(), err)
 	}
 
-	log.Info("NodePublishVolume(fs) succeeded", map[string]interface{}{
-		"volume_id":   req.GetVolumeId(),
-		"target_path": req.GetTargetPath(),
-		"fstype":      mountOption.FsType,
-	})
+	nodeLogger.Info("NodePublishVolume(fs) succeeded",
+		"volume_id", req.GetVolumeId(),
+		"target_path", req.GetTargetPath(),
+		"fstype", mountOption.FsType)
 
 	return &csi.NodePublishVolumeResponse{}, nil
 }
@@ -180,10 +180,9 @@ func (s *nodeService) nodePublishBlockVolume(req *csi.NodePublishVolumeRequest, 
 		return nil, status.Errorf(codes.Internal, "mknod failed for %s: error=%v", req.GetTargetPath(), err)
 	}
 
-	log.Info("NodePublishVolume(block) succeeded", map[string]interface{}{
-		"volume_id":   req.GetVolumeId(),
-		"target_path": req.GetTargetPath(),
-	})
+	nodeLogger.Info("NodePublishVolume(block) succeeded",
+		"volume_id", req.GetVolumeId(),
+		"target_path", req.GetTargetPath())
 	return &csi.NodePublishVolumeResponse{}, nil
 }
 
@@ -199,10 +198,9 @@ func (s *nodeService) findVolumeByID(listResp *proto.GetLVListResponse, name str
 func (s *nodeService) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
 	volID := req.GetVolumeId()
 	target := req.GetTargetPath()
-	log.Info("NodeUnpublishVolume called", map[string]interface{}{
-		"volume_id":   volID,
-		"target_path": target,
-	})
+	nodeLogger.Info("NodeUnpublishVolume called",
+		"volume_id", volID,
+		"target_path", target)
 
 	if len(volID) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "no volume_id is provided")
@@ -244,10 +242,9 @@ func (s *nodeService) nodeUnpublishFilesystemVolume(req *csi.NodeUnpublishVolume
 		return nil, status.Errorf(codes.Internal, "remove device failed for %s: error=%v", device, err)
 	}
 
-	log.Info("NodeUnpublishVolume(fs) is succeeded", map[string]interface{}{
-		"volume_id":   req.GetVolumeId(),
-		"target_path": target,
-	})
+	nodeLogger.Info("NodeUnpublishVolume(fs) is succeeded",
+		"volume_id", req.GetVolumeId(),
+		"target_path", target)
 	return &csi.NodeUnpublishVolumeResponse{}, nil
 }
 
@@ -255,10 +252,9 @@ func (s *nodeService) nodeUnpublishBlockVolume(req *csi.NodeUnpublishVolumeReque
 	if err := os.Remove(req.GetTargetPath()); err != nil {
 		return nil, status.Errorf(codes.Internal, "remove failed for %s: error=%v", req.GetTargetPath(), err)
 	}
-	log.Info("NodeUnpublishVolume(block) is succeeded", map[string]interface{}{
-		"volume_id":   req.GetVolumeId(),
-		"target_path": req.GetTargetPath(),
-	})
+	nodeLogger.Info("NodeUnpublishVolume(block) is succeeded",
+		"volume_id", req.GetVolumeId(),
+		"target_path", req.GetTargetPath())
 	return &csi.NodeUnpublishVolumeResponse{}, nil
 }
 

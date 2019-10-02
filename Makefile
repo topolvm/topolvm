@@ -104,7 +104,7 @@ manifests:
 		crd:trivialVersions=true \
 		rbac:roleName=topolvm-controller \
 		webhook \
-		paths="./controllers;./hook" \
+		paths="./api/...;./controllers;./hook;./driver/k8s" \
 		output:crd:artifacts:config=config/crd/bases
 
 generate: csi/csi.pb.go lvmd/proto/lvmd.pb.go docs/lvmd-protocol.md

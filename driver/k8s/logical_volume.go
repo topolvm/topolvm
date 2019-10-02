@@ -8,12 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/topolvm"
 	topolvmv1 "github.com/cybozu-go/topolvm/api/v1"
 	"github.com/cybozu-go/topolvm/csi"
 	"github.com/cybozu-go/topolvm/driver"
-	"github.com/cybozu-go/well"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
@@ -21,14 +19,14 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 type logicalVolumeService struct {
-	mgr manager.Manager
-	mu  sync.Mutex
+	client.Client
+	mu sync.Mutex
 }
 
 const (
@@ -37,51 +35,27 @@ const (
 
 var (
 	scheme = runtime.NewScheme()
+	logger = logf.Log.WithName("LogicalVolume")
 )
 
+// +kubebuilder:rbac:groups=topolvm.cybozu.com,resources=logicalvolumes,verbs=get;list;watch;create;delete
+// +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
+
 // NewLogicalVolumeService returns LogicalVolumeService.
-func NewLogicalVolumeService() (driver.LogicalVolumeService, error) {
-	err := topolvmv1.AddToScheme(scheme)
-	if err != nil {
-		return nil, err
-	}
-	err = corev1.AddToScheme(scheme)
-	if err != nil {
-		return nil, err
-	}
-
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{Scheme: scheme})
-	if err != nil {
-		return nil, err
-	}
-	err = mgr.GetFieldIndexer().IndexField(&topolvmv1.LogicalVolume{}, indexFieldVolumeID, func(o runtime.Object) []string {
-		return []string{o.(*topolvmv1.LogicalVolume).Status.VolumeID}
-	})
+func NewLogicalVolumeService(mgr manager.Manager) (driver.LogicalVolumeService, error) {
+	err := mgr.GetFieldIndexer().IndexField(&topolvmv1.LogicalVolume{}, indexFieldVolumeID,
+		func(o runtime.Object) []string {
+			return []string{o.(*topolvmv1.LogicalVolume).Status.VolumeID}
+		})
 	if err != nil {
 		return nil, err
 	}
 
-	well.Go(func(ctx context.Context) error {
-		if err := mgr.Start(ctx.Done()); err != nil {
-			log.Error("failed to start manager", map[string]interface{}{log.FnError: err})
-			return err
-		}
-		return nil
-	})
-
-	return &logicalVolumeService{
-		mgr: mgr,
-	}, nil
-
+	return &logicalVolumeService{Client: mgr.GetClient()}, nil
 }
 
 func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, name string, sizeGb int64, capabilities []*csi.VolumeCapability) (string, error) {
-	log.Info("k8s.CreateVolume called", map[string]interface{}{
-		"name":    name,
-		"node":    node,
-		"size_gb": sizeGb,
-	})
-
+	logger.Info("k8s.CreateVolume called", "name", name, "node", node, "size_gb", sizeGb)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -101,19 +75,17 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 	}
 
 	existingLV := new(topolvmv1.LogicalVolume)
-	err := s.mgr.GetClient().Get(ctx, client.ObjectKey{Name: name}, existingLV)
+	err := s.Get(ctx, client.ObjectKey{Name: name}, existingLV)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			return "", err
 		}
 
-		err := s.mgr.GetClient().Create(ctx, lv)
+		err := s.Create(ctx, lv)
 		if err != nil {
 			return "", err
 		}
-		log.Info("created LogicalVolume CRD", map[string]interface{}{
-			"name": name,
-		})
+		logger.Info("created LogicalVolume CRD", "name", name)
 	} else {
 		// LV with same name was found; check compatibility
 		// skip check of capabilities because (1) we allow both of two access types, and (2) we allow only one access mode
@@ -125,38 +97,28 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 	}
 
 	for {
-		log.Info("waiting for setting 'status.volumeID'", map[string]interface{}{
-			"name": name,
-		})
+		logger.Info("waiting for setting 'status.volumeID'", "name", name)
 		select {
 		case <-ctx.Done():
-			log.Info("context is done", map[string]interface{}{})
 			return "", errors.New("timed out")
 		case <-time.After(1 * time.Second):
 		}
 
 		var newLV topolvmv1.LogicalVolume
-		err := s.mgr.GetClient().Get(ctx, client.ObjectKey{Name: name}, &newLV)
+		err := s.Get(ctx, client.ObjectKey{Name: name}, &newLV)
 		if err != nil {
-			log.Error("failed to get LogicalVolume", map[string]interface{}{
-				log.FnError: err,
-				"name":      name,
-			})
+			logger.Error(err, "failed to get LogicalVolume", "name", name)
 			continue
 		}
 		if newLV.Status.VolumeID != "" {
-			log.Info("end k8s.LogicalVolume", map[string]interface{}{
-				"volume_id": newLV.Status.VolumeID,
-			})
+			logger.Info("end k8s.LogicalVolume", "volume_id", newLV.Status.VolumeID)
 			return newLV.Status.VolumeID, nil
 		}
 		if newLV.Status.Code != codes.OK {
-			err := s.mgr.GetClient().Delete(ctx, &newLV)
+			err := s.Delete(ctx, &newLV)
 			if err != nil {
 				// log this error but do not return this error, because newLV.Status.Message is more important
-				log.Error("failed to delete LogicalVolume", map[string]interface{}{
-					log.FnError: err,
-				})
+				logger.Error(err, "failed to delete LogicalVolume")
 			}
 			return "", status.Error(newLV.Status.Code, newLV.Status.Message)
 		}
@@ -165,27 +127,23 @@ func (s *logicalVolumeService) CreateVolume(ctx context.Context, node string, na
 
 func (s *logicalVolumeService) DeleteVolume(ctx context.Context, volumeID string) error {
 	lvList := new(topolvmv1.LogicalVolumeList)
-	err := s.mgr.GetClient().List(ctx, lvList,
-		client.MatchingField(indexFieldVolumeID, volumeID))
+	err := s.List(ctx, lvList, client.MatchingField(indexFieldVolumeID, volumeID))
 	if err != nil {
 		return err
 	}
 	if len(lvList.Items) == 0 {
-		log.Info("volume is not found", map[string]interface{}{
-			"volume_id": volumeID,
-		})
+		logger.Info("volume is not found", "volume_id", volumeID)
 		return nil
 	} else if len(lvList.Items) > 1 {
 		return fmt.Errorf("multiple LogicalVolume is found for VolumeID %s", volumeID)
 	}
 
-	return s.mgr.GetClient().Delete(ctx, &lvList.Items[0])
+	return s.Delete(ctx, &lvList.Items[0])
 }
 
 func (s *logicalVolumeService) getLogicalVolumeListByVolumeID(ctx context.Context, volumeID string) (*topolvmv1.LogicalVolumeList, error) {
 	lvList := new(topolvmv1.LogicalVolumeList)
-	err := s.mgr.GetClient().List(ctx, lvList,
-		client.MatchingField(indexFieldVolumeID, volumeID))
+	err := s.List(ctx, lvList, client.MatchingField(indexFieldVolumeID, volumeID))
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +167,7 @@ func (s *logicalVolumeService) VolumeExists(ctx context.Context, volumeID string
 
 func (s *logicalVolumeService) listNodes(ctx context.Context) (*corev1.NodeList, error) {
 	nl := new(corev1.NodeList)
-	err := s.mgr.GetClient().List(ctx, nl)
+	err := s.List(ctx, nl)
 	if err != nil {
 		return nil, err
 	}
