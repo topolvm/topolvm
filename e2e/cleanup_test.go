@@ -183,7 +183,7 @@ spec:
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		// Confirming if the finalizer of the node resources works by checking by deleted pod's uid and pvc's uid if exist
-		By("confirming pvc/pod are deleted")
+		By("confirming pvc/pod are deleted and recreated")
 		Eventually(func() error {
 			stdout, stderr, err = kubectl("-n", cleanupTest, "get", "pvc", targetPVC.Name, "-o=json")
 			if err != nil {

@@ -17,7 +17,8 @@ import (
 // PersistentVolumeClaimReconciler reconciles a PersistentVolumeClaim object
 type PersistentVolumeClaimReconciler struct {
 	client.Client
-	Log logr.Logger
+	APIReader client.Reader
+	Log       logr.Logger
 }
 
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;update
@@ -67,6 +68,9 @@ func (r *PersistentVolumeClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
+	// sleep shortly to wait StatefulSet controller notices PVC deletion
+	time.Sleep(100 * time.Millisecond)
+
 	pods, err := r.getPodsByPVC(ctx, pvc)
 	if err != nil {
 		log.Error(err, "unable to fetch PodList for a PVC", "pvc", pvc.Name, "namespace", pvc.Namespace)
@@ -86,7 +90,8 @@ func (r *PersistentVolumeClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Resu
 
 func (r *PersistentVolumeClaimReconciler) getPodsByPVC(ctx context.Context, pvc *corev1.PersistentVolumeClaim) ([]corev1.Pod, error) {
 	var pods corev1.PodList
-	err := r.List(ctx, &pods, client.InNamespace(pvc.Namespace))
+	// query directly to API server to avoid latency for cache updates
+	err := r.APIReader.List(ctx, &pods, client.InNamespace(pvc.Namespace))
 	if err != nil {
 		return nil, err
 	}
