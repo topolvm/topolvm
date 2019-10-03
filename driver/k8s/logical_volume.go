@@ -143,7 +143,7 @@ func (s *logicalVolumeService) DeleteVolume(ctx context.Context, volumeID string
 
 func (s *logicalVolumeService) getLogicalVolumeListByVolumeID(ctx context.Context, volumeID string) (*topolvmv1.LogicalVolumeList, error) {
 	lvList := new(topolvmv1.LogicalVolumeList)
-	err := s.List(ctx, lvList, client.MatchingField(indexFieldVolumeID, volumeID))
+	err := s.List(ctx, lvList, client.MatchingFields{indexFieldVolumeID: volumeID})
 	if err != nil {
 		return nil, err
 	}
