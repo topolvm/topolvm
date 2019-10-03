@@ -34,11 +34,11 @@ LogicalVolumeStatus
 Lifecycle
 ---------
 
-Initially, `status.volumeID` is empty.  It is set by `csi-topolvm` on target nodes
+Initially, `status.volumeID` is empty.  It is set by `topolvm-node` on target nodes
 after it creates an LVM logical volume.
 
 `LogicalVolume` is created with a [finalizer](https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#finalizers).
-When a `LogicalVolume` is being deleted, `csi-topolvm` on the target node deletes
+When a `LogicalVolume` is being deleted, `topolvm-node` on the target node deletes
 the corresponding LVM logical volume and clears the finalizer.
 
 [ObjectMeta]: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#objectmeta-v1-meta

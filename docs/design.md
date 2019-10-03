@@ -67,7 +67,6 @@ resource cleanups.
 
 `topolvm-node` implements CSI node service.  It also works as a custom
 Kubernetes controller to implement dynamic-volume provisioning at node side.
-All other services are implemented in a program called `csi-topolvm`.
 
 ### How the scheduler extension works
 
