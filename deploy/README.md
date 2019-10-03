@@ -220,7 +220,7 @@ Finally, you need to create [StorageClasses](https://kubernetes.io/docs/concepts
 
 An example is available in [./manifests/provisioner.yaml](./manifests/provisioner.yaml).
 
-See [./manifests/podpvc.yaml](./manifests/podpvc.yaml) for how to use TopoLVM provisioner.
+See [example/podpvc.yaml](../example/podpvc.yaml) for how to use TopoLVM provisioner.
 
 [lvmd]: ../docs/lvmd.md
 [cert-manager]: https://github.com/jetstack/cert-manager

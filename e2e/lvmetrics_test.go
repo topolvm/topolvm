@@ -13,9 +13,9 @@ import (
 )
 
 func testLvmetrics() {
-	It("should be deployed csi-topolvm-node pod", func() {
+	It("should be deployed topolvm-node pod", func() {
 		Eventually(func() error {
-			result, stderr, err := kubectl("get", "-n=topolvm-system", "pods", "--selector=app.kubernetes.io/name=csi-topolvm-node", "-o=json")
+			result, stderr, err := kubectl("get", "-n=topolvm-system", "pods", "--selector=app.kubernetes.io/name=node", "-o=json")
 			if err != nil {
 				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
 			}
@@ -39,7 +39,7 @@ func testLvmetrics() {
 					}
 				}
 				if !isReady {
-					return errors.New("csi-topolvm-node is not yet ready: " + pod.Name)
+					return errors.New("topolvm-node is not yet ready: " + pod.Name)
 				}
 			}
 			return nil

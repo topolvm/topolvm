@@ -12,9 +12,9 @@ metadata:
   name: controller
   namespace: topolvm-system
 spec:
+  replicas: 1
   template:
     spec:
-      replicas: 1
       nodeSelector:
         kubernetes.io/hostname: kind-worker
 

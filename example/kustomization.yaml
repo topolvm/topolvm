@@ -4,6 +4,8 @@ bases:
   - ../deploy/manifests
 patches:
   - mutatingwebhooks.yaml
+resources:
+  - podpvc.yaml
 generatorOptions:
   disableNameSuffixHash: true
 configurations:

@@ -169,12 +169,12 @@ spec:
 
 		var targetTopolvmNode string
 		for _, pod := range pods.Items {
-			if strings.HasPrefix(pod.Name, "csi-topolvm-node-") && pod.Spec.NodeName == targetNode {
+			if strings.HasPrefix(pod.Name, "node-") && pod.Spec.NodeName == targetNode {
 				targetTopolvmNode = pod.Name
 				break
 			}
 		}
-		Expect(targetTopolvmNode).ShouldNot(Equal(""), "cannot get csi-topolmv-node name on kind-worker3")
+		Expect(targetTopolvmNode).ShouldNot(Equal(""), "cannot get topolmv-node name on kind-worker3")
 		stdout, stderr, err = kubectl("-n", "topolvm-system", "delete", "pod", targetTopolvmNode)
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 

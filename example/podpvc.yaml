@@ -20,7 +20,7 @@ spec:
   containers:
   - name: ubuntu
     image: ubuntu:18.04
-    command: ["sleep", "infinity"]
+    command: ["/usr/local/bin/pause"]
     volumeMounts:
     - mountPath: /test1
       name: my-volume
