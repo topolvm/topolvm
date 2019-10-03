@@ -1,7 +1,0 @@
-apiVersion: topolvm.cybozu.com/v1
-kind: LogicalVolume
-metadata:
-  name: logicalvolume-sample
-spec:
-  # Add fields here
-  foo: bar
