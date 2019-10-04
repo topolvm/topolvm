@@ -2,21 +2,13 @@ package lvmetrics
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"sync/atomic"
 
-	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/well"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
-
-type logger struct{}
-
-func (l logger) Println(v ...interface{}) {
-	log.Error(fmt.Sprint(v...), nil)
-}
 
 // PromMetricsServer is the Prometheus exporter for lvmetrics
 type PromMetricsServer struct {
@@ -40,7 +32,6 @@ func (p PromMetricsServer) Run(ctx context.Context) error {
 
 	handler := promhttp.HandlerFor(registry,
 		promhttp.HandlerOpts{
-			ErrorLog:      logger{},
 			ErrorHandling: promhttp.ContinueOnError,
 		})
 	mux := http.NewServeMux()

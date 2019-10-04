@@ -37,9 +37,10 @@ func (c Collector) Describe(ch chan<- *prometheus.Desc) {
 func (c Collector) Collect(ch chan<- prometheus.Metric) {
 	v := c.storage.Load()
 	if v == nil {
-		return
+		c.availableBytes.Set(0)
+	} else {
+		m := v.(Metrics)
+		c.availableBytes.Set(float64(m.AvailableBytes))
 	}
-	m := v.(Metrics)
-	c.availableBytes.Set(float64(m.AvailableBytes))
 	ch <- c.availableBytes
 }

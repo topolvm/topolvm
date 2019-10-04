@@ -65,11 +65,6 @@ func subMain() error {
 	defer conn.Close()
 
 	var atomicMetricsData atomic.Value
-	capacity, err := patcher.GetCapacity()
-	if err != nil && err != lvmetrics.ErrAnnotationNotFound {
-		return err
-	}
-	atomicMetricsData.Store(lvmetrics.Metrics{AvailableBytes: capacity})
 	server := lvmetrics.NewPromMetricsServer(metricsAddr, &atomicMetricsData)
 
 	well.Go(func(ctx context.Context) error {

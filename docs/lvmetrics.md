@@ -41,4 +41,4 @@ Prometheus metrics
 
 | Name                           | Type                     | Description                                                                                         |
 | ----------                     | ------------------------ | -----------------------------                                                                       |
-| `lvmetrics_vg_available_bytes` | Gauge                    | available bytes of LVM VG mangaged by lvmd.<br>This value is same with node annotation by lvmetrics |
+| `lvmetrics_vg_available_bytes` | Gauge                    | available bytes of LVM VG mangaged by lvmd. This value is same with node annotation by lvmetrics |
