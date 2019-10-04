@@ -20,11 +20,11 @@ The finalizer will be processed by [`topolvm-controller`](./topolvm-controller.m
 Command-line flags
 ------------------
 
-| Name           | Default                  | Description                     |
-| ----------     | ------------------------ | -----------------------------   |
-| `nodename`     |                          | `Node` resource name.           |
-| `socket`       | `/run/topolvm/lvmd.sock` | UNIX domain socket of `lvmd`.   |
-| `metrics-port` | `8080`                   | The port number of metrics API. |
+| Name           | Default                  | Description                        |
+| ----------     | ------------------------ | -----------------------------      |
+| `nodename`     |                          | `Node` resource name.              |
+| `socket`       | `/run/topolvm/lvmd.sock` | UNIX domain socket of `lvmd`.      |
+| `metrics-addr` | `:8080`                  | The listen address of metrics API. |
 
 Environment variables
 ---------------------

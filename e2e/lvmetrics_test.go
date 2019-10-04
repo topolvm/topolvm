@@ -1,14 +1,17 @@
 package e2e
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/cybozu-go/topolvm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/prometheus/common/expfmt"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -85,5 +88,47 @@ func testLvmetrics() {
 			Expect(ok).To(Equal(true), "capacity is not annotated: "+node.Name)
 			Expect(val).To(Equal(strings.TrimSpace(string(targetBytes))), "unexpected capacity: "+node.Name)
 		}
+	})
+
+	It("should expose Prometheus metrics by lvmetrics", func() {
+		stdout, stderr, err := kubectl("get", "pods", "-n=topolvm-system", "-l=app.kubernetes.io/name=csi-topolvm-node", "-o=json")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		var pods corev1.PodList
+		err = json.Unmarshal(stdout, &pods)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		pod := pods.Items[0]
+		stdout, stderr, err = kubectl("exec", "-n", "topolvm-system", pod.Name, "-c=lvmetrics", "--", "curl", "http://localhost:8080/metrics")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		var parser expfmt.TextParser
+		metricFamilies, err := parser.TextToMetricFamilies(bytes.NewReader(stdout))
+		Expect(err).ShouldNot(HaveOccurred())
+		found := false
+		for _, family := range metricFamilies {
+			if family.GetName() != "lvmetrics_vg_available_bytes" {
+				continue
+			}
+			found = true
+			Expect(family.Metric).Should(HaveLen(1))
+
+			stdout, stderr, err := kubectl("get", "node", pod.Spec.NodeName, "-o=json")
+			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+			var node corev1.Node
+			err = json.Unmarshal(stdout, &node)
+			Expect(err).ShouldNot(HaveOccurred())
+			capacity, ok := node.Annotations[topolvm.CapacityKey]
+			Expect(ok).Should(BeTrue())
+			expected, err := strconv.ParseFloat(capacity, 64)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			val := family.Metric[0].Gauge.Value
+			Expect(val).ShouldNot(BeNil())
+			Expect(val).Should(Equal(expected))
+			break
+		}
+		Expect(found).Should(BeTrue())
+
 	})
 }

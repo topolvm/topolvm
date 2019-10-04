@@ -52,7 +52,7 @@ func subMain() error {
 	if err != nil {
 		return err
 	}
-	metricsPort := viper.GetInt("metrics-port")
+	metricsAddr := viper.GetString("metrics-addr")
 
 	dialer := &net.Dialer{}
 	dialFunc := func(ctx context.Context, a string) (net.Conn, error) {
@@ -70,7 +70,7 @@ func subMain() error {
 		return err
 	}
 	atomicMetricsData.Store(&lvmetrics.Metrics{AvailableBytes: capacity})
-	server := lvmetrics.NewPromMetricsServer(string(metricsPort), &atomicMetricsData)
+	server := lvmetrics.NewPromMetricsServer(metricsAddr, &atomicMetricsData)
 
 	well.Go(func(ctx context.Context) error {
 		return lvmetrics.WatchLVMd(ctx, conn, patcher, &atomicMetricsData)
@@ -98,8 +98,7 @@ func Execute() {
 func init() {
 	rootCmd.Flags().StringVar(&config.socketName, "socket", topolvm.DefaultLVMdSocket, "Unix domain socket name to connect lvmd")
 	rootCmd.Flags().String("nodename", "", "The resource name of the running node")
-	rootCmd.Flags().Uint("metrics-port", 8080, "The port number of metrics API")
+	rootCmd.Flags().String("metrics-addr", ":8080", "The listen address of metrics endpoint")
 	viper.BindEnv("nodename", "NODE_NAME")
-	viper.BindEnv("metrics-port", "METRICS_PORT")
 	viper.BindPFlag("nodename", rootCmd.Flags().Lookup("nodename"))
 }

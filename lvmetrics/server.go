@@ -20,14 +20,14 @@ func (l logger) Println(v ...interface{}) {
 
 // PromMetricsServer is the Prometheus exporter for lvmetrics
 type PromMetricsServer struct {
-	port      string
+	addr      string
 	collector *Collector
 }
 
 // NewPromMetricsServer constructs metrics exporter of lvmetrics
-func NewPromMetricsServer(port string, storage *atomic.Value) PromMetricsServer {
+func NewPromMetricsServer(addr string, storage *atomic.Value) PromMetricsServer {
 	collector := NewCollector(storage)
-	return PromMetricsServer{port, collector}
+	return PromMetricsServer{addr, collector}
 }
 
 // Run starts the server
@@ -47,7 +47,7 @@ func (p PromMetricsServer) Run(ctx context.Context) error {
 	mux.Handle("/metrics", handler)
 	serv := &well.HTTPServer{
 		Server: &http.Server{
-			Addr:    p.port,
+			Addr:    p.addr,
 			Handler: mux,
 		},
 	}
