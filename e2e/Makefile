@@ -32,11 +32,9 @@ topolvm.img: $(GO_FILES)
 	rm -rf tmpbin
 	mkdir -p tmpbin
 	CGO_ENABLED=0 go build -o tmpbin/hypertopolvm ../pkg/hypertopolvm
-	ln -s hypertopolvm ./tmpbin/csi-topolvm
 	ln -s hypertopolvm ./tmpbin/lvmetrics
 	ln -s hypertopolvm ./tmpbin/topolvm-scheduler
 	ln -s hypertopolvm ./tmpbin/topolvm-node
-	ln -s hypertopolvm ./tmpbin/topolvm-hook
 	ln -s hypertopolvm ./tmpbin/topolvm-controller
 	docker build --no-cache --rm=false -f Dockerfile -t topolvm:dev tmpbin
 	docker save -o $@ topolvm:dev
@@ -94,8 +92,6 @@ stop-lvmd:
 test: topolvm.img $(SERVER_CERT_FILES)
 	$(MAKE) shutdown-kind
 	$(MAKE) launch-kind
-	$(KUBECTL) delete -n=topolvm-system secret mutatingwebhook --ignore-not-found
-	$(KUBECTL) apply -f ../deploy/manifests/crd.yaml
 	kind load image-archive topolvm.img
 	kustomize build . | kubectl apply -f -
 	$(SUDO) env \
@@ -130,6 +126,6 @@ setup: $(KUBECTL)
 	fi
 
 clean: stop-lvmd
-	rm -rf $(CA_FILES) $(SERVER_CERT_FILES) hook-secret.yml topolvm.img build/
+	rm -rf $(CA_FILES) $(SERVER_CERT_FILES) topolvm.img build/
 
 .PHONY: launch-kind shutdown-kind start-lvmd stop-lvmd test secret setup clean

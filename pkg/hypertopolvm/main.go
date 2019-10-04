@@ -5,11 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	csitopolvm "github.com/cybozu-go/topolvm/pkg/csi-topolvm/cmd"
 	lvmd "github.com/cybozu-go/topolvm/pkg/lvmd/cmd"
 	lvmetrics "github.com/cybozu-go/topolvm/pkg/lvmetrics/cmd"
 	controller "github.com/cybozu-go/topolvm/pkg/topolvm-controller/cmd"
-	hook "github.com/cybozu-go/topolvm/pkg/topolvm-hook/cmd"
 	node "github.com/cybozu-go/topolvm/pkg/topolvm-node/cmd"
 	scheduler "github.com/cybozu-go/topolvm/pkg/topolvm-scheduler/cmd"
 )
@@ -18,13 +16,11 @@ func usage() {
 	io.WriteString(os.Stderr, `Usage: hypertopolvm COMMAND [ARGS ...]
 
 COMMAND:
-    - csi-topolvm        Unified CSI driver.
-    - lvmd               gRPC service to manage LVM volumes.
-    - lvmetrics          DaemonSet sidecar container to expose storage metrics as Node annotations.
-    - topolvm-scheduler  Scheduler extender.
-    - topolvm-node       Sidecar to communicate with CSI controller over TopoLVM custom resources.
-    - topolvm-hook       MutatingAdmissionWebhook for topolvm-scheduler.
-    - topolvm-controller Controllers for TopoLVM.
+    topolvm-controller:  TopoLVM CSI controller service.
+    topolvm-node:        TopoLVM CSI node service.
+    topolvm-scheduler:   Scheduler extender.
+    lvmd:                gRPC service to manage LVM volumes.
+    lvmetrics:           Sidecar container to expose storage metrics as Node annotations.
 `)
 }
 
@@ -40,8 +36,6 @@ func main() {
 	}
 
 	switch name {
-	case "csi-topolvm":
-		csitopolvm.Execute()
 	case "lvmd":
 		lvmd.Execute()
 	case "lvmetrics":
@@ -50,8 +44,6 @@ func main() {
 		scheduler.Execute()
 	case "topolvm-node":
 		node.Execute()
-	case "topolvm-hook":
-		hook.Execute()
 	case "topolvm-controller":
 		controller.Execute()
 	default:

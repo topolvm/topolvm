@@ -98,7 +98,19 @@ test:
 	go vet ./...
 	test -z "$$(go vet ./... | grep -v '^vendor' | tee /dev/stderr)"
 
+# Generate manifests e.g. CRD, RBAC etc.
+manifests:
+	controller-gen \
+		crd:trivialVersions=true \
+		rbac:roleName=topolvm-controller \
+		webhook \
+		paths="./api/...;./controllers;./hook;./driver/k8s" \
+		output:crd:artifacts:config=config/crd/bases
+	rm -f deploy/manifests/crd.yaml
+	cp config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml deploy/manifests/crd.yaml
+
 generate: csi/csi.pb.go lvmd/proto/lvmd.pb.go docs/lvmd-protocol.md
+	controller-gen object:headerFile=./hack/boilerplate.go.txt paths="./api/..."
 
 build: $(BUILD_TARGET) $(CSI_SIDECARS) build/lvmd
 
@@ -123,4 +135,4 @@ setup:
 	$(SUDO) chmod a+x /usr/local/kubebuilder/bin/kustomize
 	cd /tmp; GO111MODULE=on GOFLAGS= go get sigs.k8s.io/controller-tools/cmd/controller-gen@v$(CTRLTOOLS_VERSION)
 
-.PHONY: all test generate build setup
+.PHONY: all test manifests generate build setup

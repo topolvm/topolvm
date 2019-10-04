@@ -1,30 +1,38 @@
 package cmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
-	"net"
 	"os"
-	"strings"
 
 	"github.com/cybozu-go/topolvm"
-	topolvmv1 "github.com/cybozu-go/topolvm/topolvm-node/api/v1"
-	"github.com/cybozu-go/topolvm/topolvm-node/controllers"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"google.golang.org/grpc"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	// +kubebuilder:scaffold:imports
 )
 
-var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
-)
+var config struct {
+	csiSocket   string
+	lvmdSocket  string
+	metricsAddr string
+	development bool
+}
+
+var rootCmd = &cobra.Command{
+	Use:     "topolvm-node",
+	Version: topolvm.Version,
+	Short:   "TopoLVM CSI node",
+	Long: `topolvm-node provides CSI node service.
+It also works as a custom Kubernetes controller.
+
+The node name where this program runs must be given by either
+NODE_NAME environment variable or --nodename flag.`,
+
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
+		return subMain()
+	},
+}
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
@@ -36,77 +44,17 @@ func Execute() {
 }
 
 func init() {
-	topolvmv1.AddToScheme(scheme)
-	// +kubebuilder:scaffold:scheme
-
 	fs := rootCmd.Flags()
-	fs.String("metrics-addr", ":28080", "Bind address for the metrics endpoint")
-	fs.String("lvmd-socket", "/run/topolvm/lvmd.sock", "UNIX domain socket of lvmd service")
-	fs.String("node-name", "", "The name of the node hosting topolvm-node service")
-	fs.Bool("development", false, "Use development logger config")
+	fs.StringVar(&config.csiSocket, "csi-socket", topolvm.DefaultCSISocket, "UNIX domain socket filename for CSI")
+	fs.StringVar(&config.lvmdSocket, "lvmd-socket", topolvm.DefaultLVMdSocket, "UNIX domain socket of lvmd service")
+	fs.StringVar(&config.metricsAddr, "metrics-addr", ":28080", "Listen address for metrics")
+	fs.String("nodename", "", "The resource name of the running node")
+	fs.BoolVar(&config.development, "development", false, "Use development logger config")
 
-	if err := viper.BindPFlags(fs); err != nil {
-		panic(err)
-	}
-	if err := cobra.MarkFlagRequired(fs, "node-name"); err != nil {
-		panic(err)
-	}
-	viper.SetEnvPrefix("topo")
-	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
-	viper.AutomaticEnv()
+	viper.BindEnv("nodename", "NODE_NAME")
+	viper.BindPFlag("nodename", fs.Lookup("nodename"))
 
 	goflags := flag.NewFlagSet("klog", flag.ExitOnError)
 	klog.InitFlags(goflags)
 	fs.AddGoFlagSet(goflags)
-}
-
-var rootCmd = &cobra.Command{
-	Use:     "topolvm-node",
-	Version: topolvm.Version,
-	Short:   "a custom controller for LogicalVolume",
-	Long:    `A custom controller for TopoLVM CRD LogicalVolume.`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		cmd.SilenceUsage = true
-		return subMain()
-	},
-}
-
-func subMain() error {
-	ctrl.SetLogger(zap.Logger(viper.GetBool("development")))
-
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{Scheme: scheme, MetricsBindAddress: viper.GetString("metrics-addr")})
-	if err != nil {
-		setupLog.Error(err, "unable to start manager")
-		os.Exit(1)
-	}
-
-	dialer := &net.Dialer{}
-	dialFunc := func(ctx context.Context, a string) (net.Conn, error) {
-		return dialer.DialContext(ctx, "unix", a)
-	}
-	conn, err := grpc.Dial(viper.GetString("lvmd-socket"), grpc.WithInsecure(), grpc.WithContextDialer(dialFunc))
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
-	err = controllers.NewLogicalVolumeReconciler(
-		mgr.GetClient(),
-		ctrl.Log.WithName("controllers").WithName("LogicalVolume"),
-		viper.GetString("node-name"),
-		conn,
-	).SetupWithManager(mgr)
-	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "LogicalVolume")
-		os.Exit(1)
-	}
-	// +kubebuilder:scaffold:builder
-
-	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Error(err, "problem running manager")
-		os.Exit(1)
-	}
-
-	return nil
 }

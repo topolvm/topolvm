@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -28,6 +29,11 @@ var pmLogger = logf.Log.WithName("pod-mutator")
 type podMutator struct {
 	client  client.Client
 	decoder *admission.Decoder
+}
+
+// PodMutator creates a mutating webhook for Pods.
+func PodMutator(c client.Client, dec *admission.Decoder) http.Handler {
+	return &webhook.Admission{Handler: podMutator{c, dec}}
 }
 
 // Handle implements admission.Handler interface.

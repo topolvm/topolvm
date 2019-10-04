@@ -1,9 +1,11 @@
 {
-    "CN": "topolvm-hook",
+    "CN": "controller",
     "hosts": [
         "localhost",
         "127.0.0.1",
-        "topolvm-hook.topolvm-system.svc"
+        "controller",
+        "controller.topolvm-system",
+        "controller.topolvm-system.svc"
     ],
     "key": {
         "algo": "rsa",

@@ -3,9 +3,9 @@ kind: Kustomization
 bases:
   - ../deploy/manifests
 patches:
-  - ./overlays/csi-controller.yaml
-  - ./overlays/csi-node.yaml
+  - ./overlays/controller.yaml
   - ./overlays/mutatingwebhooks.yaml
+  - ./overlays/node.yaml
   - ./overlays/scheduler.yaml
 resources:
   - ./overlays/provisioner.yaml
@@ -39,7 +39,7 @@ patchesJson6902:
 - target:
     version: v1
     group: apps
-    kind: StatefulSet
-    name: csi-topolvm-controller
+    kind: Deployment
+    name: controller
     namespace: topolvm-system
-  path: ./overlays/csi-controller-op.yaml
+  path: ./overlays/controller-op.yaml

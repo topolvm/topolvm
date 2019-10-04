@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 
-	"github.com/cybozu-go/log"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 const (
@@ -13,6 +13,8 @@ const (
 	cmdResize2fs  = "/sbin/resize2fs"
 	ext4MountOpts = ""
 )
+
+var ext4Logger = logf.Log.WithName("filesystem").WithName("ext4")
 
 type ext4 struct {
 	device string
@@ -42,16 +44,12 @@ func (fs ext4) Mkfs() error {
 
 	out, err := exec.Command(cmdMkfsExt4, "-F", "-q", "-m", "0", fs.device).CombinedOutput()
 	if err != nil {
-		log.Error("ext4: failed to create", map[string]interface{}{
-			"device":    fs.device,
-			log.FnError: err,
-			"output":    string(out),
-		})
+		ext4Logger.Error(err, "ext4: failed to create",
+			"device", fs.device,
+			"output", string(out))
 	}
 
-	log.Info("ext4: created", map[string]interface{}{
-		"device": fs.device,
-	})
+	ext4Logger.Info("ext4: created", "device", fs.device)
 	return nil
 }
 
@@ -67,11 +65,9 @@ func (fs ext4) Resize(_ string) error {
 	out, err := exec.Command(cmdResize2fs, fs.device).CombinedOutput()
 	if err != nil {
 		out := string(out)
-		log.Error("failed to resize ext4 filesystem", map[string]interface{}{
-			"device":    fs.device,
-			log.FnError: err,
-			"output":    out,
-		})
+		ext4Logger.Error(err, "failed to resize ext4 filesystem",
+			"device", fs.device,
+			"output", out)
 		return fmt.Errorf("failed to resize ext4 filesystem: device=%s, err=%v, output=%s",
 			fs.device, err, out)
 	}

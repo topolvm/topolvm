@@ -23,11 +23,9 @@ var config struct {
 	spareGB    uint64
 }
 
-// DefaultSocketName defines the default UNIX domain socket path.
 const (
-	DefaultSocketName = "/run/topolvm/lvmd.sock"
-	maxDevNameLength  = 127
-	k8sUIDLength      = 36
+	maxDevNameLength = 127
+	k8sUIDLength     = 36
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -118,6 +116,6 @@ func Execute() {
 
 func init() {
 	rootCmd.Flags().StringVar(&config.vgName, "volume-group", "", "LVM volume group name")
-	rootCmd.Flags().StringVar(&config.socketName, "listen", DefaultSocketName, "Unix domain socket name")
+	rootCmd.Flags().StringVar(&config.socketName, "listen", topolvm.DefaultLVMdSocket, "Unix domain socket name")
 	rootCmd.Flags().Uint64Var(&config.spareGB, "spare", 10, "storage capacity in GiB to be spared")
 }

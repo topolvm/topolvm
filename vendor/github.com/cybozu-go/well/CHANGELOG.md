@@ -5,6 +5,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [1.9.0] - 2019-09-24
+### Added
+- HTTPServer: add support for HTTP/2 request handling (#27, #32).
+
+### Changed
+- HTTPServer: fix remote IP access logging (#31).
+
 ## [1.8.1] - 2018-10-21
 ### Changed
 - Remove dependency on `github.com/spf13/cobra`.
@@ -87,7 +94,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Conform to cybozu-go/log v1.1.0 spec.
 
 [activation]: http://0pointer.de/blog/projects/socket-activation.html
-[Unreleased]: https://github.com/cybozu-go/cmd/compare/v1.8.1...HEAD
+[Unreleased]: https://github.com/cybozu-go/cmd/compare/v1.9.0...HEAD
+[1.9.0]: https://github.com/cybozu-go/cmd/compare/v1.8.1...v1.9.0
 [1.8.1]: https://github.com/cybozu-go/cmd/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/cybozu-go/cmd/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/cybozu-go/cmd/compare/v1.6.0...v1.7.0

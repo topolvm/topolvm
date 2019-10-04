@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 
-	"github.com/cybozu-go/log"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 const (
@@ -12,6 +12,8 @@ const (
 	cmdMkfsBtrfs   = "/bin/mkfs.btrfs"
 	btrfsMountOpts = "ssd"
 )
+
+var btrfsLogger = logf.Log.WithName("filesystem").WithName("btrfs")
 
 type btrfs struct {
 	device string
@@ -45,16 +47,12 @@ func (fs btrfs) Mkfs() error {
 
 	out, err := exec.Command(cmdMkfsBtrfs, "-f", "-q", fs.device).CombinedOutput()
 	if err != nil {
-		log.Error("btrfs: failed to create", map[string]interface{}{
-			"device":    fs.device,
-			log.FnError: err,
-			"output":    string(out),
-		})
+		btrfsLogger.Error(err, "btrfs: failed to create",
+			"device", fs.device,
+			"output", string(out))
 	}
 
-	log.Info("btrfs: created", map[string]interface{}{
-		"device": fs.device,
-	})
+	btrfsLogger.Info("btrfs: created", "device", fs.device)
 	return nil
 }
 
@@ -70,12 +68,10 @@ func (fs btrfs) Resize(target string) error {
 	out, err := exec.Command(cmdBtrfs, "filesystem", "resize", "max", target).CombinedOutput()
 	if err != nil {
 		out := string(out)
-		log.Error("failed to resize btrfs filesystem", map[string]interface{}{
-			"device":    fs.device,
-			"directory": target,
-			log.FnError: err,
-			"output":    out,
-		})
+		btrfsLogger.Error(err, "failed to resize btrfs filesystem",
+			"device", fs.device,
+			"directory", target,
+			"output", out)
 		return fmt.Errorf("failed to resize btrfs filesystem: device=%s, directory=%s, err=%v, output=%s",
 			fs.device, target, err, out)
 	}

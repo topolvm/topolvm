@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/cybozu-go/topolvm"
-	topolvmv1 "github.com/cybozu-go/topolvm/topolvm-node/api/v1"
+	topolvmv1 "github.com/cybozu-go/topolvm/api/v1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"

@@ -15,24 +15,21 @@ Goals
 - Use LVM for flexible volume capacity management.
 - Enhance the scheduler to prefer nodes having a larger storage capacity.
 - Support dynamic volume provisioning from PVC.
+- Support volume resizing (resizing for CSI becomes beta in Kubernetes 1.16).
 
 ### Future goals
 
 - Prefer nodes with less IO usage.
-- Support volume resizing (resizing for CSI is alpha as of Kubernetes 1.14).
 - Support volume snapshot.
-- Authentication between the CSI controller and Remote LVM service.
 
 Components
 ----------
 
-- `csi-topolvm`: Unified CSI driver.
-- `lvmd`: gRPC service to manage LVM volumes.
-- `lvmetrics`: A DaemonSet sidecar container to expose storage metrics as Node annotations.
+- `topolvm-controller`: CSI controller service.
 - `topolvm-scheduler`: A [scheduler extender](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/scheduler_extender.md) for TopoLVM.
-- `topolvm-node`: A sidecar to communicate with CSI controller over TopoLVM [custom resources](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/).
-- `topolvm-hook`: A [MutatingAdmissionWebhook](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#mutatingadmissionwebhook) for `topolvm-scheduler`.
-- `topolvm-controller`: A sidecar controller for cleanup resources.
+- `topolvm-node`: CSI node service.
+- `lvmd`: gRPC service to manage LVM volumes.
+- `lvmetrics`: A sidecar container to expose storage metrics.
 
 ### Diagram
 
@@ -40,7 +37,7 @@ Components
 - ![#ADD8E6](https://placehold.it/15/ADD8E6/000000?text=+) Kubernetes components
 - ![#FFC0CB](https://placehold.it/15/FFC0CB/000000?text=+) Kubernetes CSI Sidecar containers
 
-![component diagram](http://www.plantuml.com/plantuml/svg/fPN1Rjmi58NtVWeqsUHVM55Opk9NL4yNbTB8ogYfgYGB0bSUD1Wim4chQjwzO6EmFPbngcwY63xEzJc-bxanbcZRrY9h2DsJ2j1g0urGlsgGTeL-PmWz5afQhOG0NOgsul8P4ODMnVOBIZje2_gLKtYIbzJmtAf6YTVwlnMw-052g3UlOupX32ZHfbVmOAFLApTSIT1FqYyGQmdTWNOdIoxt_bmGex5OVpmivsazLJjacLGCq9txSztHtN_Ua5CSh6ws_Tw6GAta5e9XLzBJlTdhvDOlBllqnrbqUfsiQgYuiPeaQnvrfy5gJWSoFiyaGoNfRKpz-wKnxBmxVj--W00RsF3ai5jUxUmdqK97tJvyPQamUpz070F4Hm7YnG3nlmM8FnmW_d20-2y2nCi1udC1XX4f1P7GE-aNKEDNmeIHXXiNY-liiRuV6JSAh1L76unOya8Ce1LOocBgnVscVvTRLN5An8CIRGsNRdaUSFbGz6G9shXKGTeUBWJXzIf0Yjs3KQsc463bQlczr09tQRo6ruWD40w7XWqZs267RAA1bpLmqi19u-1p7cGCiExgyk3nBMQ2X-qGAVhyqzbc_kAv75eXvZtAwn0Bx9JQdoiHL3msxJ2_CccDDFKeVxnu4IqyC_Kcy_zHDv5eZQhxifXWRUDs9wbcevPEEZE9D8WdaT3RQJ-KIWVNPxWqge4RkSFlkSD7xl0xxl3ONTA94dDt9v5XZa-vMm2JFJpOc_yUeXov2NCoXGPYuUexiNGt-pXjCq3TxjMtXZbqwd41eh4ioaESatPOfxhBD5watOkiDpuGM7uFTvi4zXoKRfC1pkAyXGumaCMxC2oDXihnyMj4sSXFDcCl77siyBLlGBAs5dy0)
+![component diagram](http://www.plantuml.com/plantuml/svg/bPHFRzem6CRl-HHMUe43gl2nXwbRs8rD4MXC4-DWubV1mh4Zsw6RfdxtEOd_X02blPMyFpzwtiUF-wmDKQQfU5AJuaXAGEa2QYx_LY1CYlub26qpAOoId8FAULCoiKD4ezJ8Ml9JDIl2D4KFlu1p-T8Uqbep2WLHkiSBpMQraYUccHIWVels0p6658VkPCx4CNbD4Y4feE-ImhmxrltL-h2Qtk5YtSyM12efrk1y8hHjwTxZ_DnagnhjTImD1kVHeOAIQQD8SDIXLW6COeKdm--XfFLkqMEp1mx6WUwNnPQiF9Wll86EMcw-qQX5eymm01m2m1S1uBi1u0y4WDyT07vl0FX-0FYj05pdSau4T9Yh6QhRBwwOsdQ7DXpKRgYF42M6x8a6b9AQQL0dK4C7FgnijUWjB6N92i8taZSLJEpdwIYgV9FrP0vAstn0c1xEE65LwY19Lw1bemfmiBIBnNlnm_bkqEpBCOvZt8vVRIRXSMgWtUliaFXGqKGg5DemzV4u7siV4_hwnu2WxUkR-6A43ATdbn0hZsRRXxrDRKVbYvXzGbrtqHCgLtbsXZMrdGutQQdFGaX332IncL5n9ERA4kT1qHzyUeEBTVPST8UlBO4lbi1Nbi3NbuYA8p7V_rjBt047Zz9lCVxtYsPk2LjKAvOf80OUVn9J76wputlv08u3FcYuI-f2mAAmFqXv75wuXrSBB_NuewRZG6z2IUYeOtJxBGGLJDjN6gp6SSZtgjikucSGjAduVm00)
 
 Blue arrows in the diagram indicate communications over unix domain sockets.
 Red arrows indicate communications over TCP sockets.
@@ -48,43 +45,67 @@ Red arrows indicate communications over TCP sockets.
 Architecture
 ------------
 
-TopoLVM adopts [CSI](https://github.com/container-storage-interface/spec/).
+TopoLVM is a storage plugin based on [CSI](https://github.com/container-storage-interface/spec/).
 Therefore, the architecture basically follows the one described in
 https://kubernetes-csi.github.io/docs/ .
 
-Other than that, TopoLVM extends the general Pod scheduler of Kubernetes to
-reference node-local metrics such as VG free capacity or IO usage.  To expose
-these metrics, TopoLVM runs a sidecar container called *lvmetrics* on each node.
+On each node, a program called `lvmd` runs.  It provides gRPC services via
+UNIX domain socket to manage a LVM volume group.  The services include
+creating, updating, deleting logical volumes on the volume group and watching
+free capacity of the volume group.
 
-`lvmetrics` watches the capacity of LVM volume group and exposes it as Node
-annotations. Also, it adds finalizer to the `Node` resource for cleanup.
+`lvmetrics` is another program that runs on each node.  It collects the volume
+group metrics from `lvmd` and exposes it as annotations of `Node` resources.
+It also adds a finalizer to `Node` to cleanup PersistentVolumeClaims (PVC) on the node.
 
-Extension of the general scheduler is implemented as a [scheduler extender](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/scheduler_extender.md) called `topolvm-scheduler`.
+`topolvm-scheduler` is a [scheduler extender](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/scheduler_extender.md) to extend the
+standard Kubernetes scheduler for TopoLVM.
 
-`topolvm-hook` mutates pods using TopoLVM PVC to add a resource `topolvm.cybozu.com/capacity`.
-Only pods with this resource is passed to the extended scheduler.
+`topolvm-controller` implements CSI controller service.  It also works as
+a custom Kubernetes controller to implement dynamic volume provisioning and
+resource cleanups.
+
+`topolvm-node` implements CSI node service.  It also works as a custom
+Kubernetes controller to implement dynamic-volume provisioning at node side.
+
+### How the scheduler extension works
+
+To extend the standard scheduler, TopoLVM components work together as follows:
+
+- `lvmetrics` exposes free storage capacity as `topolvm.cybozu.com/capacity` annotation of each Node.
+- `topolvm-controller` works as a [mutating webhook](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/) for new Pods.
+    - It adds `topolvm.cybozu.com/capacity` resource to the first container of a pod.
+    - The value is the sum of the storage capacity requests of all unbound TopoLVM PVC referenced by the pod.
+- `topolvm-scheduler` filters and scores Nodes for a new pod having `topolvm.cybozu.com/capacity` resource request.
+    - Nodes having less capacity than requested are filtered.
+    - Nodes having larger capacity are scored higher.
+
+### How dynamic provisioning works
 
 To support dynamic volume provisioning, CSI controller service need to create a
 logical volume on remote target nodes.  In general, CSI controller runs on a
 different node from the target node of the volume.  To allow communication
 between CSI controller and the target node, TopoLVM uses a custom resource
-(CRD) called `LogicalVolume`.
+called `LogicalVolume`.
 
-1. `external-provisioner` calls CSI controller's `CreateVolume` with the topology key of the target node.
-2. CSI controller creates a `LogicalVolume` with the topology key and capacity of the volume.
-3. `topolvm-node` on the target node watches `LogicalVolume` for the target node.
-4. `topolvm-node` sends a volume to create request to `lvmd` over UNIX domain socket.
-5. `lvmd` creates an LVM logical volume as requested.
-6. `topolvm-node` updates the status of `LogicalVolume`.
-7. CSI controller watches the status of `LogicalVolume` until an LVM logical volume is getting created.
+Dynamic provisioning depends on [CSI `external-provisioner`](https://kubernetes-csi.github.io/docs/external-provisioner.html) sidecar container.
 
-`lvmd` accepts requests from `topolvm-node` and `lvmetrics`.
+1. `external-provisioner` finds a new unbound PersistentVolumeClaim (PVC) for TopoLVM.
+2. `external-provisioner` calls CSI controller's `CreateVolume` with the topology key of the target node.
+3. `topolvm-controller` creates a `LogicalVolume` with the topology key and capacity of the volume.
+4. `topolvm-node` on the target node finds the `LogicalVolume`.
+5. `topolvm-node` sends a volume create request to `lvmd`.
+6. `lvmd` creates an LVM logical volume as requested.
+7. `topolvm-node` updates the status of `LogicalVolume`.
+8.  `topolvm-controller` finds the updated status of `LogicalVolume`.
+9.  `topolvm-controller` sends the success (or failure) to `external-provisioner`.
+10. `external-provisioner` creates a PersistentVolume (PV) and binds it to the PVC.
 
 Limitations
 -----------
 
-The CSI driver of TopoLVM depends on Kubernetes because the controller service creates a CRD object in Kubernetes.
-This limitation can be removed if the controller service uses etcd instead of Kubernetes.
+TopoLVM depends on Kubernetes deeply.
+Portability to other container orchestrators (CO) is not considered.
 
 Packaging and deployment
 ------------------------
@@ -92,5 +113,5 @@ Packaging and deployment
 `lvmd` is provided as a single executable.
 Users needs to deploy `lvmd` manually by themselves.
 
-Other components, as well as CSI sidecar containers, are provided as Docker
-container images, and is deployed as Kubernetes objects.
+Other components, as well as CSI sidecar containers, are provided in a single
+Docker container image, and is deployed as Kubernetes objects.

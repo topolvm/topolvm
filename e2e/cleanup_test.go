@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/cybozu-go/topolvm"
-	"github.com/cybozu-go/topolvm/controller/controllers"
-	logicalvolumev1 "github.com/cybozu-go/topolvm/topolvm-node/api/v1"
+	topolvmv1 "github.com/cybozu-go/topolvm/api/v1"
+	"github.com/cybozu-go/topolvm/controllers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
@@ -22,7 +22,7 @@ func testCleanup() {
 		createNamespace(cleanupTest)
 	})
 
-	var targetLVs []logicalvolumev1.LogicalVolume
+	var targetLVs []topolvmv1.LogicalVolume
 
 	It("should finalize the delete node", func() {
 		By("checking Node finalizer")
@@ -147,7 +147,7 @@ spec:
 
 		stdout, stderr, err = kubectl("get", "logicalvolume", "-o=json")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		var logicalVolumeList logicalvolumev1.LogicalVolumeList
+		var logicalVolumeList topolvmv1.LogicalVolumeList
 		err = json.Unmarshal(stdout, &logicalVolumeList)
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -169,12 +169,12 @@ spec:
 
 		var targetTopolvmNode string
 		for _, pod := range pods.Items {
-			if strings.HasPrefix(pod.Name, "csi-topolvm-node-") && pod.Spec.NodeName == targetNode {
+			if strings.HasPrefix(pod.Name, "node-") && pod.Spec.NodeName == targetNode {
 				targetTopolvmNode = pod.Name
 				break
 			}
 		}
-		Expect(targetTopolvmNode).ShouldNot(Equal(""), "cannot get csi-topolmv-node name on kind-worker3")
+		Expect(targetTopolvmNode).ShouldNot(Equal(""), "cannot get topolmv-node name on kind-worker3")
 		stdout, stderr, err = kubectl("-n", "topolvm-system", "delete", "pod", targetTopolvmNode)
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
@@ -183,7 +183,7 @@ spec:
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		// Confirming if the finalizer of the node resources works by checking by deleted pod's uid and pvc's uid if exist
-		By("confirming pvc/pod are deleted")
+		By("confirming pvc/pod are deleted and recreated")
 		Eventually(func() error {
 			stdout, stderr, err = kubectl("-n", cleanupTest, "get", "pvc", targetPVC.Name, "-o=json")
 			if err != nil {

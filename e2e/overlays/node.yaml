@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  namespace: topolvm-system
+  name: node
+spec:
+  template:
+    spec:
+      containers:
+        - name: topolvm-node
+          image: topolvm:dev
+          imagePullPolicy: Never
+          volumeMounts:
+            - name: device-dir
+              mountPath: /dev
+
+        - name: csi-registrar
+          image: quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
+          imagePullPolicy: "IfNotPresent"
+
+        - name: lvmetrics
+          image: topolvm:dev
+          imagePullPolicy: Never
+
+      volumes:
+        - name: lvmd-socket-dir
+          hostPath:
+            path: /tmp/topolvm
+            type: Directory
+        - name: device-dir
+          hostPath:
+            path: /dev
+            type: Directory

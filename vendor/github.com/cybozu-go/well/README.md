@@ -24,7 +24,7 @@ Features
 Requirements
 ------------
 
-Go 1.11 or better, though the code is expected to work with Go 1.7.
+Go 1.11 or later, though the code is expected to work with Go 1.7.
 
 Specifications
 --------------
