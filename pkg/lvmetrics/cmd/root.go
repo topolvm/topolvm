@@ -17,7 +17,8 @@ import (
 )
 
 var config struct {
-	socketName string
+	socketName  string
+	metricsAddr string
 }
 
 var rootCmd = &cobra.Command{
@@ -52,7 +53,6 @@ func subMain() error {
 	if err != nil {
 		return err
 	}
-	metricsAddr := viper.GetString("metrics-addr")
 
 	dialer := &net.Dialer{}
 	dialFunc := func(ctx context.Context, a string) (net.Conn, error) {
@@ -65,7 +65,7 @@ func subMain() error {
 	defer conn.Close()
 
 	var atomicMetricsData atomic.Value
-	server := lvmetrics.NewPromMetricsServer(metricsAddr, &atomicMetricsData)
+	server := lvmetrics.NewPromMetricsServer(config.metricsAddr, &atomicMetricsData)
 
 	well.Go(func(ctx context.Context) error {
 		return lvmetrics.WatchLVMd(ctx, conn, patcher, &atomicMetricsData)
@@ -92,8 +92,8 @@ func Execute() {
 
 func init() {
 	rootCmd.Flags().StringVar(&config.socketName, "socket", topolvm.DefaultLVMdSocket, "Unix domain socket name to connect lvmd")
+	rootCmd.Flags().StringVar(&config.metricsAddr, "metrics-addr", ":8080", "The listen address of metrics endpoint")
 	rootCmd.Flags().String("nodename", "", "The resource name of the running node")
-	rootCmd.Flags().String("metrics-addr", ":8080", "The listen address of metrics endpoint")
 	viper.BindEnv("nodename", "NODE_NAME")
 	viper.BindPFlag("nodename", rootCmd.Flags().Lookup("nodename"))
 }
