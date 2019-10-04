@@ -2,6 +2,7 @@ package lvmetrics
 
 import (
 	"bytes"
+	"errors"
 	"strconv"
 
 	"github.com/cybozu-go/log"
@@ -43,6 +44,9 @@ type NodeMetrics struct {
 func (n *NodeMetrics) Annotate(node *corev1.Node) {
 	node.Annotations[topolvm.CapacityKey] = strconv.FormatUint(n.FreeBytes, 10)
 }
+
+// ErrAnnotationNotFound is an error when the target annotation is not found
+var ErrAnnotationNotFound = errors.New("annotation not found")
 
 // NewNodePatcher creates NodePatcher
 func NewNodePatcher(nodeName string) (*NodePatcher, error) {
@@ -109,4 +113,24 @@ func (n *NodePatcher) addFinalizer(node *corev1.Node) {
 		}
 	}
 	node.Finalizers = append(node.Finalizers, topolvm.NodeFinalizer)
+}
+
+// GetCapacity gets available bytes of VG from the node annotation
+func (n *NodePatcher) GetCapacity() (uint64, error) {
+	node, err := n.k8sClient.CoreV1().Nodes().Get(n.nodeName, metav1.GetOptions{})
+	if err != nil {
+		return 0, err
+	}
+	if !node.DeletionTimestamp.IsZero() {
+		return 0, nil
+	}
+	capacityString, ok := node.GetAnnotations()[topolvm.CapacityKey]
+	if !ok {
+		return 0, ErrAnnotationNotFound
+	}
+	res, err := strconv.ParseUint(capacityString, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return res, nil
 }

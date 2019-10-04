@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"sync/atomic"
 
 	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/lvmetrics"
@@ -45,7 +46,7 @@ func subMain() error {
 
 	nodeName := viper.GetString("nodename")
 	if len(nodeName) == 0 {
-		return errors.New("Node name is not given")
+		return errors.New("node name is not given")
 	}
 	patcher, err := lvmetrics.NewNodePatcher(nodeName)
 	if err != nil {
@@ -62,8 +63,14 @@ func subMain() error {
 	}
 	defer conn.Close()
 
+	var atomicMetricsData atomic.Value
+	capacity, err := patcher.GetCapacity()
+	if err != nil && err != lvmetrics.ErrAnnotationNotFound {
+		return err
+	}
+	atomicMetricsData.Store(&lvmetrics.Metrics{capacity})
 	well.Go(func(ctx context.Context) error {
-		return lvmetrics.WatchLVMd(ctx, conn, patcher)
+		return lvmetrics.WatchLVMd(ctx, conn, patcher, &atomicMetricsData)
 	})
 	well.Stop()
 	err = well.Wait()
