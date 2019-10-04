@@ -69,7 +69,7 @@ func subMain() error {
 	if err != nil && err != lvmetrics.ErrAnnotationNotFound {
 		return err
 	}
-	atomicMetricsData.Store(&lvmetrics.Metrics{AvailableBytes: capacity})
+	atomicMetricsData.Store(lvmetrics.Metrics{AvailableBytes: capacity})
 	server := lvmetrics.NewPromMetricsServer(metricsAddr, &atomicMetricsData)
 
 	well.Go(func(ctx context.Context) error {

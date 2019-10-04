@@ -11,7 +11,7 @@ import (
 
 func TestCollector(t *testing.T) {
 	var storage atomic.Value
-	storage.Store(Metrics{100})
+	storage.Store(Metrics{AvailableBytes: 100})
 	collector := NewCollector(&storage)
 	const metadata = `
 	# HELP lvmetrics_vg_available_bytes LVM VG available bytes under lvmd management
@@ -26,7 +26,7 @@ func TestCollector(t *testing.T) {
 		t.Errorf("unexpected collecting result:\n%s", err)
 	}
 
-	storage.Store(Metrics{200})
+	storage.Store(Metrics{AvailableBytes: 200})
 
 	err = testutil.CollectAndCompare(collector, strings.NewReader(metadata+fmt.Sprintf(expected, 200)), "lvmetrics_vg_available_bytes")
 	if err != nil {
