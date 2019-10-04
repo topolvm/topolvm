@@ -10,13 +10,13 @@ const namespace = "lvmetrics"
 
 // Collector implements prometheus.Collector interface.
 type Collector struct {
-	storage        atomic.Value
+	storage        *atomic.Value
 	availableBytes prometheus.Gauge
 	lastUpdateDesc *prometheus.Desc
 }
 
 // NewCollector returns a new instance of Collector.
-func NewCollector(storage atomic.Value) *Collector {
+func NewCollector(storage *atomic.Value) *Collector {
 	desc := prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "last_update"), "", nil, nil)
 	bytes := prometheus.NewGauge(prometheus.GaugeOpts{
 		Namespace: namespace,
@@ -33,7 +33,7 @@ func (c Collector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.availableBytes.Desc()
 }
 
-// Collect sends metrics Collected from BMC via Redfish.
+// Collect sends metrics Collected from lvmetrics.
 func (c Collector) Collect(ch chan<- prometheus.Metric) {
 	v := c.storage.Load()
 	if v == nil {

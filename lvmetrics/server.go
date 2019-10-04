@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sync/atomic"
 
 	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/well"
@@ -17,17 +18,15 @@ func (l logger) Println(v ...interface{}) {
 	log.Error(fmt.Sprint(v...), nil)
 }
 
-func metricsHandler(ctx context.Context) error {
-	return nil
-}
-
 type PromMetricsServer struct {
-	addr      string
-	collector Collector
+	port      string
+	collector *Collector
 }
 
-func NewPromMetricsServer(addr string, collector Collector) PromMetricsServer {
-	return PromMetricsServer{addr, collector}
+// NewPromMetricsServer constructs metrics exporter of lvmetrics
+func NewPromMetricsServer(port string, storage *atomic.Value) PromMetricsServer {
+	collector := NewCollector(storage)
+	return PromMetricsServer{port, collector}
 }
 
 func (p PromMetricsServer) Run(ctx context.Context) error {
@@ -46,7 +45,7 @@ func (p PromMetricsServer) Run(ctx context.Context) error {
 	mux.Handle("/metrics", handler)
 	serv := &well.HTTPServer{
 		Server: &http.Server{
-			Addr:    p.addr,
+			Addr:    p.port,
 			Handler: mux,
 		},
 	}
