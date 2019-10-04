@@ -8,9 +8,10 @@ An overview of setup is as follows:
 3. Determine how [topolvm-scheduler][] to be run:
    - If your Kubernetes have control plane nodes, `topolvm-scheduler` should be deployed as DaemonSet.
    - Otherwise, `topolvm-scheduler` should be deployed as Deployment and Service.
-4. Apply manifests for TopoLVM.
-5. Configure `kube-scheduler` to use `topolvm-scheduler`.
-6. Prepare StorageClasses for TopoLVM.
+4. Add `topolvm.cybozu.com/webhook: ignore` label to system namespaces such as `kube-system`.
+5. Apply manifests for TopoLVM.
+6. Configure `kube-scheduler` to use `topolvm-scheduler`.
+7. Prepare StorageClasses for TopoLVM.
 
 Example configuration files are included in the following sub directories:
 
@@ -173,6 +174,18 @@ spec:
 This way, `topolvm-scheduler` is exposed by LoadBalancer service.
 
 Then edit `urlPrefix` in [./scheduler-config/scheduler-policy.cfg](./scheduler-config/scheduler-policy.cfg) to specify the LoadBalancer address.
+
+Protect system namespaces from TopoLVM webhook
+---------------------------------------------
+
+TopoLVM installs a mutating webhook for Pods.  It may prevent Kubernetes from bootstrapping
+if the webhook pods and the system pods are both missing.
+
+To workaround the problem, add a label to system namespaces such as `kube-system` as follows.
+
+```console
+$ kubectl label ns kube-system topolvm.cybozu.com/webhook=ignore
+```
 
 Apply manifests for TopoLVM
 ---------------------------
