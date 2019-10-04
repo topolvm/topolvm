@@ -50,6 +50,8 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: node
+      annotations:
+        prometheus.io/port: "8080"
     spec:
       serviceAccountName: node
       containers:
@@ -126,6 +128,8 @@ spec:
           volumeMounts:
           - name: lvmd-socket-dir
             mountPath: /run/topolvm
+          ports:
+            - containerPort: 8080
 
       volumes:
         - name: registration-dir

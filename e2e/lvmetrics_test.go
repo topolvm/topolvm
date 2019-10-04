@@ -91,7 +91,7 @@ func testLvmetrics() {
 	})
 
 	It("should expose Prometheus metrics by lvmetrics", func() {
-		stdout, stderr, err := kubectl("get", "pods", "-n=topolvm-system", "-l=app.kubernetes.io/name=csi-topolvm-node", "-o=json")
+		stdout, stderr, err := kubectl("get", "pods", "-n=topolvm-system", "-l=app.kubernetes.io/name=node", "-o=json")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		var pods corev1.PodList
