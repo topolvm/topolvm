@@ -18,6 +18,7 @@ func (l logger) Println(v ...interface{}) {
 	log.Error(fmt.Sprint(v...), nil)
 }
 
+// PromMetricsServer is the Prometheus exporter for lvmetrics
 type PromMetricsServer struct {
 	port      string
 	collector *Collector
@@ -29,6 +30,7 @@ func NewPromMetricsServer(port string, storage *atomic.Value) PromMetricsServer 
 	return PromMetricsServer{port, collector}
 }
 
+// Run starts the server
 func (p PromMetricsServer) Run(ctx context.Context) error {
 	registry := prometheus.NewRegistry()
 	err := registry.Register(p.collector)
