@@ -10,9 +10,9 @@ webhooks:
   - name: pod-hook.topolvm.cybozu.com
     namespaceSelector:
       matchExpressions:
-      - key: app.kubernetes.io/name
+      - key: topolvm.cybozu.com/webhook
         operator: NotIn
-        values: ["topolvm-system"]
+        values: ["ignore"]
     failurePolicy: Fail
     clientConfig:
       service:
@@ -27,9 +27,9 @@ webhooks:
   - name: pvc-hook.topolvm.cybozu.com
     namespaceSelector:
       matchExpressions:
-      - key: app.kubernetes.io/name
+      - key: topolvm.cybozu.com/webhook
         operator: NotIn
-        values: ["topolvm-system"]
+        values: ["ignore"]
     failurePolicy: Fail
     clientConfig:
       service:
