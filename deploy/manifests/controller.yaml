@@ -28,7 +28,7 @@ rules:
     resources: ["persistentvolumeclaims"]
     verbs: ["get", "list", "watch", "update", "delete"]
   - apiGroups: ["storage.k8s.io"]
-    resources: ["storageclasses"]
+    resources: ["storageclasses","csidrivers"]
     verbs: ["get", "list", "watch"]
   - apiGroups: ["topolvm.cybozu.com"]
     resources: ["logicalvolumes", "logicalvolumes/status"]
@@ -248,6 +248,10 @@ spec:
           command:
             - /topolvm-controller
             - --cert-dir=/certs
+          ports:
+            - containerPort: 9808
+              name: healthz
+              protocol: TCP
           readinessProbe:
             httpGet:
               path: /metrics
@@ -255,9 +259,12 @@ spec:
               scheme: HTTP
           livenessProbe:
             httpGet:
-              path: /metrics
-              port: 8080
-              scheme: HTTP
+              path: /healthz
+              port: healthz
+            failureThreshold: 3
+            initialDelaySeconds: 10
+            timeoutSeconds: 3
+            periodSeconds: 60
           volumeMounts:
             - name: socket-dir
               mountPath: /run/topolvm
@@ -285,6 +292,15 @@ spec:
             - --leader-election
             - --leader-election-namespace=topolvm-system
             - --leader-election-type=leases
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /run/topolvm
+
+        - name: liveness-probe
+          image: quay.io/cybozu/topolvm:0.1.2
+          command:
+            - /livenessprobe
+            - "--csi-address=/run/topolvm/csi-topolvm.sock"
           volumeMounts:
             - name: socket-dir
               mountPath: /run/topolvm
