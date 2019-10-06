@@ -73,7 +73,7 @@ spec:
       containers:
         - name: ubuntu
           image: quay.io/cybozu/ubuntu:18.04
-          command: ["pause"]
+          command: ["/usr/local/bin/pause"]
           volumeMounts:
           - mountPath: /test1
             name: test-sts-pvc

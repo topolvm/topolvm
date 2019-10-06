@@ -24,6 +24,14 @@ kubeadmConfigPatches:
   controllerManager:
     extraArgs:
       "v": "5"
+- |
+  apiVersion: "@KUBEADM_APIVERSION@"
+  kind: JoinConfiguration
+  metadata:
+    name: config
+  nodeRegistration:
+    kubeletExtraArgs:
+      read-only-port: "10255"
 # 1 control plane node and 3 workers
 nodes:
 # the control plane node config

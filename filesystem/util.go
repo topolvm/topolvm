@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"golang.org/x/sys/unix"
 )
@@ -92,6 +93,16 @@ func Unmount(device, target string) error {
 		return nil
 	}
 
+	for i := 0; i < 10; i++ {
+		switch err := unix.Unmount(target, unix.UMOUNT_NOFOLLOW); err {
+		case nil:
+			return nil
+		case unix.EBUSY:
+			time.Sleep(500 * time.Millisecond)
+		default:
+			return err
+		}
+	}
 	return unix.Unmount(target, unix.UMOUNT_NOFOLLOW)
 }
 

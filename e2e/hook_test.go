@@ -93,8 +93,9 @@ metadata:
     app.kubernetes.io/name: testhttpd
 spec:
   containers:
-    - name: testhttpd
-      image: quay.io/cybozu/testhttpd:0
+    - name: ubuntu
+      image: quay.io/cybozu/ubuntu:18.04
+      command: ["/usr/local/bin/pause"]
       volumeMounts:
         - mountPath: /test1
           name: my-volume1

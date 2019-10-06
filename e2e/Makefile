@@ -55,11 +55,13 @@ launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml /tmp/topolvm/scheduler
 
 shutdown-kind:
 	kind delete cluster || true
+	sleep 2
 	for d in $$($(SUDO) find /tmp/topolvm -type d); do \
 		if $(SUDO) mountpoint -q $$d; then \
 			$(SUDO) umount $$d; \
 		fi; \
 	done
+	for d in $$(mount | grep /lib/kubelet | cut -d ' ' -f 3); do $(SUDO) umount $$d; done
 
 start-lvmd:
 	mkdir -p build
@@ -101,6 +103,7 @@ test: topolvm.img $(SERVER_CERT_FILES)
 		GOFLAGS=$(GOFLAGS) \
 		KUBECONFIG=$(KUBECONFIG) \
 		E2ETEST=1 \
+		TEST_KUBERNETES_VERSION=$(TEST_KUBERNETES_VERSION) \
 		$(GINKGO) --failFast -v .
 
 $(CA_FILES): ./certs/csr.json

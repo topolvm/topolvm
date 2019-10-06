@@ -9,7 +9,7 @@ CSI node features
 
 `topolvm-node` implements following optional features:
 
-<!-- TODO: add `GET_VOLUME_STATS` and `EXPAND_VOLUME` when they are implemented. -->
+- [`GET_VOLUME_STATS`](https://github.com/container-storage-interface/spec/blob/master/spec.md#nodegetvolumestats)
 
 Dynamic volume provisioning
 ---------------------------
