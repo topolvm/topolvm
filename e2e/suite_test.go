@@ -97,7 +97,34 @@ spec:
 })
 
 var _ = Describe("TopoLVM", func() {
+	Context("hook", testHook)
+	Context("lvmetrics", testLvmetrics)
+	Context("scheduler", testScheduler)
+	Context("metrics", testMetrics)
+	Context("publish", testPublishVolume)
+	Context("e2e", testE2E)
+	Context("cleanup", testCleanup)
 	Context("CSI sanity", func() {
+		It("should add node selector to node DaemonSet for CSI test", func() {
+			_, _, err := kubectl("delete", "nodes", "kind-worker2")
+			Expect(err).ShouldNot(HaveOccurred())
+			Eventually(func() error {
+				var ds appsv1.DaemonSet
+				stdout, _, err := kubectl("get", "-n", "topolvm-system", "ds", "node", "-o", "json")
+				if err != nil {
+					return err
+				}
+				err = json.Unmarshal(stdout, &ds)
+				if err != nil {
+					return err
+				}
+				if ds.Status.NumberAvailable != 1 {
+					return errors.New("node daemonset is not ready")
+				}
+				return nil
+			})
+		})
+
 		sanity.GinkgoTest(&sanity.Config{
 			Address:           "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/csi-topolvm.sock",
 			ControllerAddress: "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/controller/csi-topolvm.sock",
@@ -106,40 +133,5 @@ var _ = Describe("TopoLVM", func() {
 			TestVolumeSize:    1073741824,
 			IDGen:             &sanity.DefaultIDGenerator{},
 		})
-
-		It("should remove node selector from node DaemonSet after CSI test", func() {
-			var ds appsv1.DaemonSet
-			stdout, _, err := kubectl("get", "-n", "topolvm-system", "ds", "node", "-o", "json")
-			Expect(err).ShouldNot(HaveOccurred())
-			err = json.Unmarshal(stdout, &ds)
-			Expect(err).ShouldNot(HaveOccurred())
-			ds.Spec.Template.Spec.NodeSelector = nil
-			data, _ := json.Marshal(ds)
-			_, _, err = kubectlWithInput(data, "apply", "-f", "-")
-			Expect(err).ShouldNot(HaveOccurred())
-
-			Eventually(func() error {
-				var ds appsv1.DaemonSet
-				stdout, _, err := kubectl("get", "-n", "topolvm-system", "ds", "node", "-o", "json")
-				if err != nil {
-					return nil
-				}
-				err = json.Unmarshal(stdout, &ds)
-				if err != nil {
-					return nil
-				}
-				if ds.Status.NumberAvailable != 3 {
-					return errors.New("node daemonset is not ready")
-				}
-				return nil
-			})
-		})
 	})
-	Context("hook", testHook)
-	Context("lvmetrics", testLvmetrics)
-	Context("scheduler", testScheduler)
-	Context("metrics", testMetrics)
-	Context("publish", testPublishVolume)
-	Context("e2e", testE2E)
-	Context("cleanup", testCleanup)
 })
