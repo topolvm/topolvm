@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"sync/atomic"
 
 	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/lvmetrics"
@@ -16,7 +17,8 @@ import (
 )
 
 var config struct {
-	socketName string
+	socketName  string
+	metricsAddr string
 }
 
 var rootCmd = &cobra.Command{
@@ -45,7 +47,7 @@ func subMain() error {
 
 	nodeName := viper.GetString("nodename")
 	if len(nodeName) == 0 {
-		return errors.New("Node name is not given")
+		return errors.New("node name is not given")
 	}
 	patcher, err := lvmetrics.NewNodePatcher(nodeName)
 	if err != nil {
@@ -62,9 +64,14 @@ func subMain() error {
 	}
 	defer conn.Close()
 
+	var atomicMetricsData atomic.Value
+	server := lvmetrics.NewPromMetricsServer(config.metricsAddr, &atomicMetricsData)
+
 	well.Go(func(ctx context.Context) error {
-		return lvmetrics.WatchLVMd(ctx, conn, patcher)
+		return lvmetrics.WatchLVMd(ctx, conn, patcher, &atomicMetricsData)
 	})
+	well.Go(server.Run)
+
 	well.Stop()
 	err = well.Wait()
 	if err != nil && !well.IsSignaled(err) {
@@ -85,6 +92,7 @@ func Execute() {
 
 func init() {
 	rootCmd.Flags().StringVar(&config.socketName, "socket", topolvm.DefaultLVMdSocket, "Unix domain socket name to connect lvmd")
+	rootCmd.Flags().StringVar(&config.metricsAddr, "metrics-addr", ":8080", "The listen address of metrics endpoint")
 	rootCmd.Flags().String("nodename", "", "The resource name of the running node")
 	viper.BindEnv("nodename", "NODE_NAME")
 	viper.BindPFlag("nodename", rootCmd.Flags().Lookup("nodename"))

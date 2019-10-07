@@ -11,8 +11,8 @@ The value is the free storage space size in bytes.
 
 `lvmetrics` obtains the free storage space size by watching [`lvmd`](./lvmd.md).
 
-Finalier
---------
+Finalizer
+---------
 
 `lvmetrics` adds `topolvm.cybozu.com/node` finalizer to `Node`.
 The finalizer will be processed by [`topolvm-controller`](./topolvm-controller.md)
@@ -20,10 +20,11 @@ The finalizer will be processed by [`topolvm-controller`](./topolvm-controller.m
 Command-line flags
 ------------------
 
-| Name       | Default                  | Description                   |
-| ---------- | ------------------------ | ----------------------------- |
-| `nodename` |                          | `Node` resource name.         |
-| `socket`   | `/run/topolvm/lvmd.sock` | UNIX domain socket of `lvmd`. |
+| Name           | Default                  | Description                        |
+| ----------     | ------------------------ | -----------------------------      |
+| `nodename`     |                          | `Node` resource name.              |
+| `socket`       | `/run/topolvm/lvmd.sock` | UNIX domain socket of `lvmd`.      |
+| `metrics-addr` | `:8080`                  | The listen address of metrics API. |
 
 Environment variables
 ---------------------
@@ -31,3 +32,13 @@ Environment variables
 - `NODE_NAME`: `Node` resource name.
 
 If both `NODE_NAME` and `nodename` flag are given, `nodename` flag is preceded.
+
+
+Prometheus metrics
+------------------
+
+`lvmetrics` exposes Prometheus metrics at `/metrics` endpoint.
+
+| Name                           | Type                     | Description                                                                                         |
+| ----------                     | ------------------------ | -----------------------------                                                                       |
+| `topolvm_volumegroup_available_bytes` | Gauge                    | available bytes of LVM VG mangaged by lvmd. This value is same with node annotation by lvmetrics |
