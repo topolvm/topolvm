@@ -2,6 +2,7 @@ package driver
 
 import (
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 	"sync"
@@ -259,7 +260,67 @@ func (s *nodeService) nodeUnpublishBlockVolume(req *csi.NodeUnpublishVolumeReque
 }
 
 func (s *nodeService) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "NodeGetVolumeStats not implemented")
+	volID := req.GetVolumeId()
+	p := req.GetVolumePath()
+	nodeLogger.Info("NodeGetVolumeStats is called", "volume_id", volID, "volume_path", p)
+	if len(volID) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "no volume_id is provided")
+	}
+	if len(p) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "no volume_path is provided")
+	}
+
+	var st unix.Stat_t
+	switch err := unix.Stat(p, &st); err {
+	case unix.ENOENT:
+		return nil, status.Error(codes.NotFound, "Volume is not found at "+p)
+	case nil:
+	default:
+		return nil, status.Errorf(codes.Internal, "stat on %s was failed: %v", p, err)
+	}
+
+	if (st.Mode & unix.S_IFMT) == unix.S_IFBLK {
+		f, err := os.Open(p)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "open on %s was failed: %v", p, err)
+		}
+		defer f.Close()
+		pos, err := f.Seek(0, io.SeekEnd)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "seek on %s was failed: %v", p, err)
+		}
+		return &csi.NodeGetVolumeStatsResponse{
+			Usage: []*csi.VolumeUsage{{Total: pos, Unit: csi.VolumeUsage_BYTES}},
+		}, nil
+	}
+
+	if st.Mode&unix.S_IFDIR == 0 {
+		return nil, status.Errorf(codes.Internal, "invalid mode bits for %s: %d", p, st.Mode)
+	}
+
+	var sfs unix.Statfs_t
+	if err := unix.Statfs(p, &sfs); err != nil {
+		return nil, status.Errorf(codes.Internal, "statvfs on %s was failed: %v", p, err)
+	}
+
+	var usage []*csi.VolumeUsage
+	if sfs.Blocks > 0 {
+		usage = append(usage, &csi.VolumeUsage{
+			Unit:      csi.VolumeUsage_BYTES,
+			Total:     int64(sfs.Blocks) * sfs.Frsize,
+			Used:      int64(sfs.Blocks-sfs.Bfree) * sfs.Frsize,
+			Available: int64(sfs.Bavail) * sfs.Frsize,
+		})
+	}
+	if sfs.Files > 0 {
+		usage = append(usage, &csi.VolumeUsage{
+			Unit:      csi.VolumeUsage_INODES,
+			Total:     int64(sfs.Files),
+			Used:      int64(sfs.Files - sfs.Ffree),
+			Available: int64(sfs.Ffree),
+		})
+	}
+	return &csi.NodeGetVolumeStatsResponse{Usage: usage}, nil
 }
 
 func (s *nodeService) NodeExpandVolume(context.Context, *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
@@ -270,10 +331,9 @@ func (s *nodeService) NodeGetCapabilities(context.Context, *csi.NodeGetCapabilit
 	return &csi.NodeGetCapabilitiesResponse{
 		Capabilities: []*csi.NodeServiceCapability{
 			{
-				// TODO: add capabilities when we implement volume expansion
 				Type: &csi.NodeServiceCapability_Rpc{
 					Rpc: &csi.NodeServiceCapability_RPC{
-						Type: csi.NodeServiceCapability_RPC_UNKNOWN,
+						Type: csi.NodeServiceCapability_RPC_GET_VOLUME_STATS,
 					},
 				},
 			},

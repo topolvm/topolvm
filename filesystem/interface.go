@@ -61,7 +61,7 @@ func New(fsType, device string) (Filesystem, error) {
 	if err := unix.Stat(p, &st); err != nil {
 		return nil, err
 	}
-	if (st.Mode & unix.S_IFBLK) == 0 {
+	if (st.Mode & unix.S_IFMT) != unix.S_IFBLK {
 		return nil, ErrNonBlockDevice
 	}
 
