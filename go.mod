@@ -24,7 +24,7 @@ require (
 	github.com/jmhodges/clock v0.0.0-20160418191101-880ee4c33548 // indirect
 	github.com/jmoiron/sqlx v1.2.0 // indirect
 	github.com/kisielk/sqlstruct v0.0.0-20150923205031-648daed35d49 // indirect
-	github.com/kubernetes-csi/csi-test v2.0.1+incompatible
+	github.com/kubernetes-csi/csi-test v2.2.0+incompatible
 	github.com/lib/pq v1.1.1 // indirect
 	github.com/mattn/go-sqlite3 v1.10.0 // indirect
 	github.com/onsi/ginkgo v1.6.0

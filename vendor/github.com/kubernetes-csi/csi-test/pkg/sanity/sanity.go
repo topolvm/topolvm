@@ -65,7 +65,10 @@ type Config struct {
 	ControllerAddress string
 	SecretsFile       string
 
-	TestVolumeSize            int64
+	TestVolumeSize int64
+
+	// Target size for ExpandVolume requests. If not specified it defaults to TestVolumeSize + 1 GB
+	TestVolumeExpandSize      int64
 	TestVolumeParametersFile  string
 	TestVolumeParameters      map[string]string
 	TestNodeVolumeAttachLimit bool
@@ -117,6 +120,11 @@ type Config struct {
 	RemoveStagingPathCmd string
 	// Timeout for the executed commands for path removal.
 	RemovePathCmdTimeout int
+
+	// IDGen is an optional interface for callers to provide a generator for
+	// valid Volume and Node IDs. Defaults to DefaultIDGenerator which generates
+	// generic string IDs
+	IDGen IDGenerator
 }
 
 // SanityContext holds the variables that each test can depend on. It
@@ -148,6 +156,10 @@ func Test(t *testing.T, reqConfig *Config) {
 		if err != nil {
 			panic(fmt.Sprintf("error unmarshaling yaml: %v", err))
 		}
+	}
+
+	if reqConfig.IDGen == nil {
+		reqConfig.IDGen = &DefaultIDGenerator{}
 	}
 
 	sc := &SanityContext{

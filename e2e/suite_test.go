@@ -104,6 +104,7 @@ var _ = Describe("TopoLVM", func() {
 			TargetPath:        "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/mountdir",
 			StagingPath:       "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/stagingdir",
 			TestVolumeSize:    1073741824,
+			IDGen:             &sanity.DefaultIDGenerator{},
 		})
 
 		It("should remove node selector from node DaemonSet after CSI test", func() {
