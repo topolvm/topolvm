@@ -42,6 +42,7 @@ func testScheduler() {
 
 			return errors.New("topolvm-scheduler is not yet ready")
 		}).Should(Succeed())
+		kubectl("delete", "namespaces", ns)
 	})
 
 	It("should schedule pod if requested capacity is sufficient", func() {
@@ -87,6 +88,7 @@ spec:
 
 			return fmt.Errorf("testhttpd is not yet ready: %v", pod.Status)
 		}).Should(Succeed())
+		kubectl("delete", "namespaces", ns)
 	})
 
 	It("should not schedule pod if requested capacity is not sufficient", func() {
@@ -132,6 +134,6 @@ spec:
 
 			return errors.New("testhttpd should not be scheduled")
 		}).Should(Succeed())
+		kubectl("delete", "namespaces", ns)
 	})
-
 }

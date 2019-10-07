@@ -1,4 +1,4 @@
-package topolvm
+package runners
 
 import (
 	"net"
@@ -14,7 +14,6 @@ type gRPCServerRunner struct {
 	leaderElection bool
 }
 
-var _ manager.Runnable = gRPCServerRunner{}
 var _ manager.LeaderElectionRunnable = gRPCServerRunner{}
 
 // NewGRPCRunner creates controller-runtime's manager.Runnable for a gRPC server.

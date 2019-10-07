@@ -4,8 +4,8 @@ CURL=curl -Lsf
 KUBEBUILDER_VERSION = 2.0.1
 CTRLTOOLS_VERSION = 0.2.1
 
-GOOS = $(shell go env GOOS)
-GOARCH = $(shell go env GOARCH)
+GOOS := $(shell go env GOOS)
+GOARCH := $(shell go env GOARCH)
 GOFLAGS = -mod=vendor
 export GOFLAGS
 
@@ -24,10 +24,12 @@ BUILD_TARGET=hypertopolvm
 EXTERNAL_PROVISIONER_VERSION=1.3.0
 NODE_DRIVER_REGISTRAR_VERSION=1.1.0
 EXTERNAL_ATTACHER_VERSION=1.2.1
+LIVENESSPROBE_VERSION = 1.1.0
 CSI_SIDECARS = \
 	external-provisioner \
 	node-driver-registrar \
-	external-attacher
+	external-attacher \
+	livenessprobe
 
 all: build
 
@@ -63,6 +65,17 @@ external-attacher:
 		$(GOPATH)/src/github.com/kubernetes-csi/external-attacher/
 	(cd $(GOPATH)/src/github.com/kubernetes-csi/external-attacher/; GO111MODULE=off make)
 	cp -f $(GOPATH)/src/github.com/kubernetes-csi/external-attacher/bin/csi-attacher ./build/
+
+livenessprobe:
+	mkdir -p build
+	mkdir -p $(GOPATH)/src/github.com/kubernetes-csi
+	rm -rf $(GOPATH)/src/github.com/kubernetes-csi/livenessprobe
+	curl -sSLf https://github.com/kubernetes-csi/livenessprobe/archive/v$(LIVENESSPROBE_VERSION).tar.gz | \
+        tar zxf - -C $(GOPATH)/src/github.com/kubernetes-csi/
+	mv $(GOPATH)/src/github.com/kubernetes-csi/livenessprobe-$(LIVENESSPROBE_VERSION) \
+		$(GOPATH)/src/github.com/kubernetes-csi/livenessprobe/
+	(cd $(GOPATH)/src/github.com/kubernetes-csi/livenessprobe/; GO111MODULE=off make)
+	cp -f $(GOPATH)/src/github.com/kubernetes-csi/livenessprobe/bin/livenessprobe ./build/
 
 csi.proto:
 	$(CURL) -o $@ https://raw.githubusercontent.com/container-storage-interface/spec/v$(CSI_VERSION)/csi.proto
@@ -135,4 +148,4 @@ setup:
 	$(SUDO) chmod a+x /usr/local/kubebuilder/bin/kustomize
 	cd /tmp; GO111MODULE=on GOFLAGS= go get sigs.k8s.io/controller-tools/cmd/controller-gen@v$(CTRLTOOLS_VERSION)
 
-.PHONY: all test manifests generate build setup
+.PHONY: all test manifests generate build setup $(CSI_SIDECARS)

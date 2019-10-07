@@ -241,6 +241,7 @@ spec:
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(recreatedPVC.ObjectMeta.UID).ShouldNot(Equal(targetPVC.ObjectMeta.UID))
 	})
+
 	It("should clean up stale LogicalVolume", func() {
 		// The deletion timestamp of logicalvolume is checked and cleaned up periodically by topolvm-controller.
 		// Thus logicalvolume resources connected to the deleted node should be cleaned up after all.

@@ -5,15 +5,20 @@ import (
 	"errors"
 	"net"
 	"os"
+	"time"
 
 	"github.com/cybozu-go/topolvm"
 	topolvmv1 "github.com/cybozu-go/topolvm/api/v1"
 	"github.com/cybozu-go/topolvm/controllers"
 	"github.com/cybozu-go/topolvm/csi"
 	"github.com/cybozu-go/topolvm/driver"
+	"github.com/cybozu-go/topolvm/lvmd/proto"
+	"github.com/cybozu-go/topolvm/runners"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
+	storagev1beta1 "k8s.io/api/storage/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	// +kubebuilder:scaffold:imports
@@ -25,7 +30,13 @@ var (
 )
 
 func init() {
-	topolvmv1.AddToScheme(scheme)
+	if err := topolvmv1.AddToScheme(scheme); err != nil {
+		panic(err)
+	}
+	if err := storagev1beta1.AddToScheme(scheme); err != nil {
+		panic(err)
+	}
+
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -69,17 +80,35 @@ func subMain() error {
 	}
 	// +kubebuilder:scaffold:builder
 
+	// Add health checker to manager
+	vgs := proto.NewVGServiceClient(conn)
+	check := func() error {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		if _, err := vgs.GetFreeBytes(ctx, &proto.Empty{}); err != nil {
+			return err
+		}
+
+		var drv storagev1beta1.CSIDriver
+		return mgr.GetAPIReader().Get(ctx, types.NamespacedName{Name: topolvm.PluginName}, &drv)
+	}
+	checker := runners.NewChecker(check, 1*time.Minute)
+	if err := mgr.Add(checker); err != nil {
+		return err
+	}
+
 	// Add gRPC server to manager.
 	if err := os.MkdirAll(driver.DeviceDirectory, 0755); err != nil {
 		return err
 	}
 	grpcServer := grpc.NewServer()
-	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityService())
+	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityService(checker.Ready))
 	// grpc.ClientConn can be shared with multiple stubs/services.
 	// https://github.com/grpc/grpc-go/tree/master/examples/features/multiplex
 	csi.RegisterNodeServer(grpcServer, driver.NewNodeService(nodename, conn))
 
-	err = mgr.Add(topolvm.NewGRPCRunner(grpcServer, config.csiSocket, false))
+	err = mgr.Add(runners.NewGRPCRunner(grpcServer, config.csiSocket, false))
 	if err != nil {
 		return err
 	}

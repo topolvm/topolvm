@@ -18,6 +18,10 @@ spec:
           image: quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
           imagePullPolicy: "IfNotPresent"
 
+        - name: liveness-probe
+          image: quay.io/k8scsi/livenessprobe:v1.1.0
+          imagePullPolicy: "IfNotPresent"
+
         - name: lvmetrics
           image: topolvm:dev
           imagePullPolicy: Never

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"time"
@@ -12,10 +13,13 @@ import (
 	"github.com/cybozu-go/topolvm/driver"
 	"github.com/cybozu-go/topolvm/driver/k8s"
 	"github.com/cybozu-go/topolvm/hook"
+	"github.com/cybozu-go/topolvm/runners"
 	"google.golang.org/grpc"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
+	storagev1beta1 "k8s.io/api/storage/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -140,18 +144,31 @@ func subMain() error {
 		return err
 	}
 
+	// Add health checker to manager
+	check := func() error {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		var drv storagev1beta1.CSIDriver
+		return mgr.GetAPIReader().Get(ctx, types.NamespacedName{Name: topolvm.PluginName}, &drv)
+	}
+	checker := runners.NewChecker(check, 1*time.Minute)
+	if err := mgr.Add(checker); err != nil {
+		return err
+	}
+
 	// Add gRPC server to manager.
 	s, err := k8s.NewLogicalVolumeService(mgr)
 	if err != nil {
 		return err
 	}
 	grpcServer := grpc.NewServer()
-	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityService())
+	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityService(checker.Ready))
 	csi.RegisterControllerServer(grpcServer, driver.NewControllerService(s))
 
 	// gRPC service itself should run even when the manager is *not* a leader
 	// because CSI sidecar containers choose a leader.
-	err = mgr.Add(topolvm.NewGRPCRunner(grpcServer, config.csiSocket, false))
+	err = mgr.Add(runners.NewGRPCRunner(grpcServer, config.csiSocket, false))
 	if err != nil {
 		return err
 	}

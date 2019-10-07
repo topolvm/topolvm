@@ -48,18 +48,9 @@ jobs:
       - run: make setup SUDO=""
       - run: make test
       - run: make build
-      - run:
-          command: |
-            mkdir /tmp/workspace
-            cp -a ./build/* /tmp/workspace
       - persist_to_workspace:
-          root: /tmp/workspace
-          paths:
-            - csi-attacher
-            - csi-node-driver-registrar
-            - csi-provisioner
-            - hypertopolvm
-            - lvmd
+          root: build
+          paths: ["*"]
   image:
     docker:
       - image: docker:stable
