@@ -29,6 +29,26 @@ If its response is succeeded, `topolvm-node` set `logicalvolume.status.volumeID`
 When a `LogicalVolume` resource is being deleted, `topolvm-node` sends 
 a `RemoveLV` request to `lvmd`.
 
+Prometheus metrics
+------------------
+
+`topolvm-node` exposes following Prometheus metrics at `/metrics` endpoint.
+
+| Name                                  | Type  | Description                                 |
+| ------------------------------------- | ----- | ------------------------------------------- |
+| `topolvm_volumegroup_available_bytes` | Gauge | available bytes of LVM VG mangaged by lvmd. |
+
+Node resource
+-------------
+
+`topolvm-node` adds `topolvm.cybozu.com/capacity` annotation to the
+corresponding `Node` resource of the running node.  The value is the
+free storage capacity reported by `lvmd` in bytes.
+
+It also adds `topolvm.cybozu.com/node` finalizer to the `Node`.
+The finalizer will be processed by [`topolvm-controller`](./topolvm-controller.md)
+to clean up PVCs and associated Pods bound to the node.
+
 Command-line flags
 ------------------
 
