@@ -2,7 +2,6 @@ package lvmetrics
 
 import (
 	"bytes"
-	"errors"
 	"strconv"
 
 	"github.com/cybozu-go/log"
@@ -44,9 +43,6 @@ type NodeMetrics struct {
 func (n *NodeMetrics) Annotate(node *corev1.Node) {
 	node.Annotations[topolvm.CapacityKey] = strconv.FormatUint(n.FreeBytes, 10)
 }
-
-// ErrAnnotationNotFound is an error when the target annotation is not found
-var ErrAnnotationNotFound = errors.New("annotation not found")
 
 // NewNodePatcher creates NodePatcher
 func NewNodePatcher(nodeName string) (*NodePatcher, error) {

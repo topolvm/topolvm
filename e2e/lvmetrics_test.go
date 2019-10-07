@@ -106,7 +106,7 @@ func testLvmetrics() {
 		Expect(err).ShouldNot(HaveOccurred())
 		found := false
 		for _, family := range metricFamilies {
-			if family.GetName() != "lvmetrics_vg_available_bytes" {
+			if family.GetName() != "topolvm_volumegroup_available_bytes" {
 				continue
 			}
 			found = true

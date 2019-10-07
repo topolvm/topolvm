@@ -6,7 +6,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-const namespace = "lvmetrics"
+const namespace = "topolvm"
 
 // Collector implements prometheus.Collector interface.
 type Collector struct {
@@ -20,7 +20,7 @@ func NewCollector(storage *atomic.Value) *Collector {
 	desc := prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "last_update"), "", nil, nil)
 	bytes := prometheus.NewGauge(prometheus.GaugeOpts{
 		Namespace: namespace,
-		Subsystem: "vg",
+		Subsystem: "volumegroup",
 		Name:      "available_bytes",
 		Help:      "LVM VG available bytes under lvmd management",
 	})
