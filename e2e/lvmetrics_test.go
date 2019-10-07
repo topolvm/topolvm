@@ -125,7 +125,7 @@ func testLvmetrics() {
 
 			val := family.Metric[0].Gauge.Value
 			Expect(val).ShouldNot(BeNil())
-			Expect(val).Should(Equal(expected))
+			Expect(*val).Should(Equal(expected))
 			break
 		}
 		Expect(found).Should(BeTrue())
