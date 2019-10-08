@@ -20,7 +20,8 @@ run: $(SERVER_CERT_FILES)
 	$(MAKE) start-lvmd
 	$(MAKE) launch-kind
 	$(KUBECTL) apply -k .
-	$(KUBECTL) wait --for=condition=Ready -n topolvm-system deployments/controller
+	$(KUBECTL) wait --for=condition=available --timeout=60s -n topolvm-system deployments/controller
+	$(KUBECTL) apply -f podpvc.yaml
 
 setup: $(KUBECTL)
 	cd /tmp; env GOFLAGS= GO111MODULE=on go get sigs.k8s.io/kind@v$(KIND_VERSION)
