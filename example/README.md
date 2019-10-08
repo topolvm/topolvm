@@ -15,6 +15,7 @@ $ make run
 An LVM logical volume will be created and bound with a PersistentVolumeClaim as follows:
 
 ```console
+$ export KUBECONFIG=$(kind get kubeconfig-path)
 $ kubectl get pvc
 % NAME          STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS          AGE
 % topolvm-pvc   Bound    pvc-05df10d2-b7ee-11e9-8da2-0242ac110002   1Gi        RWO            topolvm-provisioner   23m
@@ -27,4 +28,8 @@ $ sudo lvscan
 % ACTIVE '/dev/myvg/05e33db5-b7ee-11e9-8da2-0242ac110002' [1.00 GiB] inherit
 ```
 
-To stop the demonstration environment, run `make clean`.
+To stop the demonstration environment, run:
+
+```console
+$ make clean
+```

@@ -15,11 +15,11 @@ kind: Pod
 metadata:
   name: my-pod
   labels:
-    app.kubernetes.io/name: testhttpd
+    app.kubernetes.io/name: my-pod
 spec:
   containers:
   - name: ubuntu
-    image: ubuntu:18.04
+    image: quay.io/cybozu/ubuntu:18.04
     command: ["/usr/local/bin/pause"]
     volumeMounts:
     - mountPath: /test1
