@@ -41,13 +41,13 @@ Bump version
     ```
 
 2. Checkout `master` branch.
-3. Make a branch to release, for example by `git neco dev v$VERSION`
+3. Make a branch to release, for example by `git neco dev prepare-$VERSION`
 4. Update `version.go`.
 5. Update image versions in documents.
 
     ```console
     $ sed -r -i "s/:[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/:${VERSION}/g" \
-        example/*.template deploy/README.md deploy/manifests/*.yaml
+        deploy/README.md deploy/manifests/*.yaml
     ```
 
 6. Edit `CHANGELOG.md` for the new version ([example][]).
