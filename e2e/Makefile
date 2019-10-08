@@ -32,7 +32,6 @@ topolvm.img: $(GO_FILES)
 	rm -rf tmpbin
 	mkdir -p tmpbin
 	CGO_ENABLED=0 go build -o tmpbin/hypertopolvm ../pkg/hypertopolvm
-	ln -s hypertopolvm ./tmpbin/lvmetrics
 	ln -s hypertopolvm ./tmpbin/topolvm-scheduler
 	ln -s hypertopolvm ./tmpbin/topolvm-node
 	ln -s hypertopolvm ./tmpbin/topolvm-controller

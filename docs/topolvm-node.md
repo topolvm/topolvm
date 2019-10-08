@@ -32,11 +32,14 @@ a `RemoveLV` request to `lvmd`.
 Prometheus metrics
 ------------------
 
-`topolvm-node` exposes following Prometheus metrics at `/metrics` endpoint.
+### `topolvm_volumegroup_available_bytes`
 
-| Name                                  | Type  | Description                                 |
-| ------------------------------------- | ----- | ------------------------------------------- |
-| `topolvm_volumegroup_available_bytes` | Gauge | available bytes of LVM VG mangaged by lvmd. |
+`topolvm_volumegroup_available_bytes` is a Gauge that indicates the available
+free space in the LVM volume group in bytes.
+
+| Label  | Description            |
+| ------ | ---------------------- |
+| `node` | The node resource name |
 
 Node resource
 -------------
@@ -56,7 +59,7 @@ Command-line flags
 | -------------- | ------ | ------------------------------- | -------------------------------------- |
 | `csi-socket`   | string | `/run/topolvm/csi-topolvm.sock` | UNIX domain socket of `topolvm-node`.  |
 | `lvmd-socket`  | string | `/run/topolvm/lvmd.sock`        | UNIX domain socket of `lvmd` service.  |
-| `metrics-addr` | string | `:28080`                        | Bind address for the metrics endpoint. |
+| `metrics-addr` | string | `:8080`                         | Bind address for the metrics endpoint. |
 | `nodename`     | string |                                 | `Node` resource name.                  |
 
 Environment variables

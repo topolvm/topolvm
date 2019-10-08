@@ -98,7 +98,7 @@ spec:
 
 var _ = Describe("TopoLVM", func() {
 	Context("hook", testHook)
-	Context("lvmetrics", testLvmetrics)
+	Context("topolvm-node", testNode)
 	Context("scheduler", testScheduler)
 	Context("metrics", testMetrics)
 	Context("publish", testPublishVolume)

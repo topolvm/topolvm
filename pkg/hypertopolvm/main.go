@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 
 	lvmd "github.com/cybozu-go/topolvm/pkg/lvmd/cmd"
-	lvmetrics "github.com/cybozu-go/topolvm/pkg/lvmetrics/cmd"
 	controller "github.com/cybozu-go/topolvm/pkg/topolvm-controller/cmd"
 	node "github.com/cybozu-go/topolvm/pkg/topolvm-node/cmd"
 	scheduler "github.com/cybozu-go/topolvm/pkg/topolvm-scheduler/cmd"
@@ -20,7 +19,6 @@ COMMAND:
     topolvm-node:        TopoLVM CSI node service.
     topolvm-scheduler:   Scheduler extender.
     lvmd:                gRPC service to manage LVM volumes.
-    lvmetrics:           Sidecar container to expose storage metrics as Node annotations.
 `)
 }
 
@@ -38,8 +36,6 @@ func main() {
 	switch name {
 	case "lvmd":
 		lvmd.Execute()
-	case "lvmetrics":
-		lvmetrics.Execute()
 	case "topolvm-scheduler":
 		scheduler.Execute()
 	case "topolvm-node":
