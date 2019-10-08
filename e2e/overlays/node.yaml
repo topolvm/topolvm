@@ -6,8 +6,6 @@ metadata:
 spec:
   template:
     spec:
-      nodeSelector:
-        kubernetes.io/hostname: kind-worker
       containers:
         - name: topolvm-node
           image: topolvm:dev
@@ -23,10 +21,6 @@ spec:
         - name: liveness-probe
           image: quay.io/k8scsi/livenessprobe:v1.1.0
           imagePullPolicy: "IfNotPresent"
-
-        - name: lvmetrics
-          image: topolvm:dev
-          imagePullPolicy: Never
 
       volumes:
         - name: lvmd-socket-dir

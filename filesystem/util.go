@@ -86,24 +86,23 @@ func Mount(device, target, fsType, opts string, readonly bool) error {
 
 // Unmount unmounts the device if it is mounted.
 func Unmount(device, target string) error {
-	switch mounted, err := isMounted(device, target); {
-	case err != nil:
-		return err
-	case !mounted:
-		return nil
-	}
-
 	for i := 0; i < 10; i++ {
-		switch err := unix.Unmount(target, unix.UMOUNT_NOFOLLOW); err {
-		case nil:
+		switch mounted, err := isMounted(device, target); {
+		case err != nil:
+			return err
+		case !mounted:
 			return nil
-		case unix.EBUSY:
+		}
+
+		switch err := unix.Unmount(target, unix.UMOUNT_NOFOLLOW); err {
+		case nil, unix.EBUSY:
+			// umount(2) can lie that it could have unmounted, so recheck.
 			time.Sleep(500 * time.Millisecond)
 		default:
 			return err
 		}
 	}
-	return unix.Unmount(target, unix.UMOUNT_NOFOLLOW)
+	return unix.EBUSY
 }
 
 // DetectFilesystem returns filesystem type if device has a filesystem.

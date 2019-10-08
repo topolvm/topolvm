@@ -47,7 +47,6 @@ var _ = DescribeSanity("Identity Service", func(sc *SanityContext) {
 			Expect(res).NotTo(BeNil())
 
 			By("checking successful response")
-			Expect(res.GetCapabilities()).NotTo(BeNil())
 			for _, cap := range res.GetCapabilities() {
 				switch cap.GetType().(type) {
 				case *csi.PluginCapability_Service_:

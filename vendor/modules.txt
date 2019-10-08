@@ -165,7 +165,7 @@ github.com/jmoiron/sqlx/reflectx
 github.com/json-iterator/go
 # github.com/kisielk/sqlstruct v0.0.0-20150923205031-648daed35d49
 github.com/kisielk/sqlstruct
-# github.com/kubernetes-csi/csi-test v2.0.1+incompatible
+# github.com/kubernetes-csi/csi-test v2.2.0+incompatible
 github.com/kubernetes-csi/csi-test/pkg/sanity
 github.com/kubernetes-csi/csi-test/utils
 # github.com/lib/pq v1.1.1

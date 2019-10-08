@@ -11,7 +11,6 @@ RUN apt-get update \
 
 COPY build/hypertopolvm /hypertopolvm
 RUN ln -s hypertopolvm /lvmd \
-    && ln -s hypertopolvm /lvmetrics \
     && ln -s hypertopolvm /topolvm-scheduler \
     && ln -s hypertopolvm /topolvm-node \
     && ln -s hypertopolvm /topolvm-controller

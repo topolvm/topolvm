@@ -10,7 +10,8 @@ TopoLVM
 TopoLVM is a [CSI][] plugin using LVM for Kubernetes.
 It can be considered as a specific implementation of [local persistent volumes](https://kubernetes.io/docs/concepts/storage/volumes/#local) using CSI and LVM.
 
-**Project Status**: Testing for production
+- **Project Status**: Testing for production
+- **Conformed CSI version**: [1.1.0](https://github.com/container-storage-interface/spec/blob/v1.1.0/spec.md)
 
 Supported environments
 ----------------------
@@ -32,6 +33,7 @@ Features
 - [Raw block volume](https://kubernetes-csi.github.io/docs/raw-block.html): Volumes are available as block devices inside containers.
 - [Topology](https://kubernetes-csi.github.io/docs/topology.html): TopoLVM uses CSI topology feature to schedule Pod to Node where LVM volume exist.
 - Extended scheduler: TopoLVM extends the general Pod scheduler to prioritize Nodes having larger storage capacity.
+- Volume metrics: Usage stats are exported as Prometheus metrics from `kubelet`.
 
 ### Planned features
 
@@ -49,7 +51,6 @@ This repository contains these programs:
 - `topolvm-scheduler`: A [scheduler extender](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/scheduler_extender.md) for TopoLVM.
 - `topolvm-node`: CSI node service.
 - `lvmd`: gRPC service to manage LVM volumes.
-- `lvmetrics`: A DaemonSet sidecar container to expose storage metrics as Node annotations.
 
 `lvmd` is a standalone program that should be run on Node OS as a systemd service.
 Other programs are packaged into [a container image](https://quay.io/repository/cybozu/topolvm).

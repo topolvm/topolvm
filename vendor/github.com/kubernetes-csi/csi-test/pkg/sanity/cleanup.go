@@ -19,6 +19,7 @@ package sanity
 import (
 	"context"
 	"log"
+	"sync"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 
@@ -36,7 +37,7 @@ type VolumeInfo struct {
 }
 
 // Cleanup keeps track of resources, in particular volumes, which need
-// to be freed when testing is done.
+// to be freed when testing is done. All methods can be called concurrently.
 type Cleanup struct {
 	Context                    *SanityContext
 	ControllerClient           csi.ControllerClient
@@ -47,11 +48,14 @@ type Cleanup struct {
 	// Maps from volume name to the node ID for which the volume
 	// is published and the volume ID.
 	volumes map[string]VolumeInfo
+	mutex   sync.Mutex
 }
 
 // RegisterVolume adds or updates an entry for the volume with the
 // given name.
 func (cl *Cleanup) RegisterVolume(name string, info VolumeInfo) {
+	cl.mutex.Lock()
+	defer cl.mutex.Unlock()
 	if cl.volumes == nil {
 		cl.volumes = make(map[string]VolumeInfo)
 	}
@@ -69,6 +73,11 @@ func (cl *Cleanup) MaybeRegisterVolume(name string, vol *csi.CreateVolumeRespons
 // UnregisterVolume removes the entry for the volume with the
 // given name, thus preventing all cleanup operations for it.
 func (cl *Cleanup) UnregisterVolume(name string) {
+	cl.mutex.Lock()
+	defer cl.mutex.Unlock()
+	cl.unregisterVolume(name)
+}
+func (cl *Cleanup) unregisterVolume(name string) {
 	if cl.volumes != nil {
 		delete(cl.volumes, name)
 	}
@@ -76,6 +85,8 @@ func (cl *Cleanup) UnregisterVolume(name string) {
 
 // DeleteVolumes stops using the registered volumes and tries to delete all of them.
 func (cl *Cleanup) DeleteVolumes() {
+	cl.mutex.Lock()
+	defer cl.mutex.Unlock()
 	if cl.volumes == nil {
 		return
 	}
@@ -88,7 +99,7 @@ func (cl *Cleanup) DeleteVolumes() {
 			ctx,
 			&csi.NodeUnpublishVolumeRequest{
 				VolumeId:   info.VolumeID,
-				TargetPath: cl.Context.TargetPath,
+				TargetPath: cl.Context.TargetPath + "/target",
 			},
 		); err != nil {
 			logger.Printf("warning: NodeUnpublishVolume: %s", err)
@@ -129,6 +140,6 @@ func (cl *Cleanup) DeleteVolumes() {
 			logger.Printf("error: DeleteVolume: %s", err)
 		}
 
-		cl.UnregisterVolume(name)
+		cl.unregisterVolume(name)
 	}
 }

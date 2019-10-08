@@ -29,6 +29,29 @@ If its response is succeeded, `topolvm-node` set `logicalvolume.status.volumeID`
 When a `LogicalVolume` resource is being deleted, `topolvm-node` sends 
 a `RemoveLV` request to `lvmd`.
 
+Prometheus metrics
+------------------
+
+### `topolvm_volumegroup_available_bytes`
+
+`topolvm_volumegroup_available_bytes` is a Gauge that indicates the available
+free space in the LVM volume group in bytes.
+
+| Label  | Description            |
+| ------ | ---------------------- |
+| `node` | The node resource name |
+
+Node resource
+-------------
+
+`topolvm-node` adds `topolvm.cybozu.com/capacity` annotation to the
+corresponding `Node` resource of the running node.  The value is the
+free storage capacity reported by `lvmd` in bytes.
+
+It also adds `topolvm.cybozu.com/node` finalizer to the `Node`.
+The finalizer will be processed by [`topolvm-controller`](./topolvm-controller.md)
+to clean up PVCs and associated Pods bound to the node.
+
 Command-line flags
 ------------------
 
@@ -36,7 +59,7 @@ Command-line flags
 | -------------- | ------ | ------------------------------- | -------------------------------------- |
 | `csi-socket`   | string | `/run/topolvm/csi-topolvm.sock` | UNIX domain socket of `topolvm-node`.  |
 | `lvmd-socket`  | string | `/run/topolvm/lvmd.sock`        | UNIX domain socket of `lvmd` service.  |
-| `metrics-addr` | string | `:28080`                        | Bind address for the metrics endpoint. |
+| `metrics-addr` | string | `:8080`                         | Bind address for the metrics endpoint. |
 | `nodename`     | string |                                 | `Node` resource name.                  |
 
 Environment variables

@@ -11,7 +11,7 @@ metadata:
 rules:
   - apiGroups: [""]
     resources: ["nodes"]
-    verbs: ["get", "update", "patch"]
+    verbs: ["get", "list", "watch", "update", "patch"]
   - apiGroups: ["topolvm.cybozu.com"]
     resources: ["logicalvolumes", "logicalvolumes/status"]
     verbs: ["get", "list", "watch", "create", "update", "delete", "patch"]
@@ -115,21 +115,6 @@ spec:
           volumeMounts:
             - name: node-plugin-dir
               mountPath: /run/topolvm
-
-        - name: lvmetrics
-          image: quay.io/cybozu/topolvm:0.1.2
-          command:
-            - /lvmetrics
-          env:
-            - name: NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-          volumeMounts:
-          - name: lvmd-socket-dir
-            mountPath: /run/topolvm
-          ports:
-            - containerPort: 8080
 
       volumes:
         - name: registration-dir

@@ -15,8 +15,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func testLvmetrics() {
-	It("should be deployed topolvm-node pod", func() {
+func testNode() {
+	It("should be deployed", func() {
 		Eventually(func() error {
 			result, stderr, err := kubectl("get", "-n=topolvm-system", "pods", "--selector=app.kubernetes.io/name=node", "-o=json")
 			if err != nil {
@@ -90,7 +90,7 @@ func testLvmetrics() {
 		}
 	})
 
-	It("should expose Prometheus metrics by lvmetrics", func() {
+	It("should expose Prometheus metrics", func() {
 		stdout, stderr, err := kubectl("get", "pods", "-n=topolvm-system", "-l=app.kubernetes.io/name=node", "-o=json")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
@@ -99,7 +99,7 @@ func testLvmetrics() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		pod := pods.Items[0]
-		stdout, stderr, err = kubectl("exec", "-n", "topolvm-system", pod.Name, "-c=lvmetrics", "--", "curl", "http://localhost:8080/metrics")
+		stdout, stderr, err = kubectl("exec", "-n", "topolvm-system", pod.Name, "-c=topolvm-node", "--", "curl", "http://localhost:8080/metrics")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 		var parser expfmt.TextParser
 		metricFamilies, err := parser.TextToMetricFamilies(bytes.NewReader(stdout))
@@ -129,6 +129,5 @@ func testLvmetrics() {
 			break
 		}
 		Expect(found).Should(BeTrue())
-
 	})
 }

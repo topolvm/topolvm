@@ -19,7 +19,9 @@ import (
 	storagev1beta1 "k8s.io/api/storage/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	// +kubebuilder:scaffold:imports
 )
@@ -33,7 +35,7 @@ func init() {
 	if err := topolvmv1.AddToScheme(scheme); err != nil {
 		panic(err)
 	}
-	if err := storagev1beta1.AddToScheme(scheme); err != nil {
+	if err := clientgoscheme.AddToScheme(scheme); err != nil {
 		panic(err)
 	}
 
@@ -81,20 +83,15 @@ func subMain() error {
 	// +kubebuilder:scaffold:builder
 
 	// Add health checker to manager
-	vgs := proto.NewVGServiceClient(conn)
-	check := func() error {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
-		if _, err := vgs.GetFreeBytes(ctx, &proto.Empty{}); err != nil {
-			return err
-		}
-
-		var drv storagev1beta1.CSIDriver
-		return mgr.GetAPIReader().Get(ctx, types.NamespacedName{Name: topolvm.PluginName}, &drv)
-	}
-	checker := runners.NewChecker(check, 1*time.Minute)
+	checker := runners.NewChecker(checkFunc(conn, mgr.GetAPIReader()), 1*time.Minute)
 	if err := mgr.Add(checker); err != nil {
+		return err
+	}
+
+	// Add metrics exporter to manager.
+	// Note that grpc.ClientConn can be shared with multiple stubs/services.
+	// https://github.com/grpc/grpc-go/tree/master/examples/features/multiplex
+	if err := mgr.Add(runners.NewMetricsExporter(conn, mgr, nodename)); err != nil {
 		return err
 	}
 
@@ -104,10 +101,7 @@ func subMain() error {
 	}
 	grpcServer := grpc.NewServer()
 	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityService(checker.Ready))
-	// grpc.ClientConn can be shared with multiple stubs/services.
-	// https://github.com/grpc/grpc-go/tree/master/examples/features/multiplex
 	csi.RegisterNodeServer(grpcServer, driver.NewNodeService(nodename, conn))
-
 	err = mgr.Add(runners.NewGRPCRunner(grpcServer, config.csiSocket, false))
 	if err != nil {
 		return err
@@ -120,4 +114,19 @@ func subMain() error {
 	}
 
 	return nil
+}
+
+func checkFunc(conn *grpc.ClientConn, r client.Reader) func() error {
+	vgs := proto.NewVGServiceClient(conn)
+	return func() error {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		if _, err := vgs.GetFreeBytes(ctx, &proto.Empty{}); err != nil {
+			return err
+		}
+
+		var drv storagev1beta1.CSIDriver
+		return r.Get(ctx, types.NamespacedName{Name: topolvm.PluginName}, &drv)
+	}
 }
