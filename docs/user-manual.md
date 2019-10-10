@@ -7,6 +7,7 @@ For deployment, please read [../deploy/README.md](../deploy/README.md).
 **Table of contents**
 
 - [StorageClass](#storageclass)
+- [Pod priority](#pod-priority)
 - [Node maintenance](#node-maintenance)
   - [Retiring nodes](#retiring-nodes)
   - [Rebooting nodes](#rebooting-nodes)
@@ -38,6 +39,46 @@ Supported filesystems are: `ext4`, `xfs`, and `btrfs`.
 `volumeBindingMode` can be either `WaitForFirstConsumer` or `Immediate`.
 `WaitForFirstConsumer` is recommended because TopoLVM cannot schedule pods
 wisely if `volumeBindingMode` is `Immediate`.
+
+Pod priority
+------------
+
+Pods using TopoLVM should always be prioritized over other normal pods.
+This is because TopoLVM pods can only be scheduled to a single node where
+its volumes exist whereas normal pods can be run on any node.
+
+To give TopoLVM pods high priority, first create a [PriorityClass](https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/#priorityclass):
+
+```yaml
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: topolvm
+value: 1000000
+globalDefault: false
+description: "Pods using TopoLVM volumes should use this class."
+```
+
+and specify that PriorityClass in `priorityClassName` field as follows:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test
+spec:
+  priorityClassName: topolvm
+  containers:
+  - name: test
+    image: nginx
+    volumeMounts:
+    - mountPath: /test1
+      name: my-volume
+  volumes:
+    - name: my-volume
+      persistentVolumeClaim:
+        claimName: topolvm-pvc
+```
 
 Node maintenance
 ----------------
