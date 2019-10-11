@@ -41,7 +41,7 @@ func (r *NodeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	if node.DeletionTimestamp.IsZero() {
+	if node.DeletionTimestamp == nil {
 		return ctrl.Result{}, nil
 	}
 

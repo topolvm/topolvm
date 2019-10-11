@@ -39,7 +39,7 @@ func (r *PersistentVolumeClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	if pvc.DeletionTimestamp.IsZero() {
+	if pvc.DeletionTimestamp == nil {
 		return ctrl.Result{}, nil
 	}
 

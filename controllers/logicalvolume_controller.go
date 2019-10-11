@@ -48,7 +48,7 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		return ctrl.Result{}, nil
 	}
 
-	if lv.ObjectMeta.DeletionTimestamp.IsZero() {
+	if lv.ObjectMeta.DeletionTimestamp == nil {
 		// When lv.Status.Code is not codes.OK (== 0), CreateLV has already failed.
 		// LogicalVolume CRD will be deleted soon by the controller.
 		if lv.Status.Code != codes.OK {

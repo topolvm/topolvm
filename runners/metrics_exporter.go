@@ -111,7 +111,7 @@ func (m *metricsExporter) updateNode(ctx context.Context, wc proto.VGService_Wat
 			return err
 		}
 
-		if !node.DeletionTimestamp.IsZero() {
+		if node.DeletionTimestamp != nil {
 			meLogger.Info("node is deleting")
 			break
 		}
