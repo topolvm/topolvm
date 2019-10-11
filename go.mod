@@ -18,6 +18,7 @@ require (
 	github.com/go-logr/logr v0.1.0
 	github.com/go-logr/zapr v0.1.1 // indirect
 	github.com/go-sql-driver/mysql v1.4.1 // indirect
+	github.com/gogo/protobuf v1.1.1 // indirect
 	github.com/golang/protobuf v1.3.2
 	github.com/google/certificate-transparency-go v1.0.21 // indirect
 	github.com/imdario/mergo v0.3.7 // indirect
@@ -39,9 +40,9 @@ require (
 	golang.org/x/sys v0.0.0-20190801041406-cbf593c0f2f3
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
 	google.golang.org/grpc v1.23.1
-	k8s.io/api v0.0.0-20190805141119-fdd30b57c827
-	k8s.io/apimachinery v0.0.0-20190612205821-1799e75a0719
+	k8s.io/api v0.0.0-20190918195907-bd6ac527cfd2
+	k8s.io/apimachinery v0.0.0-20190817020851-f2f3a405f61d
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
-	k8s.io/klog v0.3.1
-	sigs.k8s.io/controller-runtime v0.2.2
+	k8s.io/klog v0.3.3
+	sigs.k8s.io/controller-runtime v0.3.0
 )
