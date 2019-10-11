@@ -47,7 +47,7 @@ func (r *LogicalVolumeCleanupReconciler) Reconcile(req ctrl.Request) (ctrl.Resul
 }
 
 func (r *LogicalVolumeCleanupReconciler) cleanup(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume, now time.Time) error {
-	if lv.DeletionTimestamp.IsZero() {
+	if lv.DeletionTimestamp == nil {
 		return nil
 	}
 	if lv.DeletionTimestamp.Add(r.StalePeriod).After(now) {
