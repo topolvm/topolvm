@@ -12,7 +12,7 @@
 Command-line options are:
 
 | Option         | Type   | Default value            | Description                          |
-| -------------- | ------ | ------------------------ |
+| -------------- | ------ | ------------------------ | ------------------------------------ |
 | `volume-group` | string | ""                       | target volume group name             |
 | `listen`       | string | `/run/topolvm/lvmd.sock` | unix domain socket endpoint of gRPC  |
 | `spare`        | uint64 | 10                       | Storage capacity in GiB to be spared |
