@@ -17,7 +17,7 @@ commands:
           name: setup golang
           command: |
             sudo rm -rf /usr/local/go
-            GO_VERSION=1.12.5
+            GO_VERSION=1.13.3
             curl -fsL https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz | sudo tar xzf - -C /usr/local
       - run:
           name: Setup
@@ -41,7 +41,7 @@ commands:
 jobs:
   build:
     docker:
-      - image: quay.io/cybozu/golang:1.12-bionic
+      - image: quay.io/cybozu/golang:1.13-bionic
     working_directory: /work
     steps:
       - checkout
@@ -79,7 +79,7 @@ jobs:
             docker push quay.io/cybozu/topolvm:$BRANCH
   publish-github-release:
     docker:
-      - image: quay.io/cybozu/golang:1.12-bionic
+      - image: quay.io/cybozu/golang:1.13-bionic
     steps:
       - attach_workspace:
           at: ./artifacts
@@ -105,7 +105,7 @@ jobs:
           name: setup golang
           command: |
             sudo rm -rf /usr/local/go
-            GO_VERSION=1.12.5
+            GO_VERSION=1.13.3
             curl -fsL https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz | sudo tar xzf - -C /usr/local
       - run:
           name: run tests
