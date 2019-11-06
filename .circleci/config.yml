@@ -17,7 +17,7 @@ commands:
           name: setup golang
           command: |
             sudo rm -rf /usr/local/go
-            GO_VERSION=1.13.3
+            GO_VERSION=1.13.4
             curl -fsL https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz | sudo tar xzf - -C /usr/local
       - run:
           name: Setup
@@ -105,7 +105,7 @@ jobs:
           name: setup golang
           command: |
             sudo rm -rf /usr/local/go
-            GO_VERSION=1.13.3
+            GO_VERSION=1.13.4
             curl -fsL https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz | sudo tar xzf - -C /usr/local
       - run:
           name: run tests
