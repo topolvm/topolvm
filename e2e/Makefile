@@ -3,26 +3,31 @@ GOFLAGS=-mod=vendor
 export GOFLAGS
 GINKGO=$(GOPATH)/bin/ginkgo
 KUBECTL=/usr/local/bin/kubectl
-KIND_VERSION=0.5.1
+KIND_VERSION=0.6.1
 KUSTOMIZE_VERSION=3.2.0
 
 # If you want to change the Kubernetes version for e2e test, specify this variable from command line.
 # e.g. $ make TEST_KUBERNETES_VERSION=1.14 setup test
-TEST_KUBERNETES_VERSION=1.15
+TEST_KUBERNETES_VERSION=1.16
 
-ifeq ($(TEST_KUBERNETES_VERSION),1.15)
+ifeq ($(TEST_KUBERNETES_VERSION),1.16)
+KUBERNETES_VERSION=1.16.4
+KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
+else ifeq ($(TEST_KUBERNETES_VERSION),1.15)
 KUBERNETES_VERSION=1.15.3
 KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
+KUBECONFIG := $(shell kind get kubeconfig-path --name=kind)
+export KUBECONFIG
 else ifeq ($(TEST_KUBERNETES_VERSION),1.14)
 KUBERNETES_VERSION=1.14.6
 KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta1
+KUBECONFIG := $(shell kind get kubeconfig-path --name=kind)
+export KUBECONFIG
 endif
 
 GO_FILES := $(shell find .. -path ../vendor -prune -o -path ../e2e -prune -o -name '*.go' -print)
 CA_FILES=./certs/ca.csr ./certs/ca.pem ./certs/ca-key.pem
 SERVER_CERT_FILES=./certs/server.csr ./certs/server.pem ./certs/server-key.pem
-KUBECONFIG := $(shell kind get kubeconfig-path --name=kind)
-export KUBECONFIG
 
 $(KUBECTL):
 	$(SUDO) curl -sfL https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl -o $(KUBECTL)
