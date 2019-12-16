@@ -2,12 +2,7 @@ module github.com/cybozu-go/topolvm
 
 go 1.12
 
-replace (
-	k8s.io/api => k8s.io/api v0.0.0-20190805141119-fdd30b57c827
-	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190612205821-1799e75a0719
-	k8s.io/client-go => k8s.io/client-go v0.0.0-20190805141520-2fe0317bcee0
-	launchpad.net/gocheck => github.com/go-check/check v0.0.0-20180628173108-788fd7840127
-)
+replace launchpad.net/gocheck => github.com/go-check/check v0.0.0-20180628173108-788fd7840127
 
 require (
 	github.com/GeertJohan/go.rice v1.0.0 // indirect
@@ -18,7 +13,6 @@ require (
 	github.com/go-logr/logr v0.1.0
 	github.com/go-logr/zapr v0.1.1 // indirect
 	github.com/go-sql-driver/mysql v1.4.1 // indirect
-	github.com/gogo/protobuf v1.1.1 // indirect
 	github.com/golang/protobuf v1.3.2
 	github.com/google/certificate-transparency-go v1.0.21 // indirect
 	github.com/imdario/mergo v0.3.7 // indirect
@@ -28,8 +22,8 @@ require (
 	github.com/kubernetes-csi/csi-test v2.2.0+incompatible
 	github.com/lib/pq v1.1.1 // indirect
 	github.com/mattn/go-sqlite3 v1.10.0 // indirect
-	github.com/onsi/ginkgo v1.6.0
-	github.com/onsi/gomega v1.4.2
+	github.com/onsi/ginkgo v1.8.0
+	github.com/onsi/gomega v1.5.0
 	github.com/prometheus/client_golang v1.1.0
 	github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90
 	github.com/prometheus/common v0.6.0
@@ -40,9 +34,10 @@ require (
 	golang.org/x/sys v0.0.0-20190801041406-cbf593c0f2f3
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
 	google.golang.org/grpc v1.23.1
-	k8s.io/api v0.0.0-20190918195907-bd6ac527cfd2
-	k8s.io/apimachinery v0.0.0-20190817020851-f2f3a405f61d
-	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
-	k8s.io/klog v0.3.3
-	sigs.k8s.io/controller-runtime v0.3.0
+	k8s.io/api v0.16.4
+	k8s.io/apiextensions-apiserver v0.0.0-20190918201827-3de75813f604 // indirect
+	k8s.io/apimachinery v0.16.4
+	k8s.io/client-go v0.16.4
+	k8s.io/klog v0.4.0
+	sigs.k8s.io/controller-runtime v0.4.0
 )
