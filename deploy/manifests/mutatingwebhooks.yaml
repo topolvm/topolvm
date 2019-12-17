@@ -3,7 +3,7 @@ kind: MutatingWebhookConfiguration
 metadata:
   name: topolvm-hook
   annotations:
-    certmanager.k8s.io/inject-ca-from: topolvm-system/mutatingwebhook
+    cert-manager.io/inject-ca-from: topolvm-system/mutatingwebhook
   labels:
     app.kubernetes.io/name: topolvm-hook
 webhooks:

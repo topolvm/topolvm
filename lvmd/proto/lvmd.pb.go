@@ -8,6 +8,8 @@ import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -525,6 +527,20 @@ type LVServiceServer interface {
 	ResizeLV(context.Context, *ResizeLVRequest) (*Empty, error)
 }
 
+// UnimplementedLVServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedLVServiceServer struct {
+}
+
+func (*UnimplementedLVServiceServer) CreateLV(ctx context.Context, req *CreateLVRequest) (*CreateLVResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateLV not implemented")
+}
+func (*UnimplementedLVServiceServer) RemoveLV(ctx context.Context, req *RemoveLVRequest) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveLV not implemented")
+}
+func (*UnimplementedLVServiceServer) ResizeLV(ctx context.Context, req *ResizeLVRequest) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ResizeLV not implemented")
+}
+
 func RegisterLVServiceServer(s *grpc.Server, srv LVServiceServer) {
 	s.RegisterService(&_LVService_serviceDesc, srv)
 }
@@ -682,6 +698,20 @@ type VGServiceServer interface {
 	GetFreeBytes(context.Context, *Empty) (*GetFreeBytesResponse, error)
 	// Stream the volume group metrics.
 	Watch(*Empty, VGService_WatchServer) error
+}
+
+// UnimplementedVGServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedVGServiceServer struct {
+}
+
+func (*UnimplementedVGServiceServer) GetLVList(ctx context.Context, req *Empty) (*GetLVListResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetLVList not implemented")
+}
+func (*UnimplementedVGServiceServer) GetFreeBytes(ctx context.Context, req *Empty) (*GetFreeBytesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetFreeBytes not implemented")
+}
+func (*UnimplementedVGServiceServer) Watch(req *Empty, srv VGService_WatchServer) error {
+	return status.Errorf(codes.Unimplemented, "method Watch not implemented")
 }
 
 func RegisterVGServiceServer(s *grpc.Server, srv VGServiceServer) {
