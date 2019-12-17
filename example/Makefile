@@ -3,7 +3,7 @@ GOFLAGS=-mod=vendor
 export GOFLAGS
 GINKGO=$(GOPATH)/bin/ginkgo
 KUBECTL=/usr/local/bin/kubectl
-KUBERNETES_VERSION=1.16.4
+KUBERNETES_VERSION=1.16.3
 KIND_VERSION=0.6.1
 
 GO_FILES := $(shell find .. -path ../vendor -prune -o -path ../e2e -prune -o -name '*.go' -print)

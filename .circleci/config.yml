@@ -110,6 +110,14 @@ jobs:
       - run:
           name: run tests
           command: sudo env "GO111MODULE=on" "CIRCLECI=${CIRCLECI}" "CIRCLECI_EXECUTOR=machine" /usr/local/go/bin/go test -mod=vendor -race -v ./lvmd ./driver ./filesystem
+  e2e-k8s-v1_16:
+    machine:
+      image: ubuntu-1604:201903-01
+    working_directory: /home/circleci/work
+    steps:
+      - checkout
+      - e2e-command:
+          kubernetes-version: "1.16"
   e2e-k8s-v1_15:
     machine:
       image: ubuntu-1604:201903-01
@@ -136,6 +144,7 @@ workflows:
           requires:
             - build
       - test-node
+      - e2e-k8s-v1_16
       - e2e-k8s-v1_15
       - e2e-k8s-v1_14
   release:
