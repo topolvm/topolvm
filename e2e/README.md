@@ -15,12 +15,6 @@ Setup environment
 How to run tests
 ----------------
 
-Set `KUBECONFIG` envvar as follows:
-
-```console
-export KUBECONFIG=$(kind get kubeconfig-path)
-```
-
 Start `lvmd` as a systemd service as follows:
 
 ```console
