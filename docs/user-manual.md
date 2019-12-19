@@ -29,7 +29,7 @@ parameters:
 volumeBindingMode: WaitForFirstConsumer
 ```
 
-`provisioner` must be `topolvm-provisioner`.
+`provisioner` must be `topolvm.cybozu.com`.
 
 `parameters` are optional.  To specify a filesystem type, give
 `csi.storage.k8s.io/fstype` parameter.
