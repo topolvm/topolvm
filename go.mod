@@ -9,7 +9,7 @@ require (
 	github.com/cloudflare/cfssl v0.0.0-20190510060611-9c027c93ba9e
 	github.com/container-storage-interface/spec v1.1.0
 	github.com/cybozu-go/log v1.5.0
-	github.com/cybozu-go/well v1.9.0
+	github.com/cybozu-go/well v1.10.0
 	github.com/go-logr/logr v0.1.0
 	github.com/go-logr/zapr v0.1.1 // indirect
 	github.com/go-sql-driver/mysql v1.4.1 // indirect
