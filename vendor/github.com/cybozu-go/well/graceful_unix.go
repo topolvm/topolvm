@@ -198,7 +198,8 @@ RESTART:
 
 func (g *Graceful) makeChild(files []*os.File) *exec.Cmd {
 	child := exec.Command(os.Args[0], os.Args[1:]...)
-	child.Env = []string{listenEnv + "=" + strconv.Itoa(len(files))}
+	child.Env = os.Environ()
+	child.Env = append(child.Env, listenEnv+"="+strconv.Itoa(len(files)))
 	child.ExtraFiles = files
 	return child
 }

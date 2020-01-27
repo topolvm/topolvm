@@ -94,6 +94,11 @@ Commands using this framework implement these external specifications:
 
     This is used internally for graceful restart.
 
+* `CANCELLATION_DELAY_SECONDS`
+
+    After `SIGINT` or `SIGTERM` received, the signal handler waits for the seconds before cancelling the context.
+    The default value is 5 sec.
+
 Usage
 -----
 

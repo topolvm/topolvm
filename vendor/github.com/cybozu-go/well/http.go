@@ -37,6 +37,11 @@ func init() {
 	}
 }
 
+// RequestIDHeader provides the name of the request tracking header
+func RequestIDHeader() string {
+	return requestIDHeader
+}
+
 // HTTPServer is a wrapper for http.Server.
 //
 // This struct overrides Serve and ListenAndServe* methods.

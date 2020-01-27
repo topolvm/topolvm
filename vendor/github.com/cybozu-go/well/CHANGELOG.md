@@ -5,6 +5,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [1.10.0] - 2020-01-24
+### Added
+- Getter for requestIDHeader (#35).
+
+### Changed
+- Sleep for some seconds after signal handler receives a signal (#37).
+
 ## [1.9.0] - 2019-09-24
 ### Added
 - HTTPServer: add support for HTTP/2 request handling (#27, #32).
@@ -94,7 +101,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Conform to cybozu-go/log v1.1.0 spec.
 
 [activation]: http://0pointer.de/blog/projects/socket-activation.html
-[Unreleased]: https://github.com/cybozu-go/cmd/compare/v1.9.0...HEAD
+[Unreleased]: https://github.com/cybozu-go/cmd/compare/v1.10.0...HEAD
+[1.10.0]: https://github.com/cybozu-go/cmd/compare/v1.9.0...v1.10.0
 [1.9.0]: https://github.com/cybozu-go/cmd/compare/v1.8.1...v1.9.0
 [1.8.1]: https://github.com/cybozu-go/cmd/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/cybozu-go/cmd/compare/v1.7.0...v1.8.0
