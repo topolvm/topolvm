@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/cybozu-go/log"
 )
 
 const (
@@ -27,6 +29,9 @@ var ErrNotFound = errors.New("not found")
 func CallLVM(cmd string, args ...string) error {
 	args = append([]string{cmd}, args...)
 	c := exec.Command(lvm, args...)
+	log.Info("invoking LVM command", map[string]interface{}{
+		"args": args,
+	})
 	c.Stderr = os.Stderr
 	return c.Run()
 }
@@ -203,7 +208,7 @@ func (g *VolumeGroup) FindVolume(name string) (*LogicalVolume, error) {
 func (g *VolumeGroup) ListVolumes() ([]*LogicalVolume, error) {
 	infoList, err := parseOutput(
 		"lvs",
-		"lv_name,lv_path,lv_size,lv_kernel_major,lv_kernel_minor,origin,origin_size,pool_lv,thin_count",
+		"lv_name,lv_path,lv_size,lv_kernel_major,lv_kernel_minor,origin,origin_size,pool_lv,thin_count,lv_tags",
 		g.Name())
 	if err != nil {
 		return nil, err
@@ -245,16 +250,23 @@ func (g *VolumeGroup) ListVolumes() ([]*LogicalVolume, error) {
 			pool,
 			uint32(major),
 			uint32(minor),
+			strings.Split(info["lv_tags"], ","),
 		))
 	}
 	return ret, nil
 }
 
 // CreateVolume creates logical volume in this volume group.
-// name is a name of creating volume. size is volume size in bytes.
-func (g *VolumeGroup) CreateVolume(name string, size uint64) (*LogicalVolume, error) {
-	if err := CallLVM("lvcreate", "-n", name, "-L", fmt.Sprintf("%vg", size>>30),
-		"-W", "y", "-y", g.Name()); err != nil {
+// name is a name of creating volume. size is volume size in bytes. volTags is a
+// list of tags to add to the volume.
+func (g *VolumeGroup) CreateVolume(name string, size uint64, tags []string) (*LogicalVolume, error) {
+	lvcreateArgs := []string{"-n", name, "-L", fmt.Sprintf("%vg", size>>30), "-W", "y", "-y"}
+	for _, tag := range tags {
+		lvcreateArgs = append(lvcreateArgs, "--addtag")
+		lvcreateArgs = append(lvcreateArgs, tag)
+	}
+	lvcreateArgs = append(lvcreateArgs, g.Name())
+	if err := CallLVM("lvcreate", lvcreateArgs...); err != nil {
 		return nil, err
 	}
 	return g.FindVolume(name)
@@ -392,9 +404,10 @@ type LogicalVolume struct {
 	pool     *string
 	devMajor uint32
 	devMinor uint32
+	tags     []string
 }
 
-func newLogicalVolume(name, path string, vg *VolumeGroup, size uint64, origin, pool *string, major, minor uint32) *LogicalVolume {
+func newLogicalVolume(name, path string, vg *VolumeGroup, size uint64, origin, pool *string, major, minor uint32, tags []string) *LogicalVolume {
 	fullname := fullName(name, vg)
 	return &LogicalVolume{
 		fullname,
@@ -406,6 +419,7 @@ func newLogicalVolume(name, path string, vg *VolumeGroup, size uint64, origin, p
 		pool,
 		major,
 		minor,
+		tags,
 	}
 }
 
@@ -468,6 +482,11 @@ func (l *LogicalVolume) MajorNumber() uint32 {
 // MinorNumber returns the device minor number.
 func (l *LogicalVolume) MinorNumber() uint32 {
 	return l.devMinor
+}
+
+// Tags returns the tags member.
+func (l *LogicalVolume) Tags() []string {
+	return l.tags
 }
 
 // Snapshot takes a snapshot of this volume.

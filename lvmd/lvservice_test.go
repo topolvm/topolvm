@@ -45,6 +45,7 @@ func TestLVService(t *testing.T) {
 	res, err := lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
 		Name:   "test1",
 		SizeGb: 1,
+		Tags:   []string{"testtag1", "testtag2"},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -61,6 +62,16 @@ func TestLVService(t *testing.T) {
 	err = exec.Command("lvs", vg.Name()+"/test1").Run()
 	if err != nil {
 		t.Error("failed to create logical volume")
+	}
+	lv, err := vg.FindVolume("test1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if lv.Tags()[0] != "testtag1" {
+		t.Errorf(`testtag1 not present on volume`)
+	}
+	if lv.Tags()[1] != "testtag2" {
+		t.Errorf(`testtag1 not present on volume`)
 	}
 
 	_, err = lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
@@ -85,7 +96,7 @@ func TestLVService(t *testing.T) {
 	if count != 2 {
 		t.Errorf("unexpected count: %d", count)
 	}
-	lv, err := vg.FindVolume("test1")
+	lv, err = vg.FindVolume("test1")
 	if err != nil {
 		t.Fatal(err)
 	}

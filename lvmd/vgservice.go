@@ -47,6 +47,7 @@ func (s *vgService) GetLVList(context.Context, *proto.Empty) (*proto.GetLVListRe
 			SizeGb:   (lv.Size() + (1 << 30) - 1) >> 30,
 			DevMajor: lv.MajorNumber(),
 			DevMinor: lv.MinorNumber(),
+			Tags:     lv.Tags(),
 		}
 	}
 	return &proto.GetLVListResponse{Volumes: vols}, nil
