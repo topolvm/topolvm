@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 
 	"github.com/cybozu-go/topolvm"
@@ -27,6 +28,7 @@ const (
 	mountpointCmd    = "/bin/mountpoint"
 	umountCmd        = "/bin/umount"
 	devicePermission = 0600 | unix.S_IFBLK
+	ephVolConKey     = "csi.storage.k8s.io/ephemeral"
 )
 
 var nodeLogger = logf.Log.WithName("driver").WithName("node")
@@ -34,15 +36,17 @@ var nodeLogger = logf.Log.WithName("driver").WithName("node")
 // NewNodeService returns a new NodeServer.
 func NewNodeService(nodeName string, conn *grpc.ClientConn) csi.NodeServer {
 	return &nodeService{
-		nodeName: nodeName,
-		client:   proto.NewVGServiceClient(conn),
+		nodeName:  nodeName,
+		client:    proto.NewVGServiceClient(conn),
+		lvService: proto.NewLVServiceClient(conn),
 	}
 }
 
 type nodeService struct {
-	nodeName string
-	client   proto.VGServiceClient
-	mu       sync.Mutex
+	nodeName  string
+	client    proto.VGServiceClient
+	lvService proto.LVServiceClient
+	mu        sync.Mutex
 }
 
 func (s *nodeService) NodeStageVolume(context.Context, *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
@@ -54,16 +58,19 @@ func (s *nodeService) NodeUnstageVolume(context.Context, *csi.NodeUnstageVolumeR
 }
 
 func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
+	volumeContext := req.GetVolumeContext()
+	volumeID := req.GetVolumeId()
+
 	nodeLogger.Info("NodePublishVolume called",
-		"volume_id", req.GetVolumeId(),
+		"volume_id", volumeID,
 		"publish_context", req.GetPublishContext(),
 		"target_path", req.GetTargetPath(),
 		"volume_capability", req.GetVolumeCapability(),
 		"read_only", req.GetReadonly(),
 		"num_secrets", len(req.GetSecrets()),
-		"volume_context", req.GetVolumeContext())
+		"volume_context", volumeContext)
 
-	if len(req.GetVolumeId()) == 0 {
+	if len(volumeID) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "no volume_id is provided")
 	}
 	if len(req.GetTargetPath()) == 0 {
@@ -72,26 +79,70 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	if req.GetVolumeCapability() == nil {
 		return nil, status.Error(codes.InvalidArgument, "no volume_capability is provided")
 	}
+	isBlockVol := (req.GetVolumeCapability().GetBlock() != nil)
+	isFsVol := (req.GetVolumeCapability().GetMount() != nil)
+	if !(isBlockVol || isFsVol) {
+		return nil, status.Errorf(codes.InvalidArgument, "no supported volume capability: %v", req.GetVolumeCapability())
+	}
+	isInlineEphemeralVolumeReq := (volumeContext[ephVolConKey] == "true")
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	listResp, err := s.client.GetLVList(ctx, &proto.Empty{})
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to list LV: %v", err)
-	}
-	lv := s.findVolumeByID(listResp, req.GetVolumeId())
-	if lv == nil {
-		return nil, status.Errorf(codes.NotFound, "failed to find LV: %s", req.GetVolumeId())
+	if isInlineEphemeralVolumeReq {
+		lv, err := s.getLvFromContext(ctx, volumeID)
+		if err != nil {
+			return nil, err
+		}
+		// Need to check if the LV already exists so this block is idempotent.
+		if lv == nil {
+			var reqGb uint64 = topolvm.DefaultSizeGb
+			if sizeStr, ok := volumeContext[topolvm.SizeVolConKey]; ok {
+				var err error
+				reqGb, err = strconv.ParseUint(sizeStr, 10, 64)
+				if err != nil {
+					return nil, status.Errorf(codes.InvalidArgument, "Invalid size: %s", sizeStr)
+				}
+			}
+			nodeLogger.Info("Processing ephemeral inline volume request", "reqGb", reqGb)
+			_, err := s.lvService.CreateLV(ctx, &proto.CreateLVRequest{
+				Name:   volumeID,
+				SizeGb: reqGb,
+				Tags:   []string{"ephemeral"},
+			})
+			if err != nil {
+				return nil, status.Errorf(codes.Internal, "failed to create LV %v", err)
+			}
+		}
 	}
 
-	if req.GetVolumeCapability().GetBlock() != nil {
-		return s.nodePublishBlockVolume(req, lv)
+	lv, err := s.getLvFromContext(ctx, volumeID)
+	if err != nil {
+		return nil, err
 	}
-	if req.GetVolumeCapability().GetMount() != nil {
-		return s.nodePublishFilesystemVolume(req, lv)
+	if lv == nil {
+		return nil, status.Errorf(codes.NotFound, "failed to find LV: %s", volumeID)
 	}
-	return nil, status.Errorf(codes.InvalidArgument, "no supported volume capability: %v", req.GetVolumeCapability())
+
+	if isBlockVol {
+		_, err = s.nodePublishBlockVolume(req, lv)
+	} else if isFsVol {
+		_, err = s.nodePublishFilesystemVolume(req, lv)
+	}
+
+	if err != nil {
+		if isInlineEphemeralVolumeReq {
+			// In the case of an inline ephemeral volume, there is no
+			// guarantee that NodePublishVolume will be called again, so if
+			// anything fails after the volume is created we need to attempt to
+			// clean up the LVM so we don't leak storage space.
+			if _, err = s.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: volumeID}); err != nil {
+				return nil, status.Errorf(codes.Internal, "failed to remove LV for %s: %v", volumeID, err)
+			}
+		}
+		return nil, err
+	}
+	return &csi.NodePublishVolumeResponse{}, nil
 }
 
 func (s *nodeService) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequest, lv *proto.LogicalVolume) (*csi.NodePublishVolumeResponse, error) {
@@ -196,6 +247,14 @@ func (s *nodeService) findVolumeByID(listResp *proto.GetLVListResponse, name str
 	return nil
 }
 
+func (s *nodeService) getLvFromContext(ctx context.Context, volumeID string) (*proto.LogicalVolume, error) {
+	listResp, err := s.client.GetLVList(ctx, &proto.Empty{})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to list LV: %v", err)
+	}
+	return s.findVolumeByID(listResp, volumeID), nil
+}
+
 func (s *nodeService) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
 	volID := req.GetVolumeId()
 	target := req.GetTargetPath()
@@ -226,9 +285,31 @@ func (s *nodeService) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 
 	// remove device file if target_path is device, unmount target_path otherwise
 	if info.IsDir() {
-		return s.nodeUnpublishFilesystemVolume(req, device)
+		unpublishResp, err := s.nodeUnpublishFilesystemVolume(req, device)
+		if err != nil {
+			return unpublishResp, err
+		}
+		volume, err := s.getLvFromContext(ctx, volID)
+		if err != nil {
+			return nil, err
+		}
+		if volume != nil && s.isEphemeralVolume(volume) {
+			if _, err = s.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: volID}); err != nil {
+				return nil, status.Errorf(codes.Internal, "failed to remove LV for %s: %v", volID, err)
+			}
+		}
+		return &csi.NodeUnpublishVolumeResponse{}, nil
 	}
 	return s.nodeUnpublishBlockVolume(req)
+}
+
+func (s *nodeService) isEphemeralVolume(volume *proto.LogicalVolume) bool {
+	for _, tag := range volume.GetTags() {
+		if tag == "ephemeral" {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *nodeService) nodeUnpublishFilesystemVolume(req *csi.NodeUnpublishVolumeRequest, device string) (*csi.NodeUnpublishVolumeResponse, error) {

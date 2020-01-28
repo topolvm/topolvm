@@ -12,6 +12,7 @@ For deployment, please read [../deploy/README.md](../deploy/README.md).
   - [Retiring nodes](#retiring-nodes)
   - [Rebooting nodes](#rebooting-nodes)
 - [Limitations](#limitations)
+- [Inline Ephemeral Volumes](#inline-ephemeral-volumes)
 
 StorageClass
 ------------
@@ -83,6 +84,9 @@ spec:
 Node maintenance
 ----------------
 
+These steps only apply when using the TopoLVM storage class and PVCs. If
+only inline ephemeral volumes are used, these steps are not necessary.
+
 ### Retiring nodes
 
 To remove a node and volumes/pods on the node from the cluster, follow these steps:
@@ -103,6 +107,45 @@ To reboot a node without removing volumes, follow these steps:
 2. Reboot the node.
 3. Run `kubectl uncordon NODE` after the node comes back online.
 4. After reboot, Pods will be rescheduled to the same node because PVCs remain intact.
+
+Inline Ephemeral Volumes
+------------------------
+
+An example use of a TopoLVM inline ephemeral volume is as follows:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ubuntu
+  labels:
+    app.kubernetes.io/name: ubuntu
+spec:
+  containers:
+  - name: ubuntu
+    image: nginx4
+    volumeMounts:
+    - mountPath: /test1
+      name: my-volume
+  volumes:
+  - name: my-volume
+    csi:
+      driver: topolvm.cybozu.com
+      fsType: xfs
+      volumeAttributes:
+          topolvm.cybozu.com/size: "2"
+```
+
+`driver` must be `topolvm.cybozu.com`.
+
+`fsType` is optional.  To specify a filesystem type, give
+`csi.storage.k8s.io/fstype` parameter. If no type is specified, the default
+of ext4 will be used.
+`volumeAttributes` are optional.  To specify a volume size, give
+`topolvm.cybozu.com/size` parameter. If no size is specified, the default of
+1 GiB will be used.
+
+Supported filesystems are: `ext4`, `xfs`, and `btrfs`.
 
 Limitations
 -----------

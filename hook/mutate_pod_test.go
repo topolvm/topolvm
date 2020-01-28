@@ -1,6 +1,7 @@
 package hook
 
 import (
+	"github.com/cybozu-go/topolvm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -141,6 +142,56 @@ var _ = Describe("pod mutation webhook", func() {
 				Name: "vol1",
 				VolumeSource: corev1.VolumeSource{
 					PersistentVolumeClaim: pvcSource("pvc1"),
+				},
+			},
+		}
+		err := k8sClient.Create(testCtx, pod)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		pod = getPod()
+		request := pod.Spec.Containers[0].Resources.Requests["topolvm.cybozu.com/capacity"]
+		limit := pod.Spec.Containers[0].Resources.Limits["topolvm.cybozu.com/capacity"]
+		Expect(request.Value()).Should(BeNumerically("==", 1<<30))
+		Expect(limit.Value()).Should(BeNumerically("==", 1<<30))
+	})
+
+	It("should mutate pod with TopoLVM inline ephemeral volume.", func() {
+		pod := testPod()
+		fsType := "xfs"
+		pod.Spec.Volumes = []corev1.Volume{
+			{
+				Name: "my-volume",
+				VolumeSource: corev1.VolumeSource{
+					CSI: &corev1.CSIVolumeSource{
+						Driver:           "topolvm.cybozu.com",
+						FSType:           &fsType,
+						VolumeAttributes: map[string]string{topolvm.SizeVolConKey: "2"},
+					},
+				},
+			},
+		}
+		err := k8sClient.Create(testCtx, pod)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		pod = getPod()
+		request := pod.Spec.Containers[0].Resources.Requests["topolvm.cybozu.com/capacity"]
+		limit := pod.Spec.Containers[0].Resources.Limits["topolvm.cybozu.com/capacity"]
+		Expect(request.Value()).Should(BeNumerically("==", 2<<30))
+		Expect(limit.Value()).Should(BeNumerically("==", 2<<30))
+	})
+
+	It("should mutate pod with TopoLVM inline ephemeral volume when volume size is not explicitly specified.", func() {
+		pod := testPod()
+		fsType := "xfs"
+		pod.Spec.Volumes = []corev1.Volume{
+			{
+				Name: "my-volume",
+				VolumeSource: corev1.VolumeSource{
+					CSI: &corev1.CSIVolumeSource{
+						Driver: "topolvm.cybozu.com",
+						FSType: &fsType,
+						// Intentionally do not define size.
+					},
 				},
 			},
 		}

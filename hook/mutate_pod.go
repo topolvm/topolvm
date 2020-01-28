@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/cybozu-go/topolvm"
 	corev1 "k8s.io/api/core/v1"
@@ -15,9 +16,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
-
-// defaultSize volume will be created for PVC w/o capacity requests.
-const defaultSize = 1 << 30
 
 var pmLogger = logf.Log.WithName("pod-mutator")
 
@@ -65,11 +63,19 @@ func (m podMutator) Handle(ctx context.Context, req admission.Request) admission
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
-	capacity, err := m.requestedCapacity(ctx, pod, targets)
+	pvcCapacity, err := m.requestedPVCCapacity(ctx, pod, targets)
 	if err != nil {
-		pmLogger.Error(err, "requestedCapacity failed")
+		pmLogger.Error(err, "requestedPVCCapacity failed")
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
+
+	ephemeralCapacity, err := m.requestedEphemeralCapacity(pod)
+	if err != nil {
+		pmLogger.Error(err, "requestedEphemeralCapacity failed")
+		return admission.Errored(http.StatusInternalServerError, err)
+	}
+
+	capacity := pvcCapacity + ephemeralCapacity
 
 	if capacity == 0 {
 		return admission.Allowed("no request for TopoLVM")
@@ -110,7 +116,7 @@ func (m podMutator) targetStorageClasses(ctx context.Context) (map[string]bool, 
 	return targets, nil
 }
 
-func (m podMutator) requestedCapacity(ctx context.Context, pod *corev1.Pod, targets map[string]bool) (int64, error) {
+func (m podMutator) requestedPVCCapacity(ctx context.Context, pod *corev1.Pod, targets map[string]bool) (int64, error) {
 	var total int64
 	for _, vol := range pod.Spec.Volumes {
 		if vol.PersistentVolumeClaim == nil {
@@ -151,13 +157,38 @@ func (m podMutator) requestedCapacity(ctx context.Context, pod *corev1.Pod, targ
 			return 0, nil
 		}
 
-		var requested int64 = defaultSize
+		var requested int64 = topolvm.DefaultSize
 		if req, ok := pvc.Spec.Resources.Requests[corev1.ResourceStorage]; ok {
-			if req.Value() > defaultSize {
+			if req.Value() > topolvm.DefaultSize {
 				requested = ((req.Value()-1)>>30 + 1) << 30
 			}
 		}
 		total += requested
+	}
+	return total, nil
+}
+
+func (m podMutator) requestedEphemeralCapacity(pod *corev1.Pod) (int64, error) {
+	var total int64
+	for _, vol := range pod.Spec.Volumes {
+		if vol.CSI == nil {
+			// We only want to look at CSI volumes
+			continue
+		}
+		if vol.CSI.Driver == topolvm.PluginName {
+			if volSizeStr, ok := vol.CSI.VolumeAttributes[topolvm.SizeVolConKey]; ok {
+				volSize, err := strconv.ParseInt(volSizeStr, 10, 64)
+				if err != nil {
+					pmLogger.Error(err, "Invalid volume size",
+						topolvm.SizeVolConKey, volSizeStr,
+					)
+					return 0, err
+				}
+				total += volSize << 30
+			} else {
+				total += topolvm.DefaultSize
+			}
+		}
 	}
 	return total, nil
 }

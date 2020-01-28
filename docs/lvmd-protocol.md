@@ -118,6 +118,7 @@ Represents a logical volume.
 | size_gb | [uint64](#uint64) |  | Volume size in GiB. |
 | dev_major | [uint32](#uint32) |  | Device major number. |
 | dev_minor | [uint32](#uint32) |  | Device minor number. |
+| tags | [string](#string) | repeated | Tags on the volume. |
 
 
 

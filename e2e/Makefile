@@ -4,7 +4,8 @@ export GOFLAGS
 GINKGO=$(GOPATH)/bin/ginkgo
 KUBECTL=/usr/local/bin/kubectl
 KIND_VERSION=0.6.1
-KUSTOMIZE_VERSION=3.2.0
+KUSTOMIZE_VERSION=3.5.4
+KUSTOMIZE=/usr/local/bin/kustomize
 
 # If you want to change the Kubernetes version for e2e test, specify this variable from command line.
 # e.g. $ make TEST_KUBERNETES_VERSION=1.14 setup test
@@ -120,9 +121,8 @@ setup: $(KUBECTL)
 	go install github.com/cloudflare/cfssl/cmd/cfssl
 	go install github.com/cloudflare/cfssl/cmd/cfssljson
 	go install github.com/onsi/ginkgo/ginkgo
-	curl -sSLf -O https://github.com/kubernetes-sigs/kustomize/releases/download/v$(KUSTOMIZE_VERSION)/kustomize_$(KUSTOMIZE_VERSION)_linux_amd64
-	$(SUDO) mv kustomize_$(KUSTOMIZE_VERSION)_linux_amd64 /usr/local/bin/kustomize
-	chmod +x /usr/local/bin/kustomize
+	curl -sSLf https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v$(KUSTOMIZE_VERSION)/kustomize_v$(KUSTOMIZE_VERSION)_linux_amd64.tar.gz | tar xzf - > kustomize
+	$(SUDO) mv kustomize $(KUSTOMIZE)
 	cd /tmp; env GOFLAGS= GO111MODULE=on go get sigs.k8s.io/kind@v$(KIND_VERSION)
 	$(SUDO) apt-get update
 	$(SUDO) apt-get install -y lvm2 xfsprogs

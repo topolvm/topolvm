@@ -11,7 +11,8 @@ An overview of setup is as follows:
 4. Add `topolvm.cybozu.com/webhook: ignore` label to system namespaces such as `kube-system`.
 5. Apply manifests for TopoLVM.
 6. Configure `kube-scheduler` to use `topolvm-scheduler`.
-7. Prepare StorageClasses for TopoLVM.
+7. Adjust CSIDriver config for Kubernetes 1.15 and earlier
+8. Prepare StorageClasses for TopoLVM.
 
 Example configuration files are included in the following sub directories:
 
@@ -225,6 +226,21 @@ scheduler:
 ```
 
 Otherwise, consult the manual of your Kubernetes cluster distribution.
+
+Adjust CSIDriver config for Kubernetes 1.15 and earlier
+----------------------
+
+If you are running Kubernetes 1.15 or prior, modify the `CSIDriver` as follows
+to account for features not supported on earlier versions:
+
+```yaml
+apiVersion: storage.k8s.io/v1beta1
+kind: CSIDriver
+metadata:
+  name: topolvm.cybozu.com
+spec:
+  attachRequired: true
+```
 
 Prepare StorageClasses
 ----------------------

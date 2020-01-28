@@ -28,3 +28,13 @@ const DefaultCSISocket = "/run/topolvm/csi-topolvm.sock"
 
 // DefaultLVMdSocket is the default path of the lvmd socket file.
 const DefaultLVMdSocket = "/run/topolvm/lvmd.sock"
+
+// SizeVolConKey is the key used to obtain ephemeral inline volume size
+// from the volume context
+const SizeVolConKey = "topolvm.cybozu.com/size"
+
+// DefaultSizeGb is the default size in GiB for  volumes (PVC or inline ephemeral volumes) w/o capacity requests.
+const DefaultSizeGb = 1
+
+// DefaultSize is DefaultSizeGb in bytes
+const DefaultSize = DefaultSizeGb << 30
