@@ -121,8 +121,8 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	if numVols1 != 0 {
 		t.Errorf("numVolumes must be 0: %d", numVols1)
 	}
-
-	_, err = vg.CreateVolume("test1", 1<<30)
+	testtag := "testtag"
+	_, err = vg.CreateVolume("test1", 1<<30, []string{testtag})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,6 +142,12 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	}
 	if vol.GetSizeGb() != 1 {
 		t.Errorf(`Volume.SizeGb != 1: %d`, vol.GetSizeGb())
+	}
+	if len(vol.GetTags()) != 1 {
+		t.Fatalf("number of tags must be 1")
+	}
+	if vol.GetTags()[0] != testtag {
+		t.Errorf(`Volume.Tags[0] != %s: %v`, testtag, vol.GetTags())
 	}
 
 	res2, err := vgService.GetFreeBytes(context.Background(), &proto.Empty{})
