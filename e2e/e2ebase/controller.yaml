@@ -4,7 +4,10 @@ kind: CSIDriver
 metadata:
   name: topolvm.cybozu.com
 spec:
-  podInfoOnMount: false
+  podInfoOnMount: true
+  volumeLifecycleModes:
+    - Persistent
+    - Ephemeral
 ---
 apiVersion: apps/v1
 kind: Deployment
