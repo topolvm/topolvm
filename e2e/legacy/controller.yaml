@@ -1,0 +1,6 @@
+- op: replace
+  path: /spec/podInfoOnMount
+  value: false
+
+- op: remove
+  path: /spec/volumeLifecycleModes

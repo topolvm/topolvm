@@ -1,14 +1,14 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 bases:
-  - ../deploy/manifests
+  - ../../deploy/manifests
 patches:
-  - ./overlays/controller.yaml
-  - ./overlays/mutatingwebhooks.yaml
-  - ./overlays/node.yaml
-  - ./overlays/scheduler.yaml
+  - controller.yaml
+  - mutatingwebhooks.yaml
+  - node.yaml
+  - scheduler.yaml
 resources:
-  - ./overlays/provisioner.yaml
+  - provisioner.yaml
 generatorOptions:
   disableNameSuffixHash: true
 configurations:
@@ -17,9 +17,9 @@ secretGenerator:
 - name: mutatingwebhook
   namespace: topolvm-system
   files:
-  - ca.crt=./certs/ca.pem
-  - tls.crt=./certs/server.pem
-  - tls.key=./certs/server-key.pem
+  - ca.crt=../certs/ca.pem
+  - tls.crt=../certs/server.pem
+  - tls.key=../certs/server-key.pem
   type: "Opaque"
 vars:
   - name: TLSCERT
@@ -35,11 +35,11 @@ patchesJson6902:
     group: admissionregistration.k8s.io
     kind: MutatingWebhookConfiguration
     name: topolvm-hook
-  path: ./overlays/mutatingwebhooks-op.yaml
+  path: mutatingwebhooks-op.yaml
 - target:
     version: v1
     group: apps
     kind: Deployment
     name: controller
     namespace: topolvm-system
-  path: ./overlays/controller-op.yaml
+  path: controller-op.yaml

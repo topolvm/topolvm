@@ -13,12 +13,15 @@ TEST_KUBERNETES_VERSION=1.16
 ifeq ($(TEST_KUBERNETES_VERSION),1.16)
 KUBERNETES_VERSION=1.16.3
 KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
+KUSTOMIZE_DIR=e2ebase
 else ifeq ($(TEST_KUBERNETES_VERSION),1.15)
 KUBERNETES_VERSION=1.15.3
 KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
+KUSTOMIZE_DIR=legacy
 else ifeq ($(TEST_KUBERNETES_VERSION),1.14)
 KUBERNETES_VERSION=1.14.6
 KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta1
+KUSTOMIZE_DIR=legacy
 endif
 
 GO_FILES := $(shell find .. -path ../vendor -prune -o -path ../e2e -prune -o -name '*.go' -print)
@@ -91,11 +94,13 @@ stop-lvmd:
 		fi; \
 	done
 
+# --load_restrictor='none' allows the certificates to be loaded from a path which
+# isn't a subdir of e2ebase
 test: topolvm.img $(SERVER_CERT_FILES)
 	$(MAKE) shutdown-kind
 	$(MAKE) launch-kind
 	kind load image-archive topolvm.img
-	kustomize build . | kubectl apply -f -
+	kustomize build --load_restrictor='none' $(KUSTOMIZE_DIR) | kubectl apply -f -
 	$(SUDO) env \
 		PATH=$(PATH) \
 		GOPATH=$(GOPATH) \
