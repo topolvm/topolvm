@@ -18,7 +18,7 @@ run: $(SERVER_CERT_FILES)
 	$(MAKE) start-lvmd
 	$(MAKE) launch-kind
 	$(KUBECTL) apply -k .
-	$(KUBECTL) wait --for=condition=available --timeout=60s -n topolvm-system deployments/controller
+	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/controller
 	$(KUBECTL) apply -f podpvc.yaml
 
 setup: $(KUBECTL)
