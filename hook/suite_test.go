@@ -143,7 +143,9 @@ var _ = BeforeSuite(func() {
 
 	By("bootstrapping test environment")
 	apiServerFlags := envtest.DefaultKubeAPIServerFlags[0 : len(envtest.DefaultKubeAPIServerFlags)-1]
-	apiServerFlags = append(apiServerFlags, "--admission-control=MutatingAdmissionWebhook")
+	apiServerFlags = append(apiServerFlags,
+		"--admission-control=MutatingAdmissionWebhook",
+		"--feature-gates=CSIInlineVolume=true")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths:  []string{filepath.Join("..", "config", "crd", "bases")},
 		KubeAPIServerFlags: apiServerFlags,
