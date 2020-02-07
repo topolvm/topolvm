@@ -5,6 +5,10 @@ metadata:
   name: topolvm.cybozu.com
 spec:
   attachRequired: true
+  podInfoOnMount: true
+  volumeLifecycleModes:
+    - Persistent
+    - Ephemeral
 
 ---
 apiVersion: v1

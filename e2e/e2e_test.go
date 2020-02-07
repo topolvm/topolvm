@@ -1,9 +1,11 @@
 package e2e
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -687,6 +689,131 @@ spec:
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s", stdout)
 		Expect(pod.Spec.NodeName).To(Equal(""))
 	})
+
+	It("should mount inline ephemeral volumes backed by LVMs to the pod and delete LVMs when pod is deleted", func() {
+		podYAML := `apiVersion: v1
+kind: Pod
+metadata:
+  name: ubuntu
+  labels:
+    app.kubernetes.io/name: ubuntu
+spec:
+  containers:
+  - name: ubuntu
+    image: quay.io/cybozu/ubuntu:18.04
+    command: ["/usr/local/bin/pause"]
+    volumeMounts:
+    - mountPath: /test1
+      name: my-volume
+    - mountPath: /test2
+      name: my-default-volume
+  volumes:
+  - name: my-volume
+    csi:
+      driver: topolvm.cybozu.com
+      fsType: xfs
+      volumeAttributes:
+        topolvm.cybozu.com/size: "2"
+  - name: my-default-volume
+    csi:
+      driver: topolvm.cybozu.com
+`
+		const minInlineEphemeralVer int64 = 16
+		kubernetesVersionStr := os.Getenv("TEST_KUBERNETES_VERSION")
+		kubernetesVersion := strings.Split(kubernetesVersionStr, ".")
+		Expect(len(kubernetesVersion)).To(Equal(2))
+		kubernetesMinorVersion, err := strconv.ParseInt(kubernetesVersion[1], 10, 64)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		if kubernetesMinorVersion < minInlineEphemeralVer {
+			Skip(fmt.Sprintf(
+				"inline inline ephemeral volumes not supported on Kubernetes version: %s. Min supported version is 1.%d",
+				kubernetesVersionStr,
+				minInlineEphemeralVer,
+			))
+		}
+
+		By("reading current count of LVMs")
+		baseLvmCount, err := countLVMs()
+		Expect(err).ShouldNot(HaveOccurred())
+
+		By("deploying Pod with a TopoLVM inline ephemeral volume")
+
+		stdout, stderr, err := kubectlWithInput([]byte(podYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("confirming that the specified mountpoints exist in the Pod")
+		Eventually(func() error {
+			err := verifyMountExists(ns, "ubuntu", "/test1")
+			if err != nil {
+				return err
+			}
+
+			err = verifyMountExists(ns, "ubuntu", "/test2")
+			if err != nil {
+				return err
+			}
+			return nil
+		}).Should(Succeed())
+
+		// 2086912 is the number of 1k blocks to expect for a xfs volume
+		// formatted from a raw 2 Gi block device
+		verifyMountProperties(ns, "ubuntu", "/test1", "xfs", 2086912)
+
+		// 999320 is the number of 1k blocks to expect for an ext4 volume
+		// formatted from a raw 1 Gi block device
+		verifyMountProperties(ns, "ubuntu", "/test2", "ext4", 999320)
+
+		By("writing file under /test1")
+		writePath := "/test1/bootstrap.log"
+		stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "cp", "/var/log/bootstrap.log", writePath)
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "sync")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "cat", writePath)
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		Expect(strings.TrimSpace(string(stdout))).ShouldNot(BeEmpty())
+
+		By("Confirming two LVMs were created")
+		postCreateLvmCount, err := countLVMs()
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(postCreateLvmCount).To(Equal(baseLvmCount + 2))
+
+		By("deleting the Pod")
+		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "delete", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("verifying that the two LVMs were removed")
+		postDeleteLvmCount, err := countLVMs()
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(postDeleteLvmCount).To(Equal(baseLvmCount))
+	})
+}
+
+func verifyMountExists(ns string, pod string, mount string) error {
+	stdout, stderr, err := kubectl("exec", "-n", ns, pod, "--", "mountpoint", "-d", mount)
+	if err != nil {
+		return fmt.Errorf("failed to check mount point. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+	}
+	return nil
+}
+
+func verifyMountProperties(ns string, pod string, mount string, fsType string, size int) {
+	By(fmt.Sprintf("verifying that %s is mounted as type %s", mount, fsType))
+
+	stdout, stderr, err := kubectl("exec", "-n", ns, pod, "grep", mount, "/proc/mounts")
+	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+	mountFields := strings.Fields(string(stdout))
+	Expect(mountFields[2]).To(Equal(fsType))
+
+	By(fmt.Sprintf("verifying that the volume mounted at %s has the correct size", mount))
+	stdout, stderr, err = kubectl("exec", "-n", ns, pod, "--", "df", "--output=size", mount)
+	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+	dfFields := strings.Fields((string(stdout)))
+	volSize, err := strconv.Atoi(dfFields[1])
+	Expect(err).ShouldNot(HaveOccurred())
+	Expect(volSize).To(Equal(size))
 }
 
 func waitCreatingDefaultSA(ns string) error {
@@ -741,4 +868,12 @@ func checkLVIsDeletedInLVM(volName string) error {
 		return fmt.Errorf("target LV exists %s", volName)
 	}
 	return nil
+}
+
+func countLVMs() (int, error) {
+	stdout, err := exec.Command("sudo", "lvs", "-o", "lv_name", "--noheadings").Output()
+	if err != nil {
+		return -1, fmt.Errorf("failed to lvs. stdout %s, err %v", stdout, err)
+	}
+	return bytes.Count(stdout, []byte("\n")), nil
 }

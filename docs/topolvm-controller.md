@@ -13,7 +13,7 @@ CSI controller features
 `topolvm-controller` implements following optional features:
 
 - [Dynamic volume provisioning](https://github.com/container-storage-interface/spec/blob/v1.1.0/spec.md#createvolume)
-- [Get capacity](https://github.com/container-storage-interface/spec/blob/v1.1.0/spec.md#getcapacity) 
+- [Get capacity](https://github.com/container-storage-interface/spec/blob/v1.1.0/spec.md#getcapacity)
 
 Webhooks
 --------
@@ -26,17 +26,20 @@ Mutate new Pods to add `topolvm.cybozu.com/capacity` resource request to
 its first container.  This resource request will be used by
 [`topolvm-scheduler`](./topolvm-scheduler.md) to filter and score Nodes.
 
-This hook handles only pods having at least one _unbound_
-PersistentVolumeClaim (PVC) for TopoLVM and _no_ bound PVC for TopoLVM.
+This hook handles two classes of pods. First, pods having at least one _unbound_
+PersistentVolumeClaim (PVC) for TopoLVM and _no_ bound PVC for TopoLVM. Second,
+pods which have at least one inline ephemeral volume which specify using the CSI driver
+type `topolvm.cybozu.com`.
 
-The requested storage size of a PVC is calculated as follows:
-- if PVC has no storage request, the size will be treated as 1 GiB.
-- if PVC has storage request, the size will be rounded up to GiB unit.
+For both PVCs and inline ephemeral volumes,the requested storage size for the
+volume is calculated as follows:
+- if the volume has no storage request, the size will be treated as 1 GiB.
+- if the volume has storage request, the size will be rounded up to GiB unit.
 
 The value of the resource request is the sum of rounded storage size
 of unbound PVCs for TopoLVM.
 
-Suppose the following manifest is to be applied:
+The following manifest exemplifies usage of TopoLVM PVCs:
 
 ```yaml
 kind: StorageClass
@@ -91,6 +94,38 @@ spec:
       limits:
         topolvm.cybozu.com/capacity: "1073741824"
       requests:
+        topolvm.cybozu.com/capacity: "1073741824"
+```
+
+Below is an example for TopoLVM inline ephemeral volumes:
+```yaml
+kind: Pod
+metadata:
+  name: ubuntu
+  labels:
+    app.kubernetes.io/name: ubuntu
+spec:
+  containers:
+  - name: ubuntu
+    image: quay.io/cybozu/ubuntu:18.04
+    command: ["/usr/local/bin/pause"]
+    volumeMounts:
+    - mountPath: /test1
+      name: my-volume
+  volumes:
+  - name: my-volume
+    csi:
+      driver: topolvm.cybozu.com
+```
+
+The hook inserts `topolvm.cybozu.com/capacity` to the ubuntu container as follows:
+
+```yaml
+spec:
+  containers:
+  - name: ubuntu
+    resources:
+      limits:
         topolvm.cybozu.com/capacity: "1073741824"
 ```
 
