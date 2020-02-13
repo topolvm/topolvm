@@ -105,15 +105,14 @@ func testPod() *corev1.Pod {
 	return pod
 }
 
-func getPod() *corev1.Pod {
+func getPod() (*corev1.Pod, error) {
 	pod := &corev1.Pod{}
 	name := types.NamespacedName{
 		Namespace: mutatePodNamespace,
 		Name:      defaultPodName,
 	}
 	err := k8sClient.Get(testCtx, name, pod)
-	ExpectWithOffset(1, err).ShouldNot(HaveOccurred())
-	return pod
+	return pod, err
 }
 
 var _ = Describe("pod mutation webhook", func() {
@@ -130,9 +129,24 @@ var _ = Describe("pod mutation webhook", func() {
 		err := k8sClient.Create(testCtx, pod)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		pod = getPod()
+		pod, err = getPod()
+		Expect(err).ShouldNot(HaveOccurred())
 		Expect(pod.Spec.Containers[0].Resources.Requests).To(BeEmpty())
 		Expect(pod.Spec.Containers[0].Resources.Limits).To(BeEmpty())
+	})
+
+	It("should create pod before its PVC", func() {
+		pod := testPod()
+		pod.Spec.Volumes = []corev1.Volume{
+			{
+				Name: "vol1",
+				VolumeSource: corev1.VolumeSource{
+					PersistentVolumeClaim: pvcSource("non-existent"),
+				},
+			},
+		}
+		err := k8sClient.Create(testCtx, pod)
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	It("should mutate pod w/ TopoLVM PVC", func() {
@@ -148,7 +162,8 @@ var _ = Describe("pod mutation webhook", func() {
 		err := k8sClient.Create(testCtx, pod)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		pod = getPod()
+		pod, err = getPod()
+		Expect(err).ShouldNot(HaveOccurred())
 		request := pod.Spec.Containers[0].Resources.Requests["topolvm.cybozu.com/capacity"]
 		limit := pod.Spec.Containers[0].Resources.Limits["topolvm.cybozu.com/capacity"]
 		Expect(request.Value()).Should(BeNumerically("==", 1<<30))
@@ -173,7 +188,8 @@ var _ = Describe("pod mutation webhook", func() {
 		err := k8sClient.Create(testCtx, pod)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		pod = getPod()
+		pod, err = getPod()
+		Expect(err).ShouldNot(HaveOccurred())
 		request := pod.Spec.Containers[0].Resources.Requests["topolvm.cybozu.com/capacity"]
 		limit := pod.Spec.Containers[0].Resources.Limits["topolvm.cybozu.com/capacity"]
 		Expect(request.Value()).Should(BeNumerically("==", 2<<30))
@@ -198,7 +214,8 @@ var _ = Describe("pod mutation webhook", func() {
 		err := k8sClient.Create(testCtx, pod)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		pod = getPod()
+		pod, err = getPod()
+		Expect(err).ShouldNot(HaveOccurred())
 		request := pod.Spec.Containers[0].Resources.Requests["topolvm.cybozu.com/capacity"]
 		limit := pod.Spec.Containers[0].Resources.Limits["topolvm.cybozu.com/capacity"]
 		Expect(request.Value()).Should(BeNumerically("==", 1<<30))
@@ -224,7 +241,8 @@ var _ = Describe("pod mutation webhook", func() {
 		err := k8sClient.Create(testCtx, pod)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		pod = getPod()
+		pod, err = getPod()
+		Expect(err).ShouldNot(HaveOccurred())
 		request := pod.Spec.Containers[0].Resources.Requests["topolvm.cybozu.com/capacity"]
 		limit := pod.Spec.Containers[0].Resources.Limits["topolvm.cybozu.com/capacity"]
 		Expect(request.Value()).Should(BeNumerically("==", 1<<30))
@@ -255,7 +273,8 @@ var _ = Describe("pod mutation webhook", func() {
 		err := k8sClient.Create(testCtx, pod)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		pod = getPod()
+		pod, err = getPod()
+		Expect(err).ShouldNot(HaveOccurred())
 		Expect(pod.Spec.Containers[0].Resources.Requests).To(BeEmpty())
 		Expect(pod.Spec.Containers[0].Resources.Limits).To(BeEmpty())
 	})
@@ -285,7 +304,8 @@ var _ = Describe("pod mutation webhook", func() {
 		err := k8sClient.Create(testCtx, pod)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		pod = getPod()
+		pod, err = getPod()
+		Expect(err).ShouldNot(HaveOccurred())
 		request := pod.Spec.Containers[0].Resources.Requests["topolvm.cybozu.com/capacity"]
 		Expect(request.Value()).Should(BeNumerically("==", 3<<30))
 	})
@@ -303,7 +323,8 @@ var _ = Describe("pod mutation webhook", func() {
 		err := k8sClient.Create(testCtx, pod)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		pod = getPod()
+		pod, err = getPod()
+		Expect(err).ShouldNot(HaveOccurred())
 		Expect(pod.Spec.Containers[0].Resources.Requests).To(BeEmpty())
 		Expect(pod.Spec.Containers[0].Resources.Limits).To(BeEmpty())
 	})
