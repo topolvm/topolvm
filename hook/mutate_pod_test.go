@@ -105,14 +105,15 @@ func testPod() *corev1.Pod {
 	return pod
 }
 
-func getPod() (*corev1.Pod, error) {
+func getPod() *corev1.Pod {
 	pod := &corev1.Pod{}
 	name := types.NamespacedName{
 		Namespace: mutatePodNamespace,
 		Name:      defaultPodName,
 	}
 	err := k8sClient.Get(testCtx, name, pod)
-	return pod, err
+	ExpectWithOffset(1, err).ShouldNot(HaveOccurred())
+	return pod
 }
 
 var _ = Describe("pod mutation webhook", func() {
@@ -129,8 +130,7 @@ var _ = Describe("pod mutation webhook", func() {
 		err := k8sClient.Create(testCtx, pod)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		pod, err = getPod()
-		Expect(err).ShouldNot(HaveOccurred())
+		pod = getPod()
 		Expect(pod.Spec.Containers[0].Resources.Requests).To(BeEmpty())
 		Expect(pod.Spec.Containers[0].Resources.Limits).To(BeEmpty())
 	})
@@ -162,8 +162,7 @@ var _ = Describe("pod mutation webhook", func() {
 		err := k8sClient.Create(testCtx, pod)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		pod, err = getPod()
-		Expect(err).ShouldNot(HaveOccurred())
+		pod = getPod()
 		request := pod.Spec.Containers[0].Resources.Requests["topolvm.cybozu.com/capacity"]
 		limit := pod.Spec.Containers[0].Resources.Limits["topolvm.cybozu.com/capacity"]
 		Expect(request.Value()).Should(BeNumerically("==", 1<<30))
@@ -188,8 +187,7 @@ var _ = Describe("pod mutation webhook", func() {
 		err := k8sClient.Create(testCtx, pod)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		pod, err = getPod()
-		Expect(err).ShouldNot(HaveOccurred())
+		pod = getPod()
 		request := pod.Spec.Containers[0].Resources.Requests["topolvm.cybozu.com/capacity"]
 		limit := pod.Spec.Containers[0].Resources.Limits["topolvm.cybozu.com/capacity"]
 		Expect(request.Value()).Should(BeNumerically("==", 2<<30))
@@ -214,8 +212,7 @@ var _ = Describe("pod mutation webhook", func() {
 		err := k8sClient.Create(testCtx, pod)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		pod, err = getPod()
-		Expect(err).ShouldNot(HaveOccurred())
+		pod = getPod()
 		request := pod.Spec.Containers[0].Resources.Requests["topolvm.cybozu.com/capacity"]
 		limit := pod.Spec.Containers[0].Resources.Limits["topolvm.cybozu.com/capacity"]
 		Expect(request.Value()).Should(BeNumerically("==", 1<<30))
@@ -241,8 +238,7 @@ var _ = Describe("pod mutation webhook", func() {
 		err := k8sClient.Create(testCtx, pod)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		pod, err = getPod()
-		Expect(err).ShouldNot(HaveOccurred())
+		pod = getPod()
 		request := pod.Spec.Containers[0].Resources.Requests["topolvm.cybozu.com/capacity"]
 		limit := pod.Spec.Containers[0].Resources.Limits["topolvm.cybozu.com/capacity"]
 		Expect(request.Value()).Should(BeNumerically("==", 1<<30))
@@ -273,8 +269,7 @@ var _ = Describe("pod mutation webhook", func() {
 		err := k8sClient.Create(testCtx, pod)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		pod, err = getPod()
-		Expect(err).ShouldNot(HaveOccurred())
+		pod = getPod()
 		Expect(pod.Spec.Containers[0].Resources.Requests).To(BeEmpty())
 		Expect(pod.Spec.Containers[0].Resources.Limits).To(BeEmpty())
 	})
@@ -304,8 +299,7 @@ var _ = Describe("pod mutation webhook", func() {
 		err := k8sClient.Create(testCtx, pod)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		pod, err = getPod()
-		Expect(err).ShouldNot(HaveOccurred())
+		pod = getPod()
 		request := pod.Spec.Containers[0].Resources.Requests["topolvm.cybozu.com/capacity"]
 		Expect(request.Value()).Should(BeNumerically("==", 3<<30))
 	})
@@ -323,8 +317,7 @@ var _ = Describe("pod mutation webhook", func() {
 		err := k8sClient.Create(testCtx, pod)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		pod, err = getPod()
-		Expect(err).ShouldNot(HaveOccurred())
+		pod = getPod()
 		Expect(pod.Spec.Containers[0].Resources.Requests).To(BeEmpty())
 		Expect(pod.Spec.Containers[0].Resources.Limits).To(BeEmpty())
 	})
