@@ -16,7 +16,8 @@ Pod without PVC
 ---------------
 
 TopoLVM expects that PVCs are created in advance of their Pods.
-However, the TopoLVM webhook does not prevent the creation of Pods before their PVCs. This is because such usages are valid in other StorageClasses and the webhook cannot identify the StorageClasses without PVCs.
-TopoLVM does not care about the created pods without their PVCs even if the PVCs are deployed afterward.
+However, the TopoLVM webhook does not block the creation of a Pod when there are missing PVCs for the Pod.
+This is because such usages are valid in other StorageClasses and the webhook cannot identify the StorageClasses without PVCs.
+For such Pods, TopoLVM's extended scheduler will not work.
 
 The typical usage of TopoLVM is using StatefulSet with volumeClaimTemplate.
