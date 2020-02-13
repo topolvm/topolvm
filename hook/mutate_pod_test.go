@@ -135,6 +135,20 @@ var _ = Describe("pod mutation webhook", func() {
 		Expect(pod.Spec.Containers[0].Resources.Limits).To(BeEmpty())
 	})
 
+	It("should create pod before its PVC", func() {
+		pod := testPod()
+		pod.Spec.Volumes = []corev1.Volume{
+			{
+				Name: "vol1",
+				VolumeSource: corev1.VolumeSource{
+					PersistentVolumeClaim: pvcSource("non-existent"),
+				},
+			},
+		}
+		err := k8sClient.Create(testCtx, pod)
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
 	It("should mutate pod w/ TopoLVM PVC", func() {
 		pod := testPod()
 		pod.Spec.Volumes = []corev1.Volume{

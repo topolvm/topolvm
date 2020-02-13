@@ -9,6 +9,7 @@ import (
 	"github.com/cybozu-go/topolvm"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
+	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -133,12 +134,17 @@ func (m podMutator) requestedPVCCapacity(ctx context.Context, pod *corev1.Pod, t
 
 		var pvc corev1.PersistentVolumeClaim
 		if err := m.client.Get(ctx, name, &pvc); err != nil {
-			pmLogger.Error(err, "failed to get pvc",
-				"pod", pod.Name,
-				"namespace", pod.Namespace,
-				"pvc", pvcName,
-			)
-			return 0, err
+			if !apierrs.IsNotFound(err) {
+				pmLogger.Error(err, "failed to get pvc",
+					"pod", pod.Name,
+					"namespace", pod.Namespace,
+					"pvc", pvcName,
+				)
+				return 0, err
+			}
+			// Pods should be created even if their PVCs do not exist yet.
+			// TopoLVM does not care about such pods after they are created, though.
+			continue
 		}
 
 		if pvc.Spec.StorageClassName == nil {
