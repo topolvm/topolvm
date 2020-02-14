@@ -24,6 +24,14 @@ it means that the logical volume correspond to `LogicalVolume` is not provisione
 So in that case, `topolvm-node` sends `CreateLV` request to `lvmd`.
 If its response is succeeded, `topolvm-node` set `logicalvolume.status.volumeID`.
 
+### Extend a logical volume
+
+If `logicalvolume.status.targetSize` exists,
+it means that the logical volume correspond to `LogicalVolume` should be extended.
+So in that case, `topolvm-node` sends `ResizeLV` request to `lvmd`.
+If its response is succeeded, `topolvm-controller` update `logicalvolume.spec.size` and
+remove `logicalvolume.status.targetSize`.
+
 ### Finalize LogicalVolume
 
 When a `LogicalVolume` resource is being deleted, `topolvm-node` sends
