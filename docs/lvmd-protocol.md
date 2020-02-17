@@ -45,6 +45,7 @@ Represents the input for CreateLV.
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  | The logical volume name. |
 | size_gb | [uint64](#uint64) |  | Volume size in GiB. |
+| tags | [string](#string) | repeated | Tags to add to the volume during creation |
 
 
 
@@ -118,7 +119,7 @@ Represents a logical volume.
 | size_gb | [uint64](#uint64) |  | Volume size in GiB. |
 | dev_major | [uint32](#uint32) |  | Device major number. |
 | dev_minor | [uint32](#uint32) |  | Device minor number. |
-| tags | [string](#string) | repeated | Tags on the volume. |
+| tags | [string](#string) | repeated | Tags to add to the volume during creation |
 
 
 
