@@ -7,6 +7,22 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.3.0] - 2020-02-17
+
+### Added
+- Add support for volume tags to lvmd (#86).
+- Add support for inline ephemeral volume (#93).
+
+### Changed
+- Upgrade cybozu-go/well to 1.10.0 (#85).
+- Extend the timeout for waiting for the startup topolvm-controller (#90).
+- Update CSIDriver config for k8s 1.16 for e2e while leaving legacy alone (#89).
+- Update kubebuilder and controller-tools (#95).
+- Change the author line to  "The TopoLVM Authors" (#98).
+
+### Fixed
+- Fix to allow creating Pods before their PVCs (#99).
+
 ## [0.2.2] - 2019-12-26
 
 Only cosmetic changes.
@@ -56,7 +72,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/cybozu-go/topolvm/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/cybozu-go/topolvm/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/cybozu-go/topolvm/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/cybozu-go/topolvm/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/cybozu-go/topolvm/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/cybozu-go/topolvm/compare/v0.1.2...v0.2.0
