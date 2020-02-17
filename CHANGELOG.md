@@ -23,6 +23,11 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 ### Fixed
 - Fix to allow creating Pods before their PVCs (#99).
 
+### Contributors
+- @matthias50
+- @pohly
+- @ridv
+
 ## [0.2.2] - 2019-12-26
 
 Only cosmetic changes.
