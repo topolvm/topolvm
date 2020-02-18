@@ -9,7 +9,9 @@ CSI node features
 
 `topolvm-node` implements following optional features:
 
-- [`GET_VOLUME_STATS`](https://github.com/container-storage-interface/spec/blob/master/spec.md#nodegetvolumestats)
+- [`GET_VOLUME_STATS`](https://github.com/container-storage-interface/spec/blob/v1.1.0/spec.md#nodegetvolumestats)
+- [`EXPAND_VOLUME`](https://github.com/container-storage-interface/spec/blob/v1.1.0/spec.md#nodeexpandvolume)
+
 
 Dynamic volume provisioning
 ---------------------------
@@ -26,11 +28,13 @@ If its response is succeeded, `topolvm-node` set `logicalvolume.status.volumeID`
 
 ### Extend a logical volume
 
-If `logicalvolume.status.targetSize` exists,
-it means that the logical volume correspond to `LogicalVolume` should be extended.
+If there is a difference between `logicalvolume.spec.size` and `logicalvolume.status.currentSize`,
+it means that the logical volume corresponding to `LogicalVolume` should be extended.
 So in that case, `topolvm-node` sends `ResizeLV` request to `lvmd`.
-If its response is succeeded, `topolvm-controller` update `logicalvolume.spec.size` and
-remove `logicalvolume.status.targetSize`.
+If its response is succeeded, `topolvm-node` update `logicalvolume.status.currentSize`.
+If fails, update the .status.code and .status.message field with an error.
+Then, if the logical volume is neither a block device or filesystem which is not able to resize when mounted,
+`topolvm-node` resize the filesystem of the logical volume via `NodeExpandVolume` or `NodePublishVolume`.
 
 ### Finalize LogicalVolume
 
