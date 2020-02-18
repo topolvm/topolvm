@@ -176,11 +176,11 @@ This way, `topolvm-scheduler` is exposed by LoadBalancer service.
 
 Then edit `urlPrefix` in [./scheduler-config/scheduler-policy.cfg](./scheduler-config/scheduler-policy.cfg) to specify the LoadBalancer address.
 
-### Scoring tuning
+### How to tune the node scoring
 
-The prioritize of Pod scheduling by `topolvm-scheduler` can be tuned via the following two ways:
-1. Adjust the divisor parameter in the scoring expression
-2. Change the weight for the scoring by `topolvm-scheduler` against the default by kube-scheduler
+The node scoring for Pod scheduling can be fine-tuned with the following two ways:
+1. Adjust `divisor` parameter in the scoring expression
+2. Change the weight for the node scoring against the default by kube-scheduler
 
 The scoring expression in `topolvm-scheduler` is as follows:
 ```
@@ -188,7 +188,27 @@ min(10, max(0, log2(capacity >> 30 / divisor)))
 ```
 For example, the default of `divisor` is `1`, then if a node has the free disk capacity more than `1024GiB`, `topolvm-scheduler` scores the node as `10`. `divisor` should be adjusted to suit each environment. It can be passed as the command line parameter of `topolvm-scheduler`.
 
-Besides, the scoring weight can be passed to kube-scheduler via [scheduler-policy.cfg](./scheduler-config/scheduler-policy.cfg). Almost all scoring algorithms in kube-scheduler are weighted as `1`. So if you want to give a priority to the scoring by `topolvm-scheduler`, you have to set the weight as a value larger than one.
+Besides, the scoring weight can be passed to kube-scheduler via [scheduler-policy.cfg](./scheduler-config/scheduler-policy.cfg). Almost all scoring algorithms in kube-scheduler are weighted as `"weight": 1`. So if you want to give a priority to the scoring by `topolvm-scheduler`, you have to set the weight as a value larger than one like as follows:
+```json
+{
+  "kind" : "Policy",
+  "apiVersion" : "v1",
+  "extenders" :
+    [{
+      "urlPrefix": "http://127.0.0.1:9251",
+      "filterVerb": "predicate",
+      "prioritizeVerb": "prioritize",
+      "nodeCacheCapable": false,
+      "weight": 100, ## EDIT THIS FIELD ##
+      "managedResources":
+      [{
+        "name": "topolvm.cybozu.com/capacity",
+        "ignoredByScheduler": true
+      }]
+    }]
+}
+```
+
 
 Protect system namespaces from TopoLVM webhook
 ---------------------------------------------
