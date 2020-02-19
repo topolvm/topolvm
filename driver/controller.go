@@ -313,6 +313,17 @@ func (s controllerService) ListSnapshots(context.Context, *csi.ListSnapshotsRequ
 	return nil, status.Error(codes.Unimplemented, "ListSnapshots not implemented")
 }
 
-func (s controllerService) ControllerExpandVolume(context.Context, *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "ControllerExpandVolume not implemented")
+func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
+	err := s.service.VolumeExists(ctx, req.GetVolumeId())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	err = s.service.ExpandVolume(ctx, req.GetVolumeId(), req.CapacityRange.GetRequiredBytes())
+	if err != nil {
+		return nil, status.Error(codes.Unknown, err.Error())
+	}
+	return &csi.ControllerExpandVolumeResponse{
+		CapacityBytes:         0,
+		NodeExpansionRequired: true,
+	}, nil
 }

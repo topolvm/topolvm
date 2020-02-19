@@ -81,3 +81,7 @@ func (s *logicalVolumeService) GetCapacity(ctx context.Context, requestNodeNumbe
 func (s *logicalVolumeService) GetMaxCapacity(ctx context.Context) (string, int64, error) {
 	return "", 0, nil
 }
+
+func (s *logicalVolumeService) GetCurrentSize(ctx context.Context, volumeID string) (*int64, error) {
+	return nil, nil
+}
