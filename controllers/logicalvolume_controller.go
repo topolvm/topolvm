@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -51,6 +52,8 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	if lv.ObjectMeta.DeletionTimestamp == nil {
 		// When lv.Status.Code is not codes.OK (== 0), CreateLV has already failed.
 		// LogicalVolume CRD will be deleted soon by the controller.
+		// In the case of retry of other operations than CreateLV,
+		// the controller should clear lv.Status.Code.
 		if lv.Status.Code != codes.OK {
 			return ctrl.Result{}, nil
 		}
@@ -70,11 +73,13 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 				log.Error(err, "failed to create LV", "name", lv.Name)
 				return ctrl.Result{}, err
 			}
+		} else {
+			if err := r.expandLV(ctx, log, lv, vgService, lvService); err != nil {
+				log.Error(err, "failed to expand LV", "name", lv.Name)
+				return ctrl.Result{}, err
+			}
 		}
 		return ctrl.Result{}, nil
-		//
-		// TODO: handle requests to expand volume, here
-		//
 	}
 
 	// finalization
@@ -184,26 +189,57 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 
 	resp, err := lvService.CreateLV(ctx, &proto.CreateLVRequest{Name: string(lv.UID), SizeGb: uint64(reqBytes >> 30)})
 	if err != nil {
-		s, ok := status.FromError(err)
-		if !ok {
-			log.Error(err, err.Error())
-			err := r.updateStatusWithError(ctx, log, lv, codes.Internal, err.Error())
-			return err
-		}
-		log.Error(err, s.Message())
-		err := r.updateStatusWithError(ctx, log, lv, s.Code(), s.Message())
+		code, message := extractFromError(err)
+		log.Error(err, message)
+		err := r.updateStatusWithError(ctx, log, lv, code, message)
 		return err
 	}
 
 	lv2 := lv.DeepCopy()
 	lv2.Status.VolumeID = resp.Volume.Name
+	lv2.Status.CurrentSize = resource.NewQuantity(reqBytes, resource.BinarySI)
 	patch := client.MergeFrom(lv)
 	if err := r.Status().Patch(ctx, lv2, patch); err != nil {
-		log.Error(err, "failed to update VolumeID", "name", lv.Name, "uid", lv.UID)
+		log.Error(err, "failed to update status", "name", lv.Name, "uid", lv.UID)
 		return err
 	}
 
 	log.Info("created new LV", "name", lv2.Name, "uid", lv2.UID, "status.volumeID", lv2.Status.VolumeID)
+	return nil
+}
+
+func (r *LogicalVolumeReconciler) expandLV(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume,
+	vgService proto.VGServiceClient, lvService proto.LVServiceClient) error {
+	if lv.Status.CurrentSize == nil {
+		log.Info(".status.currentSize is expected but not set", "name", lv.Name)
+		// return nil not to be requeued
+		return nil
+	}
+
+	if lv.Spec.Size.Cmp(*lv.Status.CurrentSize) <= 0 {
+		return nil
+	}
+
+	origBytes := (*lv.Status.CurrentSize).Value()
+	reqBytes := lv.Spec.Size.Value()
+	_, err := lvService.ResizeLV(ctx, &proto.ResizeLVRequest{Name: string(lv.UID), SizeGb: uint64(reqBytes >> 30)})
+	if err != nil {
+		code, message := extractFromError(err)
+		log.Error(err, message)
+		err := r.updateStatusWithError(ctx, log, lv, code, message)
+		return err
+	}
+
+	lv2 := lv.DeepCopy()
+	lv2.Status.CurrentSize = resource.NewQuantity(reqBytes, resource.BinarySI)
+	patch := client.MergeFrom(lv)
+	if err := r.Status().Patch(ctx, lv2, patch); err != nil {
+		log.Error(err, "failed to update status", "name", lv.Name, "uid", lv.UID)
+		return err
+	}
+
+	log.Info("expanded LV", "name", lv2.Name, "uid", lv2.UID, "status.volumeID", lv2.Status.VolumeID,
+		"original status.currentSize", origBytes, "status.currentSize", reqBytes)
 	return nil
 }
 
@@ -254,4 +290,12 @@ func removeString(slice []string, s string) (result []string) {
 		result = append(result, item)
 	}
 	return
+}
+
+func extractFromError(err error) (codes.Code, string) {
+	s, ok := status.FromError(err)
+	if !ok {
+		return codes.Internal, err.Error()
+	}
+	return s.Code(), s.Message()
 }
