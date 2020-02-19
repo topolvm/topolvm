@@ -43,7 +43,7 @@ when the volume size of the corresponding PVC is extended.
 `topolvm-node` watches the `LogicalVolume` resource and resizes the LVM logical
 volume when it finds the difference between `status.currentSize` and `spec.size`.
 
-If the LVM logical volume has successfully extended, `topolvm-node` updates
+After the LVM logical volume is extended successfully, `topolvm-node` updates
 `status.currentSize` value.
 If fails, `topolvm-node` updates the `status.code` and `status.message` with
 the returned error.
