@@ -404,8 +404,62 @@ func (s *nodeService) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVo
 	return &csi.NodeGetVolumeStatsResponse{Usage: usage}, nil
 }
 
-func (s *nodeService) NodeExpandVolume(context.Context, *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "NodeExpandVolume not implemented")
+func (s *nodeService) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
+	vid := req.GetVolumeId()
+	vpath := req.GetVolumePath()
+
+	nodeLogger.Info("NodeExpandVolume is called",
+		"volume_id", vid,
+		"volume_path", vpath,
+		"required", req.GetCapacityRange().GetRequiredBytes(),
+		"limit", req.GetCapacityRange().GetLimitBytes(),
+	)
+
+	// Device type(block or fs, fs type detection checking will be removed  after CSI v1.2.0
+	// because `volume_capability` filed will be added in csi.NodeExpandVolumeRequest
+	info, err := os.Stat(vpath)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "stat failed for %s: %v", vpath, err)
+	}
+
+	isBlock := !info.IsDir()
+	if isBlock {
+		nodeLogger.Info("NodeExpandVolume(block) is skipped",
+			"volume_id", vid,
+			"target_path", vpath,
+		)
+		return &csi.NodeExpandVolumeResponse{}, nil
+	}
+
+	fsType, err := filesystem.DetectFilesystem(vpath)
+	if err != nil || fsType == "" {
+		return nil, status.Errorf(codes.Internal, "failed to detect filesystem %s at %s: %v", vid, vpath, err)
+	}
+
+	device := filepath.Join(DeviceDirectory, vid)
+	fs, err := filesystem.New(fsType, device)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to create filesystem object with device path %s: %v", device, err)
+	}
+	if !fs.Exists() {
+		return nil, status.Errorf(codes.Internal, "filesystem %s is not mounted at %s", vid, vpath)
+	}
+
+	err = fs.Resize(vpath)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to resize filesystem %s (mounted at: %s): %v", vid, vpath, err)
+	}
+
+	nodeLogger.Info("NodeExpandVolume(fs) is succeeded",
+		"volume_id", vid,
+		"target_path", vpath,
+	)
+
+	// In the specification v1.1.0, `capacity_bytes` in NodeExpandVolumeResponse is defined as OPTIONAL.
+	// If this field needs to be filled, the value should be equal to `.status.currentSize` of the corresponding
+	// `LogicalVolume`, but currently the node plugin does not have an access to the resource.
+	// In addtion to this, Kubernetes does not care if the field is blank or not, so leave it blank.
+	return &csi.NodeExpandVolumeResponse{}, nil
 }
 
 func (s *nodeService) NodeGetCapabilities(context.Context, *csi.NodeGetCapabilitiesRequest) (*csi.NodeGetCapabilitiesResponse, error) {
