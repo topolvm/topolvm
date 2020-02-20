@@ -314,6 +314,12 @@ func (s controllerService) ListSnapshots(context.Context, *csi.ListSnapshotsRequ
 }
 
 func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
+	ctrlLogger.Info("ControllerExpandVolume called",
+		"volumeID", req.GetVolumeId(),
+		"required", req.GetCapacityRange().GetRequiredBytes(),
+		"limit", req.GetCapacityRange().GetLimitBytes(),
+		"num_secrets", len(req.GetSecrets()))
+
 	err := s.service.VolumeExists(ctx, req.GetVolumeId())
 	switch err {
 	case ErrVolumeNotFound:

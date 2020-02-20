@@ -177,18 +177,28 @@ func (s *logicalVolumeService) ExpandVolume(ctx context.Context, volumeID string
 
 	lv, err := s.getLogicalVolume(ctx, volumeID)
 	if err != nil {
+		logger.Error(err, "failed to get logical volume", "name", lv.Name)
 		return err
 	}
 
 	targetNodeName := lv.Spec.NodeName
 	node, err := s.getNode(ctx, targetNodeName)
 	if err != nil {
+		logger.Error(err, "failed to get node", "name", targetNodeName)
 		return err
 	}
 
 	cap := s.getNodeCapacity(*node)
+	cs, err := s.GetCurrentSize(ctx, volumeID)
+	if err != nil {
+		logger.Error(err, "failed to get current size", "name", lv.Name)
+		return err
+	}
+
 	if cap < (sizeGb<<30 - cs) {
-		return errors.New("not enough space")
+		err := errors.New("not enough space")
+		logger.Error(err, "not enough space is left", "name", targetNodeName)
+		return err
 	}
 
 	lv2 := lv.DeepCopy()
