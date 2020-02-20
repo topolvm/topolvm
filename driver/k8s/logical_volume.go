@@ -172,55 +172,20 @@ func (s *logicalVolumeService) listNodes(ctx context.Context) (*corev1.NodeList,
 }
 
 func (s *logicalVolumeService) ExpandVolume(ctx context.Context, volumeID string, sizeGb int64) error {
-	currentSize, err := s.GetCurrentSize(ctx, volumeID)
-	if err != nil {
-		return err
-	}
-
-	// If `status.currentSize` is not set, first set `status.currentSize` as the value of `spec.size`
-	var cs int64
-	if currentSize != nil {
-		cs = *currentSize
-	} else {
-		// patch if currentSize is not nil
-		lv, err := s.getLogicalVolume(ctx, volumeID)
-		if err != nil {
-			return err
-		}
-
-		lv2 := lv.DeepCopy()
-		lv2.Status.CurrentSize = &lv2.Spec.Size
-
-		patch := client.MergeFrom(lv)
-		if err := s.Patch(ctx, lv2, patch); err != nil {
-			logger.Error(err, "failed to patch .status.currentSize", "name", lv.Name)
-			return err
-		}
-		currentSize2, err := s.GetCurrentSize(ctx, volumeID)
-		if err != nil {
-			return err
-		}
-		if currentSize2 == nil {
-			return errors.New("should not be nil")
-		}
-		cs = *currentSize2
-	}
-
-	// Expand volume
-	if sizeGb<<30-cs <= 0 {
-		logger.Info("no need to extend volume", "requested", sizeGb<<30, "current", cs)
-		return nil
-	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	lv, err := s.getLogicalVolume(ctx, volumeID)
 	if err != nil {
 		return err
 	}
+
 	targetNodeName := lv.Spec.NodeName
 	node, err := s.getNode(ctx, targetNodeName)
 	if err != nil {
 		return err
 	}
+
 	cap := s.getNodeCapacity(*node)
 	if cap < (sizeGb<<30 - cs) {
 		return errors.New("not enough space")
@@ -228,7 +193,7 @@ func (s *logicalVolumeService) ExpandVolume(ctx context.Context, volumeID string
 
 	lv2 := lv.DeepCopy()
 	lv2.Spec.Size = *resource.NewQuantity(sizeGb<<30, resource.BinarySI)
-	// TODO: handling codes and messages should be considered more.
+	// clear Status.Code not to be rejected at topolvm-node
 	lv2.Status.Code = codes.OK
 	lv2.Status.Message = ""
 	patch := client.MergeFrom(lv)
@@ -238,34 +203,35 @@ func (s *logicalVolumeService) ExpandVolume(ctx context.Context, volumeID string
 	}
 
 	// wait until topolvm-node extends the target volume
+	lvName := lv.Name
 	for {
-		lvname := lv.Name
-		logger.Info("waiting for extending 'status.currentSize'", "name", lvname)
+		logger.Info("waiting for extending 'status.currentSize'", "name", lvName)
 		select {
 		case <-ctx.Done():
 			return errors.New("timed out")
 		case <-time.After(1 * time.Second):
 		}
 
-		var newLV topolvmv1.LogicalVolume
-		err := s.Get(ctx, client.ObjectKey{Name: lvname}, &newLV)
+		var changedLV topolvmv1.LogicalVolume
+		err := s.Get(ctx, client.ObjectKey{Name: lvName}, &changedLV)
 		if err != nil {
-			logger.Error(err, "failed to get LogicalVolume", "name", lvname)
+			logger.Error(err, "failed to get LogicalVolume", "name", lvName)
 			continue
 		}
-		if newLV.Status.CurrentSize == nil {
+		if changedLV.Status.CurrentSize == nil {
 			return errors.New("status.currentSize should not be nil")
 		}
-		if newLV.Status.CurrentSize.Value() != newLV.Spec.Size.Value() {
-			logger.Info("failed to match current size and requested size", "current", newLV.Status.CurrentSize.Value(), "requested", newLV.Spec.Size.Value())
+		if changedLV.Status.CurrentSize.Value() != changedLV.Spec.Size.Value() {
+			logger.Info("failed to match current size and requested size", "current", changedLV.Status.CurrentSize.Value(), "requested", changedLV.Spec.Size.Value())
 			continue
 		}
 
-		if newLV.Status.Code != codes.OK {
-			return status.Error(newLV.Status.Code, newLV.Status.Message)
+		if changedLV.Status.Code != codes.OK {
+			return status.Error(changedLV.Status.Code, changedLV.Status.Message)
 		}
+
+		return nil
 	}
-	return nil
 }
 
 func (s *logicalVolumeService) GetCapacity(ctx context.Context, requestNodeNumber string) (int64, error) {
@@ -338,16 +304,24 @@ func (s *logicalVolumeService) getNode(ctx context.Context, name string) (*corev
 	return nil, errors.New("node not found")
 }
 
-func (s *logicalVolumeService) GetCurrentSize(ctx context.Context, volumeID string) (*int64, error) {
+func (s *logicalVolumeService) GetCurrentSize(ctx context.Context, volumeID string) (int64, error) {
 	lv, err := s.getLogicalVolume(ctx, volumeID)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
-	cs := lv.Status.CurrentSize
-	if cs == nil {
-		return nil, nil
+	if lv.Status.CurrentSize != nil {
+		return lv.Status.CurrentSize.Value(), nil
 	}
-	val := cs.Value()
-	return &val, nil
+
+	// set `status.currentSize` to the value of `spec.size`
+	lv2 := lv.DeepCopy()
+	lv2.Status.CurrentSize = &lv2.Spec.Size
+	patch := client.MergeFrom(lv)
+	if err := s.Patch(ctx, lv2, patch); err != nil {
+		logger.Error(err, "failed to patch .status.currentSize", "name", lv.Name)
+		return 0, err
+	}
+
+	return lv2.Status.CurrentSize.Value(), nil
 }

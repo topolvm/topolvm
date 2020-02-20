@@ -315,15 +315,41 @@ func (s controllerService) ListSnapshots(context.Context, *csi.ListSnapshotsRequ
 
 func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
 	err := s.service.VolumeExists(ctx, req.GetVolumeId())
+	switch err {
+	case ErrVolumeNotFound:
+		return nil, status.Errorf(codes.NotFound, "LogicalVolume for volume id %s is not found", req.GetVolumeId())
+	case nil:
+	default:
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	requestGb, err := convertRequestCapacity(req.GetCapacityRange().GetRequiredBytes(), req.GetCapacityRange().GetLimitBytes())
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
-	err = s.service.ExpandVolume(ctx, req.GetVolumeId(), req.CapacityRange.GetRequiredBytes())
+
+	currentSize, err := s.service.GetCurrentSize(ctx, req.GetVolumeId())
 	if err != nil {
-		return nil, status.Error(codes.Unknown, err.Error())
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	if requestGb<<30-currentSize <= 0 {
+		return &csi.ControllerExpandVolumeResponse{
+			CapacityBytes:         currentSize,
+			NodeExpansionRequired: false,
+		}, nil
+	}
+
+	err = s.service.ExpandVolume(ctx, req.GetVolumeId(), requestGb)
+	if err != nil {
+		_, ok := status.FromError(err)
+		if !ok {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+		return nil, err
 	}
 	return &csi.ControllerExpandVolumeResponse{
-		CapacityBytes:         0,
+		CapacityBytes:         requestGb << 30,
 		NodeExpansionRequired: true,
 	}, nil
 }
