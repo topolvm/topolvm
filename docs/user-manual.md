@@ -28,6 +28,7 @@ provisioner: topolvm.cybozu.com
 parameters:
   "csi.storage.k8s.io/fstype": "xfs"
 volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
 ```
 
 `provisioner` must be `topolvm.cybozu.com`.
@@ -44,6 +45,9 @@ TopoLVM sets the following mount options regardless of `mountOptions`.
 `volumeBindingMode` can be either `WaitForFirstConsumer` or `Immediate`.
 `WaitForFirstConsumer` is recommended because TopoLVM cannot schedule pods
 wisely if `volumeBindingMode` is `Immediate`.
+
+`allowVolumeExpansion` enables CSI drivers to extend volumes. If this is used in Kubernetes 1.14 or 1.15, [adding the `ExpandCSIVolumes` feature-gate](https://kubernetes-csi.github.io/docs/volume-expansion.html#enabling-volume-expansion-for-csi-volumes-in-kubernetes) is required.
+
 
 Pod priority
 ------------
