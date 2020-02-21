@@ -340,9 +340,11 @@ func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.
 	}
 
 	if requestGb<<30-currentSize <= 0 {
+		// "NodeExpansionRequired" is still true because it is unknown
+		// whether node expansion is completed or not.
 		return &csi.ControllerExpandVolumeResponse{
 			CapacityBytes:         currentSize,
-			NodeExpansionRequired: false,
+			NodeExpansionRequired: true,
 		}, nil
 	}
 

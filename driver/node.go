@@ -415,8 +415,15 @@ func (s *nodeService) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 		"limit", req.GetCapacityRange().GetLimitBytes(),
 	)
 
-	// Device type(block or fs, fs type detection checking will be removed  after CSI v1.2.0
-	// because `volume_capability` filed will be added in csi.NodeExpandVolumeRequest
+	if len(vid) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "no volume_id is provided")
+	}
+	if len(vpath) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "no volume_path is provided")
+	}
+
+	// Device type (block or fs, fs type detection) checking will be removed after CSI v1.2.0
+	// because `volume_capability` field will be added in csi.NodeExpandVolumeRequest
 	info, err := os.Stat(vpath)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "stat failed for %s: %v", vpath, err)
@@ -444,6 +451,9 @@ func (s *nodeService) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 	if !fs.Exists() {
 		return nil, status.Errorf(codes.Internal, "filesystem %s is not mounted at %s", vid, vpath)
 	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	err = fs.Resize(vpath)
 	if err != nil {
