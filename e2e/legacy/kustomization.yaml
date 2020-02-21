@@ -9,4 +9,9 @@ patchesJson6902:
     kind: CSIDriver
     name: topolvm.cybozu.com
   path: controller.yaml
-
+- target:
+    group: storage.k8s.io
+    version: v1
+    kind: StorageClass
+    name: topolvm-provisioner
+  path: provisioner.yaml

@@ -24,11 +24,13 @@ BUILD_TARGET=hypertopolvm
 EXTERNAL_PROVISIONER_VERSION=1.4.0
 NODE_DRIVER_REGISTRAR_VERSION=1.2.0
 EXTERNAL_ATTACHER_VERSION=1.2.1
+EXTERNAL_RESIZER_VERSION=0.4.0
 LIVENESSPROBE_VERSION = 1.1.0
 CSI_SIDECARS = \
 	external-provisioner \
 	node-driver-registrar \
 	external-attacher \
+	external-resizer \
 	livenessprobe
 
 all: build
@@ -65,6 +67,17 @@ external-attacher:
 		$(GOPATH)/src/github.com/kubernetes-csi/external-attacher/
 	(cd $(GOPATH)/src/github.com/kubernetes-csi/external-attacher/; GO111MODULE=off make)
 	cp -f $(GOPATH)/src/github.com/kubernetes-csi/external-attacher/bin/csi-attacher ./build/
+
+external-resizer:
+	mkdir -p build
+	mkdir -p $(GOPATH)/src/github.com/kubernetes-csi
+	rm -rf $(GOPATH)/src/github.com/kubernetes-csi/external-resizer
+	curl -sSLf https://github.com/kubernetes-csi/external-resizer/archive/v$(EXTERNAL_RESIZER_VERSION).tar.gz | \
+        tar zxf - -C $(GOPATH)/src/github.com/kubernetes-csi/
+	mv $(GOPATH)/src/github.com/kubernetes-csi/external-resizer-$(EXTERNAL_RESIZER_VERSION) \
+		$(GOPATH)/src/github.com/kubernetes-csi/external-resizer/
+	(cd $(GOPATH)/src/github.com/kubernetes-csi/external-resizer/; GO111MODULE=off make)
+	cp -f $(GOPATH)/src/github.com/kubernetes-csi/external-resizer/bin/csi-resizer ./build/
 
 livenessprobe:
 	mkdir -p build

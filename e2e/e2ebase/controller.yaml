@@ -29,6 +29,10 @@ spec:
           image: quay.io/k8scsi/csi-attacher:v1.2.1
           imagePullPolicy: "IfNotPresent"
 
+        - name: csi-resizer
+          image: quay.io/k8scsi/csi-resizer:v0.4.0
+          imagePullPolicy: "IfNotPresent"
+
         - name: liveness-probe
           image: quay.io/k8scsi/livenessprobe:v1.1.0
           imagePullPolicy: "IfNotPresent"
