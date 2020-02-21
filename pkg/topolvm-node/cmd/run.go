@@ -48,7 +48,7 @@ func subMain() error {
 		return errors.New("Node name is not given")
 	}
 
-	ctrl.SetLogger(zap.Logger(config.development))
+	ctrl.SetLogger(zap.New(zap.UseDevMode(config.development)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,

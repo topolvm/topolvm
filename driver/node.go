@@ -79,12 +79,12 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	if req.GetVolumeCapability() == nil {
 		return nil, status.Error(codes.InvalidArgument, "no volume_capability is provided")
 	}
-	isBlockVol := (req.GetVolumeCapability().GetBlock() != nil)
-	isFsVol := (req.GetVolumeCapability().GetMount() != nil)
+	isBlockVol := req.GetVolumeCapability().GetBlock() != nil
+	isFsVol := req.GetVolumeCapability().GetMount() != nil
 	if !(isBlockVol || isFsVol) {
 		return nil, status.Errorf(codes.InvalidArgument, "no supported volume capability: %v", req.GetVolumeCapability())
 	}
-	isInlineEphemeralVolumeReq := (volumeContext[ephVolConKey] == "true")
+	isInlineEphemeralVolumeReq := volumeContext[ephVolConKey] == "true"
 
 	s.mu.Lock()
 	defer s.mu.Unlock()

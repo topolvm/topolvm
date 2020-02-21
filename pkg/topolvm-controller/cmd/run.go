@@ -46,7 +46,7 @@ func init() {
 
 // Run builds and starts the manager with leader election.
 func subMain() error {
-	ctrl.SetLogger(zap.Logger(config.development))
+	ctrl.SetLogger(zap.New(zap.UseDevMode(config.development)))
 
 	cfg, err := ctrl.GetConfig()
 	if err != nil {
