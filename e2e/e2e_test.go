@@ -788,6 +788,109 @@ spec:
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(postDeleteLvmCount).To(Equal(baseLvmCount))
 	})
+
+	It("should resize volume", func() {
+		By("deploying Pod with PVC")
+		podYAML := `apiVersion: v1
+kind: Pod
+metadata:
+  name: ubuntu
+  labels:
+    app.kubernetes.io/name: ubuntu
+spec:
+  containers:
+    - name: ubuntu
+      image: quay.io/cybozu/ubuntu:18.04
+      command: ["/usr/local/bin/pause"]
+      volumeMounts:
+        - mountPath: /test1
+          name: my-volume
+  volumes:
+    - name: my-volume
+      persistentVolumeClaim:
+        claimName: topo-pvc
+`
+		baseClaimYAML := `kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: topo-pvc
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: %s
+  storageClassName: topolvm-provisioner
+`
+		claimYAML := fmt.Sprintf(baseClaimYAML, "1Gi")
+		stdout, stderr, err := kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("confirming that the specified device is mounted in the Pod")
+		Eventually(func() error {
+			return verifyMountExists(ns, "ubuntu", "/test1")
+		}).Should(Succeed())
+
+		By("resizing PVC online")
+		claimYAML = fmt.Sprintf(baseClaimYAML, "2Gi")
+		stdout, stderr, err = kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("confirming that the specified device is resized in the Pod")
+		Eventually(func() error {
+			stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "df", "--output=size", "/test1")
+			if err != nil {
+				return fmt.Errorf("failed to get volume size. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+			dfFields := strings.Fields((string(stdout)))
+			volSize, err := strconv.Atoi(dfFields[1])
+			if err != nil {
+				return fmt.Errorf("failed to convert volume size string. stdout: %s, err: %v", stdout, err)
+			}
+			if volSize != 2086912 {
+				return fmt.Errorf("failed to match volume size. actual: %d, expected: %d", volSize, 2086912)
+			}
+			return nil
+		}).Should(Succeed())
+
+		By("deleting Pod for offline resizing")
+		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "delete", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("resizing PVC offline")
+		claimYAML = fmt.Sprintf(baseClaimYAML, "3Gi")
+		stdout, stderr, err = kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("deploying Pod")
+		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("confirming that the specified device is resized in the Pod")
+		Eventually(func() error {
+			stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "df", "--output=size", "/test1")
+			if err != nil {
+				return fmt.Errorf("failed to get volume size. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+			dfFields := strings.Fields((string(stdout)))
+			volSize, err := strconv.Atoi(dfFields[1])
+			if err != nil {
+				return fmt.Errorf("failed to convert volume size string. stdout: %s, err: %v", stdout, err)
+			}
+			if volSize != 3135488 {
+				return fmt.Errorf("failed to match volume size. actual: %d, expected: %d", volSize, 3135488)
+			}
+			return nil
+		}).Should(Succeed())
+
+		By("deleting the Pod and PVC")
+		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "delete", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		stdout, stderr, err = kubectlWithInput([]byte(claimYAML), "delete", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+	})
 }
 
 func verifyMountExists(ns string, pod string, mount string) error {
