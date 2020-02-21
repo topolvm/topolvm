@@ -320,6 +320,10 @@ func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.
 		"limit", req.GetCapacityRange().GetLimitBytes(),
 		"num_secrets", len(req.GetSecrets()))
 
+	if len(req.GetVolumeId()) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "volume id is nil")
+	}
+
 	err := s.service.VolumeExists(ctx, req.GetVolumeId())
 	switch err {
 	case ErrVolumeNotFound:

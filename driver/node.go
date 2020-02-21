@@ -421,6 +421,10 @@ func (s *nodeService) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 	if len(vpath) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "no volume_path is provided")
 	}
+	_, err := convertRequestCapacity(req.GetCapacityRange().GetRequiredBytes(), req.GetCapacityRange().GetLimitBytes())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
 
 	// Device type (block or fs, fs type detection) checking will be removed after CSI v1.2.0
 	// because `volume_capability` field will be added in csi.NodeExpandVolumeRequest
