@@ -442,12 +442,12 @@ func (s *nodeService) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 		return &csi.NodeExpandVolumeResponse{}, nil
 	}
 
-	fsType, err := filesystem.DetectFilesystem(vpath)
+	device := filepath.Join(DeviceDirectory, vid)
+	fsType, err := filesystem.DetectFilesystem(device)
 	if err != nil || fsType == "" {
-		return nil, status.Errorf(codes.Internal, "failed to detect filesystem %s at %s: %v", vid, vpath, err)
+		return nil, status.Errorf(codes.Internal, "failed to detect filesystem of %s: %v", device, err)
 	}
 
-	device := filepath.Join(DeviceDirectory, vid)
 	fs, err := filesystem.New(fsType, device)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create filesystem object with device path %s: %v", device, err)
