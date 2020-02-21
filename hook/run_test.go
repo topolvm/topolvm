@@ -14,7 +14,7 @@ import (
 )
 
 func run(stopCh <-chan struct{}, cfg *rest.Config, scheme *runtime.Scheme, webhookHost string, webhookPort int) error {
-	ctrl.SetLogger(zap.Logger(true))
+	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
 	certDir, err := filepath.Abs("./testdata")
 	if err != nil {

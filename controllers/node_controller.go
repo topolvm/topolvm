@@ -103,7 +103,7 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 	}
 
 	var pvcs corev1.PersistentVolumeClaimList
-	err = r.List(ctx, &pvcs, client.MatchingField(KeySelectedNode, node.Name))
+	err = r.List(ctx, &pvcs, client.MatchingFields{KeySelectedNode: node.Name})
 	if err != nil {
 		log.Error(err, "unable to fetch PersistentVolumeClaimList")
 		return ctrl.Result{}, err

@@ -309,14 +309,14 @@ spec:
 				}
 				strCap, ok := node.Annotations[topolvm.CapacityKey]
 				Expect(ok).To(Equal(true), "capacity is not annotated: "+node.Name)
-				cap, err := strconv.Atoi(strCap)
+				capacity, err := strconv.Atoi(strCap)
 				Expect(err).ShouldNot(HaveOccurred())
-				fmt.Printf("%s: %d bytes\n", node.Name, cap)
+				fmt.Printf("%s: %d bytes\n", node.Name, capacity)
 				switch {
-				case cap > maxCapacity:
-					maxCapacity = cap
+				case capacity > maxCapacity:
+					maxCapacity = capacity
 					maxCapNodes = []string{node.GetName()}
-				case cap == maxCapacity:
+				case capacity == maxCapacity:
 					maxCapNodes = append(maxCapNodes, node.GetName())
 				}
 			}
@@ -586,12 +586,12 @@ spec:
 
 			strCap, ok := node.Annotations[topolvm.CapacityKey]
 			Expect(ok).To(Equal(true), "capacity is not annotated: "+node.Name)
-			cap, err := strconv.Atoi(strCap)
+			capacity, err := strconv.Atoi(strCap)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			fmt.Printf("%s: %d\n", node.Name, cap)
-			if cap > maxCapacity {
-				maxCapacity = cap
+			fmt.Printf("%s: %d\n", node.Name, capacity)
+			if capacity > maxCapacity {
+				maxCapacity = capacity
 				targetNode = node.Name
 			}
 		}
@@ -810,7 +810,7 @@ func verifyMountProperties(ns string, pod string, mount string, fsType string, s
 	stdout, stderr, err = kubectl("exec", "-n", ns, pod, "--", "df", "--output=size", mount)
 	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
-	dfFields := strings.Fields((string(stdout)))
+	dfFields := strings.Fields(string(stdout))
 	volSize, err := strconv.Atoi(dfFields[1])
 	Expect(err).ShouldNot(HaveOccurred())
 	Expect(volSize).To(Equal(size))
