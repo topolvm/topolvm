@@ -839,6 +839,8 @@ spec:
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		By("confirming that the specified device is resized in the Pod")
+		timeout := time.Minute * 5
+		pollingInterval := time.Second
 		Eventually(func() error {
 			stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "df", "--output=size", "/test1")
 			if err != nil {
@@ -853,7 +855,7 @@ spec:
 				return fmt.Errorf("failed to match volume size. actual: %d, expected: %d", volSize, 2086912)
 			}
 			return nil
-		}).Should(Succeed())
+		}, timeout, pollingInterval).Should(Succeed())
 
 		By("deleting Pod for offline resizing")
 		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "delete", "-n", ns, "-f", "-")
@@ -883,7 +885,7 @@ spec:
 				return fmt.Errorf("failed to match volume size. actual: %d, expected: %d", volSize, 3135488)
 			}
 			return nil
-		}).Should(Succeed())
+		}, timeout, pollingInterval).Should(Succeed())
 
 		By("deleting the Pod and PVC")
 		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "delete", "-n", ns, "-f", "-")
