@@ -46,7 +46,7 @@ gcloud compute ssh --zone ${ZONE} rancher -- "curl -sSLf https://get.docker.com 
 ### Start Rancher
 
 ```bash
-gcloud compute ssh --zone ${ZONE} rancher -- "sudo docker run -d --restart=unless-stopped -p 80:80 -p 443:443 rancher/rancher"
+gcloud compute ssh --zone ${ZONE} rancher -- "sudo docker run -d --restart=unless-stopped -p 80:80 -p 443:443 rancher/rancher:v2.3.4"
 ```
 
 Go to the external IP address of `rancher` which appears on the GCP dashboard with your favorite browser.
