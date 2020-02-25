@@ -46,8 +46,8 @@ TopoLVM sets the following mount options regardless of `mountOptions`.
 `WaitForFirstConsumer` is recommended because TopoLVM cannot schedule pods
 wisely if `volumeBindingMode` is `Immediate`.
 
-`allowVolumeExpansion` enables CSI drivers to extend volumes. If this is used in Kubernetes 1.14 or 1.15, [adding the `ExpandCSIVolumes` feature-gate](https://kubernetes-csi.github.io/docs/volume-expansion.html#enabling-volume-expansion-for-csi-volumes-in-kubernetes) is required.
-
+`allowVolumeExpansion` enables CSI drivers to extend volumes.
+This feature became beta in Kubernetes 1.16 and is not tested in 1.14 and 1.15.
 
 Pod priority
 ------------
