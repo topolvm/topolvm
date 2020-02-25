@@ -1,20 +1,20 @@
-How to use TopoLVM with Rancher
--------------------------------
+How to use TopoLVM with Rancher/RKE
+===================================
 
-This document is a brief introduction of how to use TopoLVM on [RKE]https://rancher.com/docs/rke/latest/en/).
+This document is a brief introduction of how to use TopoLVM on [Rancher/RKE](https://rancher.com/docs/rke/latest/en/).
 
 4 VMs will be used in this example. Each VM will be configured to have the following role:
 
-| Hostname  | Machine Type    | Role             | Requirement             |
-| --------- | --------------- | ---------------- | ----------------------- |
-| `rancher` | `n1-standard-2` | Rancher Server   | Allow HTTP/HTTPS        |
-| `master`  | `n1-standard-2` | Kubernets Master |                         |
-| `worker1` | `n1-standard-2` | Kubernets Worker | Mount 1 SSD for TopoLVM |
-| `worker2` | `n1-standard-2` | Kubernets Worker | Mount 1 SSD for TopoLVM |
+| Hostname  | Machine Type    | Role              | Requirement             |
+| --------- | --------------- | ----------------- | ----------------------- |
+| `rancher` | `n1-standard-2` | Rancher Server    | Allow HTTP/HTTPS        |
+| `master`  | `n1-standard-2` | Kubernetes Master |                         |
+| `worker1` | `n1-standard-2` | Kubernetes Worker | Mount 1 SSD for TopoLVM |
+| `worker2` | `n1-standard-2` | Kubernetes Worker | Mount 1 SSD for TopoLVM |
 
-### 1. Run Rancher Server
+## 1. Run Rancher Server
 
-#### Create GCP instance
+### Create GCP instance
 
 Create a GCP instance for Rancher Server.
 
@@ -30,12 +30,12 @@ gcloud compute instances create rancher \
 
 Then, allow HTTP/HTTPS with the following commands.
 
-1. Go to `VM instances` on the GCP dashboard and open the config page of the 'rancher' VM
+1. Go to `VM instances` on the GCP dashboard and open the configuration page of `rancher`
 2. Click `EDIT` at the top of the page
 3. Enable `Allow HTTP traffic` and `Allow HTTPS traffic` under `Firewalls`
 4. Click `Save` at the bottom of the page
 
-#### Install Docker
+### Install Docker
 
 Run the installation script.
 
@@ -43,26 +43,25 @@ Run the installation script.
 gcloud compute ssh --zone ${ZONE} rancher -- "curl -sSLf https://get.docker.com | sudo sh"
 ```
 
-#### Start Rancher
+### Start Rancher
 
 ```bash
 gcloud compute ssh --zone ${ZONE} rancher -- "sudo docker run -d --restart=unless-stopped -p 80:80 -p 443:443 rancher/rancher"
 ```
 
 Go to the external IP address of `rancher` which appears on the GCP dashboard with your favorite browser.
-For simplicity, a TLS certification is not prepared in this example.
-So, allow insecure access and proceed next.
 
-### 2. Deploy Kubernetes cluster
+For simplicity, TLS certification is not prepared in this example.
+So, just allow insecure access and proceed next.
 
-#### Create GCP instances for Master & Worker Nodes
+## 2. Deploy Kubernetes cluster
+
+### Create GCP instances for Master & Worker Nodes
 
 Create `master`, `worker1` and `worker2`.
 `worker1` and `worker2` mounts SSD at `/dev/nvme0` to provision TopoLVM volumes.
 
 ```bash
-ZONE=asia-northeast1-c
-
 gcloud compute instances create master \
   --zone ${ZONE} \
   --machine-type n1-standard-2 \
@@ -85,7 +84,7 @@ gcloud compute instances create worker2 \
   --image-family ubuntu-1804-lts
 ```
 
-#### Install Docker
+### Install Docker
 
 Run the installation script.
 
@@ -95,7 +94,7 @@ gcloud compute ssh --zone ${ZONE} worker1 -- "curl -sSLf https://get.docker.com 
 gcloud compute ssh --zone ${ZONE} worker2 -- "curl -sSLf https://get.docker.com | sudo sh"
 ```
 
-#### Deploy Kubernetes components with Rancher
+### Deploy Kubernetes components with Rancher
 
 Go to the Rancher dashboard and click `Add Cluster` -> `From existing nodes (Custom)`.
 
@@ -114,7 +113,7 @@ Then configuration page will come up. Overwrite some default values with the fol
 
 After finishing the configuration, click `Done` and wait for the cluster status to become `Active`.
 
-### 3. Deply cert-manager
+## 3. Deply cert-manager
 
 You can run the `kubectl` command by downloading `Kubeconfig File` from the top right of the cluster dashboard.
 
@@ -124,67 +123,68 @@ Then, deploy cert-manager on the Kubernetes cluster.
 kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v0.12.0/cert-manager.yaml
 ```
 
-Add labels to `Namespace` resources for the TopoLVM webhook to avoid unnecessary validation.
+Add a label to `Namespace` resources for the TopoLVM webhook to avoid unnecessary validation.
 
 ```bash
 kubectl label namespace kube-system topolvm.cybozu.com/webhook=ignore
 kubectl label namespace cert-manager topolvm.cybozu.com/webhook=ignore
 ```
 
-### 4. Install `lvmd`
+## 4. Install `lvmd`
 
-Create VG(VolumeGroup) on `worker1` and `worker2`.
+Create VG (VolumeGroup) on `worker1` and `worker2`.
 
 ```bash
 gcloud compute ssh --zone ${ZONE} worker1 -- sudo vgcreate myvg /dev/nvme0n1
 gcloud compute ssh --zone ${ZONE} worker2 -- sudo vgcreate myvg /dev/nvme0n1
 ```
 
-Install `lvmd` on `worker1` abd `worker2`.
+Install `lvmd` on `worker1` and `worker2`.
 
 ```bash
 gcloud compute ssh --zone ${ZONE} worker1
 
 # Install lvmd
-TOPOLVM_VERSION=0.2.2
+TOPOLVM_VERSION=0.4.0
 sudo mkdir -p /opt/sbin
 curl -sSLf https://github.com/cybozu-go/topolvm/releases/download/v${TOPOLVM_VERSION}/lvmd-${TOPOLVM_VERSION}.tar.gz | sudo tar xzf - -C /opt/sbin
 
-# Resister service
-sudo curl -sSL -o /etc/systemd/system/lvmd.service https://raw.githubusercontent.com/cybozu-go/topolvm/v${TOPOLVM_VERSION}/deploy/systemd/lvmd.service
-sudo systemctl enable lvmd
-sudo systemctl start lvmd
-exit
-
-gcloud compute ssh --zone ${ZONE} worker2
-
-# Install lvmd
-TOPOLVM_VERSION=0.2.2
-sudo mkdir -p /opt/sbin
-curl -sSLf https://github.com/cybozu-go/topolvm/releases/download/v${TOPOLVM_VERSION}/lvmd-${TOPOLVM_VERSION}.tar.gz | sudo tar xzf - -C /opt/sbin
-
-# Resister service
+# Register service
 sudo curl -sSL -o /etc/systemd/system/lvmd.service https://raw.githubusercontent.com/cybozu-go/topolvm/v${TOPOLVM_VERSION}/deploy/systemd/lvmd.service
 sudo systemctl enable lvmd
 sudo systemctl start lvmd
 exit
 ```
 
-### 5. Deploy TopoLVM
+```bash
+gcloud compute ssh --zone ${ZONE} worker2
 
-Deploy TopoLVM.
+# Install lvmd
+TOPOLVM_VERSION=0.4.0
+sudo mkdir -p /opt/sbin
+curl -sSLf https://github.com/cybozu-go/topolvm/releases/download/v${TOPOLVM_VERSION}/lvmd-${TOPOLVM_VERSION}.tar.gz | sudo tar xzf - -C /opt/sbin
+
+# Register service
+sudo curl -sSL -o /etc/systemd/system/lvmd.service https://raw.githubusercontent.com/cybozu-go/topolvm/v${TOPOLVM_VERSION}/deploy/systemd/lvmd.service
+sudo systemctl enable lvmd
+sudo systemctl start lvmd
+exit
+```
+
+## 5. Deploy TopoLVM
+
 
 ```bash
-TOPOLVM_VERSION=0.2.2
+TOPOLVM_VERSION=0.4.0
 kubectl apply -k https://github.com/cybozu-go/topolvm/deploy/manifests?ref=v${TOPOLVM_VERSION}
 kubectl apply -f https://raw.githubusercontent.com/cybozu-go/topolvm/v${TOPOLVM_VERSION}/deploy/manifests/certificates.yaml
 ```
 
-### 6. Configure `topolvm-scheduler`
+## 6. Configure `topolvm-scheduler`
 
 You almost finish deploying TopoLVM here, but you need a little tweak to make `topolvm-scheduler` work properly.
 
-####  Update `topolvm-scheduler` manifest
+###  Update `topolvm-scheduler` manifest
 
 First, `master` has the following label and taint.
 
@@ -229,22 +229,21 @@ $ kubectl edit daemonset topolvm-scheduler -n topolvm-system
 ...
 ```
 
-#### Apply scheduler extension
+### Apply scheduler extension
 
 Download the scheduler extension configuration files onto `master`.
 
 ```bash
 gcloud compute ssh --zone ${ZONE} master
 
-TOPOLVM_VERSION=0.2.2
+TOPOLVM_VERSION=0.4.0
 sudo mkdir -p /etc/kubernetes/scheduler
 sudo curl -sSL -o /etc/kubernetes/scheduler/scheduler-config.yaml https://raw.githubusercontent.com/masa213f/example-topolvm/master/scheduler-config/scheduler-config.yaml
 sudo curl -sSL -o /etc/kubernetes/scheduler/scheduler-policy.cfg https://raw.githubusercontent.com/cybozu-go/topolvm/v${TOPOLVM_VERSION}/deploy/scheduler-config/scheduler-policy.cfg
-
 exit
 ```
 
-On the Rancher dashboard, click `Edit` and update `Cluster Options` with `Edit as YAML` to tell Kubernetes where the scheduler extension config is.
+On the Rancher dashboard, click `Edit` and update `Cluster Options` with `Edit as YAML` to tell Kubernetes where the scheduler extension configuration is.
 
 ```bash
    services:
@@ -268,14 +267,14 @@ On the Rancher dashboard, click `Edit` and update `Cluster Options` with `Edit a
 
 Then click `Save` to finish the configuration.
 
-### 7. Provision volume with TopoLVM
+## 7. Provision volume with TopoLVM
 
 Congratulations!! You finally deployed TopoLVM on RKE.
 
 To confirm now TopoLVM is actually working, create PVC and mount it on a `Pod`.
 
 ```bash
-kubectl apply -f -
+kubectl apply -f - << EOF
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
@@ -309,11 +308,12 @@ spec:
 EOF
 ```
 
-### 8. Cleanup
+## 8. Cleanup
 
 Do not forget to delete GCP instances.
 
 ```bash
+gcloud --quiet compute instances delete rancher --zone ${ZONE}
 gcloud --quiet compute instances delete master --zone ${ZONE}
 gcloud --quiet compute instances delete worker1 --zone ${ZONE}
 gcloud --quiet compute instances delete worker2 --zone ${ZONE}
