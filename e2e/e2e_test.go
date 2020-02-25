@@ -841,7 +841,6 @@ spec:
 
 		By("confirming that the specified device is resized in the Pod")
 		timeout := time.Minute * 5
-		pollingInterval := time.Second
 		Eventually(func() error {
 			stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "df", "--output=size", "/test1")
 			if err != nil {
@@ -856,7 +855,7 @@ spec:
 				return fmt.Errorf("failed to match volume size. actual: %d, expected: %d", volSize, 2086912)
 			}
 			return nil
-		}, timeout, pollingInterval).Should(Succeed())
+		}, timeout).Should(Succeed())
 
 		By("deleting Pod for offline resizing")
 		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "delete", "-n", ns, "-f", "-")
@@ -886,12 +885,42 @@ spec:
 				return fmt.Errorf("failed to match volume size. actual: %d, expected: %d", volSize, 3135488)
 			}
 			return nil
-		}, timeout, pollingInterval).Should(Succeed())
+		}, timeout).Should(Succeed())
+
+		By("confirming that no failure event has occurred")
+		fieldSelector := "involvedObject.kind=PersistentVolumeClaim," +
+			"involvedObject.name=topo-pvc," +
+			"reason=VolumeResizeFailed"
+		stdout, stderr, err = kubectl("get", "-n", ns, "events", "-o", "json", "--field-selector="+fieldSelector)
+		Expect(err).NotTo(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		var events corev1.EventList
+		err = json.Unmarshal(stdout, &events)
+		Expect(err).NotTo(HaveOccurred(), "stdout=%s", stdout)
+		Expect(events.Items).To(BeEmpty())
 
 		By("resizing PVC over vg capacity")
 		claimYAML = fmt.Sprintf(baseClaimYAML, "100Gi")
 		stdout, stderr, err = kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("confirming that a failure event occurs")
+		Eventually(func() error {
+			stdout, stderr, err = kubectl("get", "-n", ns, "events", "-o", "json", "--field-selector="+fieldSelector)
+			if err != nil {
+				return fmt.Errorf("failed to get event. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+
+			var events corev1.EventList
+			err = json.Unmarshal(stdout, &events)
+			if err != nil {
+				return fmt.Errorf("failed to unmarshal events. stdout: %s, err: %v", stdout, err)
+			}
+
+			if len(events.Items) == 0 {
+				return errors.New("failure event not found")
+			}
+			return nil
+		}).Should(Succeed())
 
 		By("deleting the Pod and PVC")
 		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "delete", "-n", ns, "-f", "-")
@@ -971,7 +1000,6 @@ spec:
 
 		By("confirming that the specified device is resized in the Pod")
 		timeout := time.Minute * 5
-		pollingInterval := time.Second
 		Eventually(func() error {
 			stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "blockdev", "--getsize64", deviceFile)
 			if err != nil {
@@ -985,7 +1013,7 @@ spec:
 				return fmt.Errorf("failed to match volume size. actual: %d, expected: %d", volSize, 2147483648)
 			}
 			return nil
-		}, timeout, pollingInterval).Should(Succeed())
+		}, timeout).Should(Succeed())
 
 		By("deleting the Pod and PVC")
 		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "delete", "-n", ns, "-f", "-")
