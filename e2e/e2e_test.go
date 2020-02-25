@@ -888,6 +888,11 @@ spec:
 			return nil
 		}, timeout, pollingInterval).Should(Succeed())
 
+		By("resizing PVC over vg capacity")
+		claimYAML = fmt.Sprintf(baseClaimYAML, "100Gi")
+		stdout, stderr, err = kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
 		By("deleting the Pod and PVC")
 		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "delete", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
@@ -936,7 +941,7 @@ spec:
   - ReadWriteOnce
   resources:
     requests:
-	  storage: %s
+      storage: %s
   storageClassName: topolvm-provisioner
 `
 
