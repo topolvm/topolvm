@@ -238,8 +238,18 @@ gcloud compute ssh --zone ${ZONE} master
 
 TOPOLVM_VERSION=0.4.0
 sudo mkdir -p /etc/kubernetes/scheduler
-sudo curl -sSL -o /etc/kubernetes/scheduler/scheduler-config.yaml https://raw.githubusercontent.com/masa213f/example-topolvm/master/scheduler-config/scheduler-config.yaml
 sudo curl -sSL -o /etc/kubernetes/scheduler/scheduler-policy.cfg https://raw.githubusercontent.com/cybozu-go/topolvm/v${TOPOLVM_VERSION}/deploy/scheduler-config/scheduler-policy.cfg
+cat << EOF > /etc/kubernetes/scheduler/scheduler-config.yaml
+apiVersion: kubescheduler.config.k8s.io/v1alpha1
+kind: KubeSchedulerConfiguration
+schedulerName: default-scheduler
+algorithmSource:
+  policy:
+    file:
+      path: /etc/kubernetes/scheduler/scheduler-policy.cfg
+clientConnection:
+  kubeconfig: /etc/kubernetes/ssl/kubecfg-kube-scheduler.yaml
+EOF
 exit
 ```
 
