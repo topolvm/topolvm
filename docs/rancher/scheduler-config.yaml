@@ -1,0 +1,9 @@
+apiVersion: kubescheduler.config.k8s.io/v1alpha1
+kind: KubeSchedulerConfiguration
+schedulerName: default-scheduler
+algorithmSource:
+  policy:
+    file:
+      path: /etc/kubernetes/scheduler/scheduler-policy.cfg
+clientConnection:
+  kubeconfig: /etc/kubernetes/ssl/kubecfg-kube-scheduler.yaml
