@@ -320,11 +320,24 @@ func (s *logicalVolumeService) GetCurrentSize(ctx context.Context, volumeID stri
 		return 0, err
 	}
 
-	if lv.Status.CurrentSize != nil {
-		return lv.Status.CurrentSize.Value(), nil
+	if lv.Status.CurrentSize == nil {
+		return 0, driver.ErrCurrentSizeIsNil
 	}
 
-	// set `status.currentSize` to the value of `spec.size`
+	return lv.Status.CurrentSize.Value(), nil
+}
+
+// FillCurrentSize copies `spec.size` to `status.currentSize` and returns the size.
+func (s *logicalVolumeService) FillCurrentSize(ctx context.Context, volumeID string) (int64, error) {
+	lv, err := s.getLogicalVolume(ctx, volumeID)
+	if err != nil {
+		return 0, err
+	}
+
+	if lv.Status.CurrentSize != nil {
+		return 0, errors.New("currentSize is not nil")
+	}
+
 	lv2 := lv.DeepCopy()
 	lv2.Status.CurrentSize = &lv2.Spec.Size
 	patch := client.MergeFrom(lv)
@@ -332,6 +345,5 @@ func (s *logicalVolumeService) GetCurrentSize(ctx context.Context, volumeID stri
 		logger.Error(err, "failed to patch .status.currentSize", "name", lv.Name)
 		return 0, err
 	}
-
 	return lv2.Status.CurrentSize.Value(), nil
 }

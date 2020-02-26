@@ -15,4 +15,5 @@ type LogicalVolumeService interface {
 	GetCapacity(ctx context.Context, requestNodeNumber string) (int64, error)
 	GetMaxCapacity(ctx context.Context) (string, int64, error)
 	GetCurrentSize(ctx context.Context, volumeID string) (int64, error)
+	FillCurrentSize(ctx context.Context, volumeID string) (int64, error)
 }

@@ -13,8 +13,12 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
-// ErrVolumeNotFound is error message when VolumeID is not found
-var ErrVolumeNotFound = errors.New("VolumeID is not found")
+var (
+	// ErrVolumeNotFound is error message when VolumeID is not found
+	ErrVolumeNotFound = errors.New("VolumeID is not found")
+	// ErrCurrentSizeIsNil is error message when .status.currentSize is nil
+	ErrCurrentSizeIsNil = errors.New("currentSize is nil")
+)
 
 var ctrlLogger = logf.Log.WithName("driver").WithName("controller")
 
@@ -309,20 +313,21 @@ func (s controllerService) ListSnapshots(context.Context, *csi.ListSnapshotsRequ
 }
 
 func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
+	volumeID := req.GetVolumeId()
 	ctrlLogger.Info("ControllerExpandVolume called",
-		"volumeID", req.GetVolumeId(),
+		"volumeID", volumeID,
 		"required", req.GetCapacityRange().GetRequiredBytes(),
 		"limit", req.GetCapacityRange().GetLimitBytes(),
 		"num_secrets", len(req.GetSecrets()))
 
-	if len(req.GetVolumeId()) == 0 {
+	if len(volumeID) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "volume id is nil")
 	}
 
-	err := s.service.VolumeExists(ctx, req.GetVolumeId())
+	err := s.service.VolumeExists(ctx, volumeID)
 	switch err {
 	case ErrVolumeNotFound:
-		return nil, status.Errorf(codes.NotFound, "LogicalVolume for volume id %s is not found", req.GetVolumeId())
+		return nil, status.Errorf(codes.NotFound, "LogicalVolume for volume id %s is not found", volumeID)
 	case nil:
 	default:
 		return nil, status.Error(codes.Internal, err.Error())
@@ -333,8 +338,16 @@ func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	currentSize, err := s.service.GetCurrentSize(ctx, req.GetVolumeId())
-	if err != nil {
+	currentSize, err := s.service.GetCurrentSize(ctx, volumeID)
+	switch err {
+	case ErrCurrentSizeIsNil:
+		size, err := s.service.FillCurrentSize(ctx, volumeID)
+		if err != nil {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+		currentSize = size
+	case nil:
+	default:
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -347,7 +360,7 @@ func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.
 		}, nil
 	}
 
-	err = s.service.ExpandVolume(ctx, req.GetVolumeId(), requestGb)
+	err = s.service.ExpandVolume(ctx, volumeID, requestGb)
 	if err != nil {
 		_, ok := status.FromError(err)
 		if !ok {
