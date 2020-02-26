@@ -274,30 +274,25 @@ func (s controllerService) GetCapacity(ctx context.Context, req *csi.GetCapacity
 }
 
 func (s controllerService) ControllerGetCapabilities(context.Context, *csi.ControllerGetCapabilitiesRequest) (*csi.ControllerGetCapabilitiesResponse, error) {
+	capabilities := []csi.ControllerServiceCapability_RPC_Type{
+		csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
+		csi.ControllerServiceCapability_RPC_GET_CAPACITY,
+		csi.ControllerServiceCapability_RPC_EXPAND_VOLUME,
+	}
+
+	csiCaps := make([]*csi.ControllerServiceCapability, len(capabilities))
+	for i, capability := range capabilities {
+		csiCaps[i] = &csi.ControllerServiceCapability{
+			Type: &csi.ControllerServiceCapability_Rpc{
+				Rpc: &csi.ControllerServiceCapability_RPC{
+					Type: capability,
+				},
+			},
+		}
+	}
+
 	return &csi.ControllerGetCapabilitiesResponse{
-		Capabilities: []*csi.ControllerServiceCapability{
-			{
-				Type: &csi.ControllerServiceCapability_Rpc{
-					Rpc: &csi.ControllerServiceCapability_RPC{
-						Type: csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
-					},
-				},
-			},
-			{
-				Type: &csi.ControllerServiceCapability_Rpc{
-					Rpc: &csi.ControllerServiceCapability_RPC{
-						Type: csi.ControllerServiceCapability_RPC_GET_CAPACITY,
-					},
-				},
-			},
-			{
-				Type: &csi.ControllerServiceCapability_Rpc{
-					Rpc: &csi.ControllerServiceCapability_RPC{
-						Type: csi.ControllerServiceCapability_RPC_EXPAND_VOLUME,
-					},
-				},
-			},
-		},
+		Capabilities: csiCaps,
 	}, nil
 }
 

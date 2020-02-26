@@ -69,17 +69,20 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		}
 
 		if lv.Status.VolumeID == "" {
-			if err := r.createLV(ctx, log, lv, vgService, lvService); err != nil {
+			// creating a new volume
+			err := r.createLV(ctx, log, lv, vgService, lvService)
+			if err != nil {
 				log.Error(err, "failed to create LV", "name", lv.Name)
-				return ctrl.Result{}, err
 			}
-		} else {
-			if err := r.expandLV(ctx, log, lv, vgService, lvService); err != nil {
-				log.Error(err, "failed to expand LV", "name", lv.Name)
-				return ctrl.Result{}, err
-			}
+			return ctrl.Result{}, err
 		}
-		return ctrl.Result{}, nil
+
+		// expanding the existing volume
+		err := r.expandLV(ctx, log, lv, vgService, lvService)
+		if err != nil {
+			log.Error(err, "failed to expand LV", "name", lv.Name)
+		}
+		return ctrl.Result{}, err
 	}
 
 	// finalization
@@ -153,8 +156,7 @@ func (r *LogicalVolumeReconciler) updateVolumeIfExists(ctx context.Context, log 
 	respList, err := vgService.GetLVList(ctx, &proto.Empty{})
 	if err != nil {
 		log.Error(err, "failed to get list of LV")
-		err := r.updateStatusWithError(ctx, log, lv, codes.Internal, "failed to get list of LV")
-		return false, err
+		return false, r.updateStatusWithError(ctx, log, lv, codes.Internal, "failed to get list of LV")
 	}
 
 	for _, v := range respList.Volumes {
@@ -191,8 +193,7 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 	if err != nil {
 		code, message := extractFromError(err)
 		log.Error(err, message)
-		err := r.updateStatusWithError(ctx, log, lv, code, message)
-		return err
+		return r.updateStatusWithError(ctx, log, lv, code, message)
 	}
 
 	lv2 := lv.DeepCopy()
@@ -226,8 +227,7 @@ func (r *LogicalVolumeReconciler) expandLV(ctx context.Context, log logr.Logger,
 	if err != nil {
 		code, message := extractFromError(err)
 		log.Error(err, message)
-		err := r.updateStatusWithError(ctx, log, lv, code, message)
-		return err
+		return r.updateStatusWithError(ctx, log, lv, code, message)
 	}
 
 	lv2 := lv.DeepCopy()
