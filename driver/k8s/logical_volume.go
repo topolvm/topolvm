@@ -212,10 +212,10 @@ func (s *logicalVolumeService) ExpandVolume(ctx context.Context, volumeID string
 		return err
 	}
 
-	// wait until topolvm-node extends the target volume
+	// wait until topolvm-node expands the target volume
 	lvName := lv.Name
 	for {
-		logger.Info("waiting for extending 'status.currentSize'", "name", lvName)
+		logger.Info("waiting for update of 'status.currentSize'", "name", lvName)
 		select {
 		case <-ctx.Done():
 			return errors.New("timed out")

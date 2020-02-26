@@ -39,11 +39,11 @@ Initially, `status.volumeID` and `status.currentSize` are empty. They are set by
 after it creates an LVM logical volume.
 
 `spec.size` of `LogicalVolume` is updated by `topolvm-controller`
-when the volume size of the corresponding PVC is extended.
+when the volume size of the corresponding PVC is increased.
 `topolvm-node` watches the `LogicalVolume` resource and resizes the LVM logical
 volume when it finds the difference between `status.currentSize` and `spec.size`.
 
-After the LVM logical volume is extended successfully, `topolvm-node` updates
+After the LVM logical volume is expanded successfully, `topolvm-node` updates
 `status.currentSize` value.
 If fails, `topolvm-node` updates the `status.code` and `status.message` with
 the returned error.

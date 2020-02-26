@@ -38,7 +38,7 @@ Features
 - [Topology](https://kubernetes-csi.github.io/docs/topology.html): TopoLVM uses CSI topology feature to schedule Pod to Node where LVM volume exists.
 - Extended scheduler: TopoLVM extends the general Pod scheduler to prioritize Nodes having larger storage capacity.
 - Volume metrics: Usage stats are exported as Prometheus metrics from `kubelet`.
-- [Volume Expansion](https://kubernetes-csi.github.io/docs/volume-expansion.html): Volumes can be extended by editing `PersistentVolumeClaim` objects.
+- [Volume Expansion](https://kubernetes-csi.github.io/docs/volume-expansion.html): Volumes can be expanded by editing `PersistentVolumeClaim` objects.
 
 ### Planned features
 
