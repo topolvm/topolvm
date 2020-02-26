@@ -76,7 +76,7 @@ external-resizer:
         tar zxf - -C $(GOPATH)/src/github.com/kubernetes-csi/
 	mv $(GOPATH)/src/github.com/kubernetes-csi/external-resizer-$(EXTERNAL_RESIZER_VERSION) \
 		$(GOPATH)/src/github.com/kubernetes-csi/external-resizer/
-	(cd $(GOPATH)/src/github.com/kubernetes-csi/external-resizer/; GO111MODULE=off make)
+	cd $(GOPATH)/src/github.com/kubernetes-csi/external-resizer/; GO111MODULE=on make
 	cp -f $(GOPATH)/src/github.com/kubernetes-csi/external-resizer/bin/csi-resizer ./build/
 
 livenessprobe:
