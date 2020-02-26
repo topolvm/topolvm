@@ -8,6 +8,7 @@ spec:
   replicas: 1
   template:
     spec:
+      securityContext: null
       nodeSelector:
         kubernetes.io/hostname: kind-worker
 
@@ -39,6 +40,7 @@ spec:
 
       volumes:
         - name: socket-dir
+          emptyDir: null
           hostPath:
             path: /var/lib/kubelet/plugins/topolvm.cybozu.com/controller
             type: DirectoryOrCreate
