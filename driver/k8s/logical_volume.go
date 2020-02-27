@@ -241,54 +241,6 @@ func (s *logicalVolumeService) ExpandVolume(ctx context.Context, volumeID string
 	}
 }
 
-func (s *logicalVolumeService) GetCapacity(ctx context.Context, requestNodeNumber string) (int64, error) {
-	nl, err := s.listNodes(ctx)
-	if err != nil {
-		return 0, err
-	}
-
-	capacity := int64(0)
-	if len(requestNodeNumber) == 0 {
-		for _, node := range nl.Items {
-			capacity += s.getNodeCapacity(node)
-		}
-		return capacity, nil
-	}
-
-	for _, node := range nl.Items {
-		if nodeNumber, ok := node.Labels[topolvm.TopologyNodeKey]; ok {
-			if requestNodeNumber != nodeNumber {
-				continue
-			}
-			c, ok := node.Annotations[topolvm.CapacityKey]
-			if !ok {
-				return 0, fmt.Errorf("%s is not found", topolvm.CapacityKey)
-			}
-			return strconv.ParseInt(c, 10, 64)
-		}
-	}
-
-	return 0, errors.New("capacity not found")
-}
-
-func (s *logicalVolumeService) GetMaxCapacity(ctx context.Context) (string, int64, error) {
-	nl, err := s.listNodes(ctx)
-	if err != nil {
-		return "", 0, err
-	}
-	var nodeName string
-	var maxCapacity int64
-	for _, node := range nl.Items {
-		c := s.getNodeCapacity(node)
-
-		if maxCapacity < c {
-			maxCapacity = c
-			nodeName = node.Name
-		}
-	}
-	return nodeName, maxCapacity, nil
-}
-
 func (s *logicalVolumeService) getNodeCapacity(node corev1.Node) int64 {
 	c, ok := node.Annotations[topolvm.CapacityKey]
 	if !ok {

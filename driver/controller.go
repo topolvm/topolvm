@@ -28,7 +28,8 @@ func NewControllerService(service LogicalVolumeService) csi.ControllerServer {
 }
 
 type controllerService struct {
-	service LogicalVolumeService
+	service     LogicalVolumeService
+	nodeService *nodeResourceService
 }
 
 func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
@@ -89,7 +90,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 		// - https://github.com/container-storage-interface/spec/blob/release-1.1/spec.md#createvolume
 		// - https://github.com/kubernetes-csi/csi-test/blob/6738ab2206eac88874f0a3ede59b40f680f59f43/pkg/sanity/controller.go#L404-L428
 		ctrlLogger.Info("decide node because accessibility_requirements not found")
-		nodeName, capacity, err := s.service.GetMaxCapacity(ctx)
+		nodeName, capacity, err := s.nodeService.GetMaxCapacity(ctx)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to get max capacity node %v", err)
 		}
@@ -252,7 +253,7 @@ func (s controllerService) GetCapacity(ctx context.Context, req *csi.GetCapacity
 	switch topology {
 	case nil:
 		var err error
-		capacity, err = s.service.GetCapacity(ctx, "")
+		capacity, err = s.nodeService.GetCapacity(ctx, "")
 		if err != nil {
 			return nil, status.Error(codes.Internal, err.Error())
 		}
@@ -262,7 +263,7 @@ func (s controllerService) GetCapacity(ctx context.Context, req *csi.GetCapacity
 			return nil, status.Errorf(codes.Internal, "%s is not found in req.AccessibleTopology", topolvm.TopologyNodeKey)
 		}
 		var err error
-		capacity, err = s.service.GetCapacity(ctx, requestNodeNumber)
+		capacity, err = s.nodeService.GetCapacity(ctx, requestNodeNumber)
 		if err != nil {
 			ctrlLogger.Info("target is not found", "accessible_topology", req.AccessibleTopology)
 			// return nil (annotation for nilerr)
