@@ -203,9 +203,6 @@ func (s *logicalVolumeService) ExpandVolume(ctx context.Context, volumeID string
 
 	lv2 := lv.DeepCopy()
 	lv2.Spec.Size = *resource.NewQuantity(sizeGb<<30, resource.BinarySI)
-	// clear Status.Code not to be rejected at topolvm-node
-	lv2.Status.Code = codes.OK
-	lv2.Status.Message = ""
 	patch := client.MergeFrom(lv)
 	if err := s.Patch(ctx, lv2, patch); err != nil {
 		logger.Error(err, "failed to patch .spec.size", "name", lv.Name)

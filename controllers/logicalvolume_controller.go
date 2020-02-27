@@ -50,14 +50,6 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	}
 
 	if lv.ObjectMeta.DeletionTimestamp == nil {
-		// When lv.Status.Code is not codes.OK (== 0), CreateLV has already failed.
-		// LogicalVolume CRD will be deleted soon by the controller.
-		// In the case of retry of other operations than CreateLV,
-		// the controller should clear lv.Status.Code.
-		if lv.Status.Code != codes.OK {
-			return ctrl.Result{}, nil
-		}
-
 		if !containsString(lv.Finalizers, topolvm.LogicalVolumeFinalizer) {
 			lv2 := lv.DeepCopy()
 			lv2.Finalizers = append(lv2.Finalizers, topolvm.LogicalVolumeFinalizer)
@@ -69,6 +61,12 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		}
 
 		if lv.Status.VolumeID == "" {
+			// When lv.Status.Code is not codes.OK (== 0), CreateLV has already failed.
+			// LogicalVolume CRD will be deleted soon by the controller.
+			if lv.Status.Code != codes.OK {
+				return ctrl.Result{}, nil
+			}
+
 			// creating a new volume
 			err := r.createLV(ctx, log, lv, vgService, lvService)
 			if err != nil {
