@@ -128,7 +128,12 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 
 	name = strings.ToLower(name)
 
-	volumeID, err := s.service.CreateVolume(ctx, node, name, requestGb, capabilities)
+	vol := &Volume{
+		node:        node,
+		name:        name,
+		requestedGb: requestGb,
+	}
+	volumeID, err := s.service.CreateVolume(ctx, vol)
 	if err != nil {
 		_, ok := status.FromError(err)
 		if !ok {
@@ -339,29 +344,31 @@ func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	currentSize, err := s.service.GetCurrentSize(ctx, volumeID)
-	switch err {
-	case ErrCurrentSizeIsNil:
-		size, err := s.service.FillCurrentSize(ctx, volumeID)
-		if err != nil {
-			return nil, status.Error(codes.Internal, err.Error())
-		}
-		currentSize = size
-	case nil:
-	default:
+	vol, err := s.service.GetVolume(ctx, volumeID)
+	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	if requestGb<<30-currentSize <= 0 {
+	if vol.currentGb == nil {
+		origRequested := vol.requestedGb
+		vol.currentGb = &origRequested
+		err := s.service.Update(ctx, vol)
+		if err != nil {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+	}
+
+	if requestGb-*vol.currentGb <= 0 {
 		// "NodeExpansionRequired" is still true because it is unknown
 		// whether node expansion is completed or not.
 		return &csi.ControllerExpandVolumeResponse{
-			CapacityBytes:         currentSize,
+			CapacityBytes:         *vol.currentGb << 30,
 			NodeExpansionRequired: true,
 		}, nil
 	}
 
-	err = s.service.ExpandVolume(ctx, volumeID, requestGb)
+	vol.requestedGb = requestGb
+	err = s.service.ExpandVolume(ctx, vol)
 	if err != nil {
 		_, ok := status.FromError(err)
 		if !ok {
