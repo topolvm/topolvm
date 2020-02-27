@@ -215,9 +215,10 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 
 func (r *LogicalVolumeReconciler) expandLV(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume,
 	vgService proto.VGServiceClient, lvService proto.LVServiceClient) error {
+	// lv.Status.CurrentSize is added in v0.4.0 and filled by topolvm-controller when resizing is triggered.
+	// The reconciliation loop of LogicalVolume may call expandLV before resizing is triggered.
+	// So, lv.Status.CurrentSize could be nil here.
 	if lv.Status.CurrentSize == nil {
-		log.Info(".status.currentSize is expected but not set", "name", lv.Name)
-		// return nil not to be requeued
 		return nil
 	}
 
