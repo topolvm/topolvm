@@ -21,3 +21,8 @@ This is because such usages are valid in other StorageClasses and the webhook ca
 For such Pods, TopoLVM's extended scheduler will not work.
 
 The typical usage of TopoLVM is using StatefulSet with volumeClaimTemplate.
+
+StorageClass mountOptions
+-------------------------
+
+TopoLVM does not recognize `mountOptions` of `StorageClass` currently.
