@@ -19,7 +19,7 @@ If the `gcloud` command is not installed on your PC, please refer to [this docum
 ### Create GCP instance
 
 
-Create a GCP instance for Rancher Server.
+Create a GCP instance for Rancher Server. This document uses the `asia-northeast1-c` zone, but you can choose any other zone you want.
 
 ```console
 ZONE=asia-northeast1-c
