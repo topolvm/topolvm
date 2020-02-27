@@ -262,7 +262,7 @@ func (s *LogicalVolumeService) GetVolume(ctx context.Context, volumeID string) (
 	if lv.Status.CurrentSize == nil {
 		cs = nil
 	} else {
-		v := lv.Status.CurrentSize.Value()
+		v := lv.Status.CurrentSize.Value() >> 30
 		cs = &v
 	}
 
@@ -270,7 +270,7 @@ func (s *LogicalVolumeService) GetVolume(ctx context.Context, volumeID string) (
 		name:        lv.GetName(),
 		node:        lv.Spec.NodeName,
 		volumeID:    lv.Status.VolumeID,
-		requestedGb: lv.Spec.Size.Value(),
+		requestedGb: lv.Spec.Size.Value() >> 30,
 		currentGb:   cs,
 	}, nil
 }
