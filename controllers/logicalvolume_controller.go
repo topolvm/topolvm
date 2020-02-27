@@ -120,7 +120,7 @@ func (r *LogicalVolumeReconciler) updateStatusWithError(ctx context.Context, log
 	patch := client.MergeFrom(lv)
 
 	if err := r.Status().Patch(ctx, lv2, patch); err != nil {
-		logger.Error(err, "unable to update LogicalVolume status")
+		logger.Error(err, "unable to update LogicalVolume status", "name", lv.Name)
 		return err
 	}
 	return nil
@@ -154,7 +154,10 @@ func (r *LogicalVolumeReconciler) updateVolumeIfExists(ctx context.Context, log 
 	respList, err := vgService.GetLVList(ctx, &proto.Empty{})
 	if err != nil {
 		log.Error(err, "failed to get list of LV")
-		return false, r.updateStatusWithError(ctx, log, lv, codes.Internal, "failed to get list of LV")
+		// ignore the error below because the error is not about main logic and the same operation
+		// will be retried in the reconciliation loop.
+		r.updateStatusWithError(ctx, log, lv, codes.Internal, "failed to get list of LV")
+		return false, err
 	}
 
 	for _, v := range respList.Volumes {
@@ -191,7 +194,10 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 	if err != nil {
 		code, message := extractFromError(err)
 		log.Error(err, message)
-		return r.updateStatusWithError(ctx, log, lv, code, message)
+		// ignore the error below because the error is not about main logic and the same operation
+		// will be retried in the reconciliation loop.
+		r.updateStatusWithError(ctx, log, lv, code, message)
+		return err
 	}
 
 	lv2 := lv.DeepCopy()
@@ -225,7 +231,10 @@ func (r *LogicalVolumeReconciler) expandLV(ctx context.Context, log logr.Logger,
 	if err != nil {
 		code, message := extractFromError(err)
 		log.Error(err, message)
-		return r.updateStatusWithError(ctx, log, lv, code, message)
+		// ignore the error below because the error is not about main logic and the same operation
+		// will be retried in the reconciliation loop.
+		r.updateStatusWithError(ctx, log, lv, code, message)
+		return err
 	}
 
 	lv2 := lv.DeepCopy()
