@@ -122,7 +122,7 @@ var _ = Describe("TopoLVM", func() {
 					return errors.New("node daemonset is not ready")
 				}
 				return nil
-			})
+			}).Should(Succeed())
 		})
 
 		sanity.GinkgoTest(&sanity.Config{

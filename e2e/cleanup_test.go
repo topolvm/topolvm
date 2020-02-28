@@ -48,7 +48,7 @@ func testCleanup() {
 				}
 			}
 			return nil
-		})
+		}).Should(Succeed())
 
 		statefulsetName := "test-sts"
 		By("applying statefulset")
