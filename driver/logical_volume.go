@@ -4,11 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
 	"sync"
 	"time"
 
-	"github.com/cybozu-go/topolvm"
 	topolvmv1 "github.com/cybozu-go/topolvm/api/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -171,34 +169,13 @@ func (s *LogicalVolumeService) ExpandVolume(ctx context.Context, vol *Volume) er
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	lv, err := s.getLogicalVolume(ctx, vol.volumeID)
-	if err != nil {
-		logger.Error(err, "failed to get logical volume", "name", lv.Name)
-		return err
-	}
-
-	targetNodeName := lv.Spec.NodeName
-	node, err := s.getNode(ctx, targetNodeName)
-	if err != nil {
-		logger.Error(err, "failed to get node", "name", targetNodeName)
-		return err
-	}
-
-	capacity := s.getNodeCapacity(*node)
-
-	if capacity < (vol.requestedGb<<30 - *vol.currentGb<<30) {
-		err := errors.New("not enough space")
-		logger.Error(err, "not enough space is left", "name", targetNodeName)
-		return err
-	}
-
-	err = s.Update(ctx, vol)
+	err := s.Update(ctx, vol)
 	if err != nil {
 		return err
 	}
 
 	// wait until topolvm-node expands the target volume
-	lvName := lv.Name
+	lvName := vol.name
 	for {
 		logger.Info("waiting for update of 'status.currentSize'", "name", lvName)
 		select {
@@ -227,28 +204,6 @@ func (s *LogicalVolumeService) ExpandVolume(ctx context.Context, vol *Volume) er
 
 		return nil
 	}
-}
-
-func (s *LogicalVolumeService) getNodeCapacity(node corev1.Node) int64 {
-	c, ok := node.Annotations[topolvm.CapacityKey]
-	if !ok {
-		return 0
-	}
-	val, _ := strconv.ParseInt(c, 10, 64)
-	return val
-}
-
-func (s *LogicalVolumeService) getNode(ctx context.Context, name string) (*corev1.Node, error) {
-	nl, err := s.listNodes(ctx)
-	if err != nil {
-		return nil, err
-	}
-	for _, node := range nl.Items {
-		if node.Name == name {
-			return &node, nil
-		}
-	}
-	return nil, errors.New("node not found")
 }
 
 // GetVolume returns volume specified by volume ID.

@@ -367,6 +367,15 @@ func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.
 		}, nil
 	}
 
+	capacity, err := s.nodeService.GetNodeCapacity(ctx, vol.node)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	if capacity < (vol.requestedGb<<30 - *vol.currentGb<<30) {
+		return nil, status.Error(codes.Internal, "not enough space")
+	}
+
 	vol.requestedGb = requestGb
 	err = s.service.ExpandVolume(ctx, vol)
 	if err != nil {

@@ -12,6 +12,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
+// ErrNodeCapacityNotAnnotated represents that node is found but capacity is not annotated.
+var ErrNodeCapacityNotAnnotated = fmt.Errorf("%s is not found", topolvm.CapacityKey)
+
 // NodeResourceService represents node resource service.
 type NodeResourceService struct {
 	client.Client
@@ -41,7 +44,8 @@ func (s NodeResourceService) GetCapacity(ctx context.Context, requestNodeNumber 
 	capacity := int64(0)
 	if len(requestNodeNumber) == 0 {
 		for _, node := range nl.Items {
-			capacity += s.getNodeCapacity(node)
+			c, _ := s.getNodeCapacityFromAnnotation(&node)
+			capacity += c
 		}
 		return capacity, nil
 	}
@@ -51,11 +55,7 @@ func (s NodeResourceService) GetCapacity(ctx context.Context, requestNodeNumber 
 			if requestNodeNumber != nodeNumber {
 				continue
 			}
-			c, ok := node.Annotations[topolvm.CapacityKey]
-			if !ok {
-				return 0, fmt.Errorf("%s is not found", topolvm.CapacityKey)
-			}
-			return strconv.ParseInt(c, 10, 64)
+			return s.getNodeCapacityFromAnnotation(&node)
 		}
 	}
 
@@ -71,8 +71,7 @@ func (s NodeResourceService) GetMaxCapacity(ctx context.Context) (string, int64,
 	var nodeName string
 	var maxCapacity int64
 	for _, node := range nl.Items {
-		c := s.getNodeCapacity(node)
-
+		c, _ := s.getNodeCapacityFromAnnotation(&node)
 		if maxCapacity < c {
 			maxCapacity = c
 			nodeName = node.Name
@@ -81,24 +80,21 @@ func (s NodeResourceService) GetMaxCapacity(ctx context.Context) (string, int64,
 	return nodeName, maxCapacity, nil
 }
 
-func (s NodeResourceService) getNodeCapacity(node corev1.Node) int64 {
-	c, ok := node.Annotations[topolvm.CapacityKey]
-	if !ok {
-		return 0
+// GetNodeCapacity returns node's capacity
+func (s NodeResourceService) GetNodeCapacity(ctx context.Context, name string) (int64, error) {
+	n := new(corev1.Node)
+	err := s.Get(ctx, client.ObjectKey{Name: name}, n)
+	if err != nil {
+		return 0, err
 	}
-	val, _ := strconv.ParseInt(c, 10, 64)
-	return val
+
+	return s.getNodeCapacityFromAnnotation(n)
 }
 
-func (s NodeResourceService) getNode(ctx context.Context, name string) (*corev1.Node, error) {
-	nl, err := s.listNodes(ctx)
-	if err != nil {
-		return nil, err
+func (s NodeResourceService) getNodeCapacityFromAnnotation(node *corev1.Node) (int64, error) {
+	c, ok := node.Annotations[topolvm.CapacityKey]
+	if !ok {
+		return 0, ErrNodeCapacityNotAnnotated
 	}
-	for _, node := range nl.Items {
-		if node.Name == name {
-			return &node, nil
-		}
-	}
-	return nil, errors.New("node not found")
+	return strconv.ParseInt(c, 10, 64)
 }
