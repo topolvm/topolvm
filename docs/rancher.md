@@ -3,7 +3,7 @@ How to use TopoLVM with Rancher/RKE
 
 This document is a brief introduction of how to use TopoLVM on [Rancher/RKE](https://rancher.com/docs/rke/latest/en/).
 
-4 GCP instances will be used in this example. Each instance will be configured to have the following role.
+Rancher/RKE will be deployed on the following 4 instances of Google Compute Engine (GCE).
 
 | Hostname  | Machine Type    | Role              | Requirement      |
 | --------- | --------------- | ----------------- | ---------------- |
@@ -16,10 +16,9 @@ If the `gcloud` command is not installed on your PC, please refer to [this docum
 
 ## 1. Run Rancher Server
 
-### Create GCP instance
+### Create GCE instance
 
-
-Create a GCP instance for Rancher Server. This document uses the `asia-northeast1-c` zone, but you can choose any other zone you want.
+Create a GCE instance for Rancher Server. This document uses the `asia-northeast1-c` zone, but you can choose any other zone you want.
 
 ```console
 ZONE=asia-northeast1-c
@@ -33,7 +32,7 @@ gcloud compute instances create rancher \
 
 Then, allow HTTP/HTTPS with the following commands.
 
-1. Go to `VM instances` on the GCP dashboard and open the configuration page of `rancher`
+1. Go to `VM instances` on the GCE dashboard and open the configuration page of `rancher`
 2. Click `EDIT` at the top of the page
 3. Enable `Allow HTTP traffic` and `Allow HTTPS traffic` under `Firewalls`
 4. Click `Save` at the bottom of the page
@@ -52,14 +51,14 @@ gcloud compute ssh --zone ${ZONE} rancher -- "curl -sSLf https://get.docker.com 
 gcloud compute ssh --zone ${ZONE} rancher -- "sudo docker run -d --restart=unless-stopped -p 80:80 -p 443:443 rancher/rancher:v2.3.4"
 ```
 
-Go to the external IP address of `rancher` which appears on the GCP dashboard with your favorite browser.
+Go to the external IP address of `rancher` which appears on the GCE dashboard with your favorite browser.
 
 For simplicity, TLS certification is not prepared in this example.
 So, just allow insecure access and proceed next.
 
 ## 2. Deploy Kubernetes cluster
 
-### Create GCP instances for Master & Worker Nodes
+### Create GCE instances for Master & Worker Nodes
 
 Create `master`, `worker1` and `worker2`.
 `worker1` and `worker2` mounts SSD at `/dev/nvme0` to provision TopoLVM volumes.
@@ -99,9 +98,8 @@ gcloud compute ssh --zone ${ZONE} worker2 -- "curl -sSLf https://get.docker.com 
 
 ### Deploy Kubernetes components with Rancher
 
-Go to the Rancher dashboard and click `Add Cluster` -> `From existing nodes (Custom)`.
-
-Then configuration page will come up. Overwrite some default values with the following.
+Go to the Rancher dashboard and click `Add Cluster` -> `From existing nodes (Custom)`
+to see the configuration page.  Overwrite some default values as follows.
 
 - Cluster Name: Write your cluster name
 - Cluster Options:
@@ -116,7 +114,7 @@ Then configuration page will come up. Overwrite some default values with the fol
 
 After finishing the configuration, click `Done` and wait for the cluster status to become `Active`.
 
-## 3. Deply cert-manager
+## 3. Deploy cert-manager
 
 You can run the `kubectl` command by downloading `Kubeconfig File` from the top right of the cluster dashboard.
 
@@ -184,8 +182,6 @@ kubectl apply -f https://raw.githubusercontent.com/cybozu-go/topolvm/v${TOPOLVM_
 
 ## 6. Configure `topolvm-scheduler`
 
-You almost finish deploying TopoLVM here, but you need a little tweak to make `topolvm-scheduler` work properly.
-
 ###  Update `topolvm-scheduler` manifest
 
 First, `master` has the following label and taint.
@@ -231,9 +227,9 @@ $ kubectl edit daemonset topolvm-scheduler -n topolvm-system
 ...
 ```
 
-### Apply scheduler extension
+### Adding the scheduler extender
 
-Download the scheduler extension configuration files onto `master`.
+Download the scheduler extender configuration files on the `master` instance.
 
 They must be placed under `/etc/kubernetes` on `master` because `kube-scheduler`, deployed with Rancher, is configured to mount the directory.
 
@@ -275,7 +271,7 @@ Then click `Save` to finish the configuration.
 
 Congratulations!! You finally deployed TopoLVM on RKE.
 
-To confirm now TopoLVM is actually working, create PVC and mount it on a `Pod`.
+To confirm TopoLVM is working, create PVC and mount it on a `Pod`.
 
 ```console
 kubectl apply -f - << EOF
@@ -311,10 +307,9 @@ spec:
         claimName: topolvm-pvc
 EOF
 ```
-
 ## 8. Cleanup
 
-Do not forget to delete GCP instances.
+Do not forget to delete GCE instances.
 
 ```console
 gcloud --quiet compute instances delete rancher --zone ${ZONE}
