@@ -164,6 +164,7 @@ func (r *LogicalVolumeReconciler) updateVolumeIfExists(ctx context.Context, log 
 		if v.Name == string(lv.UID) {
 			lv2 := lv.DeepCopy()
 			lv2.Status.VolumeID = v.Name
+			setLVStatusOK(lv2)
 			patch := client.MergeFrom(lv)
 			if err := r.Status().Patch(ctx, lv2, patch); err != nil {
 				log.Error(err, "failed to update VolumeID in status", "name", lv.Name)
@@ -203,6 +204,7 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 	lv2 := lv.DeepCopy()
 	lv2.Status.VolumeID = resp.Volume.Name
 	lv2.Status.CurrentSize = resource.NewQuantity(reqBytes, resource.BinarySI)
+	setLVStatusOK(lv2)
 	patch := client.MergeFrom(lv)
 	if err := r.Status().Patch(ctx, lv2, patch); err != nil {
 		log.Error(err, "failed to update status", "name", lv.Name, "uid", lv.UID)
@@ -240,6 +242,7 @@ func (r *LogicalVolumeReconciler) expandLV(ctx context.Context, log logr.Logger,
 
 	lv2 := lv.DeepCopy()
 	lv2.Status.CurrentSize = resource.NewQuantity(reqBytes, resource.BinarySI)
+	setLVStatusOK(lv2)
 	patch := client.MergeFrom(lv)
 	if err := r.Status().Patch(ctx, lv2, patch); err != nil {
 		log.Error(err, "failed to update status", "name", lv.Name, "uid", lv.UID)
@@ -306,4 +309,9 @@ func extractFromError(err error) (codes.Code, string) {
 		return codes.Internal, err.Error()
 	}
 	return s.Code(), s.Message()
+}
+
+func setLVStatusOK(lv *topolvmv1.LogicalVolume) {
+	lv.Status.Code = codes.OK
+	lv.Status.Message = ""
 }

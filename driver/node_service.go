@@ -12,9 +12,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-// ErrNodeCapacityNotAnnotated represents that node is found but capacity is not annotated.
-var ErrNodeCapacityNotAnnotated = fmt.Errorf("%s is not found", topolvm.CapacityKey)
-
 // NodeResourceService represents node resource service.
 type NodeResourceService struct {
 	client.Client
@@ -37,7 +34,7 @@ func (s NodeResourceService) getNodes(ctx context.Context) (*corev1.NodeList, er
 func (s NodeResourceService) extractCapacityFromAnnotation(node *corev1.Node) (int64, error) {
 	c, ok := node.Annotations[topolvm.CapacityKey]
 	if !ok {
-		return 0, ErrNodeCapacityNotAnnotated
+		return 0, fmt.Errorf("%s is not found", topolvm.CapacityKey)
 	}
 	return strconv.ParseInt(c, 10, 64)
 }

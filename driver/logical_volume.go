@@ -147,33 +147,43 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, vol *Volume) (s
 // DeleteVolume deletes volume
 func (s *LogicalVolumeService) DeleteVolume(ctx context.Context, volumeID string) error {
 	logger.Info("k8s.DeleteVolume called", "volumeID", volumeID)
-	lvList := new(topolvmv1.LogicalVolumeList)
-	err := s.List(ctx, lvList, client.MatchingFields{indexFieldVolumeID: volumeID})
+
+	lv, err := s.getLogicalVolume(ctx, volumeID)
 	if err != nil {
+		if err == ErrVolumeNotFound {
+			logger.Info("volume is not found", "volume_id", volumeID)
+			return nil
+		}
 		return err
 	}
-	if len(lvList.Items) == 0 {
-		logger.Info("volume is not found", "volume_id", volumeID)
-		return nil
-	} else if len(lvList.Items) > 1 {
-		return fmt.Errorf("multiple LogicalVolume is found for VolumeID %s", volumeID)
-	}
-	return s.Delete(ctx, &lvList.Items[0])
+
+	return s.Delete(ctx, lv)
 }
 
-// VolumeExists returns non-error if the volume exists
-func (s *LogicalVolumeService) VolumeExists(ctx context.Context, volumeID string) error {
+// VolumeExists returns true if the volume exists
+func (s *LogicalVolumeService) VolumeExists(ctx context.Context, volumeID string) (bool, error) {
 	_, err := s.getLogicalVolume(ctx, volumeID)
-	return err
+	if err != nil {
+		if err == ErrVolumeNotFound {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 // ExpandVolume expands volume
-func (s *LogicalVolumeService) ExpandVolume(ctx context.Context, vol *Volume) error {
-	logger.Info("k8s.ExpandVolume called", "name", vol.name, "node", vol.node, "size_gb", vol.requestGb)
+func (s *LogicalVolumeService) ExpandVolume(ctx context.Context, volumeID string, requestGb int64) error {
+	logger.Info("k8s.ExpandVolume called", "volumeID", volumeID, "requestGb", requestGb)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	err := s.UpdateVolumeSizes(ctx, vol)
+	vol, err := s.GetVolume(ctx, volumeID)
+	if err != nil {
+		return err
+	}
+
+	err = s.UpdateRequestGb(ctx, volumeID, requestGb)
 	if err != nil {
 		return err
 	}
@@ -246,17 +256,27 @@ func (s *LogicalVolumeService) getLogicalVolume(ctx context.Context, volumeID st
 	return &lvList.Items[0], nil
 }
 
-// UpdateVolumeSizes updates LogicalVolume sizes.
-func (s *LogicalVolumeService) UpdateVolumeSizes(ctx context.Context, vol *Volume) error {
-	lv, err := s.getLogicalVolume(ctx, vol.volumeID)
+// UpdateRequestGb updates .Spec.Size of LogicalVolume.
+func (s *LogicalVolumeService) UpdateRequestGb(ctx context.Context, volumeID string, requestGb int64) error {
+	return s.updateVolumeSize(ctx, volumeID, requestGb, true)
+}
+
+// UpdateCurrentGb updates .Status.CurrentSize of LogicalVolume.
+func (s *LogicalVolumeService) UpdateCurrentGb(ctx context.Context, volumeID string, currentGb int64) error {
+	return s.updateVolumeSize(ctx, volumeID, currentGb, false)
+}
+
+func (s *LogicalVolumeService) updateVolumeSize(ctx context.Context, volumeID string, sizeGb int64, isRequestGb bool) error {
+	lv, err := s.getLogicalVolume(ctx, volumeID)
 	if err != nil {
 		return err
 	}
 
 	lv2 := lv.DeepCopy()
-	lv2.Spec.Size = *resource.NewQuantity(vol.requestGb<<30, resource.BinarySI)
-	if currentGb, ok := vol.GetCurrentGb(); ok {
-		lv2.Status.CurrentSize = resource.NewQuantity(currentGb<<30, resource.BinarySI)
+	if isRequestGb {
+		lv2.Spec.Size = *resource.NewQuantity(sizeGb<<30, resource.BinarySI)
+	} else {
+		lv2.Status.CurrentSize = resource.NewQuantity(sizeGb<<30, resource.BinarySI)
 	}
 	patch := client.MergeFrom(lv)
 	if err := s.Patch(ctx, lv2, patch); err != nil {

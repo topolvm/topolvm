@@ -13,22 +13,18 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
-var (
-	// ErrVolumeNotFound is error message when VolumeID is not found
-	ErrVolumeNotFound = errors.New("VolumeID is not found")
-	// ErrCurrentSizeIsNil is error message when .status.currentSize is nil
-	ErrCurrentSizeIsNil = errors.New("currentSize is nil")
-)
+// ErrVolumeNotFound is error message when VolumeID is not found
+var ErrVolumeNotFound = errors.New("VolumeID is not found")
 
 var ctrlLogger = logf.Log.WithName("driver").WithName("controller")
 
 // NewControllerService returns a new ControllerServer.
-func NewControllerService(service *LogicalVolumeService, nodeService *NodeResourceService) csi.ControllerServer {
-	return &controllerService{service: service, nodeService: nodeService}
+func NewControllerService(lvService *LogicalVolumeService, nodeService *NodeResourceService) csi.ControllerServer {
+	return &controllerService{lvService: lvService, nodeService: nodeService}
 }
 
 type controllerService struct {
-	service     *LogicalVolumeService
+	lvService   *LogicalVolumeService
 	nodeService *NodeResourceService
 }
 
@@ -133,7 +129,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 		name:      name,
 		requestGb: requestGb,
 	}
-	volumeID, err := s.service.CreateVolume(ctx, vol)
+	volumeID, err := s.lvService.CreateVolume(ctx, vol)
 	if err != nil {
 		_, ok := status.FromError(err)
 		if !ok {
@@ -183,7 +179,7 @@ func (s controllerService) DeleteVolume(ctx context.Context, req *csi.DeleteVolu
 		return nil, status.Error(codes.InvalidArgument, "volume_id is not provided")
 	}
 
-	err := s.service.DeleteVolume(ctx, req.GetVolumeId())
+	err := s.lvService.DeleteVolume(ctx, req.GetVolumeId())
 	if err != nil {
 		ctrlLogger.Error(err, "DeleteVolume failed", "volume_id", req.GetVolumeId())
 		_, ok := status.FromError(err)
@@ -219,13 +215,12 @@ func (s controllerService) ValidateVolumeCapabilities(ctx context.Context, req *
 		return nil, status.Error(codes.InvalidArgument, "volume capabilities are empty")
 	}
 
-	err := s.service.VolumeExists(ctx, req.GetVolumeId())
-	switch err {
-	case ErrVolumeNotFound:
-		return nil, status.Errorf(codes.NotFound, "LogicalVolume for volume id %s is not found", req.GetVolumeId())
-	case nil:
-	default:
+	exists, err := s.lvService.VolumeExists(ctx, req.GetVolumeId())
+	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
+	}
+	if !exists {
+		return nil, status.Errorf(codes.NotFound, "LogicalVolume for volume id %s is not found", req.GetVolumeId())
 	}
 
 	// Since TopoLVM does not provide means to pre-provision volumes,
@@ -330,13 +325,12 @@ func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.
 		return nil, status.Error(codes.InvalidArgument, "volume id is nil")
 	}
 
-	err := s.service.VolumeExists(ctx, volumeID)
-	switch err {
-	case ErrVolumeNotFound:
-		return nil, status.Errorf(codes.NotFound, "LogicalVolume for volume id %s is not found", volumeID)
-	case nil:
-	default:
+	exists, err := s.lvService.VolumeExists(ctx, volumeID)
+	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
+	}
+	if !exists {
+		return nil, status.Errorf(codes.NotFound, "LogicalVolume for volume id %s is not found", volumeID)
 	}
 
 	requestGb, err := convertRequestCapacity(req.GetCapacityRange().GetRequiredBytes(), req.GetCapacityRange().GetLimitBytes())
@@ -344,7 +338,7 @@ func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	vol, err := s.service.GetVolume(ctx, volumeID)
+	vol, err := s.lvService.GetVolume(ctx, volumeID)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -352,15 +346,14 @@ func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.
 	currentGb, ok := vol.GetCurrentGb()
 	if !ok {
 		// fill currentGb for old volume created in v0.3.0 or before.
-		vol.SetCurrentGb(vol.requestGb)
-		err := s.service.UpdateVolumeSizes(ctx, vol)
+		err := s.lvService.UpdateCurrentGb(ctx, volumeID, vol.requestGb)
 		if err != nil {
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 		currentGb = vol.requestGb
 	}
 
-	if requestGb-currentGb <= 0 {
+	if requestGb <= currentGb {
 		// "NodeExpansionRequired" is still true because it is unknown
 		// whether node expansion is completed or not.
 		return &csi.ControllerExpandVolumeResponse{
@@ -378,8 +371,7 @@ func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.
 		return nil, status.Error(codes.Internal, "not enough space")
 	}
 
-	vol.requestGb = requestGb
-	err = s.service.ExpandVolume(ctx, vol)
+	err = s.lvService.ExpandVolume(ctx, volumeID, requestGb)
 	if err != nil {
 		_, ok := status.FromError(err)
 		if !ok {
