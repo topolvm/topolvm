@@ -258,7 +258,7 @@ func (s controllerService) GetCapacity(ctx context.Context, req *csi.GetCapacity
 	switch topology {
 	case nil:
 		var err error
-		capacity, err = s.nodeService.GetCapacity(ctx, "")
+		capacity, err = s.nodeService.GetTotalCapacity(ctx)
 		if err != nil {
 			return nil, status.Error(codes.Internal, err.Error())
 		}
@@ -268,7 +268,7 @@ func (s controllerService) GetCapacity(ctx context.Context, req *csi.GetCapacity
 			return nil, status.Errorf(codes.Internal, "%s is not found in req.AccessibleTopology", topolvm.TopologyNodeKey)
 		}
 		var err error
-		capacity, err = s.nodeService.GetCapacity(ctx, requestNodeNumber)
+		capacity, err = s.nodeService.GetCapacityByNodeNumber(ctx, requestNodeNumber)
 		if err != nil {
 			ctrlLogger.Info("target is not found", "accessible_topology", req.AccessibleTopology)
 			// return nil (annotation for nilerr)
@@ -367,7 +367,7 @@ func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.
 		}, nil
 	}
 
-	capacity, err := s.nodeService.GetNodeCapacity(ctx, vol.node)
+	capacity, err := s.nodeService.GetCapacityByName(ctx, vol.node)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}

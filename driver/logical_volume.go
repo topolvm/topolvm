@@ -10,7 +10,6 @@ import (
 	topolvmv1 "github.com/cybozu-go/topolvm/api/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -153,15 +152,6 @@ func (s *LogicalVolumeService) DeleteVolume(ctx context.Context, volumeID string
 func (s *LogicalVolumeService) VolumeExists(ctx context.Context, volumeID string) error {
 	_, err := s.getLogicalVolume(ctx, volumeID)
 	return err
-}
-
-func (s *LogicalVolumeService) listNodes(ctx context.Context) (*corev1.NodeList, error) {
-	nl := new(corev1.NodeList)
-	err := s.List(ctx, nl)
-	if err != nil {
-		return nil, err
-	}
-	return nl, nil
 }
 
 // ExpandVolume expands volume
