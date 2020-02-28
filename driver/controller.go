@@ -129,9 +129,9 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 	name = strings.ToLower(name)
 
 	vol := &Volume{
-		node:        node,
-		name:        name,
-		requestedGb: requestGb,
+		node:      node,
+		name:      name,
+		requestGb: requestGb,
 	}
 	volumeID, err := s.service.CreateVolume(ctx, vol)
 	if err != nil {
@@ -349,20 +349,22 @@ func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	if vol.currentGb == nil {
-		origRequested := vol.requestedGb
-		vol.currentGb = &origRequested
-		err := s.service.Update(ctx, vol)
+	currentGb, ok := vol.GetCurrentGb()
+	if !ok {
+		// fill currentGb for old volume created in v0.3.0 or before.
+		vol.SetCurrentGb(vol.requestGb)
+		err := s.service.UpdateVolumeSizes(ctx, vol)
 		if err != nil {
 			return nil, status.Error(codes.Internal, err.Error())
 		}
+		currentGb = vol.requestGb
 	}
 
-	if requestGb-*vol.currentGb <= 0 {
+	if requestGb-currentGb <= 0 {
 		// "NodeExpansionRequired" is still true because it is unknown
 		// whether node expansion is completed or not.
 		return &csi.ControllerExpandVolumeResponse{
-			CapacityBytes:         *vol.currentGb << 30,
+			CapacityBytes:         currentGb << 30,
 			NodeExpansionRequired: true,
 		}, nil
 	}
@@ -372,11 +374,11 @@ func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	if capacity < (vol.requestedGb<<30 - *vol.currentGb<<30) {
+	if capacity < (requestGb<<30 - currentGb<<30) {
 		return nil, status.Error(codes.Internal, "not enough space")
 	}
 
-	vol.requestedGb = requestGb
+	vol.requestGb = requestGb
 	err = s.service.ExpandVolume(ctx, vol)
 	if err != nil {
 		_, ok := status.FromError(err)
