@@ -133,6 +133,7 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, vol *Volume) (s
 
 // DeleteVolume deletes volume
 func (s *LogicalVolumeService) DeleteVolume(ctx context.Context, volumeID string) error {
+	logger.Info("k8s.DeleteVolume called", "volumeID", volumeID)
 	lvList := new(topolvmv1.LogicalVolumeList)
 	err := s.List(ctx, lvList, client.MatchingFields{indexFieldVolumeID: volumeID})
 	if err != nil {
@@ -144,7 +145,6 @@ func (s *LogicalVolumeService) DeleteVolume(ctx context.Context, volumeID string
 	} else if len(lvList.Items) > 1 {
 		return fmt.Errorf("multiple LogicalVolume is found for VolumeID %s", volumeID)
 	}
-
 	return s.Delete(ctx, &lvList.Items[0])
 }
 
@@ -156,6 +156,7 @@ func (s *LogicalVolumeService) VolumeExists(ctx context.Context, volumeID string
 
 // ExpandVolume expands volume
 func (s *LogicalVolumeService) ExpandVolume(ctx context.Context, vol *Volume) error {
+	logger.Info("k8s.ExpandVolume called", "name", vol.name, "node", vol.node, "size_gb", vol.requestedGb)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -227,11 +228,10 @@ func (s *LogicalVolumeService) getLogicalVolume(ctx context.Context, volumeID st
 		return nil, err
 	}
 
-	if len(lvList.Items) > 1 {
-		return nil, errors.New("found multiple volumes with volumeID " + volumeID)
-	}
 	if len(lvList.Items) == 0 {
 		return nil, ErrVolumeNotFound
+	} else if len(lvList.Items) > 1 {
+		return nil, fmt.Errorf("multiple LogicalVolume is found for VolumeID %s", volumeID)
 	}
 	return &lvList.Items[0], nil
 }
