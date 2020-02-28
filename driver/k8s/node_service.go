@@ -1,4 +1,4 @@
-package driver
+package k8s
 
 import (
 	"context"
@@ -12,17 +12,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-// NodeResourceService represents node resource service.
-type NodeResourceService struct {
+// NodeService represents node service.
+type NodeService struct {
 	client.Client
 }
 
-// NewNodeResourceService returns NodeResourceService.
-func NewNodeResourceService(mgr manager.Manager) *NodeResourceService {
-	return &NodeResourceService{Client: mgr.GetClient()}
+// NewNodeService returns NodeService.
+func NewNodeService(mgr manager.Manager) *NodeService {
+	return &NodeService{Client: mgr.GetClient()}
 }
 
-func (s NodeResourceService) getNodes(ctx context.Context) (*corev1.NodeList, error) {
+func (s NodeService) getNodes(ctx context.Context) (*corev1.NodeList, error) {
 	nl := new(corev1.NodeList)
 	err := s.List(ctx, nl)
 	if err != nil {
@@ -31,7 +31,7 @@ func (s NodeResourceService) getNodes(ctx context.Context) (*corev1.NodeList, er
 	return nl, nil
 }
 
-func (s NodeResourceService) extractCapacityFromAnnotation(node *corev1.Node) (int64, error) {
+func (s NodeService) extractCapacityFromAnnotation(node *corev1.Node) (int64, error) {
 	c, ok := node.Annotations[topolvm.CapacityKey]
 	if !ok {
 		return 0, fmt.Errorf("%s is not found", topolvm.CapacityKey)
@@ -40,7 +40,7 @@ func (s NodeResourceService) extractCapacityFromAnnotation(node *corev1.Node) (i
 }
 
 // GetCapacityByName returns VG capacity of specified node by name.
-func (s NodeResourceService) GetCapacityByName(ctx context.Context, name string) (int64, error) {
+func (s NodeService) GetCapacityByName(ctx context.Context, name string) (int64, error) {
 	n := new(corev1.Node)
 	err := s.Get(ctx, client.ObjectKey{Name: name}, n)
 	if err != nil {
@@ -51,7 +51,7 @@ func (s NodeResourceService) GetCapacityByName(ctx context.Context, name string)
 }
 
 // GetCapacityByNodeNumber returns VG capacity of specified node by node number.
-func (s NodeResourceService) GetCapacityByNodeNumber(ctx context.Context, requestNodeNumber string) (int64, error) {
+func (s NodeService) GetCapacityByNodeNumber(ctx context.Context, requestNodeNumber string) (int64, error) {
 	nl, err := s.getNodes(ctx)
 	if err != nil {
 		return 0, err
@@ -70,7 +70,7 @@ func (s NodeResourceService) GetCapacityByNodeNumber(ctx context.Context, reques
 }
 
 // GetTotalCapacity returns VG capacity of specified node by node number.
-func (s NodeResourceService) GetTotalCapacity(ctx context.Context) (int64, error) {
+func (s NodeService) GetTotalCapacity(ctx context.Context) (int64, error) {
 	nl, err := s.getNodes(ctx)
 	if err != nil {
 		return 0, err
@@ -85,7 +85,7 @@ func (s NodeResourceService) GetTotalCapacity(ctx context.Context) (int64, error
 }
 
 // GetMaxCapacity returns max VG capacity among nodes.
-func (s NodeResourceService) GetMaxCapacity(ctx context.Context) (string, int64, error) {
+func (s NodeService) GetMaxCapacity(ctx context.Context) (string, int64, error) {
 	nl, err := s.getNodes(ctx)
 	if err != nil {
 		return "", 0, err

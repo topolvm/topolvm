@@ -8,24 +8,23 @@ import (
 
 	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/csi"
+	"github.com/cybozu-go/topolvm/driver/k8s"
+	"github.com/cybozu-go/topolvm/driver/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
-// ErrVolumeNotFound is error message when VolumeID is not found
-var ErrVolumeNotFound = errors.New("VolumeID is not found")
-
 var ctrlLogger = logf.Log.WithName("driver").WithName("controller")
 
 // NewControllerService returns a new ControllerServer.
-func NewControllerService(lvService *LogicalVolumeService, nodeService *NodeResourceService) csi.ControllerServer {
+func NewControllerService(lvService *k8s.LogicalVolumeService, nodeService *k8s.NodeService) csi.ControllerServer {
 	return &controllerService{lvService: lvService, nodeService: nodeService}
 }
 
 type controllerService struct {
-	lvService   *LogicalVolumeService
-	nodeService *NodeResourceService
+	lvService   *k8s.LogicalVolumeService
+	nodeService *k8s.NodeService
 }
 
 func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
@@ -124,10 +123,10 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 
 	name = strings.ToLower(name)
 
-	vol := &Volume{
-		node:      node,
-		name:      name,
-		requestGb: requestGb,
+	vol := &types.Volume{
+		Node:      node,
+		Name:      name,
+		RequestGb: requestGb,
 	}
 	volumeID, err := s.lvService.CreateVolume(ctx, vol)
 	if err != nil {
@@ -346,11 +345,11 @@ func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.
 	currentGb, ok := vol.GetCurrentGb()
 	if !ok {
 		// fill currentGb for old volume created in v0.3.0 or before.
-		err := s.lvService.UpdateCurrentGb(ctx, volumeID, vol.requestGb)
+		err := s.lvService.UpdateCurrentGb(ctx, volumeID, vol.RequestGb)
 		if err != nil {
 			return nil, status.Error(codes.Internal, err.Error())
 		}
-		currentGb = vol.requestGb
+		currentGb = vol.RequestGb
 	}
 
 	if requestGb <= currentGb {
@@ -362,7 +361,7 @@ func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.
 		}, nil
 	}
 
-	capacity, err := s.nodeService.GetCapacityByName(ctx, vol.node)
+	capacity, err := s.nodeService.GetCapacityByName(ctx, vol.Node)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}

@@ -11,6 +11,7 @@ import (
 	"github.com/cybozu-go/topolvm/controllers"
 	"github.com/cybozu-go/topolvm/csi"
 	"github.com/cybozu-go/topolvm/driver"
+	"github.com/cybozu-go/topolvm/driver/k8s"
 	"github.com/cybozu-go/topolvm/hook"
 	"github.com/cybozu-go/topolvm/runners"
 	"google.golang.org/grpc"
@@ -157,11 +158,11 @@ func subMain() error {
 	}
 
 	// Add gRPC server to manager.
-	s, err := driver.NewLogicalVolumeService(mgr)
+	s, err := k8s.NewLogicalVolumeService(mgr)
 	if err != nil {
 		return err
 	}
-	n := driver.NewNodeResourceService(mgr)
+	n := k8s.NewNodeService(mgr)
 
 	grpcServer := grpc.NewServer()
 	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityService(checker.Ready))
