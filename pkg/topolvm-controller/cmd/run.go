@@ -161,9 +161,11 @@ func subMain() error {
 	if err != nil {
 		return err
 	}
+	n := driver.NewNodeResourceService(mgr)
+
 	grpcServer := grpc.NewServer()
 	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityService(checker.Ready))
-	csi.RegisterControllerServer(grpcServer, driver.NewControllerService(s))
+	csi.RegisterControllerServer(grpcServer, driver.NewControllerService(s, n))
 
 	// gRPC service itself should run even when the manager is *not* a leader
 	// because CSI sidecar containers choose a leader.

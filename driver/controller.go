@@ -23,13 +23,13 @@ var (
 var ctrlLogger = logf.Log.WithName("driver").WithName("controller")
 
 // NewControllerService returns a new ControllerServer.
-func NewControllerService(service *LogicalVolumeService) csi.ControllerServer {
-	return &controllerService{service: service}
+func NewControllerService(service *LogicalVolumeService, nodeService *NodeResourceService) csi.ControllerServer {
+	return &controllerService{service: service, nodeService: nodeService}
 }
 
 type controllerService struct {
 	service     *LogicalVolumeService
-	nodeService *nodeResourceService
+	nodeService *NodeResourceService
 }
 
 func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {

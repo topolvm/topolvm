@@ -12,15 +12,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-type nodeResourceService struct {
+// NodeResourceService represents node resource service.
+type NodeResourceService struct {
 	client.Client
 }
 
-func newNodeResourceService(mgr manager.Manager) *nodeResourceService {
-	return &nodeResourceService{Client: mgr.GetClient()}
+// NewNodeResourceService returns NodeResourceService.
+func NewNodeResourceService(mgr manager.Manager) *NodeResourceService {
+	return &NodeResourceService{Client: mgr.GetClient()}
 }
 
-func (s nodeResourceService) listNodes(ctx context.Context) (*corev1.NodeList, error) {
+func (s NodeResourceService) listNodes(ctx context.Context) (*corev1.NodeList, error) {
 	nl := new(corev1.NodeList)
 	err := s.List(ctx, nl)
 	if err != nil {
@@ -30,7 +32,7 @@ func (s nodeResourceService) listNodes(ctx context.Context) (*corev1.NodeList, e
 }
 
 // GetCapacity returns VG capacity of specified node.
-func (s nodeResourceService) GetCapacity(ctx context.Context, requestNodeNumber string) (int64, error) {
+func (s NodeResourceService) GetCapacity(ctx context.Context, requestNodeNumber string) (int64, error) {
 	nl, err := s.listNodes(ctx)
 	if err != nil {
 		return 0, err
@@ -61,7 +63,7 @@ func (s nodeResourceService) GetCapacity(ctx context.Context, requestNodeNumber 
 }
 
 // GetMaxCapacity returns max VG capacity among nodes.
-func (s nodeResourceService) GetMaxCapacity(ctx context.Context) (string, int64, error) {
+func (s NodeResourceService) GetMaxCapacity(ctx context.Context) (string, int64, error) {
 	nl, err := s.listNodes(ctx)
 	if err != nil {
 		return "", 0, err
@@ -79,7 +81,7 @@ func (s nodeResourceService) GetMaxCapacity(ctx context.Context) (string, int64,
 	return nodeName, maxCapacity, nil
 }
 
-func (s nodeResourceService) getNodeCapacity(node corev1.Node) int64 {
+func (s NodeResourceService) getNodeCapacity(node corev1.Node) int64 {
 	c, ok := node.Annotations[topolvm.CapacityKey]
 	if !ok {
 		return 0
@@ -88,7 +90,7 @@ func (s nodeResourceService) getNodeCapacity(node corev1.Node) int64 {
 	return val
 }
 
-func (s nodeResourceService) getNode(ctx context.Context, name string) (*corev1.Node, error) {
+func (s NodeResourceService) getNode(ctx context.Context, name string) (*corev1.Node, error) {
 	nl, err := s.listNodes(ctx)
 	if err != nil {
 		return nil, err
