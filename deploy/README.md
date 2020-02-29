@@ -53,14 +53,15 @@ When doing so, do not apply [./manifests/certificates.yaml](./manifests/certific
 
 1. Prepare PEM encoded self-signed certificate and key files.  
     The certificate must be valid for hostname `controller.topolvm-system.svc`.
-2. Create Secret in `topolvm-system` namespace as follows:
+2. Base64-encode the CA cert (in its PEM format
+3. Create Secret in `topolvm-system` namespace as follows:
 
     ```console
     kubectl -n topolvm-system create secret tls mutatingwebhook \
         --cert=<CERTIFICATE FILE> --key=<KEY FILE>
     ```
 
-3. Edit `MutatingWebhookConfiguration` in [./manifests/mutating/webhooks.yaml](./manifests/mutating/webhooks.yaml) as follows:
+4. Edit `MutatingWebhookConfiguration` in [./manifests/mutating/webhooks.yaml](./manifests/mutating/webhooks.yaml) as follows:
 
     ```yaml
     apiVersion: admissionregistration.k8s.io/v1beta1
@@ -72,7 +73,7 @@ When doing so, do not apply [./manifests/certificates.yaml](./manifests/certific
       - name: pvc-hook.topolvm.cybozu.com
         # snip
         clientConfig:
-          caBundle: |  # PEM encoded CA certificate that signs the server certificate
+          caBundle: |  # Base64-encoded, PEM-encoded CA certificate that signs the server certificate
             ...
       - name: pod-hook.topolvm.cybozu.com
         # snip
