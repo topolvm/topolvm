@@ -6,18 +6,18 @@ type Volume struct {
 	Name      string
 	VolumeID  string
 	RequestGb int64
-	CurrentGb *int64
+	currentGb *int64
 }
 
 // GetCurrentGb returns value of currentGb and ok flag.
 func (v *Volume) GetCurrentGb() (int64, bool) {
-	if v.CurrentGb == nil {
+	if v.currentGb == nil {
 		return 0, false
 	}
-	return *v.CurrentGb, true
+	return *v.currentGb, true
 }
 
 // SetCurrentGb sets currentGb.
 func (v *Volume) SetCurrentGb(n int64) {
-	v.CurrentGb = &n
+	v.currentGb = &n
 }
