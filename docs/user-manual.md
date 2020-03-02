@@ -11,8 +11,8 @@ For deployment, please read [../deploy/README.md](../deploy/README.md).
 - [Node maintenance](#node-maintenance)
   - [Retiring nodes](#retiring-nodes)
   - [Rebooting nodes](#rebooting-nodes)
-- [Limitations](#limitations)
 - [Inline Ephemeral Volumes](#inline-ephemeral-volumes)
+- [Limitations](#limitations)
 
 StorageClass
 ------------
@@ -36,6 +36,10 @@ volumeBindingMode: WaitForFirstConsumer
 `csi.storage.k8s.io/fstype` parameter.
 
 Supported filesystems are: `ext4`, `xfs`, and `btrfs`.
+TopoLVM sets the following mount options regardless of `mountOptions`.
+- `lazytime` for all filesystems
+- `ssd` for `btrfs`
+- `wsync` for `xfs`
 
 `volumeBindingMode` can be either `WaitForFirstConsumer` or `Immediate`.
 `WaitForFirstConsumer` is recommended because TopoLVM cannot schedule pods
