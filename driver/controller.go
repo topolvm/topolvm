@@ -9,7 +9,6 @@ import (
 	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/csi"
 	"github.com/cybozu-go/topolvm/driver/k8s"
-	"github.com/cybozu-go/topolvm/driver/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
@@ -123,12 +122,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 
 	name = strings.ToLower(name)
 
-	vol := &types.Volume{
-		Node:      node,
-		Name:      name,
-		RequestGb: requestGb,
-	}
-	volumeID, err := s.lvService.CreateVolume(ctx, vol)
+	volumeID, err := s.lvService.CreateVolume(ctx, node, name, requestGb)
 	if err != nil {
 		_, ok := status.FromError(err)
 		if !ok {
@@ -214,12 +208,12 @@ func (s controllerService) ValidateVolumeCapabilities(ctx context.Context, req *
 		return nil, status.Error(codes.InvalidArgument, "volume capabilities are empty")
 	}
 
-	exists, err := s.lvService.VolumeExists(ctx, req.GetVolumeId())
+	_, err := s.lvService.GetVolume(ctx, req.GetVolumeId())
 	if err != nil {
+		if err == k8s.ErrVolumeNotFound {
+			return nil, status.Errorf(codes.NotFound, "LogicalVolume for volume id %s is not found", req.GetVolumeId())
+		}
 		return nil, status.Error(codes.Internal, err.Error())
-	}
-	if !exists {
-		return nil, status.Errorf(codes.NotFound, "LogicalVolume for volume id %s is not found", req.GetVolumeId())
 	}
 
 	// Since TopoLVM does not provide means to pre-provision volumes,
@@ -325,12 +319,12 @@ func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.
 		return nil, status.Error(codes.InvalidArgument, "volume id is nil")
 	}
 
-	exists, err := s.lvService.VolumeExists(ctx, volumeID)
+	lv, err := s.lvService.GetVolume(ctx, volumeID)
 	if err != nil {
+		if err == k8s.ErrVolumeNotFound {
+			return nil, status.Errorf(codes.NotFound, "LogicalVolume for volume id %s is not found", volumeID)
+		}
 		return nil, status.Error(codes.Internal, err.Error())
-	}
-	if !exists {
-		return nil, status.Errorf(codes.NotFound, "LogicalVolume for volume id %s is not found", volumeID)
 	}
 
 	requestGb, err := convertRequestCapacity(req.GetCapacityRange().GetRequiredBytes(), req.GetCapacityRange().GetLimitBytes())
@@ -338,21 +332,17 @@ func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	vol, err := s.lvService.GetVolume(ctx, volumeID)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
-
-	currentGb, ok := vol.GetCurrentGb()
-	if !ok {
+	currentSize := lv.Status.CurrentSize
+	if currentSize == nil {
 		// fill currentGb for old volume created in v0.3.0 or before.
-		err := s.lvService.UpdateCurrentGb(ctx, volumeID, vol.RequestGb)
+		err := s.lvService.UpdateCurrentSize(ctx, volumeID, &lv.Spec.Size)
 		if err != nil {
 			return nil, status.Error(codes.Internal, err.Error())
 		}
-		currentGb = vol.RequestGb
+		currentSize = &lv.Spec.Size
 	}
 
+	currentGb := currentSize.Value() >> 30
 	if requestGb <= currentGb {
 		// "NodeExpansionRequired" is still true because it is unknown
 		// whether node expansion is completed or not.
@@ -362,7 +352,7 @@ func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.
 		}, nil
 	}
 
-	capacity, err := s.nodeService.GetCapacityByName(ctx, vol.Node)
+	capacity, err := s.nodeService.GetCapacityByName(ctx, lv.Spec.NodeName)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
