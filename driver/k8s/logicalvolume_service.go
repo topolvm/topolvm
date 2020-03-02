@@ -214,28 +214,45 @@ func (s *LogicalVolumeService) UpdateCurrentSize(ctx context.Context, volumeID s
 }
 
 func (s *LogicalVolumeService) updateVolumeSize(ctx context.Context, volumeID string, size *resource.Quantity, isRequestGb bool) error {
-	lv, err := s.GetVolume(ctx, volumeID)
-	if err != nil {
-		return err
-	}
+	for {
+		select {
+		case <-ctx.Done():
+			return errors.New("timed out")
+		case <-time.After(1 * time.Second):
+		}
 
-	if isRequestGb {
-		lv.Spec.Size = *size
-	} else {
-		lv.Status.CurrentSize = size
-	}
+		lv, err := s.GetVolume(ctx, volumeID)
+		if err != nil {
+			return err
+		}
 
-	timestamp := metav1.NewTime(time.Now().UTC())
-	lv.Status.UpdateTimestamp = &timestamp
+		if isRequestGb {
+			lv.Spec.Size = *size
+		} else {
+			lv.Status.CurrentSize = size
+		}
 
-	if err := s.Update(ctx, lv); err != nil {
-		logger.Error(err, "failed to update LogicalVolume spec", "name", lv.Name)
-		return err
-	}
+		timestamp := metav1.NewTime(time.Now().UTC())
+		lv.Status.UpdateTimestamp = &timestamp
 
-	if err := s.Status().Update(ctx, lv); err != nil {
-		logger.Error(err, "failed to update LogicalVolume status", "name", lv.Name)
-		return err
+		if err := s.Update(ctx, lv); err != nil {
+			if apierrors.IsConflict(err) {
+				logger.Info("detect conflict when LogicalVolume spec update", "name", lv.Name)
+				continue
+			}
+			logger.Error(err, "failed to update LogicalVolume spec", "name", lv.Name)
+			return err
+		}
+
+		if err := s.Status().Update(ctx, lv); err != nil {
+			if apierrors.IsConflict(err) {
+				logger.Info("detect conflict when LogicalVolume status update", "name", lv.Name)
+				continue
+			}
+			logger.Error(err, "failed to update LogicalVolume status", "name", lv.Name)
+			return err
+		}
+
+		return nil
 	}
-	return nil
 }

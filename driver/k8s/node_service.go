@@ -62,7 +62,7 @@ func (s NodeService) GetCapacityByTopologyLabel(ctx context.Context, topology st
 
 	for _, node := range nl.Items {
 		if v, ok := node.Labels[topolvm.TopologyNodeKey]; ok {
-			if topology != v {
+			if v != topology {
 				continue
 			}
 			return s.extractCapacityFromAnnotation(&node)
