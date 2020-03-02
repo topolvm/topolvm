@@ -421,6 +421,9 @@ func (s *nodeService) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 	if len(vpath) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "no volume_path is provided")
 	}
+
+	// We need to check the capacity range but don't use the converted value
+	// because the filesystem can be resized without the requested size.
 	_, err := convertRequestCapacity(req.GetCapacityRange().GetRequiredBytes(), req.GetCapacityRange().GetLimitBytes())
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
@@ -469,7 +472,7 @@ func (s *nodeService) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 		"target_path", vpath,
 	)
 
-	// In the specification v1.1.0, `capacity_bytes` in NodeExpandVolumeResponse is defined as OPTIONAL.
+	// `capacity_bytes` in NodeExpandVolumeResponse is defined as OPTIONAL.
 	// If this field needs to be filled, the value should be equal to `.status.currentSize` of the corresponding
 	// `LogicalVolume`, but currently the node plugin does not have an access to the resource.
 	// In addtion to this, Kubernetes does not care if the field is blank or not, so leave it blank.

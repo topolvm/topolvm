@@ -26,20 +26,6 @@ it means that the logical volume correspond to `LogicalVolume` is not provisione
 So in that case, `topolvm-node` sends `CreateLV` request to `lvmd`.
 If its response is succeeded, `topolvm-node` set `logicalvolume.status.volumeID`.
 
-### Expand a logical volume
-
-If there is a difference between `logicalvolume.spec.size` and `logicalvolume.status.currentSize`,
-it means that the logical volume corresponding to the `LogicalVolume` resource should be expanded.
-So in that case, `topolvm-node` sends `ResizeLV` request to `lvmd`.
-If it receives a successful response, `topolvm-node` updates `logicalvolume.status.currentSize`.
-If it receives an erroneous response, it updates the `.status.code` and `.status.message` field with the error.
-Then, if the logical volume is not a block device, `topolvm-node` resizes the filesystem of the logical volume
-via `NodeExpandVolume` or `NodePublishVolume`.
-If the filesystem requires offline resizing, the administrator should make `LogicalVolume` offline beforehand.
-The resizing is performed in `NodePublishVolume` in this case.
-If the filesystem is resized online, the resizing is performed in `NodeExpandVolume`.
-Currently all supported filesystems can be resized online, so `NodePublishVolume` is not involved with resizing.
-
 ### Finalize LogicalVolume
 
 When a `LogicalVolume` resource is being deleted, `topolvm-node` sends

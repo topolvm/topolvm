@@ -101,6 +101,24 @@ Dynamic provisioning depends on [CSI `external-provisioner`](https://kubernetes-
 9.  `topolvm-controller` sends the success (or failure) to `external-provisioner`.
 10. `external-provisioner` creates a PersistentVolume (PV) and binds it to the PVC.
 
+### How volume expansion works
+
+When the requested size of PVC is expanded, `ControllerExpandVolume` of `topolvm-controller` is called to
+change the `.spec.size` of the corresponding `LogicalVolume` resource.
+
+If there is a difference between `logicalvolume.spec.size` and `logicalvolume.status.currentSize`,
+it means that the logical volume corresponding to the `LogicalVolume` resource should be expanded.
+So in that case, `topolvm-node` sends `ResizeLV` request to `lvmd`.
+If it receives a successful response, `topolvm-node` updates `logicalvolume.status.currentSize`.
+If it receives an erroneous response, it updates the `.status.code` and `.status.message` field with the error.
+
+Then, if the logical volume is not a block device, `topolvm-node` resizes the filesystem of the logical volume
+via `NodeExpandVolume` or `NodePublishVolume`.
+If the filesystem requires offline resizing, the administrator should make `LogicalVolume` offline beforehand.
+The resizing is performed in `NodePublishVolume` in this case.
+If the filesystem is resized online, the resizing is performed in `NodeExpandVolume`.
+Currently all supported filesystems can be resized online, so `NodePublishVolume` is not involved with resizing.
+
 Limitations
 -----------
 

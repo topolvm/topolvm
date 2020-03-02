@@ -28,7 +28,7 @@ LogicalVolumeStatus
 | Field         | Type         | Description                                                                        |
 | ------------- | ------------ | ---------------------------------------------------------------------------------- |
 | `volumeID`    | string       | Name of the logical volume.  Also used as the unique volume ID in the CSI context. |
-| `code`        | uint32       | gRPC error code. If there is no error, `0` is assigned.                            |
+| `code`        | uint32       | [gRPC error code](https://github.com/grpc/grpc/blob/master/doc/statuscodes.md).    |
 | `message`     | string       | Error message.                                                                     |
 | `currentSize` | [Quantity][] | Amount of the local storage assigned for the logical volume.                       |
 

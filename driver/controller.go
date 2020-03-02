@@ -257,18 +257,19 @@ func (s controllerService) GetCapacity(ctx context.Context, req *csi.GetCapacity
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 	default:
-		requestNodeNumber, ok := topology.Segments[topolvm.TopologyNodeKey]
+		v, ok := topology.Segments[topolvm.TopologyNodeKey]
 		if !ok {
 			return nil, status.Errorf(codes.Internal, "%s is not found in req.AccessibleTopology", topolvm.TopologyNodeKey)
 		}
 		var err error
-		capacity, err = s.nodeService.GetCapacityByNodeNumber(ctx, requestNodeNumber)
-		if err != nil {
+		capacity, err = s.nodeService.GetCapacityByTopologyLabel(ctx, v)
+		switch err {
+		case k8s.ErrNodeNotFound:
 			ctrlLogger.Info("target is not found", "accessible_topology", req.AccessibleTopology)
-			// return nil (annotation for nilerr)
-			return &csi.GetCapacityResponse{
-				AvailableCapacity: 0,
-			}, nil
+			return &csi.GetCapacityResponse{AvailableCapacity: 0}, nil
+		case nil:
+		default:
+			return nil, status.Error(codes.Internal, err.Error())
 		}
 	}
 

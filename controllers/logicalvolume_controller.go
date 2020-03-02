@@ -61,13 +61,6 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		}
 
 		if lv.Status.VolumeID == "" {
-			// When lv.Status.Code is not codes.OK (== 0), CreateLV has already failed.
-			// LogicalVolume CRD will be deleted soon by the controller.
-			if lv.Status.Code != codes.OK {
-				return ctrl.Result{}, nil
-			}
-
-			// creating a new volume
 			err := r.createLV(ctx, log, lv, vgService, lvService)
 			if err != nil {
 				log.Error(err, "failed to create LV", "name", lv.Name)
@@ -75,7 +68,6 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 			return ctrl.Result{}, err
 		}
 
-		// expanding the existing volume
 		err := r.expandLV(ctx, log, lv, vgService, lvService)
 		if err != nil {
 			log.Error(err, "failed to expand LV", "name", lv.Name)
@@ -113,17 +105,17 @@ func (r *LogicalVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *LogicalVolumeReconciler) updateStatusWithError(ctx context.Context, logger logr.Logger, lv *topolvmv1.LogicalVolume, code codes.Code, message string) error {
+func (r *LogicalVolumeReconciler) updateStatusWithError(ctx context.Context, logger logr.Logger, lv *topolvmv1.LogicalVolume, code codes.Code, message string) {
 	lv2 := lv.DeepCopy()
 	lv2.Status.Code = code
 	lv2.Status.Message = message
 	patch := client.MergeFrom(lv)
 
+	// ignore the error below because the error is not about main logic and the same operation
+	// will be retried in the reconciliation loop.
 	if err := r.Status().Patch(ctx, lv2, patch); err != nil {
 		logger.Error(err, "unable to update LogicalVolume status", "name", lv.Name)
-		return err
 	}
-	return nil
 }
 
 func (r *LogicalVolumeReconciler) removeLVIfExists(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume, vgService proto.VGServiceClient, lvService proto.LVServiceClient) error {
@@ -136,15 +128,16 @@ func (r *LogicalVolumeReconciler) removeLVIfExists(ctx context.Context, log logr
 	}
 
 	for _, v := range respList.Volumes {
-		if v.Name == string(lv.UID) {
-			_, err := lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: string(lv.UID)})
-			if err != nil {
-				log.Error(err, "failed to remove LV", "name", lv.Name, "uid", lv.UID)
-				return err
-			}
-			log.Info("removed LV", "name", lv.Name, "uid", lv.UID)
-			return nil
+		if v.Name != string(lv.UID) {
+			continue
 		}
+		_, err := lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: string(lv.UID)})
+		if err != nil {
+			log.Error(err, "failed to remove LV", "name", lv.Name, "uid", lv.UID)
+			return err
+		}
+		log.Info("removed LV", "name", lv.Name, "uid", lv.UID)
+		return nil
 	}
 	log.Info("LV already removed", "name", lv.Name, "uid", lv.UID)
 	return nil
@@ -154,30 +147,34 @@ func (r *LogicalVolumeReconciler) updateVolumeIfExists(ctx context.Context, log 
 	respList, err := vgService.GetLVList(ctx, &proto.Empty{})
 	if err != nil {
 		log.Error(err, "failed to get list of LV")
-		// ignore the error below because the error is not about main logic and the same operation
-		// will be retried in the reconciliation loop.
 		r.updateStatusWithError(ctx, log, lv, codes.Internal, "failed to get list of LV")
 		return false, err
 	}
 
 	for _, v := range respList.Volumes {
-		if v.Name == string(lv.UID) {
-			lv2 := lv.DeepCopy()
-			lv2.Status.VolumeID = v.Name
-			setLVStatusOK(lv2)
-			patch := client.MergeFrom(lv)
-			if err := r.Status().Patch(ctx, lv2, patch); err != nil {
-				log.Error(err, "failed to update VolumeID in status", "name", lv.Name)
-				return true, err
-			}
-			return true, nil
+		if v.Name != string(lv.UID) {
+			continue
 		}
+		lv2 := lv.DeepCopy()
+		lv2.Status.VolumeID = v.Name
+		setLVStatusOK(lv2)
+		patch := client.MergeFrom(lv)
+		if err := r.Status().Patch(ctx, lv2, patch); err != nil {
+			log.Error(err, "failed to update VolumeID in status", "name", lv.Name)
+			return true, err
+		}
+		return true, nil
 	}
 	return false, nil
 }
 
 func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume,
 	vgService proto.VGServiceClient, lvService proto.LVServiceClient) error {
+	// When lv.Status.Code is not codes.OK (== 0), CreateLV has already failed.
+	// LogicalVolume CRD will be deleted soon by the controller.
+	if lv.Status.Code != codes.OK {
+		return nil
+	}
 
 	reqBytes := lv.Spec.Size.Value()
 
@@ -195,23 +192,19 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 	if err != nil {
 		code, message := extractFromError(err)
 		log.Error(err, message)
-		// ignore the error below because the error is not about main logic and the same operation
-		// will be retried in the reconciliation loop.
 		r.updateStatusWithError(ctx, log, lv, code, message)
 		return err
 	}
 
-	lv2 := lv.DeepCopy()
-	lv2.Status.VolumeID = resp.Volume.Name
-	lv2.Status.CurrentSize = resource.NewQuantity(reqBytes, resource.BinarySI)
-	setLVStatusOK(lv2)
-	patch := client.MergeFrom(lv)
-	if err := r.Status().Patch(ctx, lv2, patch); err != nil {
+	lv.Status.VolumeID = resp.Volume.Name
+	lv.Status.CurrentSize = resource.NewQuantity(reqBytes, resource.BinarySI)
+	setLVStatusOK(lv)
+	if err := r.Status().Update(ctx, lv); err != nil {
 		log.Error(err, "failed to update status", "name", lv.Name, "uid", lv.UID)
 		return err
 	}
 
-	log.Info("created new LV", "name", lv2.Name, "uid", lv2.UID, "status.volumeID", lv2.Status.VolumeID)
+	log.Info("created new LV", "name", lv.Name, "uid", lv.UID, "status.volumeID", lv.Status.VolumeID)
 	return nil
 }
 
@@ -234,8 +227,6 @@ func (r *LogicalVolumeReconciler) expandLV(ctx context.Context, log logr.Logger,
 	if err != nil {
 		code, message := extractFromError(err)
 		log.Error(err, message)
-		// ignore the error below because the error is not about main logic and the same operation
-		// will be retried in the reconciliation loop.
 		r.updateStatusWithError(ctx, log, lv, code, message)
 		return err
 	}

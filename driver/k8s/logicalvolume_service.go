@@ -33,7 +33,6 @@ const (
 )
 
 var (
-	scheme = runtime.NewScheme()
 	logger = logf.Log.WithName("LogicalVolume")
 )
 
@@ -108,7 +107,7 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, vol *types.Volu
 		err := s.Get(ctx, client.ObjectKey{Name: vol.Name}, &newLV)
 		if err != nil {
 			logger.Error(err, "failed to get LogicalVolume", "name", vol.Name)
-			continue
+			return "", err
 		}
 		if newLV.Status.VolumeID != "" {
 			logger.Info("end k8s.LogicalVolume", "volume_id", newLV.Status.VolumeID)
@@ -183,7 +182,7 @@ func (s *LogicalVolumeService) ExpandVolume(ctx context.Context, volumeID string
 		err := s.Get(ctx, client.ObjectKey{Name: lvName}, &changedLV)
 		if err != nil {
 			logger.Error(err, "failed to get LogicalVolume", "name", lvName)
-			continue
+			return err
 		}
 		if changedLV.Status.CurrentSize == nil {
 			return errors.New("status.currentSize should not be nil")
@@ -253,14 +252,12 @@ func (s *LogicalVolumeService) updateVolumeSize(ctx context.Context, volumeID st
 		return err
 	}
 
-	lv2 := lv.DeepCopy()
 	if isRequestGb {
-		lv2.Spec.Size = *resource.NewQuantity(sizeGb<<30, resource.BinarySI)
+		lv.Spec.Size = *resource.NewQuantity(sizeGb<<30, resource.BinarySI)
 	} else {
-		lv2.Status.CurrentSize = resource.NewQuantity(sizeGb<<30, resource.BinarySI)
+		lv.Status.CurrentSize = resource.NewQuantity(sizeGb<<30, resource.BinarySI)
 	}
-	patch := client.MergeFrom(lv)
-	if err := s.Patch(ctx, lv2, patch); err != nil {
+	if err := s.Update(ctx, lv); err != nil {
 		logger.Error(err, "failed to patch LogicalVolume", "name", lv.Name)
 		return err
 	}

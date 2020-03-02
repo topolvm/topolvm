@@ -12,6 +12,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
+// ErrNodeNotFound represents the error that node is not found.
+var ErrNodeNotFound = errors.New("node not found")
+
 // NodeService represents node service.
 type NodeService struct {
 	client.Client
@@ -50,26 +53,26 @@ func (s NodeService) GetCapacityByName(ctx context.Context, name string) (int64,
 	return s.extractCapacityFromAnnotation(n)
 }
 
-// GetCapacityByNodeNumber returns VG capacity of specified node by node number.
-func (s NodeService) GetCapacityByNodeNumber(ctx context.Context, requestNodeNumber string) (int64, error) {
+// GetCapacityByTopologyLabel returns VG capacity of specified node by node number.
+func (s NodeService) GetCapacityByTopologyLabel(ctx context.Context, topology string) (int64, error) {
 	nl, err := s.getNodes(ctx)
 	if err != nil {
 		return 0, err
 	}
 
 	for _, node := range nl.Items {
-		if nodeNumber, ok := node.Labels[topolvm.TopologyNodeKey]; ok {
-			if requestNodeNumber != nodeNumber {
+		if v, ok := node.Labels[topolvm.TopologyNodeKey]; ok {
+			if topology != v {
 				continue
 			}
 			return s.extractCapacityFromAnnotation(&node)
 		}
 	}
 
-	return 0, errors.New("capacity not found")
+	return 0, ErrNodeNotFound
 }
 
-// GetTotalCapacity returns VG capacity of specified node by node number.
+// GetTotalCapacity returns total VG capacity of all nodes.
 func (s NodeService) GetTotalCapacity(ctx context.Context) (int64, error) {
 	nl, err := s.getNodes(ctx)
 	if err != nil {
