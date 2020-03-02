@@ -224,8 +224,17 @@ func (s *LogicalVolumeService) updateVolumeSize(ctx context.Context, volumeID st
 	} else {
 		lv.Status.CurrentSize = size
 	}
+
+	timestamp := metav1.NewTime(time.Now().UTC())
+	lv.Status.UpdateTimestamp = &timestamp
+
 	if err := s.Update(ctx, lv); err != nil {
-		logger.Error(err, "failed to patch LogicalVolume", "name", lv.Name)
+		logger.Error(err, "failed to update LogicalVolume spec", "name", lv.Name)
+		return err
+	}
+
+	if err := s.Status().Update(ctx, lv); err != nil {
+		logger.Error(err, "failed to update LogicalVolume status", "name", lv.Name)
 		return err
 	}
 	return nil
