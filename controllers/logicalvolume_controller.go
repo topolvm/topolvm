@@ -20,20 +20,30 @@ import (
 // LogicalVolumeReconciler reconciles a LogicalVolume object on each node.
 type LogicalVolumeReconciler struct {
 	client.Client
-	Log      logr.Logger
-	NodeName string
-	Lvmd     *grpc.ClientConn
+	log       logr.Logger
+	nodeName  string
+	vgService proto.VGServiceClient
+	lvService proto.LVServiceClient
 }
 
 // +kubebuilder:rbac:groups=topolvm.cybozu.com,resources=logicalvolumes,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups=topolvm.cybozu.com,resources=logicalvolumes/status,verbs=get;update;patch
 
+// NewLogicalVolumeReconciler returns LogicalVolumeReconciler with creating lvService and vgService.
+func NewLogicalVolumeReconciler(client client.Client, log logr.Logger, nodeName string, conn *grpc.ClientConn) *LogicalVolumeReconciler {
+	return &LogicalVolumeReconciler{
+		Client:    client,
+		log:       log,
+		nodeName:  nodeName,
+		vgService: proto.NewVGServiceClient(conn),
+		lvService: proto.NewLVServiceClient(conn),
+	}
+}
+
 // Reconcile creates/deletes LVM logical volume for a LogicalVolume.
 func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	log := r.Log.WithValues("logicalvolume", req.NamespacedName)
-	lvService := proto.NewLVServiceClient(r.Lvmd)
-	vgService := proto.NewVGServiceClient(r.Lvmd)
+	log := r.log.WithValues("logicalvolume", req.NamespacedName)
 
 	lv := new(topolvmv1.LogicalVolume)
 	if err := r.Get(ctx, req.NamespacedName, lv); err != nil {
@@ -44,7 +54,7 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		return ctrl.Result{}, nil
 	}
 
-	if lv.Spec.NodeName != r.NodeName {
+	if lv.Spec.NodeName != r.nodeName {
 		log.Info("unfiltered logical value", "nodeName", lv.Spec.NodeName)
 		return ctrl.Result{}, nil
 	}
@@ -61,14 +71,14 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		}
 
 		if lv.Status.VolumeID == "" {
-			err := r.createLV(ctx, log, lv, vgService, lvService)
+			err := r.createLV(ctx, log, lv)
 			if err != nil {
 				log.Error(err, "failed to create LV", "name", lv.Name)
 			}
 			return ctrl.Result{}, err
 		}
 
-		err := r.expandLV(ctx, log, lv, vgService, lvService)
+		err := r.expandLV(ctx, log, lv)
 		if err != nil {
 			log.Error(err, "failed to expand LV", "name", lv.Name)
 		}
@@ -82,7 +92,7 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	}
 
 	log.Info("start finalizing LogicalVolume", "name", lv.Name)
-	err := r.removeLVIfExists(ctx, log, lv, vgService, lvService)
+	err := r.removeLVIfExists(ctx, log, lv)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -101,11 +111,11 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 func (r *LogicalVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&topolvmv1.LogicalVolume{}).
-		WithEventFilter(&logicalVolumeFilter{r.NodeName}).
+		WithEventFilter(&logicalVolumeFilter{r.nodeName}).
 		Complete(r)
 }
 
-func (r *LogicalVolumeReconciler) updateStatusWithError(ctx context.Context, logger logr.Logger, lv *topolvmv1.LogicalVolume, code codes.Code, message string) {
+func (r *LogicalVolumeReconciler) updateStatusWithError(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume, code codes.Code, message string) {
 	lv2 := lv.DeepCopy()
 	lv2.Status.Code = code
 	lv2.Status.Message = message
@@ -114,14 +124,14 @@ func (r *LogicalVolumeReconciler) updateStatusWithError(ctx context.Context, log
 	// ignore the error below because the error is not about main logic and the same operation
 	// will be retried in the reconciliation loop.
 	if err := r.Status().Patch(ctx, lv2, patch); err != nil {
-		logger.Error(err, "unable to update LogicalVolume status", "name", lv.Name)
+		log.Error(err, "unable to update LogicalVolume status", "name", lv.Name)
 	}
 }
 
-func (r *LogicalVolumeReconciler) removeLVIfExists(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume, vgService proto.VGServiceClient, lvService proto.LVServiceClient) error {
+func (r *LogicalVolumeReconciler) removeLVIfExists(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) error {
 	// Finalizer's process ( RemoveLV then removeString ) is not atomic,
 	// so checking existence of LV to ensure its idempotence
-	respList, err := vgService.GetLVList(ctx, &proto.Empty{})
+	respList, err := r.vgService.GetLVList(ctx, &proto.Empty{})
 	if err != nil {
 		log.Error(err, "failed to list LV")
 		return err
@@ -131,7 +141,7 @@ func (r *LogicalVolumeReconciler) removeLVIfExists(ctx context.Context, log logr
 		if v.Name != string(lv.UID) {
 			continue
 		}
-		_, err := lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: string(lv.UID)})
+		_, err := r.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: string(lv.UID)})
 		if err != nil {
 			log.Error(err, "failed to remove LV", "name", lv.Name, "uid", lv.UID)
 			return err
@@ -143,8 +153,8 @@ func (r *LogicalVolumeReconciler) removeLVIfExists(ctx context.Context, log logr
 	return nil
 }
 
-func (r *LogicalVolumeReconciler) updateVolumeIfExists(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume, vgService proto.VGServiceClient) (found bool, err error) {
-	respList, err := vgService.GetLVList(ctx, &proto.Empty{})
+func (r *LogicalVolumeReconciler) updateVolumeIfExists(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) (found bool, err error) {
+	respList, err := r.vgService.GetLVList(ctx, &proto.Empty{})
 	if err != nil {
 		log.Error(err, "failed to get list of LV")
 		r.updateStatusWithError(ctx, log, lv, codes.Internal, "failed to get list of LV")
@@ -168,8 +178,7 @@ func (r *LogicalVolumeReconciler) updateVolumeIfExists(ctx context.Context, log 
 	return false, nil
 }
 
-func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume,
-	vgService proto.VGServiceClient, lvService proto.LVServiceClient) error {
+func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) error {
 	// When lv.Status.Code is not codes.OK (== 0), CreateLV has already failed.
 	// LogicalVolume CRD will be deleted soon by the controller.
 	if lv.Status.Code != codes.OK {
@@ -179,7 +188,7 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 	reqBytes := lv.Spec.Size.Value()
 
 	// In case the controller crashed just after LVM LV creation, LV may already exist.
-	found, err := r.updateVolumeIfExists(ctx, log, lv, vgService)
+	found, err := r.updateVolumeIfExists(ctx, log, lv)
 	if err != nil {
 		return err
 	}
@@ -188,7 +197,7 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 		return nil
 	}
 
-	resp, err := lvService.CreateLV(ctx, &proto.CreateLVRequest{Name: string(lv.UID), SizeGb: uint64(reqBytes >> 30)})
+	resp, err := r.lvService.CreateLV(ctx, &proto.CreateLVRequest{Name: string(lv.UID), SizeGb: uint64(reqBytes >> 30)})
 	if err != nil {
 		code, message := extractFromError(err)
 		log.Error(err, message)
@@ -208,8 +217,7 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 	return nil
 }
 
-func (r *LogicalVolumeReconciler) expandLV(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume,
-	vgService proto.VGServiceClient, lvService proto.LVServiceClient) error {
+func (r *LogicalVolumeReconciler) expandLV(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) error {
 	// lv.Status.CurrentSize is added in v0.4.0 and filled by topolvm-controller when resizing is triggered.
 	// The reconciliation loop of LogicalVolume may call expandLV before resizing is triggered.
 	// So, lv.Status.CurrentSize could be nil here.
@@ -223,7 +231,7 @@ func (r *LogicalVolumeReconciler) expandLV(ctx context.Context, log logr.Logger,
 
 	origBytes := (*lv.Status.CurrentSize).Value()
 	reqBytes := lv.Spec.Size.Value()
-	_, err := lvService.ResizeLV(ctx, &proto.ResizeLVRequest{Name: string(lv.UID), SizeGb: uint64(reqBytes >> 30)})
+	_, err := r.lvService.ResizeLV(ctx, &proto.ResizeLVRequest{Name: string(lv.UID), SizeGb: uint64(reqBytes >> 30)})
 	if err != nil {
 		code, message := extractFromError(err)
 		log.Error(err, message)
