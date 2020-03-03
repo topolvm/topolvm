@@ -116,19 +116,6 @@ func (r *LogicalVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *LogicalVolumeReconciler) updateStatusWithError(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume, code codes.Code, message string) {
-	lv2 := lv.DeepCopy()
-	lv2.Status.Code = code
-	lv2.Status.Message = message
-	patch := client.MergeFrom(lv)
-
-	// ignore the error below because the error is not about main logic and the same operation
-	// will be retried in the reconciliation loop.
-	if err := r.Status().Patch(ctx, lv2, patch); err != nil {
-		log.Error(err, "unable to update LogicalVolume status", "name", lv.Name)
-	}
-}
-
 func (r *LogicalVolumeReconciler) removeLVIfExists(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) error {
 	// Finalizer's process ( RemoveLV then removeString ) is not atomic,
 	// so checking existence of LV to ensure its idempotence
@@ -154,23 +141,16 @@ func (r *LogicalVolumeReconciler) removeLVIfExists(ctx context.Context, log logr
 	return nil
 }
 
-func (r *LogicalVolumeReconciler) updateVolumeIfExists(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) (found bool, err error) {
+func (r *LogicalVolumeReconciler) volumeExists(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) (bool, error) {
 	respList, err := r.vgService.GetLVList(ctx, &proto.Empty{})
 	if err != nil {
 		log.Error(err, "failed to get list of LV")
-		r.updateStatusWithError(ctx, log, lv, codes.Internal, "failed to get list of LV")
 		return false, err
 	}
 
 	for _, v := range respList.Volumes {
 		if v.Name != string(lv.UID) {
 			continue
-		}
-		lv.Status.VolumeID = v.Name
-		setLVStatusOK(lv)
-		if err := r.Status().Update(ctx, lv); err != nil {
-			log.Error(err, "failed to update VolumeID in status", "name", lv.Name)
-			return true, err
 		}
 		return true, nil
 	}
@@ -186,27 +166,46 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 
 	reqBytes := lv.Spec.Size.Value()
 
-	// In case the controller crashed just after LVM LV creation, LV may already exist.
-	found, err := r.updateVolumeIfExists(ctx, log, lv)
-	if err != nil {
-		return err
-	}
-	if found {
-		log.Info("set volumeID to existing LogicalVolume", "name", lv.Name, "uid", lv.UID, "status.volumeID", lv.Status.VolumeID)
+	err := func() error {
+		// In case the controller crashed just after LVM LV creation, LV may already exist.
+		found, err := r.volumeExists(ctx, log, lv)
+		if err != nil {
+			lv.Status.Code = codes.Internal
+			lv.Status.Message = "failed to check volume existence"
+			return err
+		}
+		if found {
+			log.Info("set volumeID to existing LogicalVolume", "name", lv.Name, "uid", lv.UID, "status.volumeID", lv.Status.VolumeID)
+			lv.Status.VolumeID = string(lv.UID)
+			lv.Status.Code = codes.OK
+			lv.Status.Message = ""
+			return nil
+		}
+
+		resp, err := r.lvService.CreateLV(ctx, &proto.CreateLVRequest{Name: string(lv.UID), SizeGb: uint64(reqBytes >> 30)})
+		if err != nil {
+			code, message := extractFromError(err)
+			log.Error(err, message)
+			lv.Status.Code = code
+			lv.Status.Message = message
+			return err
+		}
+
+		lv.Status.VolumeID = resp.Volume.Name
+		lv.Status.CurrentSize = resource.NewQuantity(reqBytes, resource.BinarySI)
+		lv.Status.Code = codes.OK
+		lv.Status.Message = ""
 		return nil
-	}
+	}()
 
-	resp, err := r.lvService.CreateLV(ctx, &proto.CreateLVRequest{Name: string(lv.UID), SizeGb: uint64(reqBytes >> 30)})
 	if err != nil {
-		code, message := extractFromError(err)
-		log.Error(err, message)
-		r.updateStatusWithError(ctx, log, lv, code, message)
+		if err2 := r.Status().Update(ctx, lv); err2 != nil {
+			// err2 is logged but not returned because err is more important
+			log.Error(err2, "failed to update status", "name", lv.Name, "uid", lv.UID)
+		}
 		return err
 	}
 
-	lv.Status.VolumeID = resp.Volume.Name
-	lv.Status.CurrentSize = resource.NewQuantity(reqBytes, resource.BinarySI)
-	setLVStatusOK(lv)
 	if err := r.Status().Update(ctx, lv); err != nil {
 		log.Error(err, "failed to update status", "name", lv.Name, "uid", lv.UID)
 		return err
@@ -230,16 +229,31 @@ func (r *LogicalVolumeReconciler) expandLV(ctx context.Context, log logr.Logger,
 
 	origBytes := (*lv.Status.CurrentSize).Value()
 	reqBytes := lv.Spec.Size.Value()
-	_, err := r.lvService.ResizeLV(ctx, &proto.ResizeLVRequest{Name: string(lv.UID), SizeGb: uint64(reqBytes >> 30)})
+
+	err := func() error {
+		_, err := r.lvService.ResizeLV(ctx, &proto.ResizeLVRequest{Name: string(lv.UID), SizeGb: uint64(reqBytes >> 30)})
+		if err != nil {
+			code, message := extractFromError(err)
+			log.Error(err, message)
+			lv.Status.Code = code
+			lv.Status.Message = message
+			return err
+		}
+
+		lv.Status.CurrentSize = resource.NewQuantity(reqBytes, resource.BinarySI)
+		lv.Status.Code = codes.OK
+		lv.Status.Message = ""
+		return nil
+	}()
+
 	if err != nil {
-		code, message := extractFromError(err)
-		log.Error(err, message)
-		r.updateStatusWithError(ctx, log, lv, code, message)
+		if err2 := r.Status().Update(ctx, lv); err2 != nil {
+			// err2 is logged but not returned because err is more important
+			log.Error(err2, "failed to update status", "name", lv.Name, "uid", lv.UID)
+		}
 		return err
 	}
 
-	lv.Status.CurrentSize = resource.NewQuantity(reqBytes, resource.BinarySI)
-	setLVStatusOK(lv)
 	if err := r.Status().Update(ctx, lv); err != nil {
 		log.Error(err, "failed to update status", "name", lv.Name, "uid", lv.UID)
 		return err
@@ -305,9 +319,4 @@ func extractFromError(err error) (codes.Code, string) {
 		return codes.Internal, err.Error()
 	}
 	return s.Code(), s.Message()
-}
-
-func setLVStatusOK(lv *topolvmv1.LogicalVolume) {
-	lv.Status.Code = codes.OK
-	lv.Status.Message = ""
 }
