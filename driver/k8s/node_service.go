@@ -53,7 +53,7 @@ func (s NodeService) GetCapacityByName(ctx context.Context, name string) (int64,
 	return s.extractCapacityFromAnnotation(n)
 }
 
-// GetCapacityByTopologyLabel returns VG capacity of specified node by node number.
+// GetCapacityByTopologyLabel returns VG capacity of specified node by TopoLVM's topology label.
 func (s NodeService) GetCapacityByTopologyLabel(ctx context.Context, topology string) (int64, error) {
 	nl, err := s.getNodes(ctx)
 	if err != nil {

@@ -68,6 +68,7 @@ func (r *LogicalVolumeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 				log.Error(err, "failed to add finalizer", "name", lv.Name)
 				return ctrl.Result{}, err
 			}
+			return ctrl.Result{Requeue: true}, nil
 		}
 
 		if lv.Status.VolumeID == "" {
@@ -165,11 +166,9 @@ func (r *LogicalVolumeReconciler) updateVolumeIfExists(ctx context.Context, log 
 		if v.Name != string(lv.UID) {
 			continue
 		}
-		lv2 := lv.DeepCopy()
-		lv2.Status.VolumeID = v.Name
-		setLVStatusOK(lv2)
-		patch := client.MergeFrom(lv)
-		if err := r.Status().Patch(ctx, lv2, patch); err != nil {
+		lv.Status.VolumeID = v.Name
+		setLVStatusOK(lv)
+		if err := r.Status().Update(ctx, lv); err != nil {
 			log.Error(err, "failed to update VolumeID in status", "name", lv.Name)
 			return true, err
 		}
@@ -239,16 +238,14 @@ func (r *LogicalVolumeReconciler) expandLV(ctx context.Context, log logr.Logger,
 		return err
 	}
 
-	lv2 := lv.DeepCopy()
-	lv2.Status.CurrentSize = resource.NewQuantity(reqBytes, resource.BinarySI)
-	setLVStatusOK(lv2)
-	patch := client.MergeFrom(lv)
-	if err := r.Status().Patch(ctx, lv2, patch); err != nil {
+	lv.Status.CurrentSize = resource.NewQuantity(reqBytes, resource.BinarySI)
+	setLVStatusOK(lv)
+	if err := r.Status().Update(ctx, lv); err != nil {
 		log.Error(err, "failed to update status", "name", lv.Name, "uid", lv.UID)
 		return err
 	}
 
-	log.Info("expanded LV", "name", lv2.Name, "uid", lv2.UID, "status.volumeID", lv2.Status.VolumeID,
+	log.Info("expanded LV", "name", lv.Name, "uid", lv.UID, "status.volumeID", lv.Status.VolumeID,
 		"original status.currentSize", origBytes, "status.currentSize", reqBytes)
 	return nil
 }
