@@ -47,9 +47,9 @@ jobs:
       - checkout
       - run: make setup SUDO=""
       - run:
-          name: Confirm api code was generated
+          name: Confirm manifests and api code were generated
           command: |
-            make generate
+            make manifests generate
             diffs=$(git diff --name-only)
             if [ "$diffs" != "" ]; then printf "%s\n" "$diffs"; exit 1; fi
       - run: make test

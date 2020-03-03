@@ -5,13 +5,13 @@ LogicalVolume
 a TopoLVM volume and helps communication between CSI controller and
 node services.
 
-| Field        | Type                | Description                                              |
-| ------------ | ------------------- | -------------------------------------------------------- |
-| `apiVersion` | string              | APIVersion.                                              |
-| `kind`       | string              | Kind.                                                    |
-| `metadata`   | [ObjectMeta][]      | Standard object's metadata.                              |
-| `spec`       | LogicalVolumeSpec   | Specification of desired behavior of the logical volume. |
-| `status`     | LogicalVolumeStatus | Most recently observed status of the logical volume.     |
+| Field        | Type                | Description                                                           |
+| ------------ | ------------------- | --------------------------------------------------------------------- |
+| `apiVersion` | string              | APIVersion.                                                           |
+| `kind`       | string              | Kind.                                                                 |
+| `metadata`   | [ObjectMeta][]      | Standard object's metadata with a special annotation described below. |
+| `spec`       | LogicalVolumeSpec   | Specification of desired behavior of the logical volume.              |
+| `status`     | LogicalVolumeStatus | Most recently observed status of the logical volume.                  |
 
 LogicalVolumeSpec
 -----------------
@@ -42,6 +42,8 @@ after it creates an LVM logical volume.
 when the volume size of the corresponding PVC is increased.
 `topolvm-node` watches the `LogicalVolume` resource and resizes the LVM logical
 volume when it finds the difference between `status.currentSize` and `spec.size`.
+In order for `topolvm-node` to retry resizing, `topolvm-controller` updates
+`metadata.annotations["topolvm.cybozu.com/resize-requested-at"]` of `LogicalVolume`.
 
 After the LVM logical volume is expanded successfully, `topolvm-node` updates
 `status.currentSize` value.

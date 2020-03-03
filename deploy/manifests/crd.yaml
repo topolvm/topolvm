@@ -61,9 +61,6 @@ spec:
               type: string
             message:
               type: string
-            updateTimestamp:
-              format: date-time
-              type: string
             volumeID:
               description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
                 of cluster Important: Run "make" to regenerate code after modifying

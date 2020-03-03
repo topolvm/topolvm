@@ -14,6 +14,9 @@ const PluginName = "topolvm.cybozu.com"
 // TopologyNodeKey is a key of topology that represents node name.
 const TopologyNodeKey = "topology.topolvm.cybozu.com/node"
 
+// ResizeRequestedAtKey is a key of LogicalVolume that represents the timestamp of the resize request.
+const ResizeRequestedAtKey = "topolvm.cybozu.com/resize-requested-at"
+
 // LogicalVolumeFinalizer is the name of LogicalVolume finalizer
 const LogicalVolumeFinalizer = "topolvm.cybozu.com/logicalvolume"
 

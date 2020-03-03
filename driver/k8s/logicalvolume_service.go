@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cybozu-go/topolvm"
 	topolvmv1 "github.com/cybozu-go/topolvm/api/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -99,7 +100,7 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, name stri
 		logger.Info("waiting for setting 'status.volumeID'", "name", name)
 		select {
 		case <-ctx.Done():
-			return "", errors.New("timed out")
+			return "", ctx.Err()
 		case <-time.After(1 * time.Second):
 		}
 
@@ -161,7 +162,7 @@ func (s *LogicalVolumeService) ExpandVolume(ctx context.Context, volumeID string
 		logger.Info("waiting for update of 'status.currentSize'", "name", lv.Name)
 		select {
 		case <-ctx.Done():
-			return errors.New("timed out")
+			return ctx.Err()
 		case <-time.After(1 * time.Second):
 		}
 
@@ -205,19 +206,10 @@ func (s *LogicalVolumeService) GetVolume(ctx context.Context, volumeID string) (
 
 // UpdateSpecSize updates .Spec.Size of LogicalVolume.
 func (s *LogicalVolumeService) UpdateSpecSize(ctx context.Context, volumeID string, size *resource.Quantity) error {
-	return s.updateVolumeSize(ctx, volumeID, size, true)
-}
-
-// UpdateCurrentSize updates .Status.CurrentSize of LogicalVolume.
-func (s *LogicalVolumeService) UpdateCurrentSize(ctx context.Context, volumeID string, size *resource.Quantity) error {
-	return s.updateVolumeSize(ctx, volumeID, size, false)
-}
-
-func (s *LogicalVolumeService) updateVolumeSize(ctx context.Context, volumeID string, size *resource.Quantity, isRequestGb bool) error {
 	for {
 		select {
 		case <-ctx.Done():
-			return errors.New("timed out")
+			return ctx.Err()
 		case <-time.After(1 * time.Second):
 		}
 
@@ -226,14 +218,11 @@ func (s *LogicalVolumeService) updateVolumeSize(ctx context.Context, volumeID st
 			return err
 		}
 
-		if isRequestGb {
-			lv.Spec.Size = *size
-		} else {
-			lv.Status.CurrentSize = size
+		lv.Spec.Size = *size
+		if lv.Annotations == nil {
+			lv.Annotations = make(map[string]string)
 		}
-
-		timestamp := metav1.NewTime(time.Now().UTC())
-		lv.Status.UpdateTimestamp = &timestamp
+		lv.Annotations[topolvm.ResizeRequestedAtKey] = time.Now().UTC().String()
 
 		if err := s.Update(ctx, lv); err != nil {
 			if apierrors.IsConflict(err) {
@@ -243,6 +232,26 @@ func (s *LogicalVolumeService) updateVolumeSize(ctx context.Context, volumeID st
 			logger.Error(err, "failed to update LogicalVolume spec", "name", lv.Name)
 			return err
 		}
+
+		return nil
+	}
+}
+
+// UpdateCurrentSize updates .Status.CurrentSize of LogicalVolume.
+func (s *LogicalVolumeService) UpdateCurrentSize(ctx context.Context, volumeID string, size *resource.Quantity) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(1 * time.Second):
+		}
+
+		lv, err := s.GetVolume(ctx, volumeID)
+		if err != nil {
+			return err
+		}
+
+		lv.Status.CurrentSize = size
 
 		if err := s.Status().Update(ctx, lv); err != nil {
 			if apierrors.IsConflict(err) {
