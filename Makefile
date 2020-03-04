@@ -33,7 +33,7 @@ CSI_SIDECARS = \
 	external-resizer \
 	livenessprobe
 
-CUSTOM_CHECKER := GO111MODULE=off GOFLAGS= go run github.com/cybozu/neco-containers/golang/analyzer/cmd/custom-checker
+CUSTOM_CHECKER := GOFLAGS= go run github.com/cybozu/neco-containers/golang/analyzer/cmd/custom-checker
 
 all: build
 
@@ -121,7 +121,7 @@ test:
 	test -z "$$(gofmt -s -l . | grep -v '^vendor' | tee /dev/stderr)"
 	test -z "$$(golint $$(go list ./... | grep -v /vendor/) | tee /dev/stderr)"
 	test -z "$$(nilerr ./... 2>&1 | tee /dev/stderr)"
-	test -z "$$($(CUSTOM_CHECKER) -restrictpkg.packages=html/template,log $$(go list -tags='$(GOTAGS)' ./... | grep -v /vendor/ ) 2>&1 | tee /dev/stderr)"
+	test -z "$$(cd /tmp; $(CUSTOM_CHECKER) -restrictpkg.packages=html/template,log $$(go list -tags='$(GOTAGS)' $(shell pwd)/... | grep -v /vendor/ ) 2>&1 | tee /dev/stderr)"
 	ineffassign .
 	go install ./...
 	go test -race -v ./...
