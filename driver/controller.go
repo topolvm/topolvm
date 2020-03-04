@@ -261,6 +261,7 @@ func (s controllerService) GetCapacity(ctx context.Context, req *csi.GetCapacity
 		capacity, err = s.service.GetCapacity(ctx, requestNodeNumber)
 		if err != nil {
 			ctrlLogger.Info("target is not found", "accessible_topology", req.AccessibleTopology)
+			// return nil (annotation for nilerr)
 			return &csi.GetCapacityResponse{
 				AvailableCapacity: 0,
 			}, nil
