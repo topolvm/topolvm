@@ -33,7 +33,8 @@ CSI_SIDECARS = \
 	external-resizer \
 	livenessprobe
 
-CUSTOM_CHECKER := GOFLAGS= go run github.com/cybozu/neco-containers/golang/analyzer/cmd/custom-checker
+CUSTOM_CHECKER := GO111MODULE=on GOFLAGS= go run github.com/cybozu/neco-containers/golang/analyzer/cmd/custom-checker -restrictpkg.packages=html/template,log
+CUSTOM_CHECK_DIR := /tmp/topolvm-custom-check
 
 all: build
 
@@ -121,7 +122,9 @@ test:
 	test -z "$$(gofmt -s -l . | grep -v '^vendor' | tee /dev/stderr)"
 	test -z "$$(golint $$(go list ./... | grep -v /vendor/) | tee /dev/stderr)"
 	test -z "$$(nilerr ./... 2>&1 | tee /dev/stderr)"
-	test -z "$$(cd /tmp; $(CUSTOM_CHECKER) -restrictpkg.packages=html/template,log $$(go list -tags='$(GOTAGS)' $(shell pwd)/... | grep -v /vendor/ ) 2>&1 | tee /dev/stderr)"
+	rm -rf $(CUSTOM_CHECK_DIR)
+	cp -r ../topolvm $(CUSTOM_CHECK_DIR)
+	test -z "$$(cd $(CUSTOM_CHECK_DIR); $(CUSTOM_CHECKER) $$(go list -tags='$(GOTAGS)' ./... | grep -v /vendor/ ) 2>&1 | tee /dev/stderr | grep -v "go: finding")"
 	ineffassign .
 	go install ./...
 	go test -race -v ./...
