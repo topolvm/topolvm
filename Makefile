@@ -33,8 +33,7 @@ CSI_SIDECARS = \
 	external-resizer \
 	livenessprobe
 
-CUSTOM_CHECKER := GO111MODULE=on GOFLAGS= go run github.com/cybozu/neco-containers/golang/analyzer/cmd/custom-checker -restrictpkg.packages=html/template,log
-CUSTOM_CHECK_DIR := /tmp/topolvm-custom-check
+CUSTOM_CHECKER := /tmp/custom-checker
 
 all: build
 
@@ -118,18 +117,22 @@ lvmd/proto/lvmd.pb.go: lvmd/proto/lvmd.proto bin/protoc bin/protoc-gen-go
 docs/lvmd-protocol.md: lvmd/proto/lvmd.proto bin/protoc bin/protoc-gen-doc
 	PATH="$(shell pwd)/bin:$(PATH)" bin/protoc -I. --doc_out=./docs --doc_opt=markdown,$@ $<
 
-test:
+test: $(CUSTOM_CHECKER)
 	test -z "$$(gofmt -s -l . | grep -v '^vendor' | tee /dev/stderr)"
 	test -z "$$(golint $$(go list ./... | grep -v /vendor/) | tee /dev/stderr)"
 	test -z "$$(nilerr ./... 2>&1 | tee /dev/stderr)"
-	rm -rf $(CUSTOM_CHECK_DIR)
-	cp -r ../topolvm $(CUSTOM_CHECK_DIR)
-	test -z "$$(cd $(CUSTOM_CHECK_DIR); $(CUSTOM_CHECKER) $$(go list -tags='$(GOTAGS)' ./... | grep -v /vendor/ ) 2>&1 | tee /dev/stderr | grep -v "go: finding")"
+	test -z "$$($(CUSTOM_CHECKER) -restrictpkg.packages=html/template,log $$(go list -tags='$(GOTAGS)' ./... | grep -v /vendor/ ) 2>&1 | tee /dev/stderr)"
 	ineffassign .
 	go install ./...
 	go test -race -v ./...
 	go vet ./...
 	test -z "$$(go vet ./... | grep -v '^vendor' | tee /dev/stderr)"
+
+$(CUSTOM_CHECKER):
+	rm -rf /tmp/neco-containers
+	git clone https://github.com/cybozu/neco-containers /tmp/neco-containers
+	cd /tmp/neco-containers/golang/analyzer && make
+	cp /tmp/neco-containers/golang/analyzer/custom-checker $@
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests:
