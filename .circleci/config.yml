@@ -46,6 +46,12 @@ jobs:
     steps:
       - checkout
       - run: make setup SUDO=""
+      - run:
+          name: Confirm manifests and api code were generated
+          command: |
+            make manifests generate
+            diffs=$(git diff --name-only)
+            if [ "$diffs" != "" ]; then printf "%s\n" "$diffs"; exit 1; fi
       - run: make test
       - run: make build
       - persist_to_workspace:

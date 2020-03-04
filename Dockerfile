@@ -19,6 +19,7 @@ RUN ln -s hypertopolvm /lvmd \
 COPY build/csi-provisioner /csi-provisioner
 COPY build/csi-node-driver-registrar /csi-node-driver-registrar
 COPY build/csi-attacher /csi-attacher
+COPY build/csi-resizer /csi-resizer
 COPY build/livenessprobe /livenessprobe
 COPY LICENSE /LICENSE
 

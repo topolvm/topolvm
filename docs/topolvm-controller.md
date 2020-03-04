@@ -12,8 +12,9 @@ CSI controller features
 
 `topolvm-controller` implements following optional features:
 
-- [Dynamic volume provisioning](https://github.com/container-storage-interface/spec/blob/v1.1.0/spec.md#createvolume)
-- [Get capacity](https://github.com/container-storage-interface/spec/blob/v1.1.0/spec.md#getcapacity)
+- [`CREATE_DELETE_VOLUME`](https://github.com/container-storage-interface/spec/blob/v1.1.0/spec.md#createvolume) to support dynamic volume provisioning
+- [`GET_CAPACITY`](https://github.com/container-storage-interface/spec/blob/v1.1.0/spec.md#getcapacity)
+- [`EXPAND_VOLUME`](https://github.com/container-storage-interface/spec/blob/v1.1.0/spec.md#controllerexpandvolume)
 
 Webhooks
 --------

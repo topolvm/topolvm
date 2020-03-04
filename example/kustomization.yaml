@@ -25,10 +25,3 @@ vars:
       name: mutatingwebhook
     fieldref:
       fieldpath: data[ca.crt]
-patchesJson6902:
-- target:
-    version: v1beta1
-    group: admissionregistration.k8s.io
-    kind: MutatingWebhookConfiguration
-    name: topolvm-hook
-  path: mutatingwebhooks-op.yaml

@@ -34,14 +34,14 @@ Features
 
 - [Dynamic provisioning](https://kubernetes-csi.github.io/docs/external-provisioner.html): Volumes are created dynamically when `PersistentVolumeClaim` objects are created.
 - [Raw block volume](https://kubernetes-csi.github.io/docs/raw-block.html): Volumes are available as block devices inside containers.
-- [Ephemeral inline volume](https://kubernetes.io/docs/concepts/storage/volumes/#csi-ephemeral-volumes): Volumes can be directly embbeded in the Pod specification.
-- [Topology](https://kubernetes-csi.github.io/docs/topology.html): TopoLVM uses CSI topology feature to schedule Pod to Node where LVM volume exist.
+- [Ephemeral inline volume](https://kubernetes.io/docs/concepts/storage/volumes/#csi-ephemeral-volumes): Volumes can be directly embedded in the Pod specification.
+- [Topology](https://kubernetes-csi.github.io/docs/topology.html): TopoLVM uses CSI topology feature to schedule Pod to Node where LVM volume exists.
 - Extended scheduler: TopoLVM extends the general Pod scheduler to prioritize Nodes having larger storage capacity.
 - Volume metrics: Usage stats are exported as Prometheus metrics from `kubelet`.
+- [Volume Expansion](https://kubernetes-csi.github.io/docs/volume-expansion.html): Volumes can be expanded by editing `PersistentVolumeClaim` objects.
 
 ### Planned features
 
-- [Volume Expansion](https://kubernetes-csi.github.io/docs/volume-expansion.html): When support for Kubernetes 1.16 will be added.
 - [Snapshot](https://kubernetes-csi.github.io/docs/snapshot-restore-feature.html): When we want it.
 
 Programs

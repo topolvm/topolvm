@@ -36,7 +36,7 @@ Components
 - ![#ADD8E6](https://placehold.it/15/ADD8E6/000000?text=+) Kubernetes components
 - ![#FFC0CB](https://placehold.it/15/FFC0CB/000000?text=+) Kubernetes CSI Sidecar containers
 
-![component diagram](http://www.plantuml.com/plantuml/svg/bPH1Zzey48Rl-HMZx0KEQ8MFU_YqNqDlj8f0fQgs74my2XQE7TaEswhQ_rudSOm9i7Gl26OUZzztFCEpiLJRfX99JOi3BH7I1TP2_QvGsXJ-900lcP9MAo5Gvw8fkTm2DP1QLIjnh6P5oARmy0E5KA_j8MCCPrXGRNgyC7nMQtNaXYk9-gTi0zHQMkoxapcNX-GjIQHY25_TnxmxrdrhTRYQWyB5kiyjA5PAhj7hT9UsTAznVYwohHhazImB0kSdXHfBRgocGH60q-JeGxD3WTQZ_fU3bhpSsq-YmOvQRhumZxXRMRZnp1W9niY5CNBN6Fc0CVBlniXzO-GzOtv6Sa4bzfVs0QZRY1yauzwQDGBrDguFmAYbEseGKbfpW_g8EbOmD25RBNe9IrNoWegD4as54nUUZbgGRxAUp54RvnkbxU5CK5wb7b9iXKOrka0FAsVirEyXETz6atYP9gSqQTDlhYTXcGooRfiS4YyMJ9I6yChJeJrUntfe4tp-vQIpTbicmuE77axF7Y6QV9WrzUm_EBC0J_2_bCfIY-VeoyDEDBXbwbMwCztyEhPSvLaoZ7o0XhBXzDCxNBHUdeiY0OthXOiZXUIA6NBT3BbcXepCa5jcxe3HJbsuEQ5N2oRZlq-OUO5kS1sKQNH67hzJM-nli-FN_01E0XvDlE_hHG67ucwlr64yKLwlB_NuhMRZzj-4aZ2pdZ5jBFGlY7PR6wH6wT3TIxM-nSyeMLE9lm00)
+![component diagram](http://www.plantuml.com/plantuml/svg/bPJFZjem4CRlUOfHzh8Sq0eVzr1j6tgZLGGgLRNbOE9Hi73io7RO_j6-Uvt4CIR0qhsiDZC_ZxzlFCEJiLJRfX99JOizBH7IETP2_QvGsXJ-9W3FcP9MAo5Gvw8fkTm0DP1QLIjngAP5oAPmzmE5K2_j8MCCPrXGRNgyC7nQQtNWXYk9-gTi0zHQMko6Bus6_-dAv5pkazSaaOeXV7L_PbsDxhzML08mo9sl-joSOgNa2hrefw2bUy6pKyLjrQ2rPrbGwzbUJycDrJGe0d2Q7BrljYZGUjH_EMZ1ovtz91higCNw2_E8kvM56q-CaM2Cd1aZDusHTnWZ_s-Ct3P6tZBc1oONL69_QH-0ketugJB53baZK6_Y-W2CMhgb1Y6bDJUe3wXZ1KCJikMybx1G9I-eM2lHL7ZlmfDH2_9rrfCvQkDyexGzd0dAgzH3YYtHg4ONw67bZ1txFIHdcsWIpzFac2Pj-jNr96oMGTQjbaFYBODxfI6yycHeZzUn6je4dtyvwQnTbllXmKCF9oUF44q-J9jw-W5EBC0ZV9HIMMhn57s-sue6DqozI7Uccr_7biiyIuQH3z1GDfn-V8EBrijpKIIWSRrmSQIGN313BfiXbyoGaHbopSmDCDgfCpT7z6B1PFnR2bClq0skWpADpiZ3TsgBtNLs_9hlm4d0eudtVJqhu53SxfJQZoVAw_Mb7hxLRDp-gr0IPjOpfes5_WNHRck3r3WTkdkcrhVu2ILhAl4F)
 
 Blue arrows in the diagram indicate communications over unix domain sockets.
 Red arrows indicate communications over TCP sockets.
@@ -100,6 +100,24 @@ Dynamic provisioning depends on [CSI `external-provisioner`](https://kubernetes-
 8.  `topolvm-controller` finds the updated status of `LogicalVolume`.
 9.  `topolvm-controller` sends the success (or failure) to `external-provisioner`.
 10. `external-provisioner` creates a PersistentVolume (PV) and binds it to the PVC.
+
+### How volume expansion works
+
+When the requested size of PVC is expanded, `ControllerExpandVolume` of `topolvm-controller` is called to
+change the `.spec.size` of the corresponding `LogicalVolume` resource.
+
+If there is a difference between `logicalvolume.spec.size` and `logicalvolume.status.currentSize`,
+it means that the logical volume corresponding to the `LogicalVolume` resource should be expanded.
+So in that case, `topolvm-node` sends `ResizeLV` request to `lvmd`.
+If it receives a successful response, `topolvm-node` updates `logicalvolume.status.currentSize`.
+If it receives an erroneous response, it updates the `.status.code` and `.status.message` field with the error.
+
+Then, if the logical volume is not a block device, `topolvm-node` resizes the filesystem of the logical volume
+via `NodeExpandVolume` or `NodePublishVolume`.
+If the filesystem requires offline resizing, the administrator should make `LogicalVolume` offline beforehand.
+The resizing is performed in `NodePublishVolume` in this case.
+If the filesystem is resized online, the resizing is performed in `NodeExpandVolume`.
+Currently all supported filesystems can be resized online, so `NodePublishVolume` is not involved with resizing.
 
 Limitations
 -----------

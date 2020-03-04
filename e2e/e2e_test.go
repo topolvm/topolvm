@@ -718,18 +718,11 @@ spec:
     csi:
       driver: topolvm.cybozu.com
 `
-		const minInlineEphemeralVer int64 = 16
-		kubernetesVersionStr := os.Getenv("TEST_KUBERNETES_VERSION")
-		kubernetesVersion := strings.Split(kubernetesVersionStr, ".")
-		Expect(len(kubernetesVersion)).To(Equal(2))
-		kubernetesMinorVersion, err := strconv.ParseInt(kubernetesVersion[1], 10, 64)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		if kubernetesMinorVersion < minInlineEphemeralVer {
+		currentK8sVersion := getCurrentK8sMinorVersion()
+		if currentK8sVersion < 16 {
 			Skip(fmt.Sprintf(
-				"inline inline ephemeral volumes not supported on Kubernetes version: %s. Min supported version is 1.%d",
-				kubernetesVersionStr,
-				minInlineEphemeralVer,
+				"inline ephemeral volumes not supported on Kubernetes version: 1.%d. Min supported version is 1.16",
+				currentK8sVersion,
 			))
 		}
 
@@ -787,6 +780,246 @@ spec:
 		postDeleteLvmCount, err := countLVMs()
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(postDeleteLvmCount).To(Equal(baseLvmCount))
+	})
+
+	It("should resize filesystem", func() {
+		currentK8sVersion := getCurrentK8sMinorVersion()
+		if currentK8sVersion < 16 {
+			Skip(fmt.Sprintf(
+				"resizing is not supported on Kubernetes version: 1.%d. Min supported version is 1.16",
+				currentK8sVersion,
+			))
+		}
+
+		By("deploying Pod with PVC")
+		podYAML := `apiVersion: v1
+kind: Pod
+metadata:
+  name: ubuntu
+  labels:
+    app.kubernetes.io/name: ubuntu
+spec:
+  containers:
+    - name: ubuntu
+      image: quay.io/cybozu/ubuntu:18.04
+      command: ["/usr/local/bin/pause"]
+      volumeMounts:
+        - mountPath: /test1
+          name: my-volume
+  volumes:
+    - name: my-volume
+      persistentVolumeClaim:
+        claimName: topo-pvc
+`
+		baseClaimYAML := `kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: topo-pvc
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: %s
+  storageClassName: topolvm-provisioner
+`
+		claimYAML := fmt.Sprintf(baseClaimYAML, "1Gi")
+		stdout, stderr, err := kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("confirming that the specified device is mounted in the Pod")
+		Eventually(func() error {
+			return verifyMountExists(ns, "ubuntu", "/test1")
+		}).Should(Succeed())
+
+		By("resizing PVC online")
+		claimYAML = fmt.Sprintf(baseClaimYAML, "2Gi")
+		stdout, stderr, err = kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("confirming that the specified device is resized in the Pod")
+		timeout := time.Minute * 5
+		Eventually(func() error {
+			stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "df", "--output=size", "/test1")
+			if err != nil {
+				return fmt.Errorf("failed to get volume size. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+			dfFields := strings.Fields((string(stdout)))
+			volSize, err := strconv.Atoi(dfFields[1])
+			if err != nil {
+				return fmt.Errorf("failed to convert volume size string. stdout: %s, err: %v", stdout, err)
+			}
+			if volSize != 2086912 {
+				return fmt.Errorf("failed to match volume size. actual: %d, expected: %d", volSize, 2086912)
+			}
+			return nil
+		}, timeout).Should(Succeed())
+
+		By("deleting Pod for offline resizing")
+		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "delete", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("resizing PVC offline")
+		claimYAML = fmt.Sprintf(baseClaimYAML, "3Gi")
+		stdout, stderr, err = kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("deploying Pod")
+		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("confirming that the specified device is resized in the Pod")
+		Eventually(func() error {
+			stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "df", "--output=size", "/test1")
+			if err != nil {
+				return fmt.Errorf("failed to get volume size. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+			dfFields := strings.Fields((string(stdout)))
+			volSize, err := strconv.Atoi(dfFields[1])
+			if err != nil {
+				return fmt.Errorf("failed to convert volume size string. stdout: %s, err: %v", stdout, err)
+			}
+			if volSize != 3135488 {
+				return fmt.Errorf("failed to match volume size. actual: %d, expected: %d", volSize, 3135488)
+			}
+			return nil
+		}, timeout).Should(Succeed())
+
+		By("confirming that no failure event has occurred")
+		fieldSelector := "involvedObject.kind=PersistentVolumeClaim," +
+			"involvedObject.name=topo-pvc," +
+			"reason=VolumeResizeFailed"
+		stdout, stderr, err = kubectl("get", "-n", ns, "events", "-o", "json", "--field-selector="+fieldSelector)
+		Expect(err).NotTo(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		var events corev1.EventList
+		err = json.Unmarshal(stdout, &events)
+		Expect(err).NotTo(HaveOccurred(), "stdout=%s", stdout)
+		Expect(events.Items).To(BeEmpty())
+
+		By("resizing PVC over vg capacity")
+		claimYAML = fmt.Sprintf(baseClaimYAML, "100Gi")
+		stdout, stderr, err = kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("confirming that a failure event occurs")
+		Eventually(func() error {
+			stdout, stderr, err = kubectl("get", "-n", ns, "events", "-o", "json", "--field-selector="+fieldSelector)
+			if err != nil {
+				return fmt.Errorf("failed to get event. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+
+			var events corev1.EventList
+			err = json.Unmarshal(stdout, &events)
+			if err != nil {
+				return fmt.Errorf("failed to unmarshal events. stdout: %s, err: %v", stdout, err)
+			}
+
+			if len(events.Items) == 0 {
+				return errors.New("failure event not found")
+			}
+			return nil
+		}).Should(Succeed())
+
+		By("deleting the Pod and PVC")
+		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "delete", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		stdout, stderr, err = kubectlWithInput([]byte(claimYAML), "delete", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+	})
+
+	It("should resize a block device", func() {
+		currentK8sVersion := getCurrentK8sMinorVersion()
+		if currentK8sVersion < 16 {
+			Skip(fmt.Sprintf(
+				"resizing is not supported on Kubernetes version: 1.%d. Min supported version is 1.16",
+				currentK8sVersion,
+			))
+		}
+
+		By("deploying Pod with PVC")
+		deviceFile := "/dev/e2etest"
+		podYAML := fmt.Sprintf(`apiVersion: v1
+kind: Pod
+metadata:
+  name: ubuntu
+  labels:
+    app.kubernetes.io/name: ubuntu
+spec:
+  containers:
+    - name: ubuntu
+      image: quay.io/cybozu/ubuntu:18.04
+      command: ["/usr/local/bin/pause"]
+      volumeDevices:
+        - devicePath: %s
+          name: my-volume
+  volumes:
+    - name: my-volume
+      persistentVolumeClaim:
+        claimName: topo-pvc
+`, deviceFile)
+
+		baseClaimYAML := `kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: topo-pvc
+spec:
+  volumeMode: Block
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: %s
+  storageClassName: topolvm-provisioner
+`
+
+		claimYAML := fmt.Sprintf(baseClaimYAML, "1Gi")
+		stdout, stderr, err := kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("confirming that a block device exists in ubuntu pod")
+		Eventually(func() error {
+			stdout, stderr, err := kubectl("get", "-n", ns, "pvc", "topo-pvc", "--template={{.spec.volumeName}}")
+			if err != nil {
+				return fmt.Errorf("failed to get volume name of topo-pvc. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+			stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "test", "-b", deviceFile)
+			if err != nil {
+				return fmt.Errorf("failed to test. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+			return nil
+		}).Should(Succeed())
+
+		By("resizing PVC")
+		claimYAML = fmt.Sprintf(baseClaimYAML, "2Gi")
+		stdout, stderr, err = kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("confirming that the specified device is resized in the Pod")
+		timeout := time.Minute * 5
+		Eventually(func() error {
+			stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "blockdev", "--getsize64", deviceFile)
+			if err != nil {
+				return fmt.Errorf("failed to get volume size. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+			volSize, err := strconv.Atoi(strings.TrimSpace(string(stdout)))
+			if err != nil {
+				return fmt.Errorf("failed to convert volume size string. stdout: %s, err: %v", stdout, err)
+			}
+			if volSize != 2147483648 {
+				return fmt.Errorf("failed to match volume size. actual: %d, expected: %d", volSize, 2147483648)
+			}
+			return nil
+		}, timeout).Should(Succeed())
+
+		By("deleting the Pod and PVC")
+		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "delete", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		stdout, stderr, err = kubectlWithInput([]byte(claimYAML), "delete", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 	})
 }
 
@@ -876,4 +1109,14 @@ func countLVMs() (int, error) {
 		return -1, fmt.Errorf("failed to lvs. stdout %s, err %v", stdout, err)
 	}
 	return bytes.Count(stdout, []byte("\n")), nil
+}
+
+func getCurrentK8sMinorVersion() int64 {
+	kubernetesVersionStr := os.Getenv("TEST_KUBERNETES_VERSION")
+	kubernetesVersion := strings.Split(kubernetesVersionStr, ".")
+	Expect(len(kubernetesVersion)).To(Equal(2))
+	kubernetesMinorVersion, err := strconv.ParseInt(kubernetesVersion[1], 10, 64)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	return kubernetesMinorVersion
 }

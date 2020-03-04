@@ -8,23 +8,22 @@ import (
 
 	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/csi"
+	"github.com/cybozu-go/topolvm/driver/k8s"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
-// ErrVolumeNotFound is error message when VolumeID is not found
-var ErrVolumeNotFound = errors.New("VolumeID is not found")
-
 var ctrlLogger = logf.Log.WithName("driver").WithName("controller")
 
 // NewControllerService returns a new ControllerServer.
-func NewControllerService(service LogicalVolumeService) csi.ControllerServer {
-	return &controllerService{service: service}
+func NewControllerService(lvService *k8s.LogicalVolumeService, nodeService *k8s.NodeService) csi.ControllerServer {
+	return &controllerService{lvService: lvService, nodeService: nodeService}
 }
 
 type controllerService struct {
-	service LogicalVolumeService
+	lvService   *k8s.LogicalVolumeService
+	nodeService *k8s.NodeService
 }
 
 func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
@@ -85,7 +84,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 		// - https://github.com/container-storage-interface/spec/blob/release-1.1/spec.md#createvolume
 		// - https://github.com/kubernetes-csi/csi-test/blob/6738ab2206eac88874f0a3ede59b40f680f59f43/pkg/sanity/controller.go#L404-L428
 		ctrlLogger.Info("decide node because accessibility_requirements not found")
-		nodeName, capacity, err := s.service.GetMaxCapacity(ctx)
+		nodeName, capacity, err := s.nodeService.GetMaxCapacity(ctx)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to get max capacity node %v", err)
 		}
@@ -123,7 +122,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 
 	name = strings.ToLower(name)
 
-	volumeID, err := s.service.CreateVolume(ctx, node, name, requestGb, capabilities)
+	volumeID, err := s.lvService.CreateVolume(ctx, node, name, requestGb)
 	if err != nil {
 		_, ok := status.FromError(err)
 		if !ok {
@@ -173,7 +172,7 @@ func (s controllerService) DeleteVolume(ctx context.Context, req *csi.DeleteVolu
 		return nil, status.Error(codes.InvalidArgument, "volume_id is not provided")
 	}
 
-	err := s.service.DeleteVolume(ctx, req.GetVolumeId())
+	err := s.lvService.DeleteVolume(ctx, req.GetVolumeId())
 	if err != nil {
 		ctrlLogger.Error(err, "DeleteVolume failed", "volume_id", req.GetVolumeId())
 		_, ok := status.FromError(err)
@@ -209,12 +208,11 @@ func (s controllerService) ValidateVolumeCapabilities(ctx context.Context, req *
 		return nil, status.Error(codes.InvalidArgument, "volume capabilities are empty")
 	}
 
-	err := s.service.VolumeExists(ctx, req.GetVolumeId())
-	switch err {
-	case ErrVolumeNotFound:
-		return nil, status.Errorf(codes.NotFound, "LogicalVolume for volume id %s is not found", req.GetVolumeId())
-	case nil:
-	default:
+	_, err := s.lvService.GetVolume(ctx, req.GetVolumeId())
+	if err != nil {
+		if err == k8s.ErrVolumeNotFound {
+			return nil, status.Errorf(codes.NotFound, "LogicalVolume for volume id %s is not found", req.GetVolumeId())
+		}
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -248,23 +246,24 @@ func (s controllerService) GetCapacity(ctx context.Context, req *csi.GetCapacity
 	switch topology {
 	case nil:
 		var err error
-		capacity, err = s.service.GetCapacity(ctx, "")
+		capacity, err = s.nodeService.GetTotalCapacity(ctx)
 		if err != nil {
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 	default:
-		requestNodeNumber, ok := topology.Segments[topolvm.TopologyNodeKey]
+		v, ok := topology.Segments[topolvm.TopologyNodeKey]
 		if !ok {
 			return nil, status.Errorf(codes.Internal, "%s is not found in req.AccessibleTopology", topolvm.TopologyNodeKey)
 		}
 		var err error
-		capacity, err = s.service.GetCapacity(ctx, requestNodeNumber)
-		if err != nil {
+		capacity, err = s.nodeService.GetCapacityByTopologyLabel(ctx, v)
+		switch err {
+		case k8s.ErrNodeNotFound:
 			ctrlLogger.Info("target is not found", "accessible_topology", req.AccessibleTopology)
-			// return nil (annotation for nilerr)
-			return &csi.GetCapacityResponse{
-				AvailableCapacity: 0,
-			}, nil
+			return &csi.GetCapacityResponse{AvailableCapacity: 0}, nil
+		case nil:
+		default:
+			return nil, status.Error(codes.Internal, err.Error())
 		}
 	}
 
@@ -274,23 +273,25 @@ func (s controllerService) GetCapacity(ctx context.Context, req *csi.GetCapacity
 }
 
 func (s controllerService) ControllerGetCapabilities(context.Context, *csi.ControllerGetCapabilitiesRequest) (*csi.ControllerGetCapabilitiesResponse, error) {
+	capabilities := []csi.ControllerServiceCapability_RPC_Type{
+		csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
+		csi.ControllerServiceCapability_RPC_GET_CAPACITY,
+		csi.ControllerServiceCapability_RPC_EXPAND_VOLUME,
+	}
+
+	csiCaps := make([]*csi.ControllerServiceCapability, len(capabilities))
+	for i, capability := range capabilities {
+		csiCaps[i] = &csi.ControllerServiceCapability{
+			Type: &csi.ControllerServiceCapability_Rpc{
+				Rpc: &csi.ControllerServiceCapability_RPC{
+					Type: capability,
+				},
+			},
+		}
+	}
+
 	return &csi.ControllerGetCapabilitiesResponse{
-		Capabilities: []*csi.ControllerServiceCapability{
-			{
-				Type: &csi.ControllerServiceCapability_Rpc{
-					Rpc: &csi.ControllerServiceCapability_RPC{
-						Type: csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
-					},
-				},
-			},
-			{
-				Type: &csi.ControllerServiceCapability_Rpc{
-					Rpc: &csi.ControllerServiceCapability_RPC{
-						Type: csi.ControllerServiceCapability_RPC_GET_CAPACITY,
-					},
-				},
-			},
-		},
+		Capabilities: csiCaps,
 	}, nil
 }
 
@@ -306,6 +307,70 @@ func (s controllerService) ListSnapshots(context.Context, *csi.ListSnapshotsRequ
 	return nil, status.Error(codes.Unimplemented, "ListSnapshots not implemented")
 }
 
-func (s controllerService) ControllerExpandVolume(context.Context, *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "ControllerExpandVolume not implemented")
+func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
+	volumeID := req.GetVolumeId()
+	ctrlLogger.Info("ControllerExpandVolume called",
+		"volumeID", volumeID,
+		"required", req.GetCapacityRange().GetRequiredBytes(),
+		"limit", req.GetCapacityRange().GetLimitBytes(),
+		"num_secrets", len(req.GetSecrets()))
+
+	if len(volumeID) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "volume id is nil")
+	}
+
+	lv, err := s.lvService.GetVolume(ctx, volumeID)
+	if err != nil {
+		if err == k8s.ErrVolumeNotFound {
+			return nil, status.Errorf(codes.NotFound, "LogicalVolume for volume id %s is not found", volumeID)
+		}
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	requestGb, err := convertRequestCapacity(req.GetCapacityRange().GetRequiredBytes(), req.GetCapacityRange().GetLimitBytes())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	currentSize := lv.Status.CurrentSize
+	if currentSize == nil {
+		// fill currentGb for old volume created in v0.3.0 or before.
+		err := s.lvService.UpdateCurrentSize(ctx, volumeID, &lv.Spec.Size)
+		if err != nil {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+		currentSize = &lv.Spec.Size
+	}
+
+	currentGb := currentSize.Value() >> 30
+	if requestGb <= currentGb {
+		// "NodeExpansionRequired" is still true because it is unknown
+		// whether node expansion is completed or not.
+		return &csi.ControllerExpandVolumeResponse{
+			CapacityBytes:         currentGb << 30,
+			NodeExpansionRequired: true,
+		}, nil
+	}
+
+	capacity, err := s.nodeService.GetCapacityByName(ctx, lv.Spec.NodeName)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	if capacity < (requestGb<<30 - currentGb<<30) {
+		return nil, status.Error(codes.Internal, "not enough space")
+	}
+
+	err = s.lvService.ExpandVolume(ctx, volumeID, requestGb)
+	if err != nil {
+		_, ok := status.FromError(err)
+		if !ok {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+		return nil, err
+	}
+	return &csi.ControllerExpandVolumeResponse{
+		CapacityBytes:         requestGb << 30,
+		NodeExpansionRequired: true,
+	}, nil
 }

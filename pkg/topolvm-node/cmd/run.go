@@ -70,12 +70,13 @@ func subMain() error {
 	}
 	defer conn.Close()
 
-	lvcontroller := &controllers.LogicalVolumeReconciler{
-		Client:   mgr.GetClient(),
-		Log:      ctrl.Log.WithName("controllers").WithName("LogicalVolume"),
-		NodeName: nodename,
-		Lvmd:     conn,
-	}
+	lvcontroller := controllers.NewLogicalVolumeReconciler(
+		mgr.GetClient(),
+		ctrl.Log.WithName("controllers").WithName("LogicalVolume"),
+		nodename,
+		conn,
+	)
+
 	if err := lvcontroller.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "LogicalVolume")
 		return err
