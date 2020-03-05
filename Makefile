@@ -160,6 +160,7 @@ $(BUILD_TARGET): $(GO_FILES)
 
 clean:
 	rm -rf build/
+	rm $(CUSTOM_CHECKER)
 
 setup:
 	$(SUDO) apt-get update
