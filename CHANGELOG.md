@@ -7,6 +7,16 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.4.0] - 2020-03-04
+
+### Added
+- Implement Volume expansion functionality (#101).
+- Add scheduler tuning guide (#106).
+- Deploy guide for Rancher/RKE (#108).
+
+### Contributors
+- @funkypenguin
+
 ## [0.3.0] - 2020-02-17
 
 ### Added
@@ -77,7 +87,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/cybozu-go/topolvm/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/cybozu-go/topolvm/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/cybozu-go/topolvm/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/cybozu-go/topolvm/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/cybozu-go/topolvm/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/cybozu-go/topolvm/compare/v0.2.0...v0.2.1
