@@ -21,6 +21,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	// +kubebuilder:scaffold:imports
@@ -34,6 +35,21 @@ var k8sClient client.Client
 var testEnv *envtest.Environment
 var testCtx = context.Background()
 var stopCh = make(chan struct{})
+
+// copied from https://github.com/kubernetes-sigs/controller-runtime/blob/v0.5.0/pkg/internal/testing/integration/internal/apiserver.go
+var apiServerDefaultArgs = []string{
+	// Allow tests to run offline, by preventing API server from attempting to
+	// use default route to determine its --advertise-address
+	"--advertise-address=127.0.0.1",
+	"--etcd-servers={{ if .EtcdURL }}{{ .EtcdURL.String }}{{ end }}",
+	"--cert-dir={{ .CertDir }}",
+	"--insecure-port={{ if .URL }}{{ .URL.Port }}{{ end }}",
+	"--insecure-bind-address={{ if .URL }}{{ .URL.Hostname }}{{ end }}",
+	"--secure-port={{ if .SecurePort }}{{ .SecurePort }}{{ end }}",
+	"--admission-control=AlwaysAdmit",
+	"--service-cluster-ip-range=10.0.0.0/24",
+	"--allow-privileged=true",
+}
 
 const (
 	topolvmProvisionerStorageClassName          = "topolvm-provisioner"
@@ -135,15 +151,14 @@ func TestAPIs(t *testing.T) {
 	SetDefaultEventuallyTimeout(time.Minute)
 	RunSpecsWithDefaultAndCustomReporters(t,
 		"Controller Suite",
-		[]Reporter{envtest.NewlineReporter{}})
+		[]Reporter{printer.NewlineReporter{}})
 }
 
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.UseDevMode(true), zap.WriteTo(GinkgoWriter)))
 
 	By("bootstrapping test environment")
-	apiServerFlags := envtest.DefaultKubeAPIServerFlags[0 : len(envtest.DefaultKubeAPIServerFlags)-1]
-	apiServerFlags = append(apiServerFlags,
+	apiServerFlags := append(apiServerDefaultArgs,
 		"--admission-control=MutatingAdmissionWebhook",
 		"--feature-gates=CSIInlineVolume=true")
 	testEnv = &envtest.Environment{
