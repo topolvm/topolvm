@@ -350,7 +350,6 @@ spec:
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
             - --leader-election
             - --leader-election-namespace=topolvm-system
-            - --leader-election-type=leases
           volumeMounts:
             - name: socket-dir
               mountPath: /run/topolvm

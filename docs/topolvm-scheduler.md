@@ -8,7 +8,7 @@ It filters and prioritizes Nodes based on the amount of free space in their volu
 Scheduler policy
 ----------------
 
-`topolvm-scheduler` need to be configured in [scheduler policy](https://github.com/kubernetes/kubernetes/blob/v1.14.1/pkg/scheduler/api/v1/types.go#L31) as follows:
+`topolvm-scheduler` need to be configured in [scheduler policy](https://pkg.go.dev/k8s.io/kubernetes@v1.17.3/pkg/scheduler/apis/config?tab=doc#Policy) as follows:
 
 ```json
 {

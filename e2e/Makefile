@@ -3,25 +3,25 @@ GOFLAGS=-mod=vendor
 export GOFLAGS
 GINKGO=$(GOPATH)/bin/ginkgo
 KUBECTL=/usr/local/bin/kubectl
-KIND_VERSION=0.6.1
+KIND_VERSION=0.7.0
 KUSTOMIZE_VERSION=3.5.4
 KUSTOMIZE=/usr/local/bin/kustomize
 
 # If you want to change the Kubernetes version for e2e test, specify this variable from command line.
-# e.g. $ make TEST_KUBERNETES_VERSION=1.14 setup test
-TEST_KUBERNETES_VERSION=1.16
+# e.g. $ make TEST_KUBERNETES_VERSION=1.17 setup test
+TEST_KUBERNETES_VERSION=1.17
 
-ifeq ($(TEST_KUBERNETES_VERSION),1.16)
-KUBERNETES_VERSION=1.16.3
+ifeq ($(TEST_KUBERNETES_VERSION),1.17)
+KUBERNETES_VERSION=1.17.2
+KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
+KUSTOMIZE_DIR=e2ebase
+else ifeq ($(TEST_KUBERNETES_VERSION),1.16)
+KUBERNETES_VERSION=1.16.4
 KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
 KUSTOMIZE_DIR=e2ebase
 else ifeq ($(TEST_KUBERNETES_VERSION),1.15)
-KUBERNETES_VERSION=1.15.3
+KUBERNETES_VERSION=1.15.7
 KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
-KUSTOMIZE_DIR=legacy
-else ifeq ($(TEST_KUBERNETES_VERSION),1.14)
-KUBERNETES_VERSION=1.14.6
-KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta1
 KUSTOMIZE_DIR=legacy
 endif
 

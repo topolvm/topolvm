@@ -54,5 +54,5 @@ the returned error.
 When a `LogicalVolume` is being deleted, `topolvm-node` on the target node deletes
 the corresponding LVM logical volume and clears the finalizer.
 
-[ObjectMeta]: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#objectmeta-v1-meta
-[Quantity]: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#quantity-resource-core
+[ObjectMeta]: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.17/#objectmeta-v1-meta
+[Quantity]: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.17/#quantity-resource-core
