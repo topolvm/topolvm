@@ -153,6 +153,8 @@ $(BUILD_TARGET): $(GO_FILES)
 
 clean:
 	rm -rf build/
+	rm -rf bin/
+	rm -rf include/
 
 setup:
 	$(SUDO) apt-get update
