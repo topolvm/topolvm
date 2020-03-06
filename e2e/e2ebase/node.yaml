@@ -19,7 +19,7 @@ spec:
           imagePullPolicy: "IfNotPresent"
 
         - name: liveness-probe
-          image: quay.io/k8scsi/livenessprobe:v1.1.0
+          image: quay.io/k8scsi/livenessprobe:v2.0.0
           imagePullPolicy: "IfNotPresent"
 
       volumes:

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -61,11 +60,6 @@ func testMetrics() {
 	})
 
 	It("should export volume metrics", func() {
-		if os.Getenv("TEST_KUBERNETES_VERSION") == "1.14" {
-			// Kubernetes 1.14 does not export volume metrics
-			return
-		}
-
 		By("creating a PVC and Pod")
 		_, _, err := kubectlWithInput(metricsManifest, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())

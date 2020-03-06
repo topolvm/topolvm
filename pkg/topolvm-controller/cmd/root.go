@@ -12,13 +12,14 @@ import (
 )
 
 var config struct {
-	csiSocket       string
-	metricsAddr     string
-	webhookAddr     string
-	certDir         string
-	stalePeriod     time.Duration
-	cleanupInterval time.Duration
-	development     bool
+	csiSocket        string
+	metricsAddr      string
+	webhookAddr      string
+	certDir          string
+	leaderElectionID string
+	stalePeriod      time.Duration
+	cleanupInterval  time.Duration
+	development      bool
 }
 
 var rootCmd = &cobra.Command{
@@ -49,9 +50,12 @@ func init() {
 	fs.StringVar(&config.metricsAddr, "metrics-addr", ":8080", "Listen address for metrics")
 	fs.StringVar(&config.webhookAddr, "webhook-addr", ":8443", "Listen address for the webhook endpoint")
 	fs.StringVar(&config.certDir, "cert-dir", "", "certificate directory")
+	fs.StringVar(&config.leaderElectionID, "leader-election-id", "", "ID for leader election by controller-runtime")
 	fs.DurationVar(&config.stalePeriod, "stale-period", 24*time.Hour, "LogicalVolume is cleaned up if it is not deleted within this period")
 	fs.DurationVar(&config.cleanupInterval, "cleanup-interval", 10*time.Minute, "Cleaning up interval for LogicalVolume")
 	fs.BoolVar(&config.development, "development", false, "Use development logger config")
+
+	rootCmd.MarkFlagRequired("leader-election-id")
 
 	goflags := flag.NewFlagSet("klog", flag.ExitOnError)
 	klog.InitFlags(goflags)

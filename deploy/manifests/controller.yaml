@@ -304,9 +304,15 @@ spec:
       containers:
         - name: topolvm-controller
           image: quay.io/cybozu/topolvm:0.4.0
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
           command:
             - /topolvm-controller
             - --cert-dir=/certs
+            - --leader-election-id=$(POD_NAME)
           ports:
             - containerPort: 9808
               name: healthz
@@ -350,7 +356,6 @@ spec:
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
             - --leader-election
             - --leader-election-namespace=topolvm-system
-            - --leader-election-type=leases
           volumeMounts:
             - name: socket-dir
               mountPath: /run/topolvm

@@ -446,7 +446,9 @@ func init() {
 	proto.RegisterType((*WatchResponse)(nil), "proto.WatchResponse")
 }
 
-func init() { proto.RegisterFile("lvmd/proto/lvmd.proto", fileDescriptor_cb3c510e545f3bbd) }
+func init() {
+	proto.RegisterFile("lvmd/proto/lvmd.proto", fileDescriptor_cb3c510e545f3bbd)
+}
 
 var fileDescriptor_cb3c510e545f3bbd = []byte{
 	// 423 bytes of a gzipped FileDescriptorProto
@@ -481,11 +483,11 @@ var fileDescriptor_cb3c510e545f3bbd = []byte{
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ context.Context
-var _ grpc.ClientConn
+var _ grpc.ClientConnInterface
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
-const _ = grpc.SupportPackageIsVersion4
+const _ = grpc.SupportPackageIsVersion6
 
 // LVServiceClient is the client API for LVService service.
 //
@@ -500,10 +502,10 @@ type LVServiceClient interface {
 }
 
 type lVServiceClient struct {
-	cc *grpc.ClientConn
+	cc grpc.ClientConnInterface
 }
 
-func NewLVServiceClient(cc *grpc.ClientConn) LVServiceClient {
+func NewLVServiceClient(cc grpc.ClientConnInterface) LVServiceClient {
 	return &lVServiceClient{cc}
 }
 
@@ -650,10 +652,10 @@ type VGServiceClient interface {
 }
 
 type vGServiceClient struct {
-	cc *grpc.ClientConn
+	cc grpc.ClientConnInterface
 }
 
-func NewVGServiceClient(cc *grpc.ClientConn) VGServiceClient {
+func NewVGServiceClient(cc grpc.ClientConnInterface) VGServiceClient {
 	return &vGServiceClient{cc}
 }
 

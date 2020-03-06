@@ -3,8 +3,8 @@ GOFLAGS=-mod=vendor
 export GOFLAGS
 GINKGO=$(GOPATH)/bin/ginkgo
 KUBECTL=/usr/local/bin/kubectl
-KUBERNETES_VERSION=1.16.3
-KIND_VERSION=0.6.1
+KUBERNETES_VERSION=1.17.2
+KIND_VERSION=0.7.0
 
 GO_FILES := $(shell find .. -path ../vendor -prune -o -path ../e2e -prune -o -name '*.go' -print)
 CA_FILES=./build/certs/ca.csr ./build/certs/ca.pem ./build/certs/ca-key.pem
