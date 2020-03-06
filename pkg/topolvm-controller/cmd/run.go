@@ -65,6 +65,7 @@ func subMain() error {
 		Scheme:             scheme,
 		MetricsBindAddress: config.metricsAddr,
 		LeaderElection:     true,
+		LeaderElectionID:   config.leaderElectionID,
 		Host:               hookHost,
 		Port:               hookPort,
 		CertDir:            config.certDir,
