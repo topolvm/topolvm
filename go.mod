@@ -29,13 +29,11 @@ require (
 	github.com/prometheus/common v0.6.0
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/viper v1.3.2
-	go.uber.org/atomic v1.4.0 // indirect
-	golang.org/x/sys v0.0.0-20190826190057-c7b8b68b1456
-	google.golang.org/grpc v1.27.1
-	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
+	golang.org/x/sys v0.0.0-20190922100055-0a153f010e69
+	google.golang.org/grpc v1.28.0
 	k8s.io/api v0.17.3
 	k8s.io/apimachinery v0.17.3
 	k8s.io/client-go v0.17.3
 	k8s.io/klog v1.0.0
-	sigs.k8s.io/controller-runtime v0.5.0
+	sigs.k8s.io/controller-runtime v0.5.1
 )
