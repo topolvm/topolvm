@@ -20,7 +20,7 @@ import (
 
 var pmLogger = logf.Log.WithName("pod-mutator")
 
-// +kubebuilder:webhook:path=/pod/mutate,mutating=true,failurePolicy=fail,groups="",resources=pods,verbs=create,versions=v1,name=pod-hook.topolvm.cybozu.com
+// +kubebuilder:webhook:path=/pod/mutate,mutating=true,failurePolicy=fail,matchPolicy="Equivalent",groups="",resources=pods,verbs=create,versions=v1,name=pod-hook.topolvm.cybozu.com
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch
 // +kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=get;list;watch
 
