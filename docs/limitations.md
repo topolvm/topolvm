@@ -26,3 +26,9 @@ StorageClass mountOptions
 -------------------------
 
 TopoLVM does not recognize `mountOptions` of `StorageClass` currently.
+
+Time-lag in updating node capacity 
+-------------------------
+
+Node capacity is not updated in TopoLVM's extended scheduler.
+Therefore, if many volumes are requested at the same time, they may be assigned to one node and cannot be created due to the shortage of node storage.
