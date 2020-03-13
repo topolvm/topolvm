@@ -31,7 +31,7 @@ Capacity-aware scheduling may go wrong
 -------------------------
 
 Node storage capacity annotation is not updated in TopoLVM's extended scheduler.
-Therefore, when multiple pods requesting TopoLVM volumes are requested at once, the extended scheduler cannot reference the exact capacity of the underlying LVM volume group.
+Therefore, when multiple pods requesting TopoLVM volumes are created at once, the extended scheduler cannot reference the exact capacity of the underlying LVM volume group.
 
 Note that pod scheduling is also affected by the amount of CPU and memory.
 Because of this, this problem may not be observable.
