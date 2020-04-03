@@ -11,6 +11,7 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ### Changed
 - Upgrade for Kubernetes 1.17 (#115).
+- topolvm-controller requires `--leader-election-id` flag.
 
 ## [0.4.0] - 2020-03-04
 
