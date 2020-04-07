@@ -7,6 +7,10 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.4.3] - 2020-04-07
+
+Nothing changed.
+
 ## [0.4.2] - 2020-04-03
 
 ### Changed
@@ -98,7 +102,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/cybozu-go/topolvm/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/cybozu-go/topolvm/compare/v0.4.3...HEAD
+[0.4.3]: https://github.com/cybozu-go/topolvm/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/cybozu-go/topolvm/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/cybozu-go/topolvm/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/cybozu-go/topolvm/compare/v0.3.0...v0.4.0
