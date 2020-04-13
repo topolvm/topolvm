@@ -214,10 +214,15 @@ func (g *VolumeGroup) ListVolumes() ([]*LogicalVolume, error) {
 		return nil, err
 	}
 	var ret []*LogicalVolume
+	lvNameSet := make(map[string]struct{})
 	for _, info := range infoList {
 		if len(info["thin_count"]) > 0 {
 			continue
 		}
+		if _, ok := lvNameSet[info["lv_name"]]; ok {
+			continue
+		}
+		lvNameSet[info["lv_name"]] = struct{}{}
 		size, err := strconv.ParseUint(info["lv_size"], 10, 64)
 		if err != nil {
 			return nil, err
