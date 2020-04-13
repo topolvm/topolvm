@@ -20,7 +20,7 @@ func MakeLoopbackVG(name string) (string, error) {
 		return "", err
 	}
 	loopDev := strings.TrimRight(loop.String(), "\n")
-	err = exec.Command("truncate", "--size=3G", name).Run()
+	err = exec.Command("truncate", "--size=4G", name).Run()
 	if err != nil {
 		log.Error("failed to truncate", nil)
 		return "", err

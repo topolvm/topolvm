@@ -179,7 +179,7 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	}
 	expected := freeBytes - (1 << 30)
 	if res2.GetFreeBytes() != expected {
-		t.Errorf("Free bytes mismatch: %d", res2.GetFreeBytes())
+		t.Errorf("Free bytes mismatch: %d, expected: %d, freeBytes: %d", res2.GetFreeBytes(), expected, freeBytes)
 	}
 }
 
