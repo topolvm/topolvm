@@ -219,6 +219,7 @@ func (g *VolumeGroup) ListVolumes() ([]*LogicalVolume, error) {
 		if len(info["thin_count"]) > 0 {
 			continue
 		}
+		// Avoid listing duplicate LVs divided with segments
 		if _, ok := lvNameSet[info["lv_name"]]; ok {
 			continue
 		}
