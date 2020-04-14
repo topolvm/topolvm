@@ -3,6 +3,7 @@ package lvmd
 import (
 	"context"
 	"os"
+	"os/exec"
 	"testing"
 	"time"
 
@@ -150,6 +151,24 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 		t.Errorf(`Volume.Tags[0] != %s: %v`, testtag, vol.GetTags())
 	}
 
+	_, err = vg.CreateVolume("test2", 1<<30, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = exec.Command("lvresize", "-L", "+12m", vg.Name()+"/test1").Run()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err = vgService.GetLVList(context.Background(), &proto.Empty{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	numVols3 := len(res.GetVolumes())
+	if numVols3 != 2 {
+		t.Fatalf("numVolumes must be 2: %d", numVols3)
+	}
+
 	res2, err := vgService.GetFreeBytes(context.Background(), &proto.Empty{})
 	if err != nil {
 		t.Fatal(err)
@@ -160,7 +179,7 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	}
 	expected := freeBytes - (1 << 30)
 	if res2.GetFreeBytes() != expected {
-		t.Errorf("Free bytes mismatch: %d", res2.GetFreeBytes())
+		t.Errorf("Free bytes mismatch: %d, expected: %d, freeBytes: %d", res2.GetFreeBytes(), expected, freeBytes)
 	}
 }
 
