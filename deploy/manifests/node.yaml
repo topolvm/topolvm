@@ -56,7 +56,7 @@ spec:
       serviceAccountName: node
       containers:
         - name: topolvm-node
-          image: quay.io/cybozu/topolvm:0.4.3
+          image: quay.io/cybozu/topolvm:0.4.4
           securityContext:
             privileged: true
           command:
@@ -92,7 +92,7 @@ spec:
               mountPropagation: "Bidirectional"
 
         - name: csi-registrar
-          image: quay.io/cybozu/topolvm:0.4.3
+          image: quay.io/cybozu/topolvm:0.4.4
           command:
             - /csi-node-driver-registrar
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
@@ -108,7 +108,7 @@ spec:
               mountPath: /registration
 
         - name: liveness-probe
-          image: quay.io/cybozu/topolvm:0.4.3
+          image: quay.io/cybozu/topolvm:0.4.4
           command:
             - /livenessprobe
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
