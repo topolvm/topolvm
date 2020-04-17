@@ -11,11 +11,15 @@ import (
 )
 
 // NewLVService creates a new LVServiceServer
-func NewLVService(notifyFunc func()) proto.LVServiceServer {
-	return lvService{notifyFunc}
+func NewLVService(vgPrefix string, notifyFunc func()) proto.LVServiceServer {
+	return lvService{
+		vgPrefix: vgPrefix,
+		notifyFunc: notifyFunc,
+	}
 }
 
 type lvService struct {
+	vgPrefix string
 	notifyFunc func()
 }
 
@@ -27,7 +31,8 @@ func (s lvService) notify() {
 }
 
 func (s lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*proto.CreateLVResponse, error) {
-	vg, err := command.FindVolumeGroup(req.VgName)
+	vgName := s.vgPrefix + req.VgName
+	vg, err := command.FindVolumeGroup(vgName)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +80,8 @@ func (s lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*pro
 }
 
 func (s lvService) RemoveLV(_ context.Context, req *proto.RemoveLVRequest) (*proto.Empty, error) {
-	vg, err := command.FindVolumeGroup(req.VgName)
+	vgName := s.vgPrefix + req.VgName
+	vg, err := command.FindVolumeGroup(vgName)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +118,8 @@ func (s lvService) RemoveLV(_ context.Context, req *proto.RemoveLVRequest) (*pro
 }
 
 func (s lvService) ResizeLV(_ context.Context, req *proto.ResizeLVRequest) (*proto.Empty, error) {
-	vg, err := command.FindVolumeGroup(req.VgName)
+	vgName := s.vgPrefix + req.VgName
+	vg, err := command.FindVolumeGroup(vgName)
 	if err != nil {
 		return nil, err
 	}
