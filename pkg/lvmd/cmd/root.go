@@ -18,6 +18,7 @@ import (
 var config struct {
 	socketName string
 	spareGB    uint64
+	vgPrefix string
 }
 
 const (
@@ -62,9 +63,9 @@ func subMain() error {
 		return err
 	}
 	grpcServer := grpc.NewServer()
-	vgService, notifier := lvmd.NewVGService(config.spareGB)
+	vgService, notifier := lvmd.NewVGService(config.spareGB, config.vgPrefix)
 	proto.RegisterVGServiceServer(grpcServer, vgService)
-	proto.RegisterLVServiceServer(grpcServer, lvmd.NewLVService(notifier))
+	proto.RegisterLVServiceServer(grpcServer, lvmd.NewLVService(config.vgPrefix,notifier))
 	well.Go(func(ctx context.Context) error {
 		return grpcServer.Serve(lis)
 	})
@@ -104,4 +105,5 @@ func Execute() {
 func init() {
 	rootCmd.Flags().StringVar(&config.socketName, "listen", topolvm.DefaultLVMdSocket, "Unix domain socket name")
 	rootCmd.Flags().Uint64Var(&config.spareGB, "spare", 10, "storage capacity in GiB to be spared")
+	rootCmd.Flags().StringVar(&config.vgPrefix, "vg-prefix", "", "prefix of Volume Group")
 }

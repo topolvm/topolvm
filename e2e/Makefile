@@ -77,10 +77,10 @@ start-lvmd:
 		mkdir -p /tmp/topolvm/lvmd$$i; \
 		truncate --size=20G build/backing_store$$i; \
 		$(SUDO) losetup -f build/backing_store$$i; \
-		$(SUDO) vgcreate -y myvg$$i $$($(SUDO) losetup -j build/backing_store$$i | cut -d: -f1); \
-		$(SUDO) lvcreate -y -n csi-node-test-block -L 1G myvg$$i; \
-		$(SUDO) lvcreate -y -n csi-node-test-fs -L 1G myvg$$i; \
-		$(SUDO) systemd-run --unit=lvmd$$i.service $(shell pwd)/build/lvmd --listen=/tmp/topolvm/lvmd$$i/lvmd.sock --spare=1; \
+		$(SUDO) vgcreate -y node$$i-myvg1 $$($(SUDO) losetup -j build/backing_store$$i | cut -d: -f1); \
+		$(SUDO) lvcreate -y -n csi-node-test-block -L 1G node$$i-myvg1; \
+		$(SUDO) lvcreate -y -n csi-node-test-fs -L 1G node$$i-myvg1; \
+		$(SUDO) systemd-run --unit=lvmd$$i.service $(shell pwd)/build/lvmd --listen=/tmp/topolvm/lvmd$$i/lvmd.sock --spare=1 --vg-prefix=node$$i-; \
 	done
 
 stop-lvmd:
@@ -88,7 +88,7 @@ stop-lvmd:
 	for i in $$(seq 3); do \
 		if systemctl is-active -q lvmd$$i.service; then $(SUDO) systemctl stop lvmd$$i.service; fi; \
 		if [ -f build/backing_store$$i ]; then \
-			$(SUDO) vgremove -ffy myvg$$i; \
+			$(SUDO) vgremove -ffy node$$i-myvg1; \
 			$(SUDO) pvremove -ffy $$($(SUDO) losetup -j build/backing_store$$i | cut -d: -f1); \
 			$(SUDO) losetup -d $$($(SUDO) losetup -j build/backing_store$$i | cut -d: -f1); \
 			rm -f build/backing_store$$i; \

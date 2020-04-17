@@ -12,9 +12,10 @@ import (
 )
 
 // NewVGService creates a VGServiceServer
-func NewVGService(spareGB uint64) (proto.VGServiceServer, func()) {
+func NewVGService(spareGB uint64, vgPrefix string) (proto.VGServiceServer, func()) {
 	svc := &vgService{
 		spare:    spareGB << 30,
+		vgPrefix: vgPrefix,
 		watchers: make(map[int]chan struct{}),
 	}
 
@@ -23,6 +24,7 @@ func NewVGService(spareGB uint64) (proto.VGServiceServer, func()) {
 
 type vgService struct {
 	spare uint64
+	vgPrefix string
 
 	mu             sync.Mutex
 	watcherCounter int
@@ -30,7 +32,8 @@ type vgService struct {
 }
 
 func (s *vgService) GetLVList(_ context.Context, req *proto.GetLVListRequest) (*proto.GetLVListResponse, error) {
-	vg, err := command.FindVolumeGroup(req.VgName)
+	vgName := s.vgPrefix + req.VgName
+	vg, err := command.FindVolumeGroup(vgName)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +60,8 @@ func (s *vgService) GetLVList(_ context.Context, req *proto.GetLVListRequest) (*
 }
 
 func (s *vgService) GetFreeBytes(_ context.Context, req *proto.GetFreeBytesRequest) (*proto.GetFreeBytesResponse, error) {
-	vg, err := command.FindVolumeGroup(req.VgName)
+	vgName := s.vgPrefix + req.VgName
+	vg, err := command.FindVolumeGroup(vgName)
 	if err != nil {
 		return nil, err
 	}
@@ -91,8 +95,9 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 		if err != nil {
 			return status.Error(codes.Internal, err.Error())
 		}
+		vgName := vg.Name()[len(s.vgPrefix):]
 		res.Items = append(res.Items, &proto.WatchItem{
-			VgName: vg.Name(),
+			VgName: vgName,
 			FreeBytes: vgFree,
 		})
 	}
