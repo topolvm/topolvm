@@ -17,6 +17,7 @@ message LogicalVolume {
     uint32 dev_major = 3;     // Device major number.
     uint32 dev_minor = 4;     // Device minor number.
     repeated string tags = 5; // Tags to add to the volume during creation
+    string vg_name = 6;
 }
 
 // Represents the input for CreateLV.
@@ -24,6 +25,7 @@ message CreateLVRequest {
     string name = 1;              // The logical volume name.
     uint64 size_gb = 2;           // Volume size in GiB.
     repeated string tags = 3;     // Tags to add to the volume during creation
+    string vg_name = 4;
 }
 
 // Represents the response of CreateLV.
@@ -34,6 +36,7 @@ message CreateLVResponse {
 // Represents the input for RemoveLV.
 message RemoveLVRequest {
     string name = 1;       // The logical volume name.
+    string vg_name = 2;
 }
 
 // Represents the input for ResizeLV.
@@ -43,6 +46,7 @@ message RemoveLVRequest {
 message ResizeLVRequest {
     string name = 1;       // The logical volume name.
     uint64 size_gb = 2;    // Volume size in GiB.
+    string vg_name = 3;
 }
 
 // Represents the response of GetLVList.
@@ -55,9 +59,22 @@ message GetFreeBytesResponse {
     uint64 free_bytes = 1;  // Free space of the volume group in bytes.
 }
 
+message GetLVListRequest {
+    string vg_name = 1;
+}
+
+message GetFreeBytesRequest {
+    string vg_name = 1;
+}
+
 // Represents the stream output from Watch.
 message WatchResponse {
+    repeated WatchItem items = 1;
+}
+
+message WatchItem {
     uint64 free_bytes = 1;  // Free space of the volume group in bytes.
+    string vg_name = 2;
 }
 
 // Service to manage logical volumes of the volume group.
@@ -73,9 +90,9 @@ service LVService {
 // Service to retrieve information of the volume group.
 service VGService {
     // Get the list of logical volumes in the volume group.
-    rpc GetLVList(Empty) returns (GetLVListResponse);
+    rpc GetLVList(GetLVListRequest) returns (GetLVListResponse);
     // Get the free space of the volume group in bytes.
-    rpc GetFreeBytes(Empty) returns (GetFreeBytesResponse);
+    rpc GetFreeBytes(GetFreeBytesRequest) returns (GetFreeBytesResponse);
     // Stream the volume group metrics.
     rpc Watch(Empty) returns (stream WatchResponse);
 }

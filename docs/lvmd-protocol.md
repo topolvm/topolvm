@@ -7,11 +7,14 @@
     - [CreateLVRequest](#proto.CreateLVRequest)
     - [CreateLVResponse](#proto.CreateLVResponse)
     - [Empty](#proto.Empty)
+    - [GetFreeBytesRequest](#proto.GetFreeBytesRequest)
     - [GetFreeBytesResponse](#proto.GetFreeBytesResponse)
+    - [GetLVListRequest](#proto.GetLVListRequest)
     - [GetLVListResponse](#proto.GetLVListResponse)
     - [LogicalVolume](#proto.LogicalVolume)
     - [RemoveLVRequest](#proto.RemoveLVRequest)
     - [ResizeLVRequest](#proto.ResizeLVRequest)
+    - [WatchItem](#proto.WatchItem)
     - [WatchResponse](#proto.WatchResponse)
   
   
@@ -46,6 +49,7 @@ Represents the input for CreateLV.
 | name | [string](#string) |  | The logical volume name. |
 | size_gb | [uint64](#uint64) |  | Volume size in GiB. |
 | tags | [string](#string) | repeated | Tags to add to the volume during creation |
+| vg_name | [string](#string) |  |  |
 
 
 
@@ -77,6 +81,21 @@ Represents the response of CreateLV.
 
 
 
+<a name="proto.GetFreeBytesRequest"></a>
+
+### GetFreeBytesRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| vg_name | [string](#string) |  |  |
+
+
+
+
+
+
 <a name="proto.GetFreeBytesResponse"></a>
 
 ### GetFreeBytesResponse
@@ -86,6 +105,21 @@ Represents the response of GetFreeBytes.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | free_bytes | [uint64](#uint64) |  | Free space of the volume group in bytes. |
+
+
+
+
+
+
+<a name="proto.GetLVListRequest"></a>
+
+### GetLVListRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| vg_name | [string](#string) |  |  |
 
 
 
@@ -120,6 +154,7 @@ Represents a logical volume.
 | dev_major | [uint32](#uint32) |  | Device major number. |
 | dev_minor | [uint32](#uint32) |  | Device minor number. |
 | tags | [string](#string) | repeated | Tags to add to the volume during creation |
+| vg_name | [string](#string) |  |  |
 
 
 
@@ -135,6 +170,7 @@ Represents the input for RemoveLV.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  | The logical volume name. |
+| vg_name | [string](#string) |  |  |
 
 
 
@@ -154,6 +190,23 @@ The volume size will be set to exactly &#34;size_gb&#34;.
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  | The logical volume name. |
 | size_gb | [uint64](#uint64) |  | Volume size in GiB. |
+| vg_name | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="proto.WatchItem"></a>
+
+### WatchItem
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| free_bytes | [uint64](#uint64) |  | Free space of the volume group in bytes. |
+| vg_name | [string](#string) |  |  |
 
 
 
@@ -168,7 +221,7 @@ Represents the stream output from Watch.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| free_bytes | [uint64](#uint64) |  | Free space of the volume group in bytes. |
+| items | [WatchItem](#proto.WatchItem) | repeated |  |
 
 
 
@@ -200,8 +253,8 @@ Service to retrieve information of the volume group.
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| GetLVList | [Empty](#proto.Empty) | [GetLVListResponse](#proto.GetLVListResponse) | Get the list of logical volumes in the volume group. |
-| GetFreeBytes | [Empty](#proto.Empty) | [GetFreeBytesResponse](#proto.GetFreeBytesResponse) | Get the free space of the volume group in bytes. |
+| GetLVList | [GetLVListRequest](#proto.GetLVListRequest) | [GetLVListResponse](#proto.GetLVListResponse) | Get the list of logical volumes in the volume group. |
+| GetFreeBytes | [GetFreeBytesRequest](#proto.GetFreeBytesRequest) | [GetFreeBytesResponse](#proto.GetFreeBytesResponse) | Get the free space of the volume group in bytes. |
 | Watch | [Empty](#proto.Empty) | [WatchResponse](#proto.WatchResponse) stream | Stream the volume group metrics. |
 
  

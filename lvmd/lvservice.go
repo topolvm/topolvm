@@ -11,12 +11,11 @@ import (
 )
 
 // NewLVService creates a new LVServiceServer
-func NewLVService(vg *command.VolumeGroup, notifyFunc func()) proto.LVServiceServer {
-	return lvService{vg, notifyFunc}
+func NewLVService(notifyFunc func()) proto.LVServiceServer {
+	return lvService{notifyFunc}
 }
 
 type lvService struct {
-	vg         *command.VolumeGroup
 	notifyFunc func()
 }
 
@@ -28,8 +27,12 @@ func (s lvService) notify() {
 }
 
 func (s lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*proto.CreateLVResponse, error) {
+	vg, err := command.FindVolumeGroup(req.VgName)
+	if err != nil {
+		return nil, err
+	}
 	requested := req.GetSizeGb() << 30
-	free, err := s.vg.Free()
+	free, err := vg.Free()
 	if err != nil {
 		log.Error("failed to free VG", map[string]interface{}{
 			log.FnError: err,
@@ -45,7 +48,7 @@ func (s lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*pro
 		return nil, status.Errorf(codes.ResourceExhausted, "no enough space left on VG: free=%d, requested=%d", free, requested)
 	}
 
-	lv, err := s.vg.CreateVolume(req.GetName(), requested, req.GetTags())
+	lv, err := vg.CreateVolume(req.GetName(), requested, req.GetTags())
 	if err != nil {
 		log.Error("failed to create volume", map[string]interface{}{
 			"name":      req.GetName(),
@@ -72,7 +75,11 @@ func (s lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*pro
 }
 
 func (s lvService) RemoveLV(_ context.Context, req *proto.RemoveLVRequest) (*proto.Empty, error) {
-	lvs, err := s.vg.ListVolumes()
+	vg, err := command.FindVolumeGroup(req.VgName)
+	if err != nil {
+		return nil, err
+	}
+	lvs, err := vg.ListVolumes()
 	if err != nil {
 		log.Error("failed to list volumes", map[string]interface{}{
 			log.FnError: err,
@@ -105,7 +112,11 @@ func (s lvService) RemoveLV(_ context.Context, req *proto.RemoveLVRequest) (*pro
 }
 
 func (s lvService) ResizeLV(_ context.Context, req *proto.ResizeLVRequest) (*proto.Empty, error) {
-	lv, err := s.vg.FindVolume(req.GetName())
+	vg, err := command.FindVolumeGroup(req.VgName)
+	if err != nil {
+		return nil, err
+	}
+	lv, err := vg.FindVolume(req.GetName())
 	if err == command.ErrNotFound {
 		log.Error("logical volume is not found", map[string]interface{}{
 			log.FnError: err,
@@ -134,7 +145,7 @@ func (s lvService) ResizeLV(_ context.Context, req *proto.ResizeLVRequest) (*pro
 		return nil, status.Error(codes.OutOfRange, "shrinking volume size is not allowed")
 	}
 
-	free, err := s.vg.Free()
+	free, err := vg.Free()
 	if err != nil {
 		log.Error("failed to free VG", map[string]interface{}{
 			log.FnError: err,

@@ -29,9 +29,15 @@ type controllerService struct {
 func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	capabilities := req.GetVolumeCapabilities()
 	source := req.GetVolumeContentSource()
+	vg, ok := req.Parameters["topolvm.cybozu.com/volume-group"]
+	if !ok {
+		//TODO: get default vg name from configmap and use it
+		return nil, status.Error(codes.InvalidArgument, "topolvm.cybozu.com/volume-group not found")
+	}
 
 	ctrlLogger.Info("CreateVolume called",
 		"name", req.GetName(),
+		"vg_name", vg,
 		"required", req.GetCapacityRange().GetRequiredBytes(),
 		"limit", req.GetCapacityRange().GetLimitBytes(),
 		"parameters", req.GetParameters(),
@@ -122,7 +128,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 
 	name = strings.ToLower(name)
 
-	volumeID, err := s.lvService.CreateVolume(ctx, node, name, requestGb)
+	volumeID, err := s.lvService.CreateVolume(ctx, node, vg, name, requestGb)
 	if err != nil {
 		_, ok := status.FromError(err)
 		if !ok {

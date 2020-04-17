@@ -64,7 +64,7 @@ func (m podMutator) Handle(ctx context.Context, req admission.Request) admission
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
-	pvcCapacity, err := m.requestedPVCCapacity(ctx, pod, targets)
+	pvcCapacities, err := m.requestedPVCCapacity(ctx, pod, targets)
 	if err != nil {
 		pmLogger.Error(err, "requestedPVCCapacity failed")
 		return admission.Errored(http.StatusInternalServerError, err)
@@ -76,14 +76,13 @@ func (m podMutator) Handle(ctx context.Context, req admission.Request) admission
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
-	capacity := pvcCapacity + ephemeralCapacity
-
-	if capacity == 0 {
+	if len(pvcCapacities) == 0 && ephemeralCapacity == 0{
 		return admission.Allowed("no request for TopoLVM")
 	}
 
 	ctnr := &pod.Spec.Containers[0]
-	quantity := resource.NewQuantity(capacity, resource.DecimalSI)
+
+	quantity := resource.NewQuantity(1, resource.DecimalSI)
 	if ctnr.Resources.Requests == nil {
 		ctnr.Resources.Requests = corev1.ResourceList{}
 	}
@@ -91,7 +90,15 @@ func (m podMutator) Handle(ctx context.Context, req admission.Request) admission
 	if ctnr.Resources.Limits == nil {
 		ctnr.Resources.Limits = corev1.ResourceList{}
 	}
+
 	ctnr.Resources.Limits[topolvm.CapacityResource] = *quantity
+	for vg, cap := range pvcCapacities {
+		pod.Annotations[topolvm.CapacityKey + "-" + vg] = strconv.FormatInt(cap, 10)
+	}
+	if ephemeralCapacity != 0 {
+		//TODO: get default vg name form configmap and use it
+		pod.Annotations[topolvm.CapacityKey + "-ephemeral"] = strconv.FormatInt(ephemeralCapacity, 10)
+	}
 
 	marshaledPod, err := json.Marshal(pod)
 	if err != nil {
@@ -117,8 +124,8 @@ func (m podMutator) targetStorageClasses(ctx context.Context) (map[string]bool, 
 	return targets, nil
 }
 
-func (m podMutator) requestedPVCCapacity(ctx context.Context, pod *corev1.Pod, targets map[string]bool) (int64, error) {
-	var total int64
+func (m podMutator) requestedPVCCapacity(ctx context.Context, pod *corev1.Pod, targets map[string]bool) (map[string]int64, error) {
+	capacities := make(map[string]int64)
 	for _, vol := range pod.Spec.Volumes {
 		if vol.PersistentVolumeClaim == nil {
 			// CSI volume type does not support direct reference from Pod
@@ -140,7 +147,7 @@ func (m podMutator) requestedPVCCapacity(ctx context.Context, pod *corev1.Pod, t
 					"namespace", pod.Namespace,
 					"pvc", pvcName,
 				)
-				return 0, err
+				return nil, err
 			}
 			// Pods should be created even if their PVCs do not exist yet.
 			// TopoLVM does not care about such pods after they are created, though.
@@ -160,7 +167,7 @@ func (m podMutator) requestedPVCCapacity(ctx context.Context, pod *corev1.Pod, t
 		// If the Pod has a bound PVC of TopoLVM, the pod will be scheduled
 		// to the node of the existing PV.
 		if pvc.Status.Phase != corev1.ClaimPending {
-			return 0, nil
+			return nil, nil
 		}
 
 		var requested int64 = topolvm.DefaultSize
@@ -169,9 +176,14 @@ func (m podMutator) requestedPVCCapacity(ctx context.Context, pod *corev1.Pod, t
 				requested = ((req.Value()-1)>>30 + 1) << 30
 			}
 		}
+		total, ok := capacities[*pvc.Spec.StorageClassName]
+		if !ok {
+			total = 0
+		}
 		total += requested
+		capacities[*pvc.Spec.StorageClassName] = total
 	}
-	return total, nil
+	return capacities, nil
 }
 
 func (m podMutator) requestedEphemeralCapacity(pod *corev1.Pod) (int64, error) {

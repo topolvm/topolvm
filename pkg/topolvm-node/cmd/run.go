@@ -12,6 +12,7 @@ import (
 	"github.com/cybozu-go/topolvm/controllers"
 	"github.com/cybozu-go/topolvm/csi"
 	"github.com/cybozu-go/topolvm/driver"
+	"github.com/cybozu-go/topolvm/driver/k8s"
 	"github.com/cybozu-go/topolvm/lvmd/proto"
 	"github.com/cybozu-go/topolvm/runners"
 	"github.com/spf13/viper"
@@ -84,7 +85,7 @@ func subMain() error {
 	// +kubebuilder:scaffold:builder
 
 	// Add health checker to manager
-	checker := runners.NewChecker(checkFunc(conn, mgr.GetAPIReader()), 1*time.Minute)
+	checker := runners.NewChecker(checkFunc(conn, mgr.GetAPIReader(), config.defaultVG), 1*time.Minute)
 	if err := mgr.Add(checker); err != nil {
 		return err
 	}
@@ -97,12 +98,16 @@ func subMain() error {
 	}
 
 	// Add gRPC server to manager.
+	s, err := k8s.NewLogicalVolumeService(mgr)
+	if err != nil {
+		return err
+	}
 	if err := os.MkdirAll(driver.DeviceDirectory, 0755); err != nil {
 		return err
 	}
 	grpcServer := grpc.NewServer()
 	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityService(checker.Ready))
-	csi.RegisterNodeServer(grpcServer, driver.NewNodeService(nodename, conn))
+	csi.RegisterNodeServer(grpcServer, driver.NewNodeService(nodename, config.defaultVG, conn, s))
 	err = mgr.Add(runners.NewGRPCRunner(grpcServer, config.csiSocket, false))
 	if err != nil {
 		return err
@@ -117,13 +122,13 @@ func subMain() error {
 	return nil
 }
 
-func checkFunc(conn *grpc.ClientConn, r client.Reader) func() error {
+func checkFunc(conn *grpc.ClientConn, r client.Reader, vg string) func() error {
 	vgs := proto.NewVGServiceClient(conn)
 	return func() error {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		if _, err := vgs.GetFreeBytes(ctx, &proto.Empty{}); err != nil {
+		if _, err := vgs.GetFreeBytes(ctx, &proto.GetFreeBytesRequest{VgName: vg}); err != nil {
 			return err
 		}
 

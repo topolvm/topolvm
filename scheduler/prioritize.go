@@ -5,6 +5,7 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/cybozu-go/topolvm"
 	corev1 "k8s.io/api/core/v1"
@@ -29,16 +30,25 @@ func capacityToScore(capacity uint64, divisor float64) int {
 	}
 }
 
-func scoreNodes(nodes []corev1.Node, divisor float64) []HostPriority {
+func scoreNodes(pod *corev1.Pod, nodes []corev1.Node, divisor float64) []HostPriority {
 	result := make([]HostPriority, len(nodes))
+
+	var vgs []string
+	for k := range pod.Annotations {
+		if strings.HasPrefix(k, topolvm.CapacityKey) {
+			vgs = append(vgs, k[len(topolvm.CapacityKey)+1:])
+		}
+	}
 
 	for i, item := range nodes {
 		var score int
-		if val, ok := item.Annotations[topolvm.CapacityKey]; ok {
-			capacity, _ := strconv.ParseUint(val, 10, 64)
-			score = capacityToScore(capacity, divisor)
+		for _, vg := range vgs {
+			if val, ok := item.Annotations[topolvm.CapacityKey + "-" + vg]; ok {
+				capacity, _ := strconv.ParseUint(val, 10, 64)
+				score += capacityToScore(capacity, divisor)
+			}
 		}
-		result[i] = HostPriority{Host: item.Name, Score: score}
+		result[i] = HostPriority{Host: item.Name, Score: score/ len(vgs)}
 	}
 
 	return result
@@ -54,7 +64,7 @@ func (s scheduler) prioritize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := scoreNodes(input.Nodes.Items, s.divisor)
+	result := scoreNodes(input.Pod, input.Nodes.Items, s.divisor)
 
 	w.Header().Set("content-type", "application/json")
 	json.NewEncoder(w).Encode(result)

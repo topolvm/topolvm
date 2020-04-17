@@ -10,6 +10,7 @@ import (
 
 	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/csi"
+	"github.com/cybozu-go/topolvm/driver/k8s"
 	"github.com/cybozu-go/topolvm/filesystem"
 	"github.com/cybozu-go/topolvm/lvmd/proto"
 	"golang.org/x/sys/unix"
@@ -34,19 +35,23 @@ const (
 var nodeLogger = logf.Log.WithName("driver").WithName("node")
 
 // NewNodeService returns a new NodeServer.
-func NewNodeService(nodeName string, conn *grpc.ClientConn) csi.NodeServer {
+func NewNodeService(nodeName, defaultVG string, conn *grpc.ClientConn, service *k8s.LogicalVolumeService) csi.NodeServer {
 	return &nodeService{
-		nodeName:  nodeName,
-		client:    proto.NewVGServiceClient(conn),
-		lvService: proto.NewLVServiceClient(conn),
+		nodeName:     nodeName,
+		defaultVG:    defaultVG,
+		client:       proto.NewVGServiceClient(conn),
+		lvService:    proto.NewLVServiceClient(conn),
+		k8sLVService: service,
 	}
 }
 
 type nodeService struct {
-	nodeName  string
-	client    proto.VGServiceClient
-	lvService proto.LVServiceClient
-	mu        sync.Mutex
+	nodeName     string
+	defaultVG    string
+	client       proto.VGServiceClient
+	lvService    proto.LVServiceClient
+	k8sLVService *k8s.LogicalVolumeService
+	mu           sync.Mutex
 }
 
 func (s *nodeService) NodeStageVolume(context.Context, *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
@@ -107,6 +112,7 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 			nodeLogger.Info("Processing ephemeral inline volume request", "reqGb", reqGb)
 			_, err := s.lvService.CreateLV(ctx, &proto.CreateLVRequest{
 				Name:   volumeID,
+				VgName: s.defaultVG,
 				SizeGb: reqGb,
 				Tags:   []string{"ephemeral"},
 			})
@@ -255,7 +261,16 @@ func (s *nodeService) findVolumeByID(listResp *proto.GetLVListResponse, name str
 }
 
 func (s *nodeService) getLvFromContext(ctx context.Context, volumeID string) (*proto.LogicalVolume, error) {
-	listResp, err := s.client.GetLVList(ctx, &proto.Empty{})
+	var vgName string
+	lv, err := s.k8sLVService.GetVolume(ctx, volumeID)
+	if err == k8s.ErrVolumeNotFound {
+		vgName = s.defaultVG
+	} else if err != nil {
+		return nil, err
+	}
+	vgName = lv.Spec.VGName
+
+	listResp, err := s.client.GetLVList(ctx, &proto.GetLVListRequest{VgName: vgName}) //
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list LV: %v", err)
 	}
