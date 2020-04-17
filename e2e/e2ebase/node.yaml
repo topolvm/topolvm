@@ -10,6 +10,8 @@ spec:
         - name: topolvm-node
           image: topolvm:dev
           imagePullPolicy: Never
+          args:
+            - "--default-vg=myvg1"
           volumeMounts:
             - name: device-dir
               mountPath: /dev

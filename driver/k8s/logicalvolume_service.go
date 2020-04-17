@@ -54,7 +54,7 @@ func NewLogicalVolumeService(mgr manager.Manager) (*LogicalVolumeService, error)
 }
 
 // CreateVolume creates volume
-func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, name string, requestGb int64) (string, error) {
+func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, vg, name string, requestGb int64) (string, error) {
 	logger.Info("k8s.CreateVolume called", "name", name, "node", node, "size_gb", requestGb)
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -70,6 +70,7 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, name stri
 		Spec: topolvmv1.LogicalVolumeSpec{
 			Name:     name,
 			NodeName: node,
+			VGName:   vg,
 			Size:     *resource.NewQuantity(requestGb<<30, resource.BinarySI),
 		},
 	}

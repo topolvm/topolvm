@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -10,7 +9,6 @@ import (
 
 	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/lvmd"
-	"github.com/cybozu-go/topolvm/lvmd/command"
 	"github.com/cybozu-go/topolvm/lvmd/proto"
 	"github.com/cybozu-go/well"
 	"github.com/spf13/cobra"
@@ -18,7 +16,6 @@ import (
 )
 
 var config struct {
-	vgName     string
 	socketName string
 	spareGB    uint64
 }
@@ -54,16 +51,6 @@ func subMain() error {
 		return err
 	}
 
-	// the limit of the lv name length is 127 including vgname and 3.
-	// https://github.com/lvmteam/lvm2/blob/24bd35b4ce77a5111ee234f554ca139df4b7dd99/lib/metadata/metadata.c#L2386
-	if len(config.vgName) > (maxDevNameLength - k8sUIDLength - 3) {
-		return errors.New("volume-group is too long")
-	}
-	vg, err := command.FindVolumeGroup(config.vgName)
-	if err != nil {
-		return err
-	}
-
 	// UNIX domain socket file should be removed before listening.
 	err = os.Remove(config.socketName)
 	if err != nil && !os.IsNotExist(err) {
@@ -75,9 +62,9 @@ func subMain() error {
 		return err
 	}
 	grpcServer := grpc.NewServer()
-	vgService, notifier := lvmd.NewVGService(vg, config.spareGB)
+	vgService, notifier := lvmd.NewVGService(config.spareGB)
 	proto.RegisterVGServiceServer(grpcServer, vgService)
-	proto.RegisterLVServiceServer(grpcServer, lvmd.NewLVService(vg, notifier))
+	proto.RegisterLVServiceServer(grpcServer, lvmd.NewLVService(notifier))
 	well.Go(func(ctx context.Context) error {
 		return grpcServer.Serve(lis)
 	})
@@ -115,7 +102,6 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().StringVar(&config.vgName, "volume-group", "", "LVM volume group name")
 	rootCmd.Flags().StringVar(&config.socketName, "listen", topolvm.DefaultLVMdSocket, "Unix domain socket name")
 	rootCmd.Flags().Uint64Var(&config.spareGB, "spare", 10, "storage capacity in GiB to be spared")
 }

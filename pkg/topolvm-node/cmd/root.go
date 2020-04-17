@@ -15,6 +15,7 @@ var config struct {
 	csiSocket   string
 	lvmdSocket  string
 	metricsAddr string
+	defaultVG string
 	development bool
 }
 
@@ -48,11 +49,14 @@ func init() {
 	fs.StringVar(&config.csiSocket, "csi-socket", topolvm.DefaultCSISocket, "UNIX domain socket filename for CSI")
 	fs.StringVar(&config.lvmdSocket, "lvmd-socket", topolvm.DefaultLVMdSocket, "UNIX domain socket of lvmd service")
 	fs.StringVar(&config.metricsAddr, "metrics-addr", ":8080", "Listen address for metrics")
+	fs.StringVar(&config.defaultVG, "default-vg", "", "Default Volume Group")
 	fs.String("nodename", "", "The resource name of the running node")
 	fs.BoolVar(&config.development, "development", false, "Use development logger config")
 
 	viper.BindEnv("nodename", "NODE_NAME")
 	viper.BindPFlag("nodename", fs.Lookup("nodename"))
+
+	rootCmd.MarkFlagRequired("default-vg")
 
 	goflags := flag.NewFlagSet("klog", flag.ExitOnError)
 	klog.InitFlags(goflags)

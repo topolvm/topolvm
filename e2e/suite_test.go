@@ -91,7 +91,7 @@ spec:
 			return errors.New(string(stderr))
 		}
 		return nil
-	}).Should(Succeed())
+	}, 180*time.Second).Should(Succeed())
 	stdout, stderr, err := kubectlWithInput([]byte(podYAML), "delete", "-f", "-")
 	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 })

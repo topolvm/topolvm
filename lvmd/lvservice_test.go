@@ -41,7 +41,7 @@ func TestLVService(t *testing.T) {
 	notifier := func() {
 		count++
 	}
-	lvService := NewLVService(vg, notifier)
+	lvService := NewLVService(notifier)
 	res, err := lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
 		Name:   "test1",
 		SizeGb: 1,
@@ -76,6 +76,7 @@ func TestLVService(t *testing.T) {
 
 	_, err = lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
 		Name:   "test2",
+		VgName: "myvg1",
 		SizeGb: 3,
 	})
 	code := status.Code(err)

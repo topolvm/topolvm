@@ -102,8 +102,12 @@ func (m *metricsExporter) updateNode(ctx context.Context, wc proto.VGService_Wat
 			return err
 		}
 
+		var availableBytes uint64
+		for _, item := range res.Items {
+			availableBytes += item.FreeBytes
+		}
 		ch <- NodeMetrics{
-			FreeBytes: res.GetFreeBytes(),
+			FreeBytes: availableBytes,
 		}
 
 		var node corev1.Node
@@ -129,7 +133,9 @@ func (m *metricsExporter) updateNode(ctx context.Context, wc proto.VGService_Wat
 			node2.Finalizers = append(node2.Finalizers, topolvm.NodeFinalizer)
 		}
 
-		node2.Annotations[topolvm.CapacityKey] = strconv.FormatUint(res.GetFreeBytes(), 10)
+		for _, item := range res.Items {
+			node2.Annotations[topolvm.CapacityKey + "-" + item.VgName] = strconv.FormatUint(item.FreeBytes, 10)
+		}
 		if err := m.Patch(ctx, node2, client.MergeFrom(&node)); err != nil {
 			return err
 		}

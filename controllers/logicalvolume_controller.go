@@ -119,7 +119,7 @@ func (r *LogicalVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *LogicalVolumeReconciler) removeLVIfExists(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) error {
 	// Finalizer's process ( RemoveLV then removeString ) is not atomic,
 	// so checking existence of LV to ensure its idempotence
-	respList, err := r.vgService.GetLVList(ctx, &proto.Empty{})
+	respList, err := r.vgService.GetLVList(ctx, &proto.GetLVListRequest{VgName: lv.Spec.VGName})
 	if err != nil {
 		log.Error(err, "failed to list LV")
 		return err
@@ -142,7 +142,7 @@ func (r *LogicalVolumeReconciler) removeLVIfExists(ctx context.Context, log logr
 }
 
 func (r *LogicalVolumeReconciler) volumeExists(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) (bool, error) {
-	respList, err := r.vgService.GetLVList(ctx, &proto.Empty{})
+	respList, err := r.vgService.GetLVList(ctx, &proto.GetLVListRequest{VgName: lv.Spec.VGName})
 	if err != nil {
 		log.Error(err, "failed to get list of LV")
 		return false, err
@@ -182,7 +182,7 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 			return nil
 		}
 
-		resp, err := r.lvService.CreateLV(ctx, &proto.CreateLVRequest{Name: string(lv.UID), SizeGb: uint64(reqBytes >> 30)})
+		resp, err := r.lvService.CreateLV(ctx, &proto.CreateLVRequest{Name: string(lv.UID), VgName: lv.Spec.VGName, SizeGb: uint64(reqBytes >> 30)})
 		if err != nil {
 			code, message := extractFromError(err)
 			log.Error(err, message)

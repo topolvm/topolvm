@@ -11,6 +11,8 @@ metadata:
   name: topolvm-provisioner-immediate
 provisioner: topolvm.cybozu.com
 volumeBindingMode: Immediate
+parameters:
+  "topolvm.cybozu.com/volume-group": "myvg1"
 ---
 apiVersion: v1
 kind: PersistentVolume
