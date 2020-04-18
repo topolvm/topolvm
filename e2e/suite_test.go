@@ -72,6 +72,7 @@ var _ = BeforeSuite(func() {
 	Eventually(waitKindnet).Should(Succeed())
 	time.Sleep(5 * time.Second)
 	Eventually(waitKindnet).Should(Succeed())
+	SetDefaultEventuallyTimeout(3 * time.Minute)
 
 	podYAML := `apiVersion: v1
 kind: Pod
@@ -91,7 +92,7 @@ spec:
 			return errors.New(string(stderr))
 		}
 		return nil
-	}, 180*time.Second).Should(Succeed())
+	}).Should(Succeed())
 	stdout, stderr, err := kubectlWithInput([]byte(podYAML), "delete", "-f", "-")
 	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 })

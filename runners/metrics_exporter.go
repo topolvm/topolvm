@@ -134,7 +134,7 @@ func (m *metricsExporter) updateNode(ctx context.Context, wc proto.VGService_Wat
 		}
 
 		for _, item := range res.Items {
-			node2.Annotations[topolvm.CapacityKey + "-" + item.VgName] = strconv.FormatUint(item.FreeBytes, 10)
+			node2.Annotations[topolvm.CapacityKey+"-"+item.VgName] = strconv.FormatUint(item.FreeBytes, 10)
 		}
 		if err := m.Patch(ctx, node2, client.MergeFrom(&node)); err != nil {
 			return err

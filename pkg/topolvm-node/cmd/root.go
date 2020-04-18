@@ -15,7 +15,7 @@ var config struct {
 	csiSocket   string
 	lvmdSocket  string
 	metricsAddr string
-	defaultVG string
+	defaultVG   string
 	development bool
 }
 

@@ -20,21 +20,22 @@ func filterNodes(nodes corev1.NodeList, requested map[string]int64) ExtenderFilt
 	filtered := corev1.NodeList{}
 	failed := FailedNodesMap{}
 
+NODE_LOOP:
 	for _, node := range nodes.Items {
 		for vg, required := range requested {
 			val, ok := node.Annotations[topolvm.CapacityKey+"-"+vg]
 			if !ok {
 				failed[node.Name] = "no capacity annotation"
-				break
+				continue NODE_LOOP
 			}
 			capacity, err := strconv.ParseUint(val, 10, 64)
 			if err != nil {
 				failed[node.Name] = "bad capacity annotation: " + val
-				break
+				continue NODE_LOOP
 			}
 			if capacity < uint64(required) {
 				failed[node.Name] = "out of VG free space"
-				break
+				continue NODE_LOOP
 			}
 		}
 		filtered.Items = append(filtered.Items, node)

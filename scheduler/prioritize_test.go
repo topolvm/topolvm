@@ -36,6 +36,13 @@ func TestCapacityToScore(t *testing.T) {
 }
 
 func TestScoreNodes(t *testing.T) {
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{
+				topolvm.CapacityKey + "-myvg1": "64",
+			},
+		},
+	}
 	input := []corev1.Node{
 		testNode("10.1.1.1", 128),
 		{
@@ -67,7 +74,7 @@ func TestScoreNodes(t *testing.T) {
 		},
 	}
 
-	result := scoreNodes(input, 4)
+	result := scoreNodes(pod, input, 4)
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("expected scoreNodes() to be %#v, but actual %#v", expected, result)
 	}

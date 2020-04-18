@@ -18,7 +18,7 @@ import (
 var config struct {
 	socketName string
 	spareGB    uint64
-	vgPrefix string
+	vgPrefix   string
 }
 
 const (
@@ -65,7 +65,7 @@ func subMain() error {
 	grpcServer := grpc.NewServer()
 	vgService, notifier := lvmd.NewVGService(config.spareGB, config.vgPrefix)
 	proto.RegisterVGServiceServer(grpcServer, vgService)
-	proto.RegisterLVServiceServer(grpcServer, lvmd.NewLVService(config.vgPrefix,notifier))
+	proto.RegisterLVServiceServer(grpcServer, lvmd.NewLVService(config.vgPrefix, notifier))
 	well.Go(func(ctx context.Context) error {
 		return grpcServer.Serve(lis)
 	})

@@ -24,7 +24,7 @@ func NewVGService(spareGB uint64, vgPrefix string) (proto.VGServiceServer, func(
 }
 
 type vgService struct {
-	spare uint64
+	spare    uint64
 	vgPrefix string
 
 	mu             sync.Mutex
@@ -90,18 +90,18 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 	if err != nil {
 		return err
 	}
-	res :=  &proto.WatchResponse{}
-	for _, vg := range vgs{
+	res := &proto.WatchResponse{}
+	for _, vg := range vgs {
 		vgFree, err := vg.Free()
 		if err != nil {
 			return status.Error(codes.Internal, err.Error())
 		}
-		if !strings.HasPrefix(vg.Name(), s.vgPrefix){
+		if !strings.HasPrefix(vg.Name(), s.vgPrefix) {
 			continue
 		}
 		vgName := vg.Name()[len(s.vgPrefix):]
 		res.Items = append(res.Items, &proto.WatchItem{
-			VgName: vgName,
+			VgName:    vgName,
 			FreeBytes: vgFree,
 		})
 	}

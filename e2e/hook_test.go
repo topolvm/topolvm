@@ -129,20 +129,22 @@ spec:
 			}
 
 			resources := pod.Spec.Containers[0].Resources
-			v, ok := resources.Limits[topolvm.CapacityResource]
+			_, ok := resources.Limits[topolvm.CapacityResource]
 			if !ok {
 				return errors.New("resources.Limits is not mutated")
 			}
-			if v.Value() != 3<<30 {
-				return fmt.Errorf("wrong limit value: actual=%d, expect=%d", v.Value(), 3<<30)
-			}
 
-			v, ok = resources.Requests[topolvm.CapacityResource]
+			_, ok = resources.Requests[topolvm.CapacityResource]
 			if !ok {
 				return errors.New("resources.Requests is not mutated")
 			}
-			if v.Value() != 3<<30 {
-				return fmt.Errorf("wrong request value: actual=%d, expect=%d", v.Value(), 3<<30)
+
+			capacity, ok := pod.Annotations[topolvm.CapacityKey+"-myvg1"]
+			if !ok {
+				return errors.New("not annotated")
+			}
+			if capacity != strconv.Itoa(3<<30) {
+				return fmt.Errorf("wrong capacity: actual=%s, expect=%d", capacity, 3<<30)
 			}
 
 			return nil
@@ -266,20 +268,22 @@ spec:
 			}
 
 			resources := pod.Spec.Containers[0].Resources
-			v, ok := resources.Limits[topolvm.CapacityResource]
+			_, ok := resources.Limits[topolvm.CapacityResource]
 			if !ok {
 				return errors.New("resources.Limits is not mutated")
 			}
-			if v.Value() != 5<<30 {
-				return fmt.Errorf("wrong limit value: actual=%d, expect=%d", v.Value(), 5<<30)
-			}
 
-			v, ok = resources.Requests[topolvm.CapacityResource]
+			_, ok = resources.Requests[topolvm.CapacityResource]
 			if !ok {
 				return errors.New("resources.Requests is not mutated")
 			}
-			if v.Value() != 5<<30 {
-				return fmt.Errorf("wrong request value: actual=%d, expect=%d", v.Value(), 5<<30)
+
+			capacity, ok := pod.Annotations[topolvm.CapacityKey+"-myvg1"]
+			if !ok {
+				return errors.New("not annotated")
+			}
+			if capacity != strconv.Itoa(5<<30) {
+				return fmt.Errorf("wrong capacity: actual=%s, expect=%d", capacity, 5<<30)
 			}
 
 			return nil
