@@ -13,13 +13,13 @@ import (
 // NewLVService creates a new LVServiceServer
 func NewLVService(vgPrefix string, notifyFunc func()) proto.LVServiceServer {
 	return lvService{
-		vgPrefix: vgPrefix,
+		vgPrefix:   vgPrefix,
 		notifyFunc: notifyFunc,
 	}
 }
 
 type lvService struct {
-	vgPrefix string
+	vgPrefix   string
 	notifyFunc func()
 }
 

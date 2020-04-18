@@ -90,7 +90,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 		// - https://github.com/container-storage-interface/spec/blob/release-1.1/spec.md#createvolume
 		// - https://github.com/kubernetes-csi/csi-test/blob/6738ab2206eac88874f0a3ede59b40f680f59f43/pkg/sanity/controller.go#L404-L428
 		ctrlLogger.Info("decide node because accessibility_requirements not found")
-		nodeName, capacity, err := s.nodeService.GetMaxCapacity(ctx)
+		nodeName, capacity, err := s.nodeService.GetMaxCapacity(ctx, vg)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to get max capacity node %v", err)
 		}
@@ -357,8 +357,13 @@ func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.
 			NodeExpansionRequired: true,
 		}, nil
 	}
-
-	capacity, err := s.nodeService.GetCapacityByName(ctx, lv.Spec.NodeName)
+	var vgName string
+	if len(lv.Spec.VGName) == 0 {
+		vgName = s.defaultVG
+	} else {
+		vgName = lv.Spec.VGName
+	}
+	capacity, err := s.nodeService.GetCapacityByName(ctx, lv.Spec.NodeName, vgName)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}

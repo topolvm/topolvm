@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/cybozu-go/topolvm"
 	corev1 "k8s.io/api/core/v1"
@@ -34,23 +35,39 @@ func (s NodeService) getNodes(ctx context.Context) (*corev1.NodeList, error) {
 	return nl, nil
 }
 
-func (s NodeService) extractCapacityFromAnnotation(node *corev1.Node) (int64, error) {
-	c, ok := node.Annotations[topolvm.CapacityKey]
+func (s NodeService) extractCapacityFromAnnotation(node *corev1.Node, vgName string) (int64, error) {
+	c, ok := node.Annotations[topolvm.CapacityKey+"-"+vgName]
 	if !ok {
-		return 0, fmt.Errorf("%s is not found", topolvm.CapacityKey)
+		return 0, fmt.Errorf("%s is not found", topolvm.CapacityKey+"-"+vgName)
 	}
 	return strconv.ParseInt(c, 10, 64)
 }
 
+//TODO:
+func (s NodeService) extractTotalCapacityFromAnnotation(node *corev1.Node) (int64, error) {
+	var total int64
+	for k, v := range node.Annotations {
+		if !strings.HasPrefix(k, topolvm.CapacityKey) {
+			continue
+		}
+		c, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return 0, err
+		}
+		total += c
+	}
+	return total, nil
+}
+
 // GetCapacityByName returns VG capacity of specified node by name.
-func (s NodeService) GetCapacityByName(ctx context.Context, name string) (int64, error) {
+func (s NodeService) GetCapacityByName(ctx context.Context, name, vgName string) (int64, error) {
 	n := new(corev1.Node)
 	err := s.Get(ctx, client.ObjectKey{Name: name}, n)
 	if err != nil {
 		return 0, err
 	}
 
-	return s.extractCapacityFromAnnotation(n)
+	return s.extractCapacityFromAnnotation(n, vgName)
 }
 
 // GetCapacityByTopologyLabel returns VG capacity of specified node by TopoLVM's topology label.
@@ -65,7 +82,7 @@ func (s NodeService) GetCapacityByTopologyLabel(ctx context.Context, topology st
 			if v != topology {
 				continue
 			}
-			return s.extractCapacityFromAnnotation(&node)
+			return s.extractTotalCapacityFromAnnotation(&node)
 		}
 	}
 
@@ -81,14 +98,14 @@ func (s NodeService) GetTotalCapacity(ctx context.Context) (int64, error) {
 
 	capacity := int64(0)
 	for _, node := range nl.Items {
-		c, _ := s.extractCapacityFromAnnotation(&node)
+		c, _ := s.extractTotalCapacityFromAnnotation(&node)
 		capacity += c
 	}
 	return capacity, nil
 }
 
 // GetMaxCapacity returns max VG capacity among nodes.
-func (s NodeService) GetMaxCapacity(ctx context.Context) (string, int64, error) {
+func (s NodeService) GetMaxCapacity(ctx context.Context, vgName string) (string, int64, error) {
 	nl, err := s.getNodes(ctx)
 	if err != nil {
 		return "", 0, err
@@ -96,7 +113,7 @@ func (s NodeService) GetMaxCapacity(ctx context.Context) (string, int64, error) 
 	var nodeName string
 	var maxCapacity int64
 	for _, node := range nl.Items {
-		c, _ := s.extractCapacityFromAnnotation(&node)
+		c, _ := s.extractCapacityFromAnnotation(&node, vgName)
 		if maxCapacity < c {
 			maxCapacity = c
 			nodeName = node.Name

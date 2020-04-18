@@ -36,7 +36,7 @@ func run(stopCh <-chan struct{}, cfg *rest.Config, scheme *runtime.Scheme, opts 
 
 	dec, _ := admission.NewDecoder(scheme)
 	wh := mgr.GetWebhookServer()
-	wh.Register(podMutatingWebhookPath, &webhook.Admission{Handler: podMutator{mgr.GetClient(), dec}})
+	wh.Register(podMutatingWebhookPath, &webhook.Admission{Handler: podMutator{mgr.GetClient(), dec, "myvg1"}})
 	wh.Register(pvcMutatingWebhookPath, &webhook.Admission{Handler: persistentVolumeClaimMutator{mgr.GetClient(), dec}})
 
 	if err := mgr.Start(stopCh); err != nil {

@@ -39,6 +39,9 @@ func scoreNodes(pod *corev1.Pod, nodes []corev1.Node, divisor float64) []HostPri
 			vgs = append(vgs, k[len(topolvm.CapacityKey)+1:])
 		}
 	}
+	if len(vgs) == 0 {
+		return nil
+	}
 
 	for i, item := range nodes {
 		var score int

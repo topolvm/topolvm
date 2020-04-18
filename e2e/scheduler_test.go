@@ -102,6 +102,8 @@ metadata:
   namespace: %s
   labels:
     app.kubernetes.io/name: testhttpd
+  annotations:
+    topolvm.cybozu.com/capacity-myvg1: "21474836480"
 spec:
   containers:
   - name: ubuntu
@@ -109,9 +111,9 @@ spec:
     command: ["/usr/local/bin/pause"]
     resources:
       requests:
-        topolvm.cybozu.com/capacity: 20Gi
+        topolvm.cybozu.com/capacity: 1
       limits:
-        topolvm.cybozu.com/capacity: 20Gi
+        topolvm.cybozu.com/capacity: 1
 `, ns)
 		stdout, stderr, err := kubectlWithInput([]byte(podYml), "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)

@@ -92,12 +92,17 @@ func (m podMutator) Handle(ctx context.Context, req admission.Request) admission
 		ctnr.Resources.Limits = corev1.ResourceList{}
 	}
 
+	pod.Annotations = make(map[string]string)
 	ctnr.Resources.Limits[topolvm.CapacityResource] = *quantity
-	for vg, cap := range pvcCapacities {
-		pod.Annotations[topolvm.CapacityKey+"-"+vg] = strconv.FormatInt(cap, 10)
+	for vg, capacity := range pvcCapacities {
+		pod.Annotations[topolvm.CapacityKey+"-"+vg] = strconv.FormatInt(capacity, 10)
 	}
 	if ephemeralCapacity != 0 {
-		pod.Annotations[topolvm.CapacityKey+"-"+m.defaultVG] = strconv.FormatInt(ephemeralCapacity, 10)
+		if capacity, ok := pvcCapacities[m.defaultVG]; ok {
+			pod.Annotations[topolvm.CapacityKey+"-"+m.defaultVG] = strconv.FormatInt(capacity+ephemeralCapacity, 10)
+		} else {
+			pod.Annotations[topolvm.CapacityKey+"-"+m.defaultVG] = strconv.FormatInt(ephemeralCapacity, 10)
+		}
 	}
 
 	marshaledPod, err := json.Marshal(pod)

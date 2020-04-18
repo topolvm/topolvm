@@ -846,7 +846,7 @@ spec:
 			if err != nil {
 				return fmt.Errorf("failed to get volume size. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
 			}
-			dfFields := strings.Fields((string(stdout)))
+			dfFields := strings.Fields(string(stdout))
 			volSize, err := strconv.Atoi(dfFields[1])
 			if err != nil {
 				return fmt.Errorf("failed to convert volume size string. stdout: %s, err: %v", stdout, err)
