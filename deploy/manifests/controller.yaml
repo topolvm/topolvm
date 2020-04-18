@@ -307,6 +307,7 @@ spec:
           command:
             - /topolvm-controller
             - --cert-dir=/certs
+            - --default-vg=$(DEFAULT_VG)
           ports:
             - containerPort: 9808
               name: healthz
@@ -324,6 +325,12 @@ spec:
             initialDelaySeconds: 10
             timeoutSeconds: 3
             periodSeconds: 60
+          env:
+            - name: DEFAULT_VG
+              valueFrom:
+                configMapKeyRef:
+                  name: topolvm-config
+                  key: default-vg
           volumeMounts:
             - name: socket-dir
               mountPath: /run/topolvm

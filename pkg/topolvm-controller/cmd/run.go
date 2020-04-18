@@ -78,7 +78,7 @@ func subMain() error {
 	// admissoin.NewDecoder never returns non-nil error
 	dec, _ := admission.NewDecoder(scheme)
 	wh := mgr.GetWebhookServer()
-	wh.Register("/pod/mutate", hook.PodMutator(mgr.GetClient(), dec))
+	wh.Register("/pod/mutate", hook.PodMutator(mgr.GetClient(), dec, config.defaultVG))
 	wh.Register("/pvc/mutate", hook.PVCMutator(mgr.GetClient(), dec))
 
 	// register controllers
@@ -167,7 +167,7 @@ func subMain() error {
 
 	grpcServer := grpc.NewServer()
 	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityService(checker.Ready))
-	csi.RegisterControllerServer(grpcServer, driver.NewControllerService(s, n))
+	csi.RegisterControllerServer(grpcServer, driver.NewControllerService(s, n, config.defaultVG))
 
 	// gRPC service itself should run even when the manager is *not* a leader
 	// because CSI sidecar containers choose a leader.

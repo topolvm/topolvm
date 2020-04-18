@@ -43,12 +43,12 @@ func scoreNodes(pod *corev1.Pod, nodes []corev1.Node, divisor float64) []HostPri
 	for i, item := range nodes {
 		var score int
 		for _, vg := range vgs {
-			if val, ok := item.Annotations[topolvm.CapacityKey + "-" + vg]; ok {
+			if val, ok := item.Annotations[topolvm.CapacityKey+"-"+vg]; ok {
 				capacity, _ := strconv.ParseUint(val, 10, 64)
 				score += capacityToScore(capacity, divisor)
 			}
 		}
-		result[i] = HostPriority{Host: item.Name, Score: score/ len(vgs)}
+		result[i] = HostPriority{Host: item.Name, Score: score / len(vgs)}
 	}
 
 	return result
