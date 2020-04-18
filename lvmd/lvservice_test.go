@@ -41,9 +41,10 @@ func TestLVService(t *testing.T) {
 	notifier := func() {
 		count++
 	}
-	lvService := NewLVService(notifier)
+	lvService := NewLVService("", notifier)
 	res, err := lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
 		Name:   "test1",
+		VgName: vgName,
 		SizeGb: 1,
 		Tags:   []string{"testtag1", "testtag2"},
 	})
@@ -76,7 +77,7 @@ func TestLVService(t *testing.T) {
 
 	_, err = lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
 		Name:   "test2",
-		VgName: "myvg1",
+		VgName: vgName,
 		SizeGb: 3,
 	})
 	code := status.Code(err)
@@ -89,6 +90,7 @@ func TestLVService(t *testing.T) {
 
 	_, err = lvService.ResizeLV(context.Background(), &proto.ResizeLVRequest{
 		Name:   "test1",
+		VgName: vgName,
 		SizeGb: 2,
 	})
 	if err != nil {
@@ -107,6 +109,7 @@ func TestLVService(t *testing.T) {
 
 	_, err = lvService.ResizeLV(context.Background(), &proto.ResizeLVRequest{
 		Name:   "test1",
+		VgName: vgName,
 		SizeGb: 5,
 	})
 	code = status.Code(err)
@@ -118,7 +121,8 @@ func TestLVService(t *testing.T) {
 	}
 
 	_, err = lvService.RemoveLV(context.Background(), &proto.RemoveLVRequest{
-		Name: "test1",
+		Name:   "test1",
+		VgName: vgName,
 	})
 	if err != nil {
 		t.Error(err)

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: topolvm-config
+  namespace: topolvm-system
+data:
+  default-vg: myvg1

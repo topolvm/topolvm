@@ -584,7 +584,7 @@ spec:
 				continue
 			}
 
-			strCap, ok := node.Annotations[topolvm.CapacityKey]
+			strCap, ok := node.Annotations[topolvm.CapacityKey+"-myvg1"]
 			Expect(ok).To(Equal(true), "capacity is not annotated: "+node.Name)
 			capacity, err := strconv.Atoi(strCap)
 			Expect(err).ShouldNot(HaveOccurred())

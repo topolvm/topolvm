@@ -26,13 +26,14 @@ var pmLogger = logf.Log.WithName("pod-mutator")
 
 // podMutator mutates pods using PVC for TopoLVM.
 type podMutator struct {
-	client  client.Client
-	decoder *admission.Decoder
+	client    client.Client
+	decoder   *admission.Decoder
+	defaultVG string
 }
 
 // PodMutator creates a mutating webhook for Pods.
-func PodMutator(c client.Client, dec *admission.Decoder) http.Handler {
-	return &webhook.Admission{Handler: podMutator{c, dec}}
+func PodMutator(c client.Client, dec *admission.Decoder, defaultVG string) http.Handler {
+	return &webhook.Admission{Handler: podMutator{c, dec, defaultVG}}
 }
 
 // Handle implements admission.Handler interface.
@@ -76,7 +77,7 @@ func (m podMutator) Handle(ctx context.Context, req admission.Request) admission
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
-	if len(pvcCapacities) == 0 && ephemeralCapacity == 0{
+	if len(pvcCapacities) == 0 && ephemeralCapacity == 0 {
 		return admission.Allowed("no request for TopoLVM")
 	}
 
@@ -93,11 +94,10 @@ func (m podMutator) Handle(ctx context.Context, req admission.Request) admission
 
 	ctnr.Resources.Limits[topolvm.CapacityResource] = *quantity
 	for vg, cap := range pvcCapacities {
-		pod.Annotations[topolvm.CapacityKey + "-" + vg] = strconv.FormatInt(cap, 10)
+		pod.Annotations[topolvm.CapacityKey+"-"+vg] = strconv.FormatInt(cap, 10)
 	}
 	if ephemeralCapacity != 0 {
-		//TODO: get default vg name form configmap and use it
-		pod.Annotations[topolvm.CapacityKey + "-ephemeral"] = strconv.FormatInt(ephemeralCapacity, 10)
+		pod.Annotations[topolvm.CapacityKey+"-"+m.defaultVG] = strconv.FormatInt(ephemeralCapacity, 10)
 	}
 
 	marshaledPod, err := json.Marshal(pod)
@@ -108,23 +108,23 @@ func (m podMutator) Handle(ctx context.Context, req admission.Request) admission
 	return admission.PatchResponseFromRaw(req.Object.Raw, marshaledPod)
 }
 
-func (m podMutator) targetStorageClasses(ctx context.Context) (map[string]bool, error) {
+func (m podMutator) targetStorageClasses(ctx context.Context) (map[string]storagev1.StorageClass, error) {
 	var scl storagev1.StorageClassList
 	if err := m.client.List(ctx, &scl); err != nil {
 		return nil, err
 	}
 
-	targets := make(map[string]bool)
+	targets := make(map[string]storagev1.StorageClass)
 	for _, sc := range scl.Items {
 		if sc.Provisioner != topolvm.PluginName {
 			continue
 		}
-		targets[sc.Name] = true
+		targets[sc.Name] = sc
 	}
 	return targets, nil
 }
 
-func (m podMutator) requestedPVCCapacity(ctx context.Context, pod *corev1.Pod, targets map[string]bool) (map[string]int64, error) {
+func (m podMutator) requestedPVCCapacity(ctx context.Context, pod *corev1.Pod, targets map[string]storagev1.StorageClass) (map[string]int64, error) {
 	capacities := make(map[string]int64)
 	for _, vol := range pod.Spec.Volumes {
 		if vol.PersistentVolumeClaim == nil {
@@ -160,7 +160,8 @@ func (m podMutator) requestedPVCCapacity(ctx context.Context, pod *corev1.Pod, t
 			// https://kubernetes.io/docs/concepts/storage/persistent-volumes/#class-1
 			continue
 		}
-		if !targets[*pvc.Spec.StorageClassName] {
+		sc, ok := targets[*pvc.Spec.StorageClassName]
+		if !ok {
 			continue
 		}
 
@@ -176,12 +177,16 @@ func (m podMutator) requestedPVCCapacity(ctx context.Context, pod *corev1.Pod, t
 				requested = ((req.Value()-1)>>30 + 1) << 30
 			}
 		}
-		total, ok := capacities[*pvc.Spec.StorageClassName]
+		vgName, ok := sc.Parameters[topolvm.VolumeGroupKey]
+		if !ok {
+			vgName = m.defaultVG
+		}
+		total, ok := capacities[vgName]
 		if !ok {
 			total = 0
 		}
 		total += requested
-		capacities[*pvc.Spec.StorageClassName] = total
+		capacities[vgName] = total
 	}
 	return capacities, nil
 }

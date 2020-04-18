@@ -17,22 +17,22 @@ import (
 var ctrlLogger = logf.Log.WithName("driver").WithName("controller")
 
 // NewControllerService returns a new ControllerServer.
-func NewControllerService(lvService *k8s.LogicalVolumeService, nodeService *k8s.NodeService) csi.ControllerServer {
-	return &controllerService{lvService: lvService, nodeService: nodeService}
+func NewControllerService(lvService *k8s.LogicalVolumeService, nodeService *k8s.NodeService, defaultVG string) csi.ControllerServer {
+	return &controllerService{lvService: lvService, nodeService: nodeService, defaultVG: defaultVG}
 }
 
 type controllerService struct {
 	lvService   *k8s.LogicalVolumeService
 	nodeService *k8s.NodeService
+	defaultVG   string
 }
 
 func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	capabilities := req.GetVolumeCapabilities()
 	source := req.GetVolumeContentSource()
-	vg, ok := req.Parameters["topolvm.cybozu.com/volume-group"]
+	vg, ok := req.Parameters[topolvm.VolumeGroupKey]
 	if !ok {
-		//TODO: get default vg name from configmap and use it
-		return nil, status.Error(codes.InvalidArgument, "topolvm.cybozu.com/volume-group not found")
+		vg = s.defaultVG
 	}
 
 	ctrlLogger.Info("CreateVolume called",

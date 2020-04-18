@@ -2,6 +2,7 @@ package lvmd
 
 import (
 	"context"
+	"strings"
 	"sync"
 
 	"github.com/cybozu-go/log"
@@ -94,6 +95,9 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 		vgFree, err := vg.Free()
 		if err != nil {
 			return status.Error(codes.Internal, err.Error())
+		}
+		if !strings.HasPrefix(vg.Name(), s.vgPrefix){
+			continue
 		}
 		vgName := vg.Name()[len(s.vgPrefix):]
 		res.Items = append(res.Items, &proto.WatchItem{

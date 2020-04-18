@@ -75,6 +75,7 @@ func subMain() error {
 		mgr.GetClient(),
 		ctrl.Log.WithName("controllers").WithName("LogicalVolume"),
 		nodename,
+		config.defaultVG,
 		conn,
 	)
 

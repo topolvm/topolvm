@@ -142,7 +142,7 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 			// guarantee that NodePublishVolume will be called again, so if
 			// anything fails after the volume is created we need to attempt to
 			// clean up the LVM so we don't leak storage space.
-			if _, err = s.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: volumeID}); err != nil {
+			if _, err = s.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: volumeID, VgName: lv.VgName}); err != nil {
 				return nil, status.Errorf(codes.Internal, "failed to remove LV for %s: %v", volumeID, err)
 			}
 		}
@@ -267,10 +267,11 @@ func (s *nodeService) getLvFromContext(ctx context.Context, volumeID string) (*p
 		vgName = s.defaultVG
 	} else if err != nil {
 		return nil, err
+	} else {
+		vgName = lv.Spec.VGName
 	}
-	vgName = lv.Spec.VGName
 
-	listResp, err := s.client.GetLVList(ctx, &proto.GetLVListRequest{VgName: vgName}) //
+	listResp, err := s.client.GetLVList(ctx, &proto.GetLVListRequest{VgName: vgName})
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list LV: %v", err)
 	}
@@ -316,7 +317,7 @@ func (s *nodeService) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 			return nil, err
 		}
 		if volume != nil && s.isEphemeralVolume(volume) {
-			if _, err = s.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: volID}); err != nil {
+			if _, err = s.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: volID, VgName: volume.VgName}); err != nil {
 				return nil, status.Errorf(codes.Internal, "failed to remove LV for %s: %v", volID, err)
 			}
 		}

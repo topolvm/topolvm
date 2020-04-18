@@ -22,6 +22,7 @@ type LogicalVolumeReconciler struct {
 	client.Client
 	log       logr.Logger
 	nodeName  string
+	defaultVG string
 	vgService proto.VGServiceClient
 	lvService proto.LVServiceClient
 }
@@ -30,11 +31,12 @@ type LogicalVolumeReconciler struct {
 // +kubebuilder:rbac:groups=topolvm.cybozu.com,resources=logicalvolumes/status,verbs=get;update;patch
 
 // NewLogicalVolumeReconciler returns LogicalVolumeReconciler with creating lvService and vgService.
-func NewLogicalVolumeReconciler(client client.Client, log logr.Logger, nodeName string, conn *grpc.ClientConn) *LogicalVolumeReconciler {
+func NewLogicalVolumeReconciler(client client.Client, log logr.Logger, nodeName, defaultVG string, conn *grpc.ClientConn) *LogicalVolumeReconciler {
 	return &LogicalVolumeReconciler{
 		Client:    client,
 		log:       log,
 		nodeName:  nodeName,
+		defaultVG: defaultVG,
 		vgService: proto.NewVGServiceClient(conn),
 		lvService: proto.NewLVServiceClient(conn),
 	}
@@ -117,9 +119,15 @@ func (r *LogicalVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *LogicalVolumeReconciler) removeLVIfExists(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) error {
+	var vgName string
+	if len(lv.Spec.VGName) == 0 {
+		vgName = r.defaultVG
+	} else {
+		vgName = lv.Spec.VGName
+	}
 	// Finalizer's process ( RemoveLV then removeString ) is not atomic,
 	// so checking existence of LV to ensure its idempotence
-	respList, err := r.vgService.GetLVList(ctx, &proto.GetLVListRequest{VgName: lv.Spec.VGName})
+	respList, err := r.vgService.GetLVList(ctx, &proto.GetLVListRequest{VgName: vgName})
 	if err != nil {
 		log.Error(err, "failed to list LV")
 		return err
@@ -129,7 +137,7 @@ func (r *LogicalVolumeReconciler) removeLVIfExists(ctx context.Context, log logr
 		if v.Name != string(lv.UID) {
 			continue
 		}
-		_, err := r.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: string(lv.UID)})
+		_, err := r.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: string(lv.UID), VgName: vgName})
 		if err != nil {
 			log.Error(err, "failed to remove LV", "name", lv.Name, "uid", lv.UID)
 			return err
@@ -142,7 +150,13 @@ func (r *LogicalVolumeReconciler) removeLVIfExists(ctx context.Context, log logr
 }
 
 func (r *LogicalVolumeReconciler) volumeExists(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) (bool, error) {
-	respList, err := r.vgService.GetLVList(ctx, &proto.GetLVListRequest{VgName: lv.Spec.VGName})
+	var vgName string
+	if len(lv.Spec.VGName) == 0 {
+		vgName = r.defaultVG
+	} else {
+		vgName = lv.Spec.VGName
+	}
+	respList, err := r.vgService.GetLVList(ctx, &proto.GetLVListRequest{VgName: vgName})
 	if err != nil {
 		log.Error(err, "failed to get list of LV")
 		return false, err
@@ -165,6 +179,12 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 	}
 
 	reqBytes := lv.Spec.Size.Value()
+	var vgName string
+	if len(lv.Spec.VGName) == 0 {
+		vgName = r.defaultVG
+	} else {
+		vgName = lv.Spec.VGName
+	}
 
 	err := func() error {
 		// In case the controller crashed just after LVM LV creation, LV may already exist.
@@ -182,7 +202,7 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 			return nil
 		}
 
-		resp, err := r.lvService.CreateLV(ctx, &proto.CreateLVRequest{Name: string(lv.UID), VgName: lv.Spec.VGName, SizeGb: uint64(reqBytes >> 30)})
+		resp, err := r.lvService.CreateLV(ctx, &proto.CreateLVRequest{Name: string(lv.UID), VgName: vgName, SizeGb: uint64(reqBytes >> 30)})
 		if err != nil {
 			code, message := extractFromError(err)
 			log.Error(err, message)
@@ -229,9 +249,15 @@ func (r *LogicalVolumeReconciler) expandLV(ctx context.Context, log logr.Logger,
 
 	origBytes := (*lv.Status.CurrentSize).Value()
 	reqBytes := lv.Spec.Size.Value()
+	var vgName string
+	if len(lv.Spec.VGName) == 0 {
+		vgName = r.defaultVG
+	} else {
+		vgName = lv.Spec.VGName
+	}
 
 	err := func() error {
-		_, err := r.lvService.ResizeLV(ctx, &proto.ResizeLVRequest{Name: string(lv.UID), SizeGb: uint64(reqBytes >> 30)})
+		_, err := r.lvService.ResizeLV(ctx, &proto.ResizeLVRequest{Name: string(lv.UID), SizeGb: uint64(reqBytes >> 30), VgName: vgName})
 		if err != nil {
 			code, message := extractFromError(err)
 			log.Error(err, message)

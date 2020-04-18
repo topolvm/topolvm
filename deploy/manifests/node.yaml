@@ -62,6 +62,7 @@ spec:
           command:
             - /topolvm-node
             - --lvmd-socket=/run/lvmd/lvmd.sock
+            - --default-vg=$(DEFAULT_VG)
           ports:
             - containerPort: 9808
               name: healthz
@@ -79,6 +80,11 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            - name: DEFAULT_VG
+              valueFrom:
+                configMapKeyRef:
+                  name: topolvm-config
+                  key: default-vg
           volumeMounts:
             - name: node-plugin-dir
               mountPath: /run/topolvm
