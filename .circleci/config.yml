@@ -119,6 +119,7 @@ jobs:
   e2e-k8s-v1_17:
     machine:
       image: ubuntu-1604:201903-01
+    resource_class: large
     working_directory: /home/circleci/work
     steps:
       - checkout
@@ -127,6 +128,7 @@ jobs:
   e2e-k8s-v1_16:
     machine:
       image: ubuntu-1604:201903-01
+    resource_class: large
     working_directory: /home/circleci/work
     steps:
       - checkout
@@ -135,6 +137,7 @@ jobs:
   e2e-k8s-v1_15:
     machine:
       image: ubuntu-1604:201903-01
+    resource_class: large
     working_directory: /home/circleci/work
     steps:
       - checkout
