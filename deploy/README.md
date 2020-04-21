@@ -150,7 +150,7 @@ spec:
       serviceAccountName: topolvm-scheduler
       containers:
         - name: topolvm-scheduler
-          image: quay.io/cybozu/topolvm:0.4.5
+          image: quay.io/cybozu/topolvm:0.4.6
           command:
             - /topolvm-scheduler
             - --listen=:9251
