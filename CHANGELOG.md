@@ -7,6 +7,12 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.4.6] - 2020-04-21
+
+### Changed
+
+- Update client-go and controller-runtime (#135).
+
 ## [0.4.5] - 2020-04-16
 
 Nothing changed.
@@ -111,7 +117,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/cybozu-go/topolvm/compare/v0.4.5...HEAD
+[Unreleased]: https://github.com/cybozu-go/topolvm/compare/v0.4.6...HEAD
+[0.4.6]: https://github.com/cybozu-go/topolvm/compare/v0.4.5...v0.4.6
 [0.4.5]: https://github.com/cybozu-go/topolvm/compare/v0.4.4...v0.4.5
 [0.4.4]: https://github.com/cybozu-go/topolvm/compare/v0.4.3...v0.4.4
 [0.4.3]: https://github.com/cybozu-go/topolvm/compare/v0.4.2...v0.4.3
