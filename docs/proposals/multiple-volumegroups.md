@@ -49,20 +49,20 @@ kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: topolvm-provisioner-hdd
-provisioner: topolvm.cybozu.com
+provisioner: topolvm.io
 parameters:
   "csi.storage.k8s.io/fstype": "xfs"
-  "topolvm.cybozu.com/volume-group": "hdd"
+  "topolvm.io/volume-group": "hdd"
 volumeBindingMode: WaitForFirstConsumer
 ---
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: topolvm-provisioner-ssd
-provisioner: topolvm.cybozu.com
+provisioner: topolvm.io
 parameters:
   "csi.storage.k8s.io/fstype": "xfs"
-  "topolvm.cybozu.com/volume-group": "ssd"
+  "topolvm.io/volume-group": "ssd"
 volumeBindingMode: WaitForFirstConsumer
 ```
 
@@ -83,7 +83,7 @@ metdta:
     topolvm.cybozu.com/capacity: "1073741824"
 ```
 
-This proposal will change annotation to `capacity.topolvm.cybozu.com/<volume group>` as follows 
+This proposal will change annotation to `capacity.topolvm.io/<volume group>` as follows 
 to expose the capacity of each node:
 
 ```yaml
@@ -91,9 +91,9 @@ kind: Node
 metdta:
   name: wroker-1
   annotations:
-    capacity.topolvm.cybozu.com/vg1: "1073741824"
-    capacity.topolvm.cybozu.com/vg2: "1073741824"
-    capacity.topolvm.cybozu.com/vg3: "1073741824"
+    capacity.topolvm.io/vg1: "1073741824"
+    capacity.topolvm.io/vg2: "1073741824"
+    capacity.topolvm.io/vg3: "1073741824"
 ```
 
 ### How to annotate resources
@@ -134,7 +134,7 @@ There are two possible designs to manage capacities of multiple volume groups as
 
 #### 1) insert multiple resources
 
-This proposal would insert `capacity.topolvm.cybozu.com/<volme gurp>` as follows:
+This proposal would insert `capacity.topolvm.io/<volme gurp>` as follows:
 
 ```yaml
 spec:
@@ -142,13 +142,13 @@ spec:
   - name: testhttpd
     resources:
       limits:
-        capacity.topolvm.cybozu.com/vg1: "1073741824"
-        capacity.topolvm.cybozu.com/vg2: "1073741824"
-        capacity.topolvm.cybozu.com/vg3: "1073741824"
+        capacity.topolvm.io/vg1: "1073741824"
+        capacity.topolvm.io/vg2: "1073741824"
+        capacity.topolvm.io/vg3: "1073741824"
       requests:
-        capacity.topolvm.cybozu.com/vg1: "1073741824"
-        capacity.topolvm.cybozu.com/vg2: "1073741824"
-        capacity.topolvm.cybozu.com/vg3: "1073741824"
+        capacity.topolvm.io/vg1: "1073741824"
+        capacity.topolvm.io/vg2: "1073741824"
+        capacity.topolvm.io/vg3: "1073741824"
 ```
 
 Then users should modify the scheduler policy as follows:
@@ -162,15 +162,15 @@ Then users should modify the scheduler policy as follows:
         "prioritizeVerb": "prioritize",
         "managedResources":
         [{
-          "name": "capacity.topolvm.cybozu.com/vg1",
+          "name": "capacity.topolvm.io/vg1",
           "ignoredByScheduler": true
         },
         {
-          "name": "capacity.topolvm.cybozu.com/vg2",
+          "name": "capacity.topolvm.io/vg2",
           "ignoredByScheduler": true
         },
         {
-          "name": "capacity.topolvm.cybozu.com/vg3",
+          "name": "capacity.topolvm.io/vg3",
           "ignoredByScheduler": true
         }],
         "nodeCacheCapable": false
@@ -193,25 +193,25 @@ Cons:
 
 #### 2) insert multiple annotations
 
-This proposal would insert `topolvm.cybozu.com/capacity` to resources and `capacity.topolvm.cybozu.com/<volme gurp>` annotation as follows:
+This proposal would insert `topolvm.io/capacity` to resources and `capacity.topolvm.io/<volme gurp>` annotation as follows:
 
 ```yaml
 metdta:
   annotations:
-    capacity.topolvm.cybozu.com/vg1: "1073741824"
-    capacity.topolvm.cybozu.com/vg2: "1073741824"
-    capacity.topolvm.cybozu.com/vg3: "1073741824"
+    capacity.topolvm.io/vg1: "1073741824"
+    capacity.topolvm.io/vg2: "1073741824"
+    capacity.topolvm.io/vg3: "1073741824"
 spec:
   containers:
   - name: testhttpd
     resources:
       limits:
-        topolvm.cybozu.com/capacity: "1"
+        topolvm.io/capacity: "1"
       requests:
-        topolvm.cybozu.com/capacity: "1"
+        topolvm.io/capacity: "1"
 ```
 
-The values of `topolvm.cybozu.com/capacity` don't matter.
+The values of `topolvm.io/capacity` don't matter.
 
 Users shouldn't modify the scheduler policy.
 
