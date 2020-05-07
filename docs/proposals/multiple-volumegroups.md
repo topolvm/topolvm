@@ -36,9 +36,6 @@ users may want to prepare and use volume groups for each storage type.
 - Use the default volume group for ephemeral inline volumes
 - Keep backward compatibility through the default volume group
 
-### Non-Goals
-
-
 ## Proposal
 
 This proposal make it possible to specify a name of volume group
@@ -228,6 +225,11 @@ Pros:
 Cons:
 - Cannot calculate the score by specifying weight for each volume group
 
+#### Decision outcome
+
+Choose options: [1) insert multiple resources](#1-insert-multiple-resources),
+because we want to calculate the score correctly by `divisor` parameters for each volume group.
+
 ### The default volume group
 
 The current TopoLVM can handle only a single volume group.
@@ -249,8 +251,7 @@ data:
 
 This approach will help maintain compatibility.
 
-Also, If [1) insert multiple resources](#1-insert-multiple-resources) is adopted, 
-the ConfigMap can contain `divisor` parameter for each volume group.
+Also, the ConfigMap can contain `divisor` parameter for each volume group.
   
 ```yaml
 apiVersion: v1
@@ -272,10 +273,6 @@ The name of volume group for Ephemeral Volume cannot be specified,
 because Ephemeral Volume doesn't have StorageClass.
 
 This proposal would use the default volume group to create a logical volume for Ephemeral Volume.
-
-### Test Plan
-
-T.B.D.
 
 ### Upgrade / Downgrade Strategy
 
