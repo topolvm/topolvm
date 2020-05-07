@@ -21,6 +21,10 @@ spec:
     name: webhook-selfsign
   commonName: "ca.webhook.topolvm"
   isCA: true
+  usages:
+  - digital signature
+  - key encipherment
+  - cert sign
 ---
 # Create an Issuer that uses the above generated CA certificate to issue certs
 apiVersion: cert-manager.io/v1alpha3
@@ -47,3 +51,8 @@ spec:
   - controller
   - controller.topolvm-system
   - controller.topolvm-system.svc
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+  - client auth
