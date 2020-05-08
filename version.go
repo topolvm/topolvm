@@ -2,5 +2,5 @@ package topolvm
 
 const (
 	// Version is the topolvm version
-	Version = "0.4.6"
+	Version = "0.4.7"
 )
