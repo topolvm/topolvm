@@ -23,7 +23,7 @@ Webhooks
 
 ### `/pod/mutate`
 
-Mutate new Pods to add `topolvm.cybozu.com/capacity` resource request to
+Mutate new Pods to add `capacity.topolvm.io/<volume group name>` resource request to
 its first container.  This resource request will be used by
 [`topolvm-scheduler`](./topolvm-scheduler.md) to filter and score Nodes.
 
@@ -85,7 +85,7 @@ spec:
       claimName: local-pvc1                # have the above PVC
 ```
 
-The hook inserts `topolvm.cybozu.com/capacity` to the first container as follows:
+The hook inserts `capacity.topolvm.io/<volume group name>` to the first container as follows:
 
 ```yaml
 spec:
@@ -93,9 +93,9 @@ spec:
   - name: testhttpd
     resources:
       limits:
-        topolvm.cybozu.com/capacity: "1073741824"
+        capacity.topolvm.io/myvg1: "1073741824"
       requests:
-        topolvm.cybozu.com/capacity: "1073741824"
+        capacity.topolvm.io/myvg1: "1073741824"
 ```
 
 Below is an example for TopoLVM inline ephemeral volumes:
@@ -119,7 +119,7 @@ spec:
       driver: topolvm.cybozu.com
 ```
 
-The hook inserts `topolvm.cybozu.com/capacity` to the ubuntu container as follows:
+The hook inserts `capacity.topolvm.io/<volume group name>` to the ubuntu container as follows:
 
 ```yaml
 spec:
@@ -127,7 +127,7 @@ spec:
   - name: ubuntu
     resources:
       limits:
-        topolvm.cybozu.com/capacity: "1073741824"
+        capacity.topolvm.io/myvg1: "1073741824"
 ```
 
 ### `/pvc/mutate`

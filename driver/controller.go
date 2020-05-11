@@ -248,11 +248,18 @@ func (s controllerService) GetCapacity(ctx context.Context, req *csi.GetCapacity
 		ctrlLogger.Info("capability argument is not nil, but TopoLVM ignores it")
 	}
 
+	var vg string
+	if v, ok := req.GetParameters()[topolvm.VolumeGroupKey]; !ok {
+		vg = v
+	} else {
+		vg = s.defaultVG
+	}
+
 	var capacity int64
 	switch topology {
 	case nil:
 		var err error
-		capacity, err = s.nodeService.GetTotalCapacity(ctx)
+		capacity, err = s.nodeService.GetTotalCapacity(ctx, vg)
 		if err != nil {
 			return nil, status.Error(codes.Internal, err.Error())
 		}
@@ -262,7 +269,7 @@ func (s controllerService) GetCapacity(ctx context.Context, req *csi.GetCapacity
 			return nil, status.Errorf(codes.Internal, "%s is not found in req.AccessibleTopology", topolvm.TopologyNodeKey)
 		}
 		var err error
-		capacity, err = s.nodeService.GetCapacityByTopologyLabel(ctx, v)
+		capacity, err = s.nodeService.GetCapacityByTopologyLabel(ctx, v, vg)
 		switch err {
 		case k8s.ErrNodeNotFound:
 			ctrlLogger.Info("target is not found", "accessible_topology", req.AccessibleTopology)

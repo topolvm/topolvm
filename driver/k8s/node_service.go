@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/cybozu-go/topolvm"
 	corev1 "k8s.io/api/core/v1"
@@ -36,27 +35,11 @@ func (s NodeService) getNodes(ctx context.Context) (*corev1.NodeList, error) {
 }
 
 func (s NodeService) extractCapacityFromAnnotation(node *corev1.Node, vgName string) (int64, error) {
-	c, ok := node.Annotations[topolvm.CapacityKey+"-"+vgName]
+	c, ok := node.Annotations[topolvm.CapacityKey+vgName]
 	if !ok {
-		return 0, fmt.Errorf("%s is not found", topolvm.CapacityKey+"-"+vgName)
+		return 0, fmt.Errorf("%s is not found", topolvm.CapacityKey+vgName)
 	}
 	return strconv.ParseInt(c, 10, 64)
-}
-
-//TODO:
-func (s NodeService) extractTotalCapacityFromAnnotation(node *corev1.Node) (int64, error) {
-	var total int64
-	for k, v := range node.Annotations {
-		if !strings.HasPrefix(k, topolvm.CapacityKey) {
-			continue
-		}
-		c, err := strconv.ParseInt(v, 10, 64)
-		if err != nil {
-			return 0, err
-		}
-		total += c
-	}
-	return total, nil
 }
 
 // GetCapacityByName returns VG capacity of specified node by name.
@@ -71,7 +54,7 @@ func (s NodeService) GetCapacityByName(ctx context.Context, name, vgName string)
 }
 
 // GetCapacityByTopologyLabel returns VG capacity of specified node by TopoLVM's topology label.
-func (s NodeService) GetCapacityByTopologyLabel(ctx context.Context, topology string) (int64, error) {
+func (s NodeService) GetCapacityByTopologyLabel(ctx context.Context, topology, vg string) (int64, error) {
 	nl, err := s.getNodes(ctx)
 	if err != nil {
 		return 0, err
@@ -82,7 +65,7 @@ func (s NodeService) GetCapacityByTopologyLabel(ctx context.Context, topology st
 			if v != topology {
 				continue
 			}
-			return s.extractTotalCapacityFromAnnotation(&node)
+			return s.extractCapacityFromAnnotation(&node, vg)
 		}
 	}
 
@@ -90,7 +73,7 @@ func (s NodeService) GetCapacityByTopologyLabel(ctx context.Context, topology st
 }
 
 // GetTotalCapacity returns total VG capacity of all nodes.
-func (s NodeService) GetTotalCapacity(ctx context.Context) (int64, error) {
+func (s NodeService) GetTotalCapacity(ctx context.Context, vg string) (int64, error) {
 	nl, err := s.getNodes(ctx)
 	if err != nil {
 		return 0, err
@@ -98,7 +81,7 @@ func (s NodeService) GetTotalCapacity(ctx context.Context) (int64, error) {
 
 	capacity := int64(0)
 	for _, node := range nl.Items {
-		c, _ := s.extractTotalCapacityFromAnnotation(&node)
+		c, _ := s.extractCapacityFromAnnotation(&node, vg)
 		capacity += c
 	}
 	return capacity, nil

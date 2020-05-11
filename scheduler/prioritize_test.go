@@ -6,6 +6,7 @@ import (
 
 	"github.com/cybozu-go/topolvm"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -37,9 +38,18 @@ func TestCapacityToScore(t *testing.T) {
 
 func TestScoreNodes(t *testing.T) {
 	pod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Annotations: map[string]string{
-				topolvm.CapacityKey + "-myvg1": "64",
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Resources: corev1.ResourceRequirements{
+						Limits: map[corev1.ResourceName]resource.Quantity{
+							topolvm.CapacityResource("myvg1"): *resource.NewQuantity(64, resource.BinarySI),
+						},
+						Requests: map[corev1.ResourceName]resource.Quantity{
+							topolvm.CapacityResource("myvg1"): *resource.NewQuantity(64, resource.BinarySI),
+						},
+					},
+				},
 			},
 		},
 	}
@@ -54,7 +64,7 @@ func TestScoreNodes(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "10.1.1.3",
 				Annotations: map[string]string{
-					topolvm.CapacityKey: "foo",
+					topolvm.CapacityKey + "myvg1": "foo",
 				},
 			},
 		},
@@ -74,7 +84,9 @@ func TestScoreNodes(t *testing.T) {
 		},
 	}
 
-	result := scoreNodes(pod, input, 4)
+	result := scoreNodes(pod, input, 1, map[string]float64{
+		"myvg1": 4,
+	})
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("expected scoreNodes() to be %#v, but actual %#v", expected, result)
 	}

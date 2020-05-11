@@ -81,7 +81,7 @@ free space in the LVM volume group in bytes.
 Node resource
 -------------
 
-`topolvm-node` adds `topolvm.cybozu.com/capacity` annotation to the
+`topolvm-node` adds `capacity.topolvm.io/<volume group name>` annotation to the
 corresponding `Node` resource of the running node.  The value is the
 free storage capacity reported by `lvmd` in bytes.
 

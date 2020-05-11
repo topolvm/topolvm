@@ -27,7 +27,7 @@ Scheduler policy
 }
 ```
 
-As it shown, only pods that request `topolvm.cybozu.com/capacity` resource are
+As it shown, only pods that request `capacity.topolvm.io/<volume group name>` resource are
 managed by `topolvm-scheduler`.
 
 Verbs
@@ -42,7 +42,7 @@ The extender provides two verbs:
 
 This verb filters out nodes whose volume groups have not enough free space.
 
-Volume group capacity is identified from the value of `topolvm.cybozu.com/capacity`
+Volume group capacity is identified from the value of `capacity.topolvm.io/<volume group name>`
 annotation.
 
 ### `prioritize`

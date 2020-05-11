@@ -23,7 +23,7 @@ func filterNodes(nodes corev1.NodeList, requested map[string]int64) ExtenderFilt
 NODE_LOOP:
 	for _, node := range nodes.Items {
 		for vg, required := range requested {
-			val, ok := node.Annotations[topolvm.CapacityKey+"-"+vg]
+			val, ok := node.Annotations[topolvm.CapacityKey+vg]
 			if !ok {
 				failed[node.Name] = "no capacity annotation"
 				continue NODE_LOOP
@@ -48,16 +48,27 @@ NODE_LOOP:
 
 func extractRequestedSize(pod *corev1.Pod) map[string]int64 {
 	result := make(map[string]int64)
-	for k, v := range pod.Annotations {
-		if !strings.HasPrefix(k, topolvm.CapacityKey) {
-			continue
+	for _, container := range pod.Spec.Containers {
+		for k, v := range container.Resources.Limits {
+			key := string(k)
+			if !strings.HasPrefix(key, topolvm.CapacityKey) {
+				continue
+			}
+			vg := key[len(topolvm.CapacityKey):]
+			if _, ok := result[vg]; !ok {
+				result[vg] = v.Value()
+			}
 		}
-		vg := k[len(topolvm.CapacityKey)+1:]
-		capacity, err := strconv.ParseInt(v, 10, 64)
-		if err != nil {
-			continue
+		for k, v := range container.Resources.Requests {
+			key := string(k)
+			if !strings.HasPrefix(key, topolvm.CapacityKey) {
+				continue
+			}
+			vg := key[len(topolvm.CapacityKey):]
+			if _, ok := result[vg]; !ok {
+				result[vg] = v.Value()
+			}
 		}
-		result[vg] = capacity
 	}
 
 	return result

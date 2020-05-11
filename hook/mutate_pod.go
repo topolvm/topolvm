@@ -77,32 +77,31 @@ func (m podMutator) Handle(ctx context.Context, req admission.Request) admission
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
-	if len(pvcCapacities) == 0 && ephemeralCapacity == 0 {
+	if ephemeralCapacity != 0 {
+		if v, ok := pvcCapacities[m.defaultVG]; ok {
+			pvcCapacities[m.defaultVG] = v + ephemeralCapacity
+		} else {
+			pvcCapacities[m.defaultVG] = ephemeralCapacity
+		}
+	}
+
+	if len(pvcCapacities) == 0 {
 		return admission.Allowed("no request for TopoLVM")
 	}
 
 	ctnr := &pod.Spec.Containers[0]
-
-	quantity := resource.NewQuantity(1, resource.DecimalSI)
-	if ctnr.Resources.Requests == nil {
-		ctnr.Resources.Requests = corev1.ResourceList{}
-	}
-	ctnr.Resources.Requests[topolvm.CapacityResource] = *quantity
-	if ctnr.Resources.Limits == nil {
-		ctnr.Resources.Limits = corev1.ResourceList{}
-	}
-
-	pod.Annotations = make(map[string]string)
-	ctnr.Resources.Limits[topolvm.CapacityResource] = *quantity
 	for vg, capacity := range pvcCapacities {
-		pod.Annotations[topolvm.CapacityKey+"-"+vg] = strconv.FormatInt(capacity, 10)
-	}
-	if ephemeralCapacity != 0 {
-		if capacity, ok := pvcCapacities[m.defaultVG]; ok {
-			pod.Annotations[topolvm.CapacityKey+"-"+m.defaultVG] = strconv.FormatInt(capacity+ephemeralCapacity, 10)
-		} else {
-			pod.Annotations[topolvm.CapacityKey+"-"+m.defaultVG] = strconv.FormatInt(ephemeralCapacity, 10)
+		quantity := resource.NewQuantity(capacity, resource.DecimalSI)
+
+		if ctnr.Resources.Requests == nil {
+			ctnr.Resources.Requests = corev1.ResourceList{}
 		}
+		ctnr.Resources.Requests[topolvm.CapacityResource(vg)] = *quantity
+
+		if ctnr.Resources.Limits == nil {
+			ctnr.Resources.Limits = corev1.ResourceList{}
+		}
+		ctnr.Resources.Limits[topolvm.CapacityResource(vg)] = *quantity
 	}
 
 	marshaledPod, err := json.Marshal(pod)
@@ -173,7 +172,7 @@ func (m podMutator) requestedPVCCapacity(ctx context.Context, pod *corev1.Pod, t
 		// If the Pod has a bound PVC of TopoLVM, the pod will be scheduled
 		// to the node of the existing PV.
 		if pvc.Status.Phase != corev1.ClaimPending {
-			return nil, nil
+			return make(map[string]int64), nil
 		}
 
 		var requested int64 = topolvm.DefaultSize
