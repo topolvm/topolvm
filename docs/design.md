@@ -55,8 +55,8 @@ LVM logical volumes and watch a volume group status.
 `topolvm-node` implements CSI node services as well as miscellaneous control
 on each Node.  It communicates with `lvmd` to watch changes in free space
 of a volume group and exports the information by annotating Kubernetes
-`Node` resource of the running node.  In the mean time, it adds a finalizer
-to the `Node` to cleanup PersistentVolumeClaims (PVC) bound on the node.
+`Node` resource of the running node.  In the meantime, it adds a finalizer
+to the `Node` to clean up PersistentVolumeClaims (PVC) bound on the node.
 
 `topolvm-node` also works as a custom Kubernetes controller to implement
 dynamic volume provisioning.  Details are described in the following sections.
@@ -72,13 +72,13 @@ standard Kubernetes scheduler for TopoLVM.
 
 To extend the standard scheduler, TopoLVM components work together as follows:
 
-- `topolvm-node` exposes free storage capacity as `topolvm.cybozu.com/capacity` annotation of each Node.
+- `topolvm-node` exposes free storage capacity as `capacity.topolvm.io/<volume group name>` annotation of each Node.
 - `topolvm-controller` works as a [mutating webhook](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/) for new Pods.
-    - It adds `topolvm.cybozu.com/capacity` resource to the first container of a pod.
-    - The value is the sum of the storage capacity requests of all unbound TopoLVM PVC referenced by the pod.
-- `topolvm-scheduler` filters and scores Nodes for a new pod having `topolvm.cybozu.com/capacity` resource request.
-    - Nodes having less capacity than requested are filtered.
-    - Nodes having larger capacity are scored higher.
+    - It adds `capacity.topolvm.io/<volume group name>` resource to the first container of a pod.
+    - The value is the sum of the storage capacity requests of unbound TopoLVM PVCs for each volume group referenced by the pod.
+- `topolvm-scheduler` filters and scores Nodes for a new pod having `capacity.topolvm.io/<volume group name>` resource request.
+    - Nodes having less capacity in given volume group than requested are filtered.
+    - Nodes having larger capacity in given volume group are scored higher.
 
 ### How dynamic provisioning works
 
@@ -117,7 +117,7 @@ via `NodeExpandVolume` or `NodePublishVolume`.
 If the filesystem requires offline resizing, the administrator should make `LogicalVolume` offline beforehand.
 The resizing is performed in `NodePublishVolume` in this case.
 If the filesystem is resized online, the resizing is performed in `NodeExpandVolume`.
-Currently all supported filesystems can be resized online, so `NodePublishVolume` is not involved with resizing.
+Currently, all supported filesystems can be resized online, so `NodePublishVolume` is not involved with resizing.
 
 Limitations
 -----------
@@ -129,7 +129,7 @@ Packaging and deployment
 ------------------------
 
 `lvmd` is provided as a single executable.
-Users needs to deploy `lvmd` manually by themselves.
+Users need to deploy `lvmd` manually by themselves.
 
 Other components, as well as CSI sidecar containers, are provided in a single
 Docker container image, and is deployed as Kubernetes objects.

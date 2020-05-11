@@ -84,7 +84,7 @@ func testNode() {
 				vgName,
 			)
 			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", targetBytes, stderr)
-			val, ok := node.Annotations[topolvm.CapacityKey+"-myvg1"]
+			val, ok := node.Annotations[topolvm.CapacityKey+"myvg1"]
 			Expect(ok).To(Equal(true), "capacity is not annotated: "+node.Name)
 			Expect(val).To(Equal(strings.TrimSpace(string(targetBytes))), "unexpected capacity: "+node.Name)
 		}
@@ -118,7 +118,7 @@ func testNode() {
 			var node corev1.Node
 			err = json.Unmarshal(stdout, &node)
 			Expect(err).ShouldNot(HaveOccurred())
-			capacity, ok := node.Annotations[topolvm.CapacityKey+"-myvg1"]
+			capacity, ok := node.Annotations[topolvm.CapacityKey+"myvg1"]
 			Expect(ok).Should(BeTrue())
 			expected, err := strconv.ParseFloat(capacity, 64)
 			Expect(err).ShouldNot(HaveOccurred())

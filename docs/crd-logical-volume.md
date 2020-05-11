@@ -16,11 +16,12 @@ node services.
 LogicalVolumeSpec
 -----------------
 
-| Field      | Type         | Description                                                  |
-| ---------- | ------------ | ------------------------------------------------------------ |
-| `name`     | string       | Suggested name of the logical volume.                        |
-| `nodeName` | string       | Name of the node where the logical volume should be created. |
-| `size`     | [Quantity][] | Amount of local storage required for the logical volume.     |
+| Field      | Type         | Description                                                    |
+| ---------- | ------------ | -------------------------------------------------------------- |
+| `name`     | string       | Suggested name of the logical volume.                          |
+| `nodeName` | string       | Name of the node where the logical volume should be created.   |
+| `size`     | [Quantity][] | Amount of local storage required for the logical volume.       |
+| `vgName`   | string       | Name of the volume group that the logical volume belongs with. |
 
 LogicalVolumeStatus
 -------------------

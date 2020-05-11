@@ -30,13 +30,22 @@ func capacityToScore(capacity uint64, divisor float64) int {
 	}
 }
 
-func scoreNodes(pod *corev1.Pod, nodes []corev1.Node, divisor float64) []HostPriority {
+func scoreNodes(pod *corev1.Pod, nodes []corev1.Node, defaultDivisor float64, divisors map[string]float64) []HostPriority {
 	result := make([]HostPriority, len(nodes))
 
-	var vgs []string
-	for k := range pod.Annotations {
-		if strings.HasPrefix(k, topolvm.CapacityKey) {
-			vgs = append(vgs, k[len(topolvm.CapacityKey)+1:])
+	vgs := make(map[string]struct{})
+	for _, container := range pod.Spec.Containers {
+		for k := range container.Resources.Requests {
+			key := string(k)
+			if strings.HasPrefix(key, topolvm.CapacityKey) {
+				vgs[key[len(topolvm.CapacityKey):]] = struct{}{}
+			}
+		}
+		for k := range container.Resources.Limits {
+			key := string(k)
+			if strings.HasPrefix(key, topolvm.CapacityKey) {
+				vgs[key[len(topolvm.CapacityKey):]] = struct{}{}
+			}
 		}
 	}
 	if len(vgs) == 0 {
@@ -45,13 +54,19 @@ func scoreNodes(pod *corev1.Pod, nodes []corev1.Node, divisor float64) []HostPri
 
 	for i, item := range nodes {
 		var score int
-		for _, vg := range vgs {
-			if val, ok := item.Annotations[topolvm.CapacityKey+"-"+vg]; ok {
+		for vg := range vgs {
+			if val, ok := item.Annotations[topolvm.CapacityKey+vg]; ok {
 				capacity, _ := strconv.ParseUint(val, 10, 64)
+				var divisor float64
+				if v, ok := divisors[vg]; ok {
+					divisor = v
+				} else {
+					divisor = defaultDivisor
+				}
 				score += capacityToScore(capacity, divisor)
 			}
 		}
-		result[i] = HostPriority{Host: item.Name, Score: score / len(vgs)}
+		result[i] = HostPriority{Host: item.Name, Score: score}
 	}
 
 	return result
@@ -67,7 +82,7 @@ func (s scheduler) prioritize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := scoreNodes(input.Pod, input.Nodes.Items, s.divisor)
+	result := scoreNodes(input.Pod, input.Nodes.Items, s.defaultDivisor, s.divisors)
 
 	w.Header().Set("content-type", "application/json")
 	json.NewEncoder(w).Encode(result)

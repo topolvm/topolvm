@@ -13,9 +13,9 @@ Command-line options are:
 
 | Option         | Type   | Default value            | Description                          |
 | -------------- | ------ | ------------------------ | ------------------------------------ |
-| `volume-group` | string | ""                       | target volume group name             |
 | `listen`       | string | `/run/topolvm/lvmd.sock` | unix domain socket endpoint of gRPC  |
 | `spare`        | uint64 | 10                       | Storage capacity in GiB to be spared |
+| `vg-prefix`    | string |                          | Prefix of volume group name. If the prefix is specified, the actual volume group is with the prefix, but lvmd user can operate the volume group as a name without the prefix. |
 
 Spare capacity
 --------------

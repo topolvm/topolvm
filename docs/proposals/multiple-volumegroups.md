@@ -11,9 +11,6 @@
 - [Design Details](#design-details)
   - [How to expose free storage capacity of nodes](#how-to-expose-free-storage-capacity-of-nodes)
   - [How to annotate resources](#how-to-annotate-resources)
-    - [A-1) insert multiple resources](#a-1-insert-multiple-resources)
-    - [A-2) insert multiple annotations](#a-2-insert-multiple-annotations)
-    - [Decision outcome](#decision-outcome-1)
   - [Setting of divisors](#setting-of-divisors)
   - [Ephemeral Inline Volume](#ephemeral-inline-volume)
   - [Device class setting](#device-class-setting)
@@ -125,14 +122,14 @@ because option B) is complicated to launch multiple TopoLVM for users.
 
 ### How to expose free storage capacity of nodes
 
-Currently `topolvm-node` exposes free storage capacity as `topolvm.cybozu.com/capacity` annotation of each Node as follows:
+Currently `topolvm-node` exposes free storage capacity as `capacity.topolvm.io/<volume group name>` annotation of each Node as follows:
 
 ```yaml
 kind: Node
 metadata:
   name: worker-1
   annotations:
-    topolvm.cybozu.com/capacity: "1073741824"
+    capacity.topolvm.io/myvg1: "1073741824"
 ```
 
 This proposal will change annotation to `capacity.topolvm.io/<device class>` as follows 
@@ -152,7 +149,7 @@ The default device class is annotated without the part of the name, like `capaci
 
 ### How to annotate resources
 
-Currently, the mutating webhook inserts `topolvm.cybozu.com/capacity` to the first container as follows:
+Currently, the mutating webhook inserts `capacity.topolvm.io/<volume group name>` to the first container as follows:
 
 ```yaml
 spec:
@@ -160,9 +157,9 @@ spec:
   - name: testhttpd
     resources:
       limits:
-        topolvm.cybozu.com/capacity: "1073741824"
+        capacity.topolvm.io/myvg1: "1073741824"
       requests:
-        topolvm.cybozu.com/capacity: "1073741824"
+        capacity.topolvm.io/myvg1: "1073741824"
 ```
 
 Then, `topolvm-scheduler` need to be configured in scheduler policy as follows:
@@ -176,7 +173,7 @@ Then, `topolvm-scheduler` need to be configured in scheduler policy as follows:
         "prioritizeVerb": "prioritize",
         "managedResources":
         [{
-          "name": "topolvm.cybozu.com/capacity",
+          "name": "capacity.topolvm.io/myvg1",
           "ignoredByScheduler": true
         }],
         "nodeCacheCapable": false

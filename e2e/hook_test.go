@@ -115,7 +115,7 @@ spec:
 		stdout, stderr, err := kubectlWithInput([]byte(yml), "-n", nsHookTest, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
-		By("checking pod is annotated with topolvm.cybozu.com/capacity")
+		By("checking pod is annotated with capacity.topolvm.io/<myvg1>")
 		Eventually(func() error {
 			result, stderr, err := kubectl("get", "-n", nsHookTest, "pods/testhttpd", "-o=json")
 			if err != nil {
@@ -129,22 +129,20 @@ spec:
 			}
 
 			resources := pod.Spec.Containers[0].Resources
-			_, ok := resources.Limits[topolvm.CapacityResource]
+			v, ok := resources.Limits[topolvm.CapacityResource("myvg1")]
 			if !ok {
 				return errors.New("resources.Limits is not mutated")
 			}
+			if v.Value() != 3<<30 {
+				return fmt.Errorf("wrong limit value: actual=%d, expect=%d", v.Value(), 3<<30)
+			}
 
-			_, ok = resources.Requests[topolvm.CapacityResource]
+			v, ok = resources.Requests[topolvm.CapacityResource("myvg1")]
 			if !ok {
 				return errors.New("resources.Requests is not mutated")
 			}
-
-			capacity, ok := pod.Annotations[topolvm.CapacityKey+"-myvg1"]
-			if !ok {
-				return errors.New("not annotated")
-			}
-			if capacity != strconv.Itoa(3<<30) {
-				return fmt.Errorf("wrong capacity: actual=%s, expect=%d", capacity, 3<<30)
+			if v.Value() != 3<<30 {
+				return fmt.Errorf("wrong request value: actual=%d, expect=%d", v.Value(), 3<<30)
 			}
 
 			return nil
@@ -254,7 +252,7 @@ spec:
 		stdout, stderr, err := kubectlWithInput([]byte(yml), "-n", nsHookTest, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
-		By("checking pod is annotated with topolvm.cybozu.com/capacity")
+		By("checking pod is annotated with capacity.topolvm.io/myvg1")
 		Eventually(func() error {
 			result, stderr, err := kubectl("get", "-n", nsHookTest, "pods/testhttpd", "-o=json")
 			if err != nil {
@@ -268,22 +266,20 @@ spec:
 			}
 
 			resources := pod.Spec.Containers[0].Resources
-			_, ok := resources.Limits[topolvm.CapacityResource]
+			v, ok := resources.Limits[topolvm.CapacityResource("myvg1")]
 			if !ok {
 				return errors.New("resources.Limits is not mutated")
 			}
+			if v.Value() != 5<<30 {
+				return fmt.Errorf("wrong limit value: actual=%d, expect=%d", v.Value(), 5<<30)
+			}
 
-			_, ok = resources.Requests[topolvm.CapacityResource]
+			v, ok = resources.Requests[topolvm.CapacityResource("myvg1")]
 			if !ok {
 				return errors.New("resources.Requests is not mutated")
 			}
-
-			capacity, ok := pod.Annotations[topolvm.CapacityKey+"-myvg1"]
-			if !ok {
-				return errors.New("not annotated")
-			}
-			if capacity != strconv.Itoa(5<<30) {
-				return fmt.Errorf("wrong capacity: actual=%s, expect=%d", capacity, 5<<30)
+			if v.Value() != 5<<30 {
+				return fmt.Errorf("wrong request value: actual=%d, expect=%d", v.Value(), 5<<30)
 			}
 
 			return nil
