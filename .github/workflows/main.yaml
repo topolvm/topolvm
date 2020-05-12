@@ -12,15 +12,20 @@ jobs:
         id: go
       - run: make setup
       - run: |
-            go get golang.org/x/tools/cmd/goimports
-            go get golang.org/x/lint/golint
-            go get github.com/gordonklaus/ineffassign
-            go get github.com/tcnksm/ghr
-            go get github.com/gostaticanalysis/nilerr/cmd/nilerr
-            go get github.com/cybozu/neco-containers/golang/analyzer/cmd/...
+          mkdir -p $HOME/go
+          export GOPATH=$HOME/go
+          export GOBIN=$GOPATH/bin
+          go get golang.org/x/tools/cmd/goimports
+          go get golang.org/x/lint/golint
+          go get github.com/gordonklaus/ineffassign
+          go get github.com/tcnksm/ghr
+          go get github.com/gostaticanalysis/nilerr/cmd/nilerr
+          go get github.com/cybozu/neco-containers/golang/analyzer/cmd/...
       - run: |
-            make manifests generate
-            diffs=$(git diff --name-only)
-            if [ "$diffs" != "" ]; then printf "%s\n" "$diffs"; exit 1; fi
-      - run: make test
+          make manifests generate
+          diffs=$(git diff --name-only)
+          if [ "$diffs" != "" ]; then printf "%s\n" "$diffs"; exit 1; fi
+      - run: |
+          export PATH=$PATH:$HOME/go/bin
+          make test
       - run: make build
