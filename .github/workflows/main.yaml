@@ -13,6 +13,7 @@ jobs:
       - run: make setup
       - run: |
           mkdir -p $HOME/go
+          cd $HOME/go
           export GOPATH=$HOME/go
           export GOBIN=$GOPATH/bin
           go get golang.org/x/tools/cmd/goimports
