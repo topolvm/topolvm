@@ -5,6 +5,6 @@ metadata:
 provisioner: topolvm.cybozu.com
 parameters:
   "csi.storage.k8s.io/fstype": "xfs"
-  "topolvm.cybozu.com/volume-group": "myvg1"
+  "topolvm.io/volume-group": "myvg1"
 volumeBindingMode: WaitForFirstConsumer
 allowVolumeExpansion: true

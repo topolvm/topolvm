@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cybozu-go/topolvm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -37,6 +38,8 @@ var stopCh = make(chan struct{})
 
 const (
 	topolvmProvisionerStorageClassName          = "topolvm-provisioner"
+	topolvmProvisioner2StorageClassName         = "topolvm-provisioner2"
+	topolvmProvisioner3StorageClassName         = "topolvm-provisioner3"
 	topolvmProvisionerImmediateStorageClassName = "topolvm-provisioner-immediate"
 	hostLocalStorageClassName                   = "host-local"
 )
@@ -58,8 +61,37 @@ func setupCommonResources() {
 		},
 		Provisioner:       "topolvm.cybozu.com",
 		VolumeBindingMode: modePtr(storagev1.VolumeBindingWaitForFirstConsumer),
+		Parameters: map[string]string{
+			topolvm.VolumeGroupKey: "myvg1",
+		},
 	}
 	err := k8sClient.Create(testCtx, sc)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	sc = &storagev1.StorageClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: topolvmProvisioner2StorageClassName,
+		},
+		Provisioner:       "topolvm.cybozu.com",
+		VolumeBindingMode: modePtr(storagev1.VolumeBindingWaitForFirstConsumer),
+		Parameters: map[string]string{
+			topolvm.VolumeGroupKey: "myvg2",
+		},
+	}
+	err = k8sClient.Create(testCtx, sc)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	sc = &storagev1.StorageClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: topolvmProvisioner3StorageClassName,
+		},
+		Provisioner:       "topolvm.cybozu.com",
+		VolumeBindingMode: modePtr(storagev1.VolumeBindingWaitForFirstConsumer),
+		Parameters: map[string]string{
+			topolvm.VolumeGroupKey: "myvg3",
+		},
+	}
+	err = k8sClient.Create(testCtx, sc)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	sc = &storagev1.StorageClass{
@@ -68,6 +100,9 @@ func setupCommonResources() {
 		},
 		Provisioner:       "topolvm.cybozu.com",
 		VolumeBindingMode: modePtr(storagev1.VolumeBindingImmediate),
+		Parameters: map[string]string{
+			topolvm.VolumeGroupKey: "myvg1",
+		},
 	}
 	err = k8sClient.Create(testCtx, sc)
 	Expect(err).ShouldNot(HaveOccurred())

@@ -11,12 +11,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func testNode(name string, capGb int64) corev1.Node {
+func testNode(name string, cap1Gb, cap2Gb, cap3Gb int64) corev1.Node {
 	return corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 			Annotations: map[string]string{
-				topolvm.CapacityKey + "myvg1": fmt.Sprintf("%d", capGb<<30),
+				topolvm.CapacityKey + "myvg1": fmt.Sprintf("%d", cap1Gb<<30),
+				topolvm.CapacityKey + "myvg2": fmt.Sprintf("%d", cap2Gb<<30),
+				topolvm.CapacityKey + "myvg3": fmt.Sprintf("%d", cap3Gb<<30),
 			},
 		},
 	}
@@ -31,8 +33,8 @@ func TestFilterNodes(t *testing.T) {
 		{
 			nodes: corev1.NodeList{
 				Items: []corev1.Node{
-					testNode("10.1.1.1", 5),
-					testNode("10.1.1.2", 1),
+					testNode("10.1.1.1", 5, 10, 10),
+					testNode("10.1.1.2", 1, 10, 10),
 					{
 						ObjectMeta: metav1.ObjectMeta{
 							Name: "10.1.1.3",
@@ -54,7 +56,7 @@ func TestFilterNodes(t *testing.T) {
 			expect: ExtenderFilterResult{
 				Nodes: &corev1.NodeList{
 					Items: []corev1.Node{
-						testNode("10.1.1.1", 5),
+						testNode("10.1.1.1", 5, 10, 10),
 					},
 				},
 				FailedNodes: FailedNodesMap{
@@ -67,7 +69,32 @@ func TestFilterNodes(t *testing.T) {
 		{
 			nodes: corev1.NodeList{
 				Items: []corev1.Node{
-					testNode("10.1.1.1", 5),
+					testNode("10.1.1.1", 10, 20, 30),
+					testNode("10.1.1.2", 1, 5, 10),
+					testNode("10.1.1.3", 100, 5, 100),
+				},
+			},
+			requested: map[string]int64{
+				"myvg1": 5 << 30,
+				"myvg2": 10 << 30,
+				"myvg3": 20 << 30,
+			},
+			expect: ExtenderFilterResult{
+				Nodes: &corev1.NodeList{
+					Items: []corev1.Node{
+						testNode("10.1.1.1", 5, 10, 10),
+					},
+				},
+				FailedNodes: FailedNodesMap{
+					"10.1.1.2": "out of VG free space",
+					"10.1.1.3": "out of VG free space",
+				},
+			},
+		},
+		{
+			nodes: corev1.NodeList{
+				Items: []corev1.Node{
+					testNode("10.1.1.1", 5, 10, 10),
 				},
 			},
 			requested: map[string]int64{
@@ -76,7 +103,7 @@ func TestFilterNodes(t *testing.T) {
 			expect: ExtenderFilterResult{
 				Nodes: &corev1.NodeList{
 					Items: []corev1.Node{
-						testNode("10.1.1.1", 5),
+						testNode("10.1.1.1", 5, 10, 10),
 					},
 				},
 				FailedNodes: map[string]string{},
@@ -105,7 +132,7 @@ func TestFilterNodes(t *testing.T) {
 func TestExtractRequestedSize(t *testing.T) {
 	testCases := []struct {
 		input    *corev1.Pod
-		expected int64
+		expected map[string]int64
 	}{
 		{
 			input: &corev1.Pod{
@@ -134,7 +161,9 @@ func TestExtractRequestedSize(t *testing.T) {
 					},
 				},
 			},
-			expected: 5 << 30,
+			expected: map[string]int64{
+				"myvg1": 5 << 30,
+			},
 		},
 		{
 			input: &corev1.Pod{
@@ -150,18 +179,22 @@ func TestExtractRequestedSize(t *testing.T) {
 					},
 				},
 			},
-			expected: 3 << 30,
+			expected: map[string]int64{
+				"myvg1": 3 << 30,
+			},
 		},
 	}
 
 	for _, tt := range testCases {
 		result := extractRequestedSize(tt.input)
-		if v, ok := result["myvg1"]; ok {
-			if v != tt.expected {
-				t.Errorf("expected extractRequestedSize() to be %d, but actual %d", tt.expected, v)
+		for vg, cap := range tt.expected {
+			if v, ok := result[vg]; ok {
+				if v != cap {
+					t.Errorf("expected extractRequestedSize() to be %d, but actual %d", cap, v)
+				}
+			} else {
+				t.Errorf("clould not find target: %v", result)
 			}
-		} else {
-			t.Errorf("clould not find target: %v", result)
 		}
 	}
 }

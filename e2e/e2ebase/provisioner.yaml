@@ -12,7 +12,25 @@ metadata:
 provisioner: topolvm.cybozu.com
 volumeBindingMode: Immediate
 parameters:
-  "topolvm.cybozu.com/volume-group": "myvg1"
+  "topolvm.io/volume-group": "myvg1"
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: topolvm-provisioner2
+provisioner: topolvm.cybozu.com
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  "topolvm.io/volume-group": "myvg2"
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: topolvm-provisioner3
+provisioner: topolvm.cybozu.com
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  "topolvm.io/volume-group": "myvg3"
 ---
 apiVersion: v1
 kind: PersistentVolume
