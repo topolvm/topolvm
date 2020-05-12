@@ -10,7 +10,7 @@ jobs:
         with:
           go-version: 1.13
         id: go
-      - run: make setup SUDO=""
+      - run: make setup
       - run: |
             make manifests generate
             diffs=$(git diff --name-only)
