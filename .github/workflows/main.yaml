@@ -1,0 +1,19 @@
+name: Main
+on: [push]
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.13
+        id: go
+      - run: make setup SUDO=""
+      - run: |
+            make manifests generate
+            diffs=$(git diff --name-only)
+            if [ "$diffs" != "" ]; then printf "%s\n" "$diffs"; exit 1; fi
+      - run: make test
+      - run: make build
