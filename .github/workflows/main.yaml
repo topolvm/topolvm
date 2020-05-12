@@ -29,4 +29,6 @@ jobs:
       - run: |
           export PATH=$PATH:$HOME/go/bin
           make test
-      - run: make build
+      - run: |
+          export GOPATH=$HOME/go
+          make build
