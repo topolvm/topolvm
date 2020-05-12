@@ -77,6 +77,28 @@ func setupMutatePodResources() {
 	err = k8sClient.Create(testCtx, pvc2)
 	Expect(err).ShouldNot(HaveOccurred())
 
+	pvc3 := &corev1.PersistentVolumeClaim{}
+	pvc3.Namespace = mutatePodNamespace
+	pvc3.Name = "pvc3"
+	pvc3.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
+	pvc3.Spec.StorageClassName = strPtr(topolvmProvisioner2StorageClassName)
+	pvc3.Spec.Resources.Requests = corev1.ResourceList{
+		"storage": *resource.NewQuantity(3<<30, resource.DecimalSI),
+	}
+	err = k8sClient.Create(testCtx, pvc3)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	pvc4 := &corev1.PersistentVolumeClaim{}
+	pvc4.Namespace = mutatePodNamespace
+	pvc4.Name = "pvc4"
+	pvc4.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
+	pvc4.Spec.StorageClassName = strPtr(topolvmProvisioner3StorageClassName)
+	pvc4.Spec.Resources.Requests = corev1.ResourceList{
+		"storage": *resource.NewQuantity(4<<30, resource.DecimalSI),
+	}
+	err = k8sClient.Create(testCtx, pvc4)
+	Expect(err).ShouldNot(HaveOccurred())
+
 	defaultPVC := &corev1.PersistentVolumeClaim{}
 	defaultPVC.Namespace = mutatePodNamespace
 	defaultPVC.Name = "default-pvc"
@@ -167,6 +189,48 @@ var _ = Describe("pod mutation webhook", func() {
 		limit := pod.Spec.Containers[0].Resources.Limits[topolvm.CapacityResource("myvg1")]
 		Expect(request.Value()).Should(BeNumerically("==", 1<<30))
 		Expect(limit.Value()).Should(BeNumerically("==", 1<<30))
+	})
+
+	It("should mutate pod w/ TopoLVM PVC on multiple volume groups", func() {
+		pod := testPod()
+		pod.Spec.Volumes = []corev1.Volume{
+			{
+				Name: "vol1",
+				VolumeSource: corev1.VolumeSource{
+					PersistentVolumeClaim: pvcSource("pvc1"),
+				},
+			},
+			{
+				Name: "vol2",
+				VolumeSource: corev1.VolumeSource{
+					PersistentVolumeClaim: pvcSource("pvc3"),
+				},
+			},
+			{
+				Name: "vol3",
+				VolumeSource: corev1.VolumeSource{
+					PersistentVolumeClaim: pvcSource("pvc4"),
+				},
+			},
+		}
+		err := k8sClient.Create(testCtx, pod)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		pod = getPod()
+		request := pod.Spec.Containers[0].Resources.Requests[topolvm.CapacityResource("myvg1")]
+		limit := pod.Spec.Containers[0].Resources.Limits[topolvm.CapacityResource("myvg1")]
+		Expect(request.Value()).Should(BeNumerically("==", 1<<30))
+		Expect(limit.Value()).Should(BeNumerically("==", 1<<30))
+
+		request = pod.Spec.Containers[0].Resources.Requests[topolvm.CapacityResource("myvg2")]
+		limit = pod.Spec.Containers[0].Resources.Limits[topolvm.CapacityResource("myvg2")]
+		Expect(request.Value()).Should(BeNumerically("==", 3<<30))
+		Expect(limit.Value()).Should(BeNumerically("==", 3<<30))
+
+		request = pod.Spec.Containers[0].Resources.Requests[topolvm.CapacityResource("myvg3")]
+		limit = pod.Spec.Containers[0].Resources.Limits[topolvm.CapacityResource("myvg3")]
+		Expect(request.Value()).Should(BeNumerically("==", 4<<30))
+		Expect(limit.Value()).Should(BeNumerically("==", 4<<30))
 	})
 
 	It("should mutate pod with TopoLVM inline ephemeral volume.", func() {

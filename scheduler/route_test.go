@@ -29,8 +29,8 @@ var extenderArgs = ExtenderArgs{
 	},
 	Nodes: &corev1.NodeList{
 		Items: []corev1.Node{
-			testNode("10.1.1.1", 2),
-			testNode("10.1.1.2", 5),
+			testNode("10.1.1.1", 2, 10, 10),
+			testNode("10.1.1.2", 5, 10, 10),
 		},
 	},
 }

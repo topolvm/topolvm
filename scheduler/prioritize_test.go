@@ -54,7 +54,7 @@ func TestScoreNodes(t *testing.T) {
 		},
 	}
 	input := []corev1.Node{
-		testNode("10.1.1.1", 128),
+		testNode("10.1.1.1", 128, 128, 128),
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "10.1.1.2",
