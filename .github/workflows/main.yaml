@@ -11,15 +11,13 @@ jobs:
           go-version: 1.13
         id: go
       - run: make setup
-
       - run: |
-            mkdir -p /go/src
-            GOBIN=/usr/local/bin go get golang.org/x/tools/cmd/goimports
-            GOBIN=/usr/local/bin go get golang.org/x/lint/golint
-            GOBIN=/usr/local/bin go get github.com/gordonklaus/ineffassign
-            GOBIN=/usr/local/bin go get github.com/tcnksm/ghr
-            GOBIN=/usr/local/bin go get github.com/gostaticanalysis/nilerr/cmd/nilerr
-            GOBIN=/usr/local/bin go get github.com/cybozu/neco-containers/golang/analyzer/cmd/...
+            go get golang.org/x/tools/cmd/goimports
+            go get golang.org/x/lint/golint
+            go get github.com/gordonklaus/ineffassign
+            go get github.com/tcnksm/ghr
+            go get github.com/gostaticanalysis/nilerr/cmd/nilerr
+            go get github.com/cybozu/neco-containers/golang/analyzer/cmd/...
       - run: |
             make manifests generate
             diffs=$(git diff --name-only)
