@@ -66,7 +66,7 @@ jobs:
           at: /tmp/workspace
       - run: cp -a /tmp/workspace build
       - setup_remote_docker
-      - run: docker build -t quay.io/cybozu/topolvm:latest .
+      - run: docker build -t quay.io/topolvm/topolvm:latest .
       - run:
           name: Push docker image to Quay.io
           command: |
@@ -74,15 +74,15 @@ jobs:
             docker login -u $QUAY_USER -p $QUAY_PASSWORD quay.io
             echo "pushing image ..."
             TAG=$(echo $CIRCLE_TAG | cut -c 2-)
-            docker tag quay.io/cybozu/topolvm:latest quay.io/cybozu/topolvm:$TAG
-            docker push quay.io/cybozu/topolvm:$TAG
+            docker tag quay.io/topolvm/topolvm:latest quay.io/topolvm/topolvm:$TAG
+            docker push quay.io/topolvm/topolvm:$TAG
             if echo $TAG | grep -q -e - ; then
                 echo ===== Skip pushing branch tags for pre-release $TAG =====
                 exit 0
             fi
             BRANCH=$(echo $TAG | cut -d "." -f 1-2)
-            docker tag quay.io/cybozu/topolvm:latest quay.io/cybozu/topolvm:$BRANCH
-            docker push quay.io/cybozu/topolvm:$BRANCH
+            docker tag quay.io/topolvm/topolvm:latest quay.io/topolvm/topolvm:$BRANCH
+            docker push quay.io/topolvm/topolvm:$BRANCH
   publish-github-release:
     docker:
       - image: quay.io/cybozu/golang:1.13-bionic
