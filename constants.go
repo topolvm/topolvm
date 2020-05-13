@@ -6,9 +6,7 @@ import corev1 "k8s.io/api/core/v1"
 const CapacityKey = "capacity.topolvm.io/"
 
 // CapacityResource is the resource name of topolvm capacity.
-func CapacityResource(vgName string) corev1.ResourceName {
-	return corev1.ResourceName(CapacityKey + vgName)
-}
+const CapacityResource = corev1.ResourceName("topolvm.io/capacity")
 
 // PluginName is the name of the CSI plugin.
 const PluginName = "topolvm.cybozu.com"

@@ -240,7 +240,7 @@ Pros:
 - The weight of extender can be adjusted for each device class.
 
 Cons:
-- Requires to modify the scheduler policy depending on volume groups
+- The settings of scheduler policy are complicated and must be rewritten according to your environment.
 
 #### A-2) insert multiple annotations
 
@@ -266,10 +266,12 @@ The values of `topolvm.io/capacity` don't matter.
 Users shouldn't modify the scheduler policy.
 
 Pros:
-- No need to modify the scheduler policy depending on volume groups
+- The settings of scheduler policy is simple.
+- For pods that use only one volume group, scheduling can be done as usual.
+- For pods that use two or more volume group, scheduling to a node with insufficient capacity can be avoided.
 
 Cons:
-- Cannot calculate the score by specifying weight for each volume group
+- The weight of extender cannot be adjusted individually when using two or more volume group.
 
 #### Decision outcome
 

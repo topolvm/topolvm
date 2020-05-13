@@ -48,27 +48,16 @@ NODE_LOOP:
 
 func extractRequestedSize(pod *corev1.Pod) map[string]int64 {
 	result := make(map[string]int64)
-	for _, container := range pod.Spec.Containers {
-		for k, v := range container.Resources.Limits {
-			key := string(k)
-			if !strings.HasPrefix(key, topolvm.CapacityKey) {
-				continue
-			}
-			vg := key[len(topolvm.CapacityKey):]
-			if _, ok := result[vg]; !ok {
-				result[vg] = v.Value()
-			}
+	for k, v := range pod.Annotations {
+		if !strings.HasPrefix(k, topolvm.CapacityKey) {
+			continue
 		}
-		for k, v := range container.Resources.Requests {
-			key := string(k)
-			if !strings.HasPrefix(key, topolvm.CapacityKey) {
-				continue
-			}
-			vg := key[len(topolvm.CapacityKey):]
-			if _, ok := result[vg]; !ok {
-				result[vg] = v.Value()
-			}
+		vg := k[len(topolvm.CapacityKey):]
+		capacity, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			continue
 		}
+		result[vg] = capacity
 	}
 
 	return result

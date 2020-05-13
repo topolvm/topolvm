@@ -3,6 +3,7 @@ package scheduler
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"testing"
 
 	"github.com/cybozu-go/topolvm"
@@ -136,25 +137,30 @@ func TestExtractRequestedSize(t *testing.T) {
 	}{
 		{
 			input: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						topolvm.CapacityKey + "myvg1": strconv.Itoa(5 << 30),
+					},
+				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
 							Resources: corev1.ResourceRequirements{
 								Limits: corev1.ResourceList{
-									topolvm.CapacityResource("myvg1"): *resource.NewQuantity(5<<30, resource.BinarySI),
+									topolvm.CapacityResource: *resource.NewQuantity(1, resource.BinarySI),
 								},
 								Requests: corev1.ResourceList{
-									topolvm.CapacityResource("myvg1"): *resource.NewQuantity(3<<30, resource.BinarySI),
+									topolvm.CapacityResource: *resource.NewQuantity(1, resource.BinarySI),
 								},
 							},
 						},
 						{
 							Resources: corev1.ResourceRequirements{
 								Limits: corev1.ResourceList{
-									topolvm.CapacityResource("myvg1"): *resource.NewQuantity(2<<30, resource.BinarySI),
+									topolvm.CapacityResource: *resource.NewQuantity(1, resource.BinarySI),
 								},
 								Requests: corev1.ResourceList{
-									topolvm.CapacityResource("myvg1"): *resource.NewQuantity(1<<30, resource.BinarySI),
+									topolvm.CapacityResource: *resource.NewQuantity(1, resource.BinarySI),
 								},
 							},
 						},
@@ -167,12 +173,17 @@ func TestExtractRequestedSize(t *testing.T) {
 		},
 		{
 			input: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						topolvm.CapacityKey + "myvg1": strconv.Itoa(3 << 30),
+					},
+				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
-									topolvm.CapacityResource("myvg1"): *resource.NewQuantity(3<<30, resource.BinarySI),
+									topolvm.CapacityResource: *resource.NewQuantity(1, resource.BinarySI),
 								},
 							},
 						},
