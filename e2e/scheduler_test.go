@@ -56,7 +56,7 @@ metadata:
   labels:
     app.kubernetes.io/name: testhttpd
   annotations:
-    capacity.topolvm.io/myvg1: 1073741824
+    capacity.topolvm.io/myvg1: "1073741824"
 spec:
   containers:
   - name: ubuntu
