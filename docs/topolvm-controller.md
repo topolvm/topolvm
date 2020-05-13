@@ -23,8 +23,9 @@ Webhooks
 
 ### `/pod/mutate`
 
-Mutate new Pods to add `capacity.topolvm.io/<volume group name>` resource request to
-its first container.  This resource request will be used by
+Mutate new Pods to add `capacity.topolvm.io/<volume group name>` annotation to the pod
+and `topolvm.io/capacity` resource request to its first container.
+This annotation and resource request will be used by
 [`topolvm-scheduler`](./topolvm-scheduler.md) to filter and score Nodes.
 
 This hook handles two classes of pods. First, pods having at least one _unbound_
@@ -85,20 +86,25 @@ spec:
       claimName: local-pvc1                # have the above PVC
 ```
 
-The hook inserts `capacity.topolvm.io/<volume group name>` to the first container as follows:
+The hook inserts `capacity.topolvm.io/<volume group name>` to the annotations
+and `topolvm.io/capacity` to the first container as follows:
 
 ```yaml
+metadata:
+  annotations:
+    capacity.topolvm.io/myvg1: "1073741824"
 spec:
   containers:
   - name: testhttpd
     resources:
       limits:
-        capacity.topolvm.io/myvg1: "1073741824"
+        topolvm.io/capacity: "1"
       requests:
-        capacity.topolvm.io/myvg1: "1073741824"
+        topolvm.io/capacity: "1"
 ```
 
 Below is an example for TopoLVM inline ephemeral volumes:
+
 ```yaml
 kind: Pod
 metadata:
@@ -119,16 +125,23 @@ spec:
       driver: topolvm.cybozu.com
 ```
 
-The hook inserts `capacity.topolvm.io/<volume group name>` to the ubuntu container as follows:
+The hook inserts `capacity.topolvm.io/<volume group name>` to the annotations and
+`topolvm.io/capacity` to the ubuntu container as follows:
 
 ```yaml
+metadata:
+  annotations:
+    capacity.topolvm.io/myvg1: "1073741824"
 spec:
   containers:
   - name: ubuntu
     resources:
       limits:
-        capacity.topolvm.io/myvg1: "1073741824"
+        topolvm.io/capacity: "1"
 ```
+
+Inline ephemeral volume cannot specify arbitrarily volume group.
+The default volume group will be used.
 
 ### `/pvc/mutate`
 

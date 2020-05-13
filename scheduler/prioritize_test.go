@@ -6,7 +6,6 @@ import (
 
 	"github.com/cybozu-go/topolvm"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -38,18 +37,11 @@ func TestCapacityToScore(t *testing.T) {
 
 func TestScoreNodes(t *testing.T) {
 	pod := &corev1.Pod{
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{
-					Resources: corev1.ResourceRequirements{
-						Limits: map[corev1.ResourceName]resource.Quantity{
-							topolvm.CapacityResource("myvg1"): *resource.NewQuantity(64, resource.BinarySI),
-						},
-						Requests: map[corev1.ResourceName]resource.Quantity{
-							topolvm.CapacityResource("myvg1"): *resource.NewQuantity(64, resource.BinarySI),
-						},
-					},
-				},
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{
+				topolvm.CapacityKey + "myvg1": "64",
+				topolvm.CapacityKey + "myvg2": "64",
+				topolvm.CapacityKey + "myvg3": "64",
 			},
 		},
 	}
@@ -72,7 +64,7 @@ func TestScoreNodes(t *testing.T) {
 	expected := []HostPriority{
 		{
 			Host:  "10.1.1.1",
-			Score: 5,
+			Score: 4,
 		},
 		{
 			Host:  "10.1.1.2",
@@ -84,9 +76,12 @@ func TestScoreNodes(t *testing.T) {
 		},
 	}
 
-	result := scoreNodes(pod, input, 1, map[string]float64{
+	defaultDivisor := 2.0
+	divisors := map[string]float64{
 		"myvg1": 4,
-	})
+		"myvg2": 10,
+	}
+	result := scoreNodes(pod, input, defaultDivisor, divisors)
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("expected scoreNodes() to be %#v, but actual %#v", expected, result)
 	}

@@ -19,7 +19,7 @@ Scheduler policy
         "prioritizeVerb": "prioritize",
         "managedResources":
         [{
-          "name": "topolvm.cybozu.com/capacity",
+          "name": "topolvm.io/capacity",
           "ignoredByScheduler": true
         }],
         "nodeCacheCapable": false
@@ -27,7 +27,7 @@ Scheduler policy
 }
 ```
 
-As it shown, only pods that request `capacity.topolvm.io/<volume group name>` resource are
+As it showed, only pods that request `topolvm.io/capacity` resource are
 managed by `topolvm-scheduler`.
 
 Verbs
@@ -53,10 +53,24 @@ This verb scores nodes.  The score of a node is calculated by this formula:
 
 `divisor` can be changed with `divisor` command-line flag.
 
+<!-- TODO -->
+
 Command-line flags
 ------------------
 
-| Name      | Type    | Default | Description                 |
-| --------- | ------- | ------: | --------------------------- |
-| `listen`  | string  | `:8000` | HTTP listening address      |
-| `divisor` | float64 |       1 | A variable for node scoring |
+| Name      | Type    | Default                       | Description            |
+| --------- | ------- | ----------------------------: | ---------------------- |
+| `listen`  | string  | `:8000`                       | HTTP listening address |
+| `config`  | float64 | `/etc/topolvm/scheduler.yaml` | Config file path       |
+
+Config file format
+------------------
+
+<!-- TODO -->
+
+```yaml
+default-divisor: 1
+divisors:
+  myvg1: 2
+  myvg2: 4
+```

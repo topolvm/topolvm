@@ -74,9 +74,9 @@ To extend the standard scheduler, TopoLVM components work together as follows:
 
 - `topolvm-node` exposes free storage capacity as `capacity.topolvm.io/<volume group name>` annotation of each Node.
 - `topolvm-controller` works as a [mutating webhook](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/) for new Pods.
-    - It adds `capacity.topolvm.io/<volume group name>` resource to the first container of a pod.
-    - The value is the sum of the storage capacity requests of unbound TopoLVM PVCs for each volume group referenced by the pod.
-- `topolvm-scheduler` filters and scores Nodes for a new pod having `capacity.topolvm.io/<volume group name>` resource request.
+    - It adds `capacity.topolvm.io/<volume group name>` annotation to a pod and `topolvm.io/capacity` resource to the first container of a pod.
+    - The value of the annotation is the sum of the storage capacity requests of unbound TopoLVM PVCs for each volume group referenced by the pod.
+- `topolvm-scheduler` filters and scores Nodes for a new pod having `topolvm.io/capacity` resource request.
     - Nodes having less capacity in given volume group than requested are filtered.
     - Nodes having larger capacity in given volume group are scored higher.
 

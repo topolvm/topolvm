@@ -90,18 +90,19 @@ func (m podMutator) Handle(ctx context.Context, req admission.Request) admission
 	}
 
 	ctnr := &pod.Spec.Containers[0]
+	quantity := resource.NewQuantity(1, resource.DecimalSI)
+	if ctnr.Resources.Requests == nil {
+		ctnr.Resources.Requests = corev1.ResourceList{}
+	}
+	ctnr.Resources.Requests[topolvm.CapacityResource] = *quantity
+	if ctnr.Resources.Limits == nil {
+		ctnr.Resources.Limits = corev1.ResourceList{}
+	}
+	ctnr.Resources.Limits[topolvm.CapacityResource] = *quantity
+
+	pod.Annotations = make(map[string]string)
 	for vg, capacity := range pvcCapacities {
-		quantity := resource.NewQuantity(capacity, resource.DecimalSI)
-
-		if ctnr.Resources.Requests == nil {
-			ctnr.Resources.Requests = corev1.ResourceList{}
-		}
-		ctnr.Resources.Requests[topolvm.CapacityResource(vg)] = *quantity
-
-		if ctnr.Resources.Limits == nil {
-			ctnr.Resources.Limits = corev1.ResourceList{}
-		}
-		ctnr.Resources.Limits[topolvm.CapacityResource(vg)] = *quantity
+		pod.Annotations[topolvm.CapacityKey+vg] = strconv.FormatInt(capacity, 10)
 	}
 
 	marshaledPod, err := json.Marshal(pod)
