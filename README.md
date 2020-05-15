@@ -2,7 +2,6 @@
 [![CircleCI](https://circleci.com/gh/cybozu-go/topolvm.svg?style=svg)](https://circleci.com/gh/cybozu-go/topolvm)
 [![GoDoc](https://godoc.org/github.com/cybozu-go/topolvm?status.svg)][godoc]
 [![Go Report Card](https://goreportcard.com/badge/github.com/cybozu-go/topolvm)](https://goreportcard.com/report/github.com/cybozu-go/topolvm)
-[![Docker Repository on Quay](https://quay.io/repository/cybozu/topolvm/status "Docker Repository on Quay")](https://quay.io/repository/cybozu/topolvm)
 
 TopoLVM
 =======
@@ -78,3 +77,8 @@ Documentation
 [godoc]: https://godoc.org/github.com/cybozu-go/topolvm
 [CSI]: https://github.com/container-storage-interface/spec
 [kind]: https://github.com/kubernetes-sigs/kind
+
+Docker images
+-------------
+
+Docker images are available on [Quay.io](https://quay.io/repository/cybozu/topolvm)
