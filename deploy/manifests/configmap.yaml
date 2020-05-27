@@ -4,7 +4,6 @@ metadata:
   name: topolvm-config
   namespace: topolvm-system
 data:
-  default-vg: myvg1
   scheduler.yaml: |
     default-divisor: 10
     divisors:

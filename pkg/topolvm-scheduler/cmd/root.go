@@ -64,7 +64,7 @@ func subMain() error {
 	if err != nil {
 		return err
 	}
-	err = yaml.Unmarshal(b, config)
+	err = yaml.Unmarshal(b, &config)
 	if err != nil {
 		return err
 	}

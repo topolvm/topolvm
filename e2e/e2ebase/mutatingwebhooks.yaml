@@ -4,9 +4,9 @@ metadata:
   name: topolvm-hook
   annotations: null
 webhooks:
-  - name: pod-hook.topolvm.cybozu.com
+  - name: pod-hook.topolvm.io
     clientConfig:
       caBundle: $(TLSCERT)
-  - name: pvc-hook.topolvm.cybozu.com
+  - name: pvc-hook.topolvm.io
     clientConfig:
       caBundle: $(TLSCERT)

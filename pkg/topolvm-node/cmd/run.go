@@ -75,7 +75,6 @@ func subMain() error {
 		mgr.GetClient(),
 		ctrl.Log.WithName("controllers").WithName("LogicalVolume"),
 		nodename,
-		config.defaultVG,
 		conn,
 	)
 
@@ -86,7 +85,7 @@ func subMain() error {
 	// +kubebuilder:scaffold:builder
 
 	// Add health checker to manager
-	checker := runners.NewChecker(checkFunc(conn, mgr.GetAPIReader(), config.defaultVG), 1*time.Minute)
+	checker := runners.NewChecker(checkFunc(conn, mgr.GetAPIReader()), 1*time.Minute)
 	if err := mgr.Add(checker); err != nil {
 		return err
 	}
@@ -108,7 +107,7 @@ func subMain() error {
 	}
 	grpcServer := grpc.NewServer()
 	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityService(checker.Ready))
-	csi.RegisterNodeServer(grpcServer, driver.NewNodeService(nodename, config.defaultVG, conn, s))
+	csi.RegisterNodeServer(grpcServer, driver.NewNodeService(nodename, conn, s))
 	err = mgr.Add(runners.NewGRPCRunner(grpcServer, config.csiSocket, false))
 	if err != nil {
 		return err
@@ -123,13 +122,13 @@ func subMain() error {
 	return nil
 }
 
-func checkFunc(conn *grpc.ClientConn, r client.Reader, vg string) func() error {
+func checkFunc(conn *grpc.ClientConn, r client.Reader) func() error {
 	vgs := proto.NewVGServiceClient(conn)
 	return func() error {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		if _, err := vgs.GetFreeBytes(ctx, &proto.GetFreeBytesRequest{VgName: vg}); err != nil {
+		if _, err := vgs.GetFreeBytes(ctx, &proto.GetFreeBytesRequest{DeviceClass: ""}); err != nil {
 			return err
 		}
 

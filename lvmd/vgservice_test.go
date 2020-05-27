@@ -48,7 +48,7 @@ func (s *mockWatchServer) RecvMsg(m interface{}) error {
 
 func testWatch(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	vgService, notifier := NewVGService(1, "")
+	vgService, notifier := NewVGService(NewDeviceClassMapper("myvg1", map[string]string{}), 1)
 
 	ch1 := make(chan struct{})
 	server1 := &mockWatchServer{
@@ -113,8 +113,8 @@ func testWatch(t *testing.T) {
 }
 
 func testVGService(t *testing.T, vg *command.VolumeGroup) {
-	vgService, _ := NewVGService(1, "")
-	res, err := vgService.GetLVList(context.Background(), &proto.GetLVListRequest{VgName: vg.Name()})
+	vgService, _ := NewVGService(NewDeviceClassMapper("myvg1", map[string]string{}), 1)
+	res, err := vgService.GetLVList(context.Background(), &proto.GetLVListRequest{DeviceClass: vg.Name()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +128,7 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 		t.Fatal(err)
 	}
 
-	res, err = vgService.GetLVList(context.Background(), &proto.GetLVListRequest{VgName: vg.Name()})
+	res, err = vgService.GetLVList(context.Background(), &proto.GetLVListRequest{DeviceClass: vg.Name()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +160,7 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 		t.Fatal(err)
 	}
 
-	res, err = vgService.GetLVList(context.Background(), &proto.GetLVListRequest{VgName: vg.Name()})
+	res, err = vgService.GetLVList(context.Background(), &proto.GetLVListRequest{DeviceClass: vg.Name()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -169,7 +169,7 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 		t.Fatalf("numVolumes must be 2: %d", numVols3)
 	}
 
-	res2, err := vgService.GetFreeBytes(context.Background(), &proto.GetFreeBytesRequest{VgName: vg.Name()})
+	res2, err := vgService.GetFreeBytes(context.Background(), &proto.GetFreeBytesRequest{DeviceClass: vg.Name()})
 	if err != nil {
 		t.Fatal(err)
 	}

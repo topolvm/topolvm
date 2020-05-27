@@ -39,9 +39,9 @@ func TestScoreNodes(t *testing.T) {
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
-				topolvm.CapacityKey + "myvg1": "64",
-				topolvm.CapacityKey + "myvg2": "64",
-				topolvm.CapacityKey + "myvg3": "64",
+				topolvm.CapacityKey("myvg1"): "64",
+				topolvm.CapacityKey("myvg2"): "64",
+				topolvm.CapacityKey("myvg3"): "64",
 			},
 		},
 	}
@@ -56,7 +56,7 @@ func TestScoreNodes(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "10.1.1.3",
 				Annotations: map[string]string{
-					topolvm.CapacityKey + "myvg1": "foo",
+					topolvm.CapacityKey("myvg1"): "foo",
 				},
 			},
 		},

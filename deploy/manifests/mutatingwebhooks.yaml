@@ -7,10 +7,10 @@ metadata:
   labels:
     app.kubernetes.io/name: topolvm-hook
 webhooks:
-  - name: pod-hook.topolvm.cybozu.com
+  - name: pod-hook.topolvm.io
     namespaceSelector:
       matchExpressions:
-      - key: topolvm.cybozu.com/webhook
+      - key: topolvm.io/webhook
         operator: NotIn
         values: ["ignore"]
     failurePolicy: Fail
@@ -24,10 +24,10 @@ webhooks:
         apiGroups: [""]
         apiVersions: ["v1"]
         resources: ["pods"]
-  - name: pvc-hook.topolvm.cybozu.com
+  - name: pvc-hook.topolvm.io
     namespaceSelector:
       matchExpressions:
-      - key: topolvm.cybozu.com/webhook
+      - key: topolvm.io/webhook
         operator: NotIn
         values: ["ignore"]
     failurePolicy: Fail

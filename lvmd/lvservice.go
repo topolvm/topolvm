@@ -11,15 +11,15 @@ import (
 )
 
 // NewLVService creates a new LVServiceServer
-func NewLVService(vgPrefix string, notifyFunc func()) proto.LVServiceServer {
+func NewLVService(mapper *DeviceClassMapper, notifyFunc func()) proto.LVServiceServer {
 	return lvService{
-		vgPrefix:   vgPrefix,
+		mapper:     mapper,
 		notifyFunc: notifyFunc,
 	}
 }
 
 type lvService struct {
-	vgPrefix   string
+	mapper     *DeviceClassMapper
 	notifyFunc func()
 }
 
@@ -31,8 +31,11 @@ func (s lvService) notify() {
 }
 
 func (s lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*proto.CreateLVResponse, error) {
-	vgName := s.vgPrefix + req.VgName
-	vg, err := command.FindVolumeGroup(vgName)
+	dc := s.mapper.DeviceClass(req.DeviceClass)
+	if dc == nil {
+		return nil, status.Errorf(codes.NotFound, "device class not found: %s", req.DeviceClass)
+	}
+	vg, err := command.FindVolumeGroup(dc.VolumeGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -80,8 +83,11 @@ func (s lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*pro
 }
 
 func (s lvService) RemoveLV(_ context.Context, req *proto.RemoveLVRequest) (*proto.Empty, error) {
-	vgName := s.vgPrefix + req.VgName
-	vg, err := command.FindVolumeGroup(vgName)
+	dc := s.mapper.DeviceClass(req.DeviceClass)
+	if dc == nil {
+		return nil, status.Errorf(codes.NotFound, "device class not found: %s", req.DeviceClass)
+	}
+	vg, err := command.FindVolumeGroup(dc.VolumeGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -118,8 +124,11 @@ func (s lvService) RemoveLV(_ context.Context, req *proto.RemoveLVRequest) (*pro
 }
 
 func (s lvService) ResizeLV(_ context.Context, req *proto.ResizeLVRequest) (*proto.Empty, error) {
-	vgName := s.vgPrefix + req.VgName
-	vg, err := command.FindVolumeGroup(vgName)
+	dc := s.mapper.DeviceClass(req.DeviceClass)
+	if dc == nil {
+		return nil, status.Errorf(codes.NotFound, "device class not found: %s", req.DeviceClass)
+	}
+	vg, err := command.FindVolumeGroup(dc.VolumeGroup)
 	if err != nil {
 		return nil, err
 	}

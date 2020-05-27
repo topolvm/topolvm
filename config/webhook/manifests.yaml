@@ -14,7 +14,7 @@ webhooks:
       path: /pvc/mutate
   failurePolicy: Fail
   matchPolicy: Equivalent
-  name: pvc-hook.topolvm.cybozu.com
+  name: pvc-hook.topolvm.io
   rules:
   - apiGroups:
     - ""
@@ -32,7 +32,7 @@ webhooks:
       path: /pod/mutate
   failurePolicy: Fail
   matchPolicy: Equivalent
-  name: pod-hook.topolvm.cybozu.com
+  name: pod-hook.topolvm.io
   rules:
   - apiGroups:
     - ""

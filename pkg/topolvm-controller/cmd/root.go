@@ -20,7 +20,6 @@ var config struct {
 	stalePeriod      time.Duration
 	cleanupInterval  time.Duration
 	development      bool
-	defaultVG        string
 }
 
 var rootCmd = &cobra.Command{
@@ -55,7 +54,6 @@ func init() {
 	fs.DurationVar(&config.stalePeriod, "stale-period", 24*time.Hour, "LogicalVolume is cleaned up if it is not deleted within this period")
 	fs.DurationVar(&config.cleanupInterval, "cleanup-interval", 10*time.Minute, "Cleaning up interval for LogicalVolume")
 	fs.BoolVar(&config.development, "development", false, "Use development logger config")
-	fs.StringVar(&config.defaultVG, "default-vg", "", "Default Volume Group")
 
 	goflags := flag.NewFlagSet("klog", flag.ExitOnError)
 	klog.InitFlags(goflags)

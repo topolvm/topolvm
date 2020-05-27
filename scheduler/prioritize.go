@@ -33,23 +33,23 @@ func capacityToScore(capacity uint64, divisor float64) int {
 func scoreNodes(pod *corev1.Pod, nodes []corev1.Node, defaultDivisor float64, divisors map[string]float64) []HostPriority {
 	result := make([]HostPriority, len(nodes))
 
-	var vgs []string
+	var dcs []string
 	for k := range pod.Annotations {
-		if strings.HasPrefix(k, topolvm.CapacityKey) {
-			vgs = append(vgs, k[len(topolvm.CapacityKey):])
+		if strings.HasPrefix(k, topolvm.CapacityKeyPrefix) {
+			dcs = append(dcs, strings.TrimPrefix(k[len(topolvm.CapacityKeyPrefix):], "/"))
 		}
 	}
-	if len(vgs) == 0 {
+	if len(dcs) == 0 {
 		return nil
 	}
 
 	for i, item := range nodes {
 		var score int
-		for _, vg := range vgs {
-			if val, ok := item.Annotations[topolvm.CapacityKey+vg]; ok {
+		for _, dc := range dcs {
+			if val, ok := item.Annotations[topolvm.CapacityKey(dc)]; ok {
 				capacity, _ := strconv.ParseUint(val, 10, 64)
 				var divisor float64
-				if v, ok := divisors[vg]; ok {
+				if v, ok := divisors[dc]; ok {
 					divisor = v
 				} else {
 					divisor = defaultDivisor
@@ -57,7 +57,7 @@ func scoreNodes(pod *corev1.Pod, nodes []corev1.Node, defaultDivisor float64, di
 				score += capacityToScore(capacity, divisor)
 			}
 		}
-		result[i] = HostPriority{Host: item.Name, Score: score / len(vgs)}
+		result[i] = HostPriority{Host: item.Name, Score: score / len(dcs)}
 	}
 
 	return result

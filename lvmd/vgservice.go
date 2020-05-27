@@ -2,7 +2,6 @@ package lvmd
 
 import (
 	"context"
-	"strings"
 	"sync"
 
 	"github.com/cybozu-go/log"
@@ -13,10 +12,9 @@ import (
 )
 
 // NewVGService creates a VGServiceServer
-func NewVGService(spareGB uint64, vgPrefix string) (proto.VGServiceServer, func()) {
+func NewVGService(mapper *DeviceClassMapper) (proto.VGServiceServer, func()) {
 	svc := &vgService{
-		spare:    spareGB << 30,
-		vgPrefix: vgPrefix,
+		mapper:   mapper,
 		watchers: make(map[int]chan struct{}),
 	}
 
@@ -24,8 +22,7 @@ func NewVGService(spareGB uint64, vgPrefix string) (proto.VGServiceServer, func(
 }
 
 type vgService struct {
-	spare    uint64
-	vgPrefix string
+	mapper *DeviceClassMapper
 
 	mu             sync.Mutex
 	watcherCounter int
@@ -33,8 +30,11 @@ type vgService struct {
 }
 
 func (s *vgService) GetLVList(_ context.Context, req *proto.GetLVListRequest) (*proto.GetLVListResponse, error) {
-	vgName := s.vgPrefix + req.VgName
-	vg, err := command.FindVolumeGroup(vgName)
+	dc := s.mapper.DeviceClass(req.DeviceClass)
+	if dc == nil {
+		return nil, status.Errorf(codes.NotFound, "device class not found: %s", req.DeviceClass)
+	}
+	vg, err := command.FindVolumeGroup(dc.VolumeGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -49,20 +49,23 @@ func (s *vgService) GetLVList(_ context.Context, req *proto.GetLVListRequest) (*
 	vols := make([]*proto.LogicalVolume, len(lvs))
 	for i, lv := range lvs {
 		vols[i] = &proto.LogicalVolume{
-			Name:     lv.Name(),
-			SizeGb:   (lv.Size() + (1 << 30) - 1) >> 30,
-			DevMajor: lv.MajorNumber(),
-			DevMinor: lv.MinorNumber(),
-			Tags:     lv.Tags(),
-			VgName:   req.VgName,
+			Name:        lv.Name(),
+			SizeGb:      (lv.Size() + (1 << 30) - 1) >> 30,
+			DevMajor:    lv.MajorNumber(),
+			DevMinor:    lv.MinorNumber(),
+			Tags:        lv.Tags(),
+			DeviceClass: req.DeviceClass,
 		}
 	}
 	return &proto.GetLVListResponse{Volumes: vols}, nil
 }
 
 func (s *vgService) GetFreeBytes(_ context.Context, req *proto.GetFreeBytesRequest) (*proto.GetFreeBytesResponse, error) {
-	vgName := s.vgPrefix + req.VgName
-	vg, err := command.FindVolumeGroup(vgName)
+	dc := s.mapper.DeviceClass(req.DeviceClass)
+	if dc == nil {
+		return nil, status.Errorf(codes.NotFound, "device class not found: %s", req.DeviceClass)
+	}
+	vg, err := command.FindVolumeGroup(dc.VolumeGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -74,10 +77,11 @@ func (s *vgService) GetFreeBytes(_ context.Context, req *proto.GetFreeBytesReque
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	if vgFree < s.spare {
+	spare := s.mapper.GetSpare(req.DeviceClass)
+	if vgFree < spare {
 		vgFree = 0
 	} else {
-		vgFree -= s.spare
+		vgFree -= spare
 	}
 
 	return &proto.GetFreeBytesResponse{
@@ -96,13 +100,19 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 		if err != nil {
 			return status.Error(codes.Internal, err.Error())
 		}
-		if !strings.HasPrefix(vg.Name(), s.vgPrefix) {
+		dc := s.mapper.DeviceClassFrom(vg.Name())
+		if dc == nil {
 			continue
 		}
-		vgName := vg.Name()[len(s.vgPrefix):]
+		if dc.Default {
+			res.Items = append(res.Items, &proto.WatchItem{
+				DeviceClass: "",
+				FreeBytes:   vgFree,
+			})
+		}
 		res.Items = append(res.Items, &proto.WatchItem{
-			VgName:    vgName,
-			FreeBytes: vgFree,
+			DeviceClass: dc.Name,
+			FreeBytes:   vgFree,
 		})
 	}
 	return server.Send(res)

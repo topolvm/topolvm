@@ -23,7 +23,7 @@ type LogicalVolumeCleanupReconciler struct {
 	StalePeriod time.Duration
 }
 
-// +kubebuilder:rbac:groups=topolvm.cybozu.com,resources=logicalvolumes,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=topolvm.io,resources=logicalvolumes,verbs=get;list;watch;update;patch
 
 // Reconcile deletes stale LogicalVolume(s)
 func (r *LogicalVolumeCleanupReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {

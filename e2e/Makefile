@@ -80,7 +80,7 @@ start-lvmd:
 		$(SUDO) vgcreate -y node$$i-myvg1 $$($(SUDO) losetup -j build/backing_store$$i | cut -d: -f1); \
 		$(SUDO) lvcreate -y -n csi-node-test-block -L 1G node$$i-myvg1; \
 		$(SUDO) lvcreate -y -n csi-node-test-fs -L 1G node$$i-myvg1; \
-		$(SUDO) systemd-run --unit=lvmd$$i.service $(shell pwd)/build/lvmd --listen=/tmp/topolvm/lvmd$$i/lvmd.sock --spare=1 --vg-prefix=node$$i-; \
+		$(SUDO) systemd-run --unit=lvmd$$i.service $(shell pwd)/build/lvmd --listen=/tmp/topolvm/lvmd$$i/lvmd.sock --config=$(shell pwd)/lvmd$$i.yaml; \
 	done
 
 stop-lvmd:

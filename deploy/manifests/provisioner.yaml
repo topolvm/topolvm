@@ -2,9 +2,9 @@ kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: topolvm-provisioner
-provisioner: topolvm.cybozu.com
+provisioner: topolvm.io
 parameters:
   "csi.storage.k8s.io/fstype": "xfs"
-  "topolvm.io/volume-group": "myvg1"
+  "topolvm.io/device-class": "myvg1"
 volumeBindingMode: WaitForFirstConsumer
 allowVolumeExpansion: true

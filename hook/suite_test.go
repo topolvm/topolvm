@@ -59,10 +59,10 @@ func setupCommonResources() {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: topolvmProvisionerStorageClassName,
 		},
-		Provisioner:       "topolvm.cybozu.com",
+		Provisioner:       "topolvm.io",
 		VolumeBindingMode: modePtr(storagev1.VolumeBindingWaitForFirstConsumer),
 		Parameters: map[string]string{
-			topolvm.VolumeGroupKey: "myvg1",
+			topolvm.DeviceClassKey: "myvg1",
 		},
 	}
 	err := k8sClient.Create(testCtx, sc)
@@ -72,10 +72,10 @@ func setupCommonResources() {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: topolvmProvisioner2StorageClassName,
 		},
-		Provisioner:       "topolvm.cybozu.com",
+		Provisioner:       "topolvm.io",
 		VolumeBindingMode: modePtr(storagev1.VolumeBindingWaitForFirstConsumer),
 		Parameters: map[string]string{
-			topolvm.VolumeGroupKey: "myvg2",
+			topolvm.DeviceClassKey: "myvg2",
 		},
 	}
 	err = k8sClient.Create(testCtx, sc)
@@ -85,10 +85,10 @@ func setupCommonResources() {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: topolvmProvisioner3StorageClassName,
 		},
-		Provisioner:       "topolvm.cybozu.com",
+		Provisioner:       "topolvm.io",
 		VolumeBindingMode: modePtr(storagev1.VolumeBindingWaitForFirstConsumer),
 		Parameters: map[string]string{
-			topolvm.VolumeGroupKey: "myvg3",
+			topolvm.DeviceClassKey: "myvg3",
 		},
 	}
 	err = k8sClient.Create(testCtx, sc)
@@ -98,10 +98,10 @@ func setupCommonResources() {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: topolvmProvisionerImmediateStorageClassName,
 		},
-		Provisioner:       "topolvm.cybozu.com",
+		Provisioner:       "topolvm.io",
 		VolumeBindingMode: modePtr(storagev1.VolumeBindingImmediate),
 		Parameters: map[string]string{
-			topolvm.VolumeGroupKey: "myvg1",
+			topolvm.DeviceClassKey: "myvg1",
 		},
 	}
 	err = k8sClient.Create(testCtx, sc)
@@ -143,7 +143,7 @@ var _ = BeforeSuite(func() {
 				},
 				Webhooks: []admissionregistrationv1beta1.MutatingWebhook{
 					{
-						Name:          "pod-hook.topolvm.cybozu.com",
+						Name:          "pod-hook.topolvm.io",
 						FailurePolicy: &failPolicy,
 						ClientConfig: admissionregistrationv1beta1.WebhookClientConfig{
 							Service: &admissionregistrationv1beta1.ServiceReference{
@@ -164,7 +164,7 @@ var _ = BeforeSuite(func() {
 						},
 					},
 					{
-						Name:          "pvc-hook.topolvm.cybozu.com",
+						Name:          "pvc-hook.topolvm.io",
 						FailurePolicy: &failPolicy,
 						ClientConfig: admissionregistrationv1beta1.WebhookClientConfig{
 							Service: &admissionregistrationv1beta1.ServiceReference{

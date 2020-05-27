@@ -9,28 +9,28 @@ kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: topolvm-provisioner-immediate
-provisioner: topolvm.cybozu.com
+provisioner: topolvm.io
 volumeBindingMode: Immediate
 parameters:
-  "topolvm.io/volume-group": "myvg1"
+  "topolvm.io/device-class": "myvg1"
 ---
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: topolvm-provisioner2
-provisioner: topolvm.cybozu.com
+provisioner: topolvm.io
 volumeBindingMode: WaitForFirstConsumer
 parameters:
-  "topolvm.io/volume-group": "myvg2"
+  "topolvm.io/device-class": "myvg2"
 ---
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: topolvm-provisioner3
-provisioner: topolvm.cybozu.com
+provisioner: topolvm.io
 volumeBindingMode: WaitForFirstConsumer
 parameters:
-  "topolvm.io/volume-group": "myvg3"
+  "topolvm.io/device-class": "myvg3"
 ---
 apiVersion: v1
 kind: PersistentVolume

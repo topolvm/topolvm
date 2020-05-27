@@ -2,7 +2,7 @@
 apiVersion: storage.k8s.io/v1beta1
 kind: CSIDriver
 metadata:
-  name: topolvm.cybozu.com
+  name: topolvm.io
 spec:
   attachRequired: true
   podInfoOnMount: true
@@ -34,7 +34,7 @@ rules:
   - apiGroups: ["storage.k8s.io"]
     resources: ["storageclasses","csidrivers"]
     verbs: ["get", "list", "watch"]
-  - apiGroups: ["topolvm.cybozu.com"]
+  - apiGroups: ["topolvm.io"]
     resources: ["logicalvolumes", "logicalvolumes/status"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 ---
@@ -307,7 +307,6 @@ spec:
           command:
             - /topolvm-controller
             - --cert-dir=/certs
-            - --default-vg=$(DEFAULT_VG)
           ports:
             - containerPort: 9808
               name: healthz
@@ -325,12 +324,6 @@ spec:
             initialDelaySeconds: 10
             timeoutSeconds: 3
             periodSeconds: 60
-          env:
-            - name: DEFAULT_VG
-              valueFrom:
-                configMapKeyRef:
-                  name: topolvm-config
-                  key: default-vg
           volumeMounts:
             - name: socket-dir
               mountPath: /run/topolvm

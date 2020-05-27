@@ -20,20 +20,19 @@ import (
 
 var pmLogger = logf.Log.WithName("pod-mutator")
 
-// +kubebuilder:webhook:path=/pod/mutate,mutating=true,failurePolicy=fail,matchPolicy=equivalent,groups="",resources=pods,verbs=create,versions=v1,name=pod-hook.topolvm.cybozu.com
+// +kubebuilder:webhook:path=/pod/mutate,mutating=true,failurePolicy=fail,matchPolicy=equivalent,groups="",resources=pods,verbs=create,versions=v1,name=pod-hook.topolvm.io
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch
 // +kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=get;list;watch
 
 // podMutator mutates pods using PVC for TopoLVM.
 type podMutator struct {
-	client    client.Client
-	decoder   *admission.Decoder
-	defaultVG string
+	client  client.Client
+	decoder *admission.Decoder
 }
 
 // PodMutator creates a mutating webhook for Pods.
-func PodMutator(c client.Client, dec *admission.Decoder, defaultVG string) http.Handler {
-	return &webhook.Admission{Handler: podMutator{c, dec, defaultVG}}
+func PodMutator(c client.Client, dec *admission.Decoder) http.Handler {
+	return &webhook.Admission{Handler: podMutator{c, dec}}
 }
 
 // Handle implements admission.Handler interface.
@@ -71,17 +70,17 @@ func (m podMutator) Handle(ctx context.Context, req admission.Request) admission
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
-	ephemeralCapacity, err := m.requestedEphemeralCapacity(pod)
+	ephemeralCapacities, err := m.requestedEphemeralCapacity(pod)
 	if err != nil {
 		pmLogger.Error(err, "requestedEphemeralCapacity failed")
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
-	if ephemeralCapacity != 0 {
-		if v, ok := pvcCapacities[m.defaultVG]; ok {
-			pvcCapacities[m.defaultVG] = v + ephemeralCapacity
+	for deviceClass, capacity := range ephemeralCapacities {
+		if v, ok := pvcCapacities[deviceClass]; ok {
+			pvcCapacities[deviceClass] = v + capacity
 		} else {
-			pvcCapacities[m.defaultVG] = ephemeralCapacity
+			pvcCapacities[deviceClass] = capacity
 		}
 	}
 
@@ -102,7 +101,7 @@ func (m podMutator) Handle(ctx context.Context, req admission.Request) admission
 
 	pod.Annotations = make(map[string]string)
 	for vg, capacity := range pvcCapacities {
-		pod.Annotations[topolvm.CapacityKey+vg] = strconv.FormatInt(capacity, 10)
+		pod.Annotations[topolvm.CapacityKey(vg)] = strconv.FormatInt(capacity, 10)
 	}
 
 	marshaledPod, err := json.Marshal(pod)
@@ -182,10 +181,7 @@ func (m podMutator) requestedPVCCapacity(ctx context.Context, pod *corev1.Pod, t
 				requested = ((req.Value()-1)>>30 + 1) << 30
 			}
 		}
-		vgName, ok := sc.Parameters[topolvm.VolumeGroupKey]
-		if !ok {
-			vgName = m.defaultVG
-		}
+		vgName := sc.Parameters[topolvm.DeviceClassKey]
 		total, ok := capacities[vgName]
 		if !ok {
 			total = 0
@@ -196,27 +192,35 @@ func (m podMutator) requestedPVCCapacity(ctx context.Context, pod *corev1.Pod, t
 	return capacities, nil
 }
 
-func (m podMutator) requestedEphemeralCapacity(pod *corev1.Pod) (int64, error) {
-	var total int64
+func (m podMutator) requestedEphemeralCapacity(pod *corev1.Pod) (map[string]int64, error) {
+	capacities := make(map[string]int64)
 	for _, vol := range pod.Spec.Volumes {
 		if vol.CSI == nil {
 			// We only want to look at CSI volumes
 			continue
 		}
 		if vol.CSI.Driver == topolvm.PluginName {
-			if volSizeStr, ok := vol.CSI.VolumeAttributes[topolvm.SizeVolConKey]; ok {
+			var size int64
+			if volSizeStr, ok := vol.CSI.VolumeAttributes[topolvm.EphemeralVolumeSizeKey]; ok {
 				volSize, err := strconv.ParseInt(volSizeStr, 10, 64)
 				if err != nil {
 					pmLogger.Error(err, "Invalid volume size",
-						topolvm.SizeVolConKey, volSizeStr,
+						topolvm.EphemeralVolumeSizeKey, volSizeStr,
 					)
-					return 0, err
+					return nil, err
 				}
-				total += volSize << 30
+				size = volSize << 30
 			} else {
-				total += topolvm.DefaultSize
+				size += topolvm.DefaultSize
 			}
+			deviceClass := vol.CSI.VolumeAttributes[topolvm.EphemeralVolumeDeviceClassKey]
+			total, ok := capacities[deviceClass]
+			if !ok {
+				total = 0
+			}
+			total += size
+			capacities[deviceClass] = total
 		}
 	}
-	return total, nil
+	return capacities, nil
 }

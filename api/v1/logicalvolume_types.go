@@ -13,10 +13,10 @@ import (
 type LogicalVolumeSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Name     string            `json:"name"`
-	NodeName string            `json:"nodeName"`
-	Size     resource.Quantity `json:"size"`
-	VGName   string            `json:"vgName"`
+	Name        string            `json:"name"`
+	NodeName    string            `json:"nodeName"`
+	Size        resource.Quantity `json:"size"`
+	DeviceClass string            `json:"deviceClass"`
 }
 
 // LogicalVolumeStatus defines the observed state of LogicalVolume

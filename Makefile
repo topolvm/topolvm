@@ -136,7 +136,7 @@ manifests:
 		paths="./api/...;./controllers;./hook;./driver/k8s" \
 		output:crd:artifacts:config=config/crd/bases
 	rm -f deploy/manifests/crd.yaml
-	cp config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml deploy/manifests/crd.yaml
+	cp config/crd/bases/topolvm.io_logicalvolumes.yaml deploy/manifests/crd.yaml
 
 generate: csi/csi.pb.go lvmd/proto/lvmd.pb.go docs/lvmd-protocol.md
 	controller-gen object:headerFile=./hack/boilerplate.go.txt paths="./api/..."

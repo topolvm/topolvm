@@ -479,11 +479,11 @@ spec:
   volumes:
   - name: my-volume
     csi:
-      driver: topolvm.cybozu.com
+      driver: topolvm.io
       fsType: xfs
       volumeAttributes:
-        topolvm.cybozu.com/size: "2"
-        topolvm.cybozu.com/device-class: "hdd"
+        topolvm.io/size: "2"
+        topolvm.io/device-class: "hdd"
 ```
 
 >>>>>>> redesign: support for multiple volume groups

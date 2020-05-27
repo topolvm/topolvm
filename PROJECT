@@ -1,5 +1,5 @@
 version: "2"
-domain: cybozu.com
+domain: topolvm.io
 repo: github.com/cybozu-go/topolvm
 resources:
 - group: topolvm

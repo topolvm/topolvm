@@ -49,7 +49,7 @@ Represents the input for CreateLV.
 | name | [string](#string) |  | The logical volume name. |
 | size_gb | [uint64](#uint64) |  | Volume size in GiB. |
 | tags | [string](#string) | repeated | Tags to add to the volume during creation |
-| vg_name | [string](#string) |  |  |
+| device_class | [string](#string) |  |  |
 
 
 
@@ -89,7 +89,7 @@ Represents the response of CreateLV.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| vg_name | [string](#string) |  |  |
+| device_class | [string](#string) |  |  |
 
 
 
@@ -119,7 +119,7 @@ Represents the response of GetFreeBytes.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| vg_name | [string](#string) |  |  |
+| device_class | [string](#string) |  |  |
 
 
 
@@ -154,7 +154,7 @@ Represents a logical volume.
 | dev_major | [uint32](#uint32) |  | Device major number. |
 | dev_minor | [uint32](#uint32) |  | Device minor number. |
 | tags | [string](#string) | repeated | Tags to add to the volume during creation |
-| vg_name | [string](#string) |  |  |
+| device_class | [string](#string) |  |  |
 
 
 
@@ -170,7 +170,7 @@ Represents the input for RemoveLV.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  | The logical volume name. |
-| vg_name | [string](#string) |  |  |
+| device_class | [string](#string) |  |  |
 
 
 
@@ -190,7 +190,7 @@ The volume size will be set to exactly &#34;size_gb&#34;.
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  | The logical volume name. |
 | size_gb | [uint64](#uint64) |  | Volume size in GiB. |
-| vg_name | [string](#string) |  |  |
+| device_class | [string](#string) |  |  |
 
 
 
@@ -206,7 +206,7 @@ The volume size will be set to exactly &#34;size_gb&#34;.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | free_bytes | [uint64](#uint64) |  | Free space of the volume group in bytes. |
-| vg_name | [string](#string) |  |  |
+| device_class | [string](#string) |  |  |
 
 
 

@@ -31,7 +31,7 @@ This annotation and resource request will be used by
 This hook handles two classes of pods. First, pods having at least one _unbound_
 PersistentVolumeClaim (PVC) for TopoLVM and _no_ bound PVC for TopoLVM. Second,
 pods which have at least one inline ephemeral volume which specify using the CSI driver
-type `topolvm.cybozu.com`.
+type `topolvm.io`.
 
 For both PVCs and inline ephemeral volumes,the requested storage size for the
 volume is calculated as follows:
@@ -48,7 +48,7 @@ kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: topolvm
-provisioner: topolvm.cybozu.com            # topolvm-scheduler works only for StorageClass with this provisioner.
+provisioner: topolvm.io            # topolvm-scheduler works only for StorageClass with this provisioner.
 parameters:
   "csi.storage.k8s.io/fstype": "xfs"
 volumeBindingMode: WaitForFirstConsumer
@@ -122,7 +122,7 @@ spec:
   volumes:
   - name: my-volume
     csi:
-      driver: topolvm.cybozu.com
+      driver: topolvm.io
 ```
 
 The hook inserts `capacity.topolvm.io/<volume group name>` to the annotations and
@@ -145,14 +145,14 @@ The default volume group will be used.
 
 ### `/pvc/mutate`
 
-Mutate new PVCs to add `topolvm.cybozu.com/pvc` finalizer.
+Mutate new PVCs to add `topolvm.io/pvc` finalizer.
 
 Controllers
 -----------
 
 ### Node finalizer
 
-`topolvm-metrics` adds `topolvm.cybozu.com/node` finalizer.
+`topolvm-metrics` adds `topolvm.io/node` finalizer.
 
 When a Node is being deleted, the controller deletes all PVCs for TopoLVM
 on the deleting node.

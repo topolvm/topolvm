@@ -133,13 +133,12 @@ spec:
 			if !ok {
 				return errors.New("resources.Limits is not mutated")
 			}
-
 			_, ok = resources.Requests[topolvm.CapacityResource]
 			if !ok {
 				return errors.New("resources.Requests is not mutated")
 			}
 
-			capacity, ok := pod.Annotations[topolvm.CapacityKey+"myvg1"]
+			capacity, ok := pod.Annotations[topolvm.CapacityKey("myvg1")]
 			if !ok {
 				return errors.New("not annotated")
 			}
@@ -237,16 +236,18 @@ spec:
   volumes:
       - name: my-ephemeral-volume1
         csi:
-          driver: topolvm.cybozu.com
+          driver: topolvm.io
           fsType: xfs
           volumeAttributes:
-            topolvm.cybozu.com/size: "2"
+            topolvm.io/size: "2"
+            topolvm.io/device-class: "myvg1"
       - name: my-ephemeral-volume2
         csi:
-          driver: topolvm.cybozu.com
+          driver: topolvm.io
           fsType: xfs
           volumeAttributes:
-            topolvm.cybozu.com/size: "1"
+            topolvm.io/size: "1"
+            topolvm.io/device-class: "myvg1"
       - name: my-pvc-volume1
         persistentVolumeClaim:
           claimName: local-pvc1
@@ -272,13 +273,12 @@ spec:
 			if !ok {
 				return errors.New("resources.Limits is not mutated")
 			}
-
 			_, ok = resources.Requests[topolvm.CapacityResource]
 			if !ok {
 				return errors.New("resources.Requests is not mutated")
 			}
 
-			capacity, ok := pod.Annotations[topolvm.CapacityKey+"myvg1"]
+			capacity, ok := pod.Annotations[topolvm.CapacityKey("myvg1")]
 			if !ok {
 				return errors.New("not annotated")
 			}

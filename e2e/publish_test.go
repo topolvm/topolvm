@@ -52,7 +52,7 @@ func testPublishVolume() {
 		nc   csi.NodeClient
 		conn *grpc.ClientConn
 	)
-	nodeSocket := "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/csi-topolvm.sock"
+	nodeSocket := "/tmp/topolvm/worker1/plugins/topolvm.io/node/csi-topolvm.sock"
 
 	BeforeEach(func() {
 		dialer := &net.Dialer{}

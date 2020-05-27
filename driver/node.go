@@ -35,10 +35,9 @@ const (
 var nodeLogger = logf.Log.WithName("driver").WithName("node")
 
 // NewNodeService returns a new NodeServer.
-func NewNodeService(nodeName, defaultVG string, conn *grpc.ClientConn, service *k8s.LogicalVolumeService) csi.NodeServer {
+func NewNodeService(nodeName string, conn *grpc.ClientConn, service *k8s.LogicalVolumeService) csi.NodeServer {
 	return &nodeService{
 		nodeName:     nodeName,
-		defaultVG:    defaultVG,
 		client:       proto.NewVGServiceClient(conn),
 		lvService:    proto.NewLVServiceClient(conn),
 		k8sLVService: service,
@@ -94,19 +93,20 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		// Need to check if the LV already exists so this block is idempotent.
 		if lv == nil {
 			var reqGb uint64 = topolvm.DefaultSizeGb
-			if sizeStr, ok := volumeContext[topolvm.SizeVolConKey]; ok {
+			if sizeStr, ok := volumeContext[topolvm.EphemeralVolumeSizeKey]; ok {
 				var err error
 				reqGb, err = strconv.ParseUint(sizeStr, 10, 64)
 				if err != nil {
 					return nil, status.Errorf(codes.InvalidArgument, "Invalid size: %s", sizeStr)
 				}
 			}
+			deviceClass := volumeContext[topolvm.EphemeralVolumeDeviceClassKey]
 			nodeLogger.Info("Processing ephemeral inline volume request", "reqGb", reqGb)
 			_, err := s.lvService.CreateLV(ctx, &proto.CreateLVRequest{
-				Name:   volumeID,
-				VgName: s.defaultVG,
-				SizeGb: reqGb,
-				Tags:   []string{"ephemeral"},
+				Name:        volumeID,
+				DeviceClass: deviceClass,
+				SizeGb:      reqGb,
+				Tags:        []string{"ephemeral"},
 			})
 			if err != nil {
 				return nil, status.Errorf(codes.Internal, "failed to create LV %v", err)
@@ -134,7 +134,7 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 			// guarantee that NodePublishVolume will be called again, so if
 			// anything fails after the volume is created we need to attempt to
 			// clean up the LVM so we don't leak storage space.
-			if _, err = s.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: volumeID, VgName: lv.VgName}); err != nil {
+			if _, err = s.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: volumeID, DeviceClass: lv.DeviceClass}); err != nil {
 				return nil, status.Errorf(codes.Internal, "failed to remove LV for %s: %v", volumeID, err)
 			}
 		}
@@ -253,17 +253,11 @@ func (s *nodeService) findVolumeByID(listResp *proto.GetLVListResponse, name str
 }
 
 func (s *nodeService) getLvFromContext(ctx context.Context, volumeID string) (*proto.LogicalVolume, error) {
-	var vgName string
 	lv, err := s.k8sLVService.GetVolume(ctx, volumeID)
-	if err == k8s.ErrVolumeNotFound {
-		vgName = s.defaultVG
-	} else if err != nil {
+	if err != nil {
 		return nil, err
-	} else {
-		vgName = lv.Spec.VGName
 	}
-
-	listResp, err := s.client.GetLVList(ctx, &proto.GetLVListRequest{VgName: vgName})
+	listResp, err := s.client.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: lv.Spec.DeviceClass})
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list LV: %v", err)
 	}
@@ -309,7 +303,7 @@ func (s *nodeService) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 			return nil, err
 		}
 		if volume != nil && s.isEphemeralVolume(volume) {
-			if _, err = s.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: volID, VgName: volume.VgName}); err != nil {
+			if _, err = s.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: volID, DeviceClass: volume.DeviceClass}); err != nil {
 				return nil, status.Errorf(codes.Internal, "failed to remove LV for %s: %v", volID, err)
 			}
 		}

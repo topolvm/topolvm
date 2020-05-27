@@ -44,7 +44,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - topolvm.cybozu.com
+  - topolvm.io
   resources:
   - logicalvolumes
   verbs:
@@ -56,7 +56,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - topolvm.cybozu.com
+  - topolvm.io
   resources:
   - logicalvolumes/status
   verbs:

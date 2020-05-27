@@ -37,7 +37,7 @@ var (
 	logger = logf.Log.WithName("LogicalVolume")
 )
 
-// +kubebuilder:rbac:groups=topolvm.cybozu.com,resources=logicalvolumes,verbs=get;list;watch;create;delete
+// +kubebuilder:rbac:groups=topolvm.io,resources=logicalvolumes,verbs=get;list;watch;create;delete
 // +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
 
 // NewLogicalVolumeService returns LogicalVolumeService.
@@ -54,7 +54,7 @@ func NewLogicalVolumeService(mgr manager.Manager) (*LogicalVolumeService, error)
 }
 
 // CreateVolume creates volume
-func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, vg, name string, requestGb int64) (string, error) {
+func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, dc, name string, requestGb int64) (string, error) {
 	logger.Info("k8s.CreateVolume called", "name", name, "node", node, "size_gb", requestGb)
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -62,16 +62,16 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, vg, name 
 	lv := &topolvmv1.LogicalVolume{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "LogicalVolume",
-			APIVersion: "topolvm.cybozu.com/v1",
+			APIVersion: "topolvm.io/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 		Spec: topolvmv1.LogicalVolumeSpec{
-			Name:     name,
-			NodeName: node,
-			VGName:   vg,
-			Size:     *resource.NewQuantity(requestGb<<30, resource.BinarySI),
+			Name:        name,
+			NodeName:    node,
+			DeviceClass: dc,
+			Size:        *resource.NewQuantity(requestGb<<30, resource.BinarySI),
 		},
 	}
 
@@ -196,6 +196,7 @@ func (s *LogicalVolumeService) GetVolume(ctx context.Context, volumeID string) (
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("TTTTTT: %#v\n", lvList)
 
 	if len(lvList.Items) == 0 {
 		return nil, ErrVolumeNotFound

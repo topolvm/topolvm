@@ -41,12 +41,12 @@ func TestLVService(t *testing.T) {
 	notifier := func() {
 		count++
 	}
-	lvService := NewLVService("", notifier)
+	lvService := NewLVService(NewDeviceClassMapper("myvg1", map[string]string{}), notifier)
 	res, err := lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
-		Name:   "test1",
-		VgName: vgName,
-		SizeGb: 1,
-		Tags:   []string{"testtag1", "testtag2"},
+		Name:        "test1",
+		DeviceClass: vgName,
+		SizeGb:      1,
+		Tags:        []string{"testtag1", "testtag2"},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -76,9 +76,9 @@ func TestLVService(t *testing.T) {
 	}
 
 	_, err = lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
-		Name:   "test2",
-		VgName: vgName,
-		SizeGb: 3,
+		Name:        "test2",
+		DeviceClass: vgName,
+		SizeGb:      3,
 	})
 	code := status.Code(err)
 	if code != codes.ResourceExhausted {
@@ -89,9 +89,9 @@ func TestLVService(t *testing.T) {
 	}
 
 	_, err = lvService.ResizeLV(context.Background(), &proto.ResizeLVRequest{
-		Name:   "test1",
-		VgName: vgName,
-		SizeGb: 2,
+		Name:        "test1",
+		DeviceClass: vgName,
+		SizeGb:      2,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -108,9 +108,9 @@ func TestLVService(t *testing.T) {
 	}
 
 	_, err = lvService.ResizeLV(context.Background(), &proto.ResizeLVRequest{
-		Name:   "test1",
-		VgName: vgName,
-		SizeGb: 5,
+		Name:        "test1",
+		DeviceClass: vgName,
+		SizeGb:      5,
 	})
 	code = status.Code(err)
 	if code != codes.ResourceExhausted {
@@ -121,8 +121,8 @@ func TestLVService(t *testing.T) {
 	}
 
 	_, err = lvService.RemoveLV(context.Background(), &proto.RemoveLVRequest{
-		Name:   "test1",
-		VgName: vgName,
+		Name:        "test1",
+		DeviceClass: vgName,
 	})
 	if err != nil {
 		t.Error(err)

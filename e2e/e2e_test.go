@@ -307,7 +307,7 @@ spec:
 				if node.Name == "kind-control-plane" {
 					continue
 				}
-				strCap, ok := node.Annotations[topolvm.CapacityKey+"myvg1"]
+				strCap, ok := node.Annotations[topolvm.CapacityKey("myvg1")]
 				Expect(ok).To(Equal(true), "capacity is not annotated: "+node.Name)
 				capacity, err := strconv.Atoi(strCap)
 				Expect(err).ShouldNot(HaveOccurred())
@@ -584,7 +584,7 @@ spec:
 				continue
 			}
 
-			strCap, ok := node.Annotations[topolvm.CapacityKey+"myvg1"]
+			strCap, ok := node.Annotations[topolvm.CapacityKey("myvg1")]
 			Expect(ok).To(Equal(true), "capacity is not annotated: "+node.Name)
 			capacity, err := strconv.Atoi(strCap)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -710,13 +710,14 @@ spec:
   volumes:
   - name: my-volume
     csi:
-      driver: topolvm.cybozu.com
+      driver: topolvm.io
       fsType: xfs
       volumeAttributes:
-        topolvm.cybozu.com/size: "2"
+        topolvm.io/size: "2"
+        topolvm.io/device-class: "myvg1"
   - name: my-default-volume
     csi:
-      driver: topolvm.cybozu.com
+      driver: topolvm.io
 `
 		currentK8sVersion := getCurrentK8sMinorVersion()
 		if currentK8sVersion < 16 {

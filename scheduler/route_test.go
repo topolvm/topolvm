@@ -19,7 +19,7 @@ var extenderArgs = ExtenderArgs{
 	Pod: &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
-				topolvm.CapacityKey + "myvg1": strconv.Itoa(3 << 30),
+				topolvm.CapacityKey("myvg1"): strconv.Itoa(3 << 30),
 			},
 		},
 		Spec: corev1.PodSpec{

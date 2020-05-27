@@ -85,7 +85,7 @@ Node resource
 corresponding `Node` resource of the running node.  The value is the
 free storage capacity reported by `lvmd` in bytes.
 
-It also adds `topolvm.cybozu.com/node` finalizer to the `Node`.
+It also adds `topolvm.io/node` finalizer to the `Node`.
 The finalizer will be processed by [`topolvm-controller`](./topolvm-controller.md)
 to clean up PVCs and associated Pods bound to the node.
 

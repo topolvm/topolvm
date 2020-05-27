@@ -34,27 +34,27 @@ func (s NodeService) getNodes(ctx context.Context) (*corev1.NodeList, error) {
 	return nl, nil
 }
 
-func (s NodeService) extractCapacityFromAnnotation(node *corev1.Node, vgName string) (int64, error) {
-	c, ok := node.Annotations[topolvm.CapacityKey+vgName]
+func (s NodeService) extractCapacityFromAnnotation(node *corev1.Node, deviceClass string) (int64, error) {
+	c, ok := node.Annotations[topolvm.CapacityKey(deviceClass)]
 	if !ok {
-		return 0, fmt.Errorf("%s is not found", topolvm.CapacityKey+vgName)
+		return 0, fmt.Errorf("%s is not found", topolvm.CapacityKey(deviceClass))
 	}
 	return strconv.ParseInt(c, 10, 64)
 }
 
 // GetCapacityByName returns VG capacity of specified node by name.
-func (s NodeService) GetCapacityByName(ctx context.Context, name, vgName string) (int64, error) {
+func (s NodeService) GetCapacityByName(ctx context.Context, name, deviceClass string) (int64, error) {
 	n := new(corev1.Node)
 	err := s.Get(ctx, client.ObjectKey{Name: name}, n)
 	if err != nil {
 		return 0, err
 	}
 
-	return s.extractCapacityFromAnnotation(n, vgName)
+	return s.extractCapacityFromAnnotation(n, deviceClass)
 }
 
 // GetCapacityByTopologyLabel returns VG capacity of specified node by TopoLVM's topology label.
-func (s NodeService) GetCapacityByTopologyLabel(ctx context.Context, topology, vg string) (int64, error) {
+func (s NodeService) GetCapacityByTopologyLabel(ctx context.Context, topology, dc string) (int64, error) {
 	nl, err := s.getNodes(ctx)
 	if err != nil {
 		return 0, err
@@ -65,7 +65,7 @@ func (s NodeService) GetCapacityByTopologyLabel(ctx context.Context, topology, v
 			if v != topology {
 				continue
 			}
-			return s.extractCapacityFromAnnotation(&node, vg)
+			return s.extractCapacityFromAnnotation(&node, dc)
 		}
 	}
 
@@ -73,7 +73,7 @@ func (s NodeService) GetCapacityByTopologyLabel(ctx context.Context, topology, v
 }
 
 // GetTotalCapacity returns total VG capacity of all nodes.
-func (s NodeService) GetTotalCapacity(ctx context.Context, vg string) (int64, error) {
+func (s NodeService) GetTotalCapacity(ctx context.Context, dc string) (int64, error) {
 	nl, err := s.getNodes(ctx)
 	if err != nil {
 		return 0, err
@@ -81,14 +81,14 @@ func (s NodeService) GetTotalCapacity(ctx context.Context, vg string) (int64, er
 
 	capacity := int64(0)
 	for _, node := range nl.Items {
-		c, _ := s.extractCapacityFromAnnotation(&node, vg)
+		c, _ := s.extractCapacityFromAnnotation(&node, dc)
 		capacity += c
 	}
 	return capacity, nil
 }
 
 // GetMaxCapacity returns max VG capacity among nodes.
-func (s NodeService) GetMaxCapacity(ctx context.Context, vgName string) (string, int64, error) {
+func (s NodeService) GetMaxCapacity(ctx context.Context, deviceClass string) (string, int64, error) {
 	nl, err := s.getNodes(ctx)
 	if err != nil {
 		return "", 0, err
@@ -96,7 +96,7 @@ func (s NodeService) GetMaxCapacity(ctx context.Context, vgName string) (string,
 	var nodeName string
 	var maxCapacity int64
 	for _, node := range nl.Items {
-		c, _ := s.extractCapacityFromAnnotation(&node, vgName)
+		c, _ := s.extractCapacityFromAnnotation(&node, deviceClass)
 		if maxCapacity < c {
 			maxCapacity = c
 			nodeName = node.Name
