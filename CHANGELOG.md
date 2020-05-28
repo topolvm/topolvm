@@ -7,6 +7,12 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.4.8] - 2020-05-28
+
+### Fixed
+
+- Recreate device file when expanding volume if needed (#144).
+
 ## [0.4.7] - 2020-05-08
 
 ### Changed
@@ -30,6 +36,7 @@ Nothing changed.
 ## [0.4.4] - 2020-04-15
 
 ### Fixed
+
 - LV name duplicates (#126).
 
 ## [0.4.3] - 2020-04-07
@@ -127,7 +134,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/cybozu-go/topolvm/compare/v0.4.7...HEAD
+[Unreleased]: https://github.com/cybozu-go/topolvm/compare/v0.4.8...HEAD
+[0.4.8]: https://github.com/cybozu-go/topolvm/compare/v0.4.7...v0.4.8
 [0.4.7]: https://github.com/cybozu-go/topolvm/compare/v0.4.6...v0.4.7
 [0.4.6]: https://github.com/cybozu-go/topolvm/compare/v0.4.5...v0.4.6
 [0.4.5]: https://github.com/cybozu-go/topolvm/compare/v0.4.4...v0.4.5
