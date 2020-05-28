@@ -887,6 +887,36 @@ spec:
 			return nil
 		}, timeout).Should(Succeed())
 
+		By("deleting topolvm-node Pods to clear /dev/topolvm/*")
+		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "delete", "-n", ns, "pod", "-l=app.kubernetes.io/name=node")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("resizing PVC offline")
+		claimYAML = fmt.Sprintf(baseClaimYAML, "4Gi")
+		stdout, stderr, err = kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("deploying Pod")
+		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("confirming that the specified device is resized in the Pod")
+		Eventually(func() error {
+			stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "df", "--output=size", "/test1")
+			if err != nil {
+				return fmt.Errorf("failed to get volume size. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+			dfFields := strings.Fields((string(stdout)))
+			volSize, err := strconv.Atoi(dfFields[1])
+			if err != nil {
+				return fmt.Errorf("failed to convert volume size string. stdout: %s, err: %v", stdout, err)
+			}
+			if volSize != 4184064 {
+				return fmt.Errorf("failed to match volume size. actual: %d, expected: %d", volSize, 4184064)
+			}
+			return nil
+		}, timeout).Should(Succeed())
+
 		By("confirming that no failure event has occurred")
 		fieldSelector := "involvedObject.kind=PersistentVolumeClaim," +
 			"involvedObject.name=topo-pvc," +

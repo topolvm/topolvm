@@ -159,28 +159,9 @@ func (s *nodeService) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequ
 
 	// Find lv and create a block device with it
 	device := filepath.Join(DeviceDirectory, req.GetVolumeId())
-	var stat unix.Stat_t
-	err := unix.Stat(device, &stat)
-	switch err {
-	case nil:
-		// a block device already exists, check its attributes
-		if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && (stat.Mode&devicePermission) == devicePermission {
-			break
-		}
-
-		err := os.Remove(device)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "failed to remove device file %s: error=%v", device, err)
-		}
-		fallthrough
-	case unix.ENOENT:
-		devno := unix.Mkdev(lv.DevMajor, lv.DevMinor)
-		if err := unix.Mknod(device, devicePermission, int(devno)); err != nil {
-			return nil, status.Errorf(codes.Internal, "mknod failed for %s. major=%d, minor=%d, error=%v",
-				device, lv.DevMajor, lv.DevMinor, err)
-		}
-	default:
-		return nil, status.Errorf(codes.Internal, "failed to stat %s: error=%v", device, err)
+	err := s.createDeviceIfNeeded(device, lv)
+	if err != nil {
+		return nil, err
 	}
 
 	fs, err := filesystem.New(mountOption.FsType, device)
@@ -207,6 +188,32 @@ func (s *nodeService) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequ
 		"fstype", mountOption.FsType)
 
 	return &csi.NodePublishVolumeResponse{}, nil
+}
+
+func (s *nodeService) createDeviceIfNeeded(device string, lv *proto.LogicalVolume) error {
+	var stat unix.Stat_t
+	err := unix.Stat(device, &stat)
+	switch err {
+	case nil:
+		// a block device already exists, check its attributes
+		if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && (stat.Mode&devicePermission) == devicePermission {
+			return nil
+		}
+		err := os.Remove(device)
+		if err != nil {
+			return status.Errorf(codes.Internal, "failed to remove device file %s: error=%v", device, err)
+		}
+		fallthrough
+	case unix.ENOENT:
+		devno := unix.Mkdev(lv.DevMajor, lv.DevMinor)
+		if err := unix.Mknod(device, devicePermission, int(devno)); err != nil {
+			return status.Errorf(codes.Internal, "mknod failed for %s. major=%d, minor=%d, error=%v",
+				device, lv.DevMajor, lv.DevMinor, err)
+		}
+	default:
+		return status.Errorf(codes.Internal, "failed to stat %s: error=%v", device, err)
+	}
+	return nil
 }
 
 func (s *nodeService) nodePublishBlockVolume(req *csi.NodePublishVolumeRequest, lv *proto.LogicalVolume) (*csi.NodePublishVolumeResponse, error) {
@@ -446,6 +453,17 @@ func (s *nodeService) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 	}
 
 	device := filepath.Join(DeviceDirectory, vid)
+	lv, err := s.getLvFromContext(ctx, vid)
+	if err != nil {
+		return nil, err
+	}
+	if lv == nil {
+		return nil, status.Errorf(codes.NotFound, "failed to find LV: %s", vid)
+	}
+	err = s.createDeviceIfNeeded(device, lv)
+	if err != nil {
+		return nil, err
+	}
 	fsType, err := filesystem.DetectFilesystem(device)
 	if err != nil || fsType == "" {
 		return nil, status.Errorf(codes.Internal, "failed to detect filesystem of %s: %v", device, err)
