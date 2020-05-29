@@ -4,25 +4,25 @@
 - [Summary](#summary)
 - [Motivation](#motivation)
   - [Goals](#goals)
-  - [Non-Goals](#non-goals)
 - [Proposal](#proposal)
+  - [Option A) device class](#option-a-device-class)
+  - [Option B) multiple provisioner](#option-b-multiple-provisioner)
+  - [Decision Outcome](#decision-outcome)
 - [Design Details](#design-details)
   - [How to expose free storage capacity of nodes](#how-to-expose-free-storage-capacity-of-nodes)
   - [How to annotate resources](#how-to-annotate-resources)
-    - [1) insert multiple resources](#1-insert-multiple-resources)
-    - [2) insert multiple annotations](#2-insert-multiple-annotations)
-  - [How to schedule pods](#how-to-schedule-pods)
-  - [The default volume group](#the-default-volume-group)
-  - [Ephemeral Volume](#ephemeral-volume)
-  - [Test Plan](#test-plan)
+    - [A-1) insert multiple resources](#a-1-insert-multiple-resources)
+    - [A-2) insert multiple annotations](#a-2-insert-multiple-annotations)
+    - [Decision outcome](#decision-outcome-1)
+  - [Setting of divisors](#setting-of-divisors)
+  - [Ephemeral Inline Volume](#ephemeral-inline-volume)
+  - [Device class setting](#device-class-setting)
   - [Upgrade / Downgrade Strategy](#upgrade--downgrade-strategy)
 <!-- /toc -->
 
 ## Summary
 
-Multiple Volume Groups adds capability to use multiple arbitrary volume groups to TopoLVM.
-The volume group to be used is specified as a parameter in StorageClass.
-If no volume group is specified, the default volume group is used.
+Multiple Volume Groups is a feature to enable TopoLVM to use multiple arbitrary volume groups.
 
 ## Motivation
 
@@ -31,14 +31,18 @@ users may want to prepare and use volume groups for each storage type.
 
 ### Goals
 
-- Create logical volume on the volume group specified in the StorageClass
-- Schedule pods respecting the free storage space of the target volume group
-- Use the default volume group for ephemeral inline volumes
-- Keep backward compatibility through the default volume group
+- Introduce a new concept called device classes to indicate a target volume group.
+- Allow users to specify a device class in StorageClass.
+- Create logical volumes on the target volume groups.
+- Schedule pods respecting the free storage space of the target volume group.
+- For ephemeral inline volumes, allow device class specification in the volume attributes.
+- Keep backward compatibility.
 
 ## Proposal
 
-This proposal make it possible to specify a name of volume group
+### Option A) device class
+
+This proposal make it possible to specify a name of device class
 as a parameter of a StorageClass as follows:
 
 ```yaml
@@ -49,7 +53,7 @@ metadata:
 provisioner: topolvm.io
 parameters:
   "csi.storage.k8s.io/fstype": "xfs"
-  "topolvm.io/volume-group": "hdd"
+  "topolvm.io/device-class": "hdd"
 volumeBindingMode: WaitForFirstConsumer
 ---
 kind: StorageClass
@@ -59,12 +63,63 @@ metadata:
 provisioner: topolvm.io
 parameters:
   "csi.storage.k8s.io/fstype": "xfs"
-  "topolvm.io/volume-group": "ssd"
+  "topolvm.io/device-class": "ssd"
 volumeBindingMode: WaitForFirstConsumer
 ```
 
-The components of TopoLVM use the name of volume group to create, update and delete
-logical volume.
+The device class name is then passed to `lvmd`.
+`lvmd` has a mapping between device classes and LVM volume groups.
+It can, therefore, create a logical volume in multiple volume groups.
+
+If no device class is given, `lvmd` will use the default volume group.
+Therefore, it is possible to keep compatibility without changing existing storageClasses when upgrading.
+
+Pros:
+- It requires to launch only one TopoLVM to support multiple volume groups.
+
+Cons:
+- Users need to prepare device class setting for `lvmd`.
+
+### Option B) multiple provisioner
+
+This proposal provides a way to deploy multiple TopoLVMs on a single Kubernetes cluster.
+Each TopoLVM handles a different volume group.
+
+Users can use arbitrary TopoLVM by specifying a provisioner name in a storageClass as follows:
+
+```yaml
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: topolvm-provisioner-hdd
+provisioner: topolvm.io/hdd
+parameters:
+  "csi.storage.k8s.io/fstype": "xfs"
+volumeBindingMode: WaitForFirstConsumer
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: topolvm-provisioner-ssd
+provisioner: topolvm.io/ssd
+parameters:
+  "csi.storage.k8s.io/fstype": "xfs"
+volumeBindingMode: WaitForFirstConsumer
+```
+
+This proposal requires launching TopoLVM components for each provisioner.
+Since `lvmd` is also launched per provisoner, it will continue to target only one volume group as before.
+
+Pros:
+- It doesn't require many changes to implement.
+
+Cons:
+- Users will need a lot of work to launch multiple TopoLVMs.
+
+### Decision Outcome
+
+Choose options: [A) device class](#option-a-device-class),
+because option B) is complicated to launch multiple TopoLVM for users.
 
 ## Design Details
 
@@ -74,24 +129,26 @@ Currently `topolvm-node` exposes free storage capacity as `topolvm.cybozu.com/ca
 
 ```yaml
 kind: Node
-metdta:
-  name: wroker-1
+metadata:
+  name: worker-1
   annotations:
     topolvm.cybozu.com/capacity: "1073741824"
 ```
 
-This proposal will change annotation to `capacity.topolvm.io/<volume group>` as follows 
+This proposal will change annotation to `capacity.topolvm.io/<device class>` as follows 
 to expose the capacity of each node:
 
 ```yaml
 kind: Node
-metdta:
-  name: wroker-1
+metadata:
+  name: worker-1
   annotations:
-    capacity.topolvm.io/vg1: "1073741824"
-    capacity.topolvm.io/vg2: "1073741824"
-    capacity.topolvm.io/vg3: "1073741824"
+    capacity.topolvm.io/__default__: "1073741824"
+    capacity.topolvm.io/ssd: "1073741824"
+    capacity.topolvm.io/hdd: "1099511627776"
 ```
+
+The default device class is annotated without the part of the name, like `capacity.topolvm.io`.
 
 ### How to annotate resources
 
@@ -129,23 +186,21 @@ Then, `topolvm-scheduler` need to be configured in scheduler policy as follows:
 
 There are two possible designs to manage capacities of multiple volume groups as shown below.
 
-#### 1) insert multiple resources
+#### A-1) insert multiple resources
 
-This proposal would insert `capacity.topolvm.io/<volme gurp>` as follows:
+This proposal would insert `capacity.topolvm.io/<device class>` as follows:
 
 ```yaml
 spec:
   containers:
   - name: testhttpd
     resources:
-      limits:
-        capacity.topolvm.io/vg1: "1073741824"
-        capacity.topolvm.io/vg2: "1073741824"
-        capacity.topolvm.io/vg3: "1073741824"
       requests:
-        capacity.topolvm.io/vg1: "1073741824"
-        capacity.topolvm.io/vg2: "1073741824"
-        capacity.topolvm.io/vg3: "1073741824"
+        capacity.topolvm.io/ssd: "1073741824"
+        capacity.topolvm.io/hdd: "1099511627776"
+      limits:
+        capacity.topolvm.io/ssd: "1073741824"
+        capacity.topolvm.io/hdd: "1099511627776"
 ```
 
 Then users should modify the scheduler policy as follows:
@@ -155,19 +210,24 @@ Then users should modify the scheduler policy as follows:
     ...
     "extenders": [{
         "urlPrefix": "http://...",
-        "filterVerb": "predicate",
-        "prioritizeVerb": "prioritize",
+        "filterVerb": "predicate/ssd",
+        "prioritizeVerb": "prioritize/ssd",
+        "weight": 2,
         "managedResources":
         [{
-          "name": "capacity.topolvm.io/vg1",
+          "name": "capacity.topolvm.io/ssd",
           "ignoredByScheduler": true
-        },
-        {
-          "name": "capacity.topolvm.io/vg2",
-          "ignoredByScheduler": true
-        },
-        {
-          "name": "capacity.topolvm.io/vg3",
+        }],
+        "nodeCacheCapable": false
+    },
+    {
+        "urlPrefix": "http://...",
+        "filterVerb": "predicate/hdd",
+        "prioritizeVerb": "prioritize/hdd",
+        "weight": 1,
+        "managedResources":
+        [{
+          "name": "capacity.topolvm.io/hdd",
           "ignoredByScheduler": true
         }],
         "nodeCacheCapable": false
@@ -175,49 +235,38 @@ Then users should modify the scheduler policy as follows:
 }
 ```
 
-Currently, topolvm-scheduler calculates the score of a node by this formula:
-
-    min(10, max(0, log2(capacity >> 30 / divisor)))
-
-This proposal would calculate the score of each volume group by the above formula, 
-and users can specify dedicated `divisor` parameter for each volume group.
+Users will need to add a extender setting for each device class.
+In order for the scheduler to know the device class name, users need to pass the device class name in verb.
+Then, users can specify weight parameter for each device class.
 
 Pros:
-- Can calculate the score correctly by `divisor` parameters for each volume group
+- The weight of extender can be adjusted for each device class.
 
 Cons:
 - Requires to modify the scheduler policy depending on volume groups
 
-#### 2) insert multiple annotations
+#### A-2) insert multiple annotations
 
-This proposal would insert `topolvm.io/capacity` to resources and `capacity.topolvm.io/<volme gurp>` annotation as follows:
+This proposal would insert `topolvm.io/capacity` to resources and `capacity.topolvm.io/<device class>` annotation as follows:
 
 ```yaml
-metdta:
+metadata:
   annotations:
-    capacity.topolvm.io/vg1: "1073741824"
-    capacity.topolvm.io/vg2: "1073741824"
-    capacity.topolvm.io/vg3: "1073741824"
+    capacity.topolvm.io/ssd: "1073741824"
+    capacity.topolvm.io/hdd: "1099511627776"
 spec:
   containers:
   - name: testhttpd
     resources:
-      limits:
-        topolvm.io/capacity: "1"
       requests:
+        topolvm.io/capacity: "1"
+      limits:
         topolvm.io/capacity: "1"
 ```
 
 The values of `topolvm.io/capacity` don't matter.
 
 Users shouldn't modify the scheduler policy.
-
-Currently, topolvm-scheduler calculates the score of a node by this formula:
-
-    min(10, max(0, log2(capacity >> 30 / divisor)))
-
-This proposal would calculate the score of each volume group by the above formula, 
-and use the average of them as the final score.
 
 Pros:
 - No need to modify the scheduler policy depending on volume groups
@@ -227,61 +276,88 @@ Cons:
 
 #### Decision outcome
 
-Choose options: [1) insert multiple resources](#1-insert-multiple-resources),
-because we want to calculate the score correctly by `divisor` parameters for each volume group.
+Choose options: [A-2) insert multiple annotations](#a-2-insert-multiple-annotations),
+because option A-1) is complicated to set scheduler policy. In most cases, option 2 works without problems.
 
-### The default volume group
+### Setting of divisors
 
-The current TopoLVM can handle only a single volume group.
+Currently, topolvm-scheduler calculates the score of a node by this formula:
 
-When you upgrade TopoLVM, the existing StorageClasses don't contain a volume group, 
-so TopoLVM cannot know the name of volume group.
+    min(10, max(0, log2(capacity >> 30 / divisor)))
 
-This proposal would prepare a ConfigMap resource as follows and share it between components of TopoLVM.
+This proposal would calculate the score of each device class by the above formula.
 
+Users can specify dedicated `divisor` parameter for each device class as follows:
+ 
 ```yaml
 apiVersion: v1
 kind: ConfigMap
-metaadta:
+metadata:
   name: topolvm-config
   namespace: topolvm-system
 data:
-  default-vg: myvg1
+  scheduler.yaml: |
+    default-divisor: 10
+    divisors:
+      ssd: 5
+      hdd: 10
 ```
 
-This approach will help maintain compatibility.
+### Ephemeral Inline Volume
 
-Also, the ConfigMap can contain `divisor` parameter for each volume group.
-  
+Ephemeral Inline Volumes are not related to StorageClass.
+However, it has `volumeAttributes` parameter.
+
+This proposal will allow to specify device class in `volumeAttributes`.
+
 ```yaml
 apiVersion: v1
-kind: ConfigMap
-metaadta:
-  name: topolvm-config
-  namespace: topolvm-system
-data:
-  default-vg: myvg1
-  divisors:
-    myvg1: 1
-    myvg2: 10
+kind: Pod
+metadata:
+  name: ubuntu
+  labels:
+    app.kubernetes.io/name: ubuntu
+spec:
+  containers:
+  - name: ubuntu
+    image: nginx4
+    volumeMounts:
+    - mountPath: /test1
+      name: my-volume
+  volumes:
+  - name: my-volume
+    csi:
+      driver: topolvm.io
+      fsType: xfs
+      volumeAttributes:
+        topolvm.io/size: "2"
+        topolvm.io/device-class: "hdd"
 ```
 
-### Ephemeral Volume
+### Device class setting
 
-As explained above, the name of volume group can be specified in StorageClass.
-The name of volume group for Ephemeral Volume cannot be specified,
-because Ephemeral Volume doesn't have StorageClass.
+This proposal makes use of the concept of device class to hide volume group names that are node-local.
 
-This proposal would use the default volume group to create a logical volume for Ephemeral Volume.
+Therefore, `lvmd` should have a device class setting as follows:
+
+```yaml
+device-classes:
+  - name: ssd
+    volume-group: ssd-vg
+    default: true
+  - name: hdd
+    volume-group: hdd-vg
+```
+
+If the name of device class in StorageClass Resources and ephemeral inline volums is empty,
+`lvmd` will use the default device class.
 
 ### Upgrade / Downgrade Strategy
 
 Perform the following steps to upgrade:
 
-1. Add `ConfigMap` resource for default volume group.
+1. Add `ConfigMap` resource for setting of divisors. (see [Setting of divisors](#setting-of-divisors))
+1. Prepare a configuration file for `lvmd`. (see [Device class setting](#device-class-setting))
 1. Replace `lvmd` binary and restart `lvmd.service`.
 1. Update container images for TopoLVM.
-1. Add the name of volume group to LogicalVolume resources and StorageClass resources. (optional)
-
-If the name of volume group in LogicalVolume resources and StorageClass Resources is empty,
-the default name of volume group will be used.
+1. Add the name of device class to StorageClass resources and ephemeral inline volumes. (optional)
