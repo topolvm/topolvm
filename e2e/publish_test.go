@@ -89,6 +89,22 @@ func testPublishVolume() {
 			},
 		}
 
+		lvYaml := []byte(`apiVersion: topolvm.io/v1
+kind: LogicalVolume
+metadata:
+  name: csi-node-test-fs
+spec:
+  deviceClass: myvg1
+  name: csi-node-test-fs
+  nodeName: dummy-node
+  size: 1Gi
+status:
+  currentSize: 1Gi
+  volumeID: csi-node-test-fs
+`)
+		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+
 		req := &csi.NodePublishVolumeRequest{
 			PublishContext:   map[string]string{},
 			TargetPath:       mountTargetPath,
