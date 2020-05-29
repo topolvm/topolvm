@@ -100,7 +100,7 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 		if err != nil {
 			return status.Error(codes.Internal, err.Error())
 		}
-		dc := s.mapper.DeviceClassFrom(vg.Name())
+		dc := s.mapper.DeviceClassWithVGName(vg.Name())
 		if dc == nil {
 			continue
 		}

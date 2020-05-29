@@ -196,7 +196,6 @@ func (s *LogicalVolumeService) GetVolume(ctx context.Context, volumeID string) (
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("TTTTTT: %#v\n", lvList)
 
 	if len(lvList.Items) == 0 {
 		return nil, ErrVolumeNotFound

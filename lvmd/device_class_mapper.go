@@ -1,9 +1,13 @@
 package lvmd
 
+// DeviceClass maps between device classes and volume groups.
 type DeviceClass struct {
-	Name        string `json:"name"`
+	// Name for the device class name
+	Name string `json:"name"`
+	// Volume group name for the deice class
 	VolumeGroup string `json:"volume-group"`
-	Default     bool   `json:"default"`
+	// Default is a flag to indicate whether the device class is the default
+	Default bool `json:"default"`
 	// SpareGB is storage capacity in GiB to be spared
 	SpareGB *uint64 `json:"spare-gb"`
 }
@@ -31,6 +35,7 @@ func (m DeviceClassMapper) defaultDeviceClass() *DeviceClass {
 	return nil
 }
 
+// DeviceClass returns the device class by its name
 func (m DeviceClassMapper) DeviceClass(dcName string) *DeviceClass {
 	if len(dcName) == 0 {
 		return m.defaultDeviceClass()
@@ -43,7 +48,8 @@ func (m DeviceClassMapper) DeviceClass(dcName string) *DeviceClass {
 	return nil
 }
 
-func (m DeviceClassMapper) DeviceClassFrom(vgName string) *DeviceClass {
+// DeviceClassWithVGName returns the device class with the volume group name
+func (m DeviceClassMapper) DeviceClassWithVGName(vgName string) *DeviceClass {
 	for _, dc := range m.deviceClasses {
 		if dc.VolumeGroup == vgName {
 			return dc
@@ -52,6 +58,7 @@ func (m DeviceClassMapper) DeviceClassFrom(vgName string) *DeviceClass {
 	return nil
 }
 
+// GetSpare returns spare in bytes for the device class
 func (m DeviceClassMapper) GetSpare(dc string) uint64 {
 	deviceClass := m.DeviceClass(dc)
 	if deviceClass == nil || deviceClass.SpareGB == nil {
