@@ -1,29 +1,28 @@
 # Multiple Volume Groups
 
 <!-- toc -->
-- [Multiple Volume Groups](#multiple-volume-groups)
-  - [Summary](#summary)
-  - [Motivation](#motivation)
-    - [Goals](#goals)
-  - [Proposal](#proposal)
-    - [Option A) device class](#option-a-device-class)
-    - [Option B) multiple provisioner](#option-b-multiple-provisioner)
-    - [Decision Outcome](#decision-outcome)
-  - [Design Details](#design-details)
-    - [How to expose free storage capacity of nodes](#how-to-expose-free-storage-capacity-of-nodes)
-    - [How to annotate resources](#how-to-annotate-resources)
-      - [A-1) insert multiple resources](#a-1-insert-multiple-resources)
-      - [A-2) insert multiple annotations](#a-2-insert-multiple-annotations)
-      - [Decision outcome](#decision-outcome-1)
-    - [Setting of divisors](#setting-of-divisors)
-    - [Ephemeral Inline Volume](#ephemeral-inline-volume)
-    - [Device class setting](#device-class-setting)
-    - [Upgrade / Downgrade Strategy](#upgrade--downgrade-strategy)
+- [Summary](#summary)
+- [Motivation](#motivation)
+  - [Goals](#goals)
+- [Proposal](#proposal)
+  - [Option A) device class](#option-a-device-class)
+  - [Option B) multiple provisioner](#option-b-multiple-provisioner)
+  - [Decision Outcome](#decision-outcome)
+- [Design Details](#design-details)
+  - [How to expose free storage capacity of nodes](#how-to-expose-free-storage-capacity-of-nodes)
+  - [How to annotate resources](#how-to-annotate-resources)
+    - [A-1) insert multiple resources](#a-1-insert-multiple-resources)
+    - [A-2) insert multiple annotations](#a-2-insert-multiple-annotations)
+    - [Decision outcome](#decision-outcome-1)
+  - [Setting of divisors](#setting-of-divisors)
+  - [Ephemeral Inline Volume](#ephemeral-inline-volume)
+  - [Device class setting](#device-class-setting)
+  - [Upgrade / Downgrade Strategy](#upgrade--downgrade-strategy)
 <!-- /toc -->
 
 ## Summary
 
-Multiple Volume Groups adds capability to use multiple arbitrary volume groups to TopoLVM.
+Multiple Volume Groups is a feature to enable TopoLVM to use multiple arbitrary volume groups.
 
 ## Motivation
 
@@ -32,10 +31,12 @@ users may want to prepare and use volume groups for each storage type.
 
 ### Goals
 
-- Create logical volume on the volume group specified in the StorageClass
-- Schedule pods respecting the free storage space of the target volume group
-- Create ephemeral inline volumes on the volume group specified in the volumeAttributes
-- Keep backward compatibility
+- Introduce a new concept called device classes to indicate a target volume group.
+- Allow users to specify a device class in StorageClass.
+- Create logical volumes on the target volume groups.
+- Schedule pods respecting the free storage space of the target volume group.
+- For ephemeral inline volumes, allow device class specification in the volume attributes.
+- Keep backward compatibility.
 
 ## Proposal
 
@@ -66,11 +67,11 @@ parameters:
 volumeBindingMode: WaitForFirstConsumer
 ```
 
-`lvmd` receives the device class as a parameter.
-`lvmd` has a setting for each device class, can decide a target volume group for a given device class.
-`lvmd` will operate a logical volume on the target volume group.
+The device class name is then passed to `lvmd`.
+`lvmd` has a mapping between device classes and LVM volume groups.
+It can, therefore, create a logical volume in multiple volume groups.
 
-If a device class is empty, `lvmd` will use default volume group.
+If no device class is given, `lvmd` will use the default volume group.
 Therefore, it is possible to keep compatibility without changing existing storageClasses when upgrading.
 
 Pros:
@@ -128,8 +129,8 @@ Currently `topolvm-node` exposes free storage capacity as `topolvm.cybozu.com/ca
 
 ```yaml
 kind: Node
-metdta:
-  name: wroker-1
+metadata:
+  name: worker-1
   annotations:
     topolvm.cybozu.com/capacity: "1073741824"
 ```
@@ -139,10 +140,10 @@ to expose the capacity of each node:
 
 ```yaml
 kind: Node
-metdta:
-  name: wroker-1
+metadata:
+  name: worker-1
   annotations:
-    capacity.topolvm.io: "1073741824"
+    capacity.topolvm.io/__default__: "1073741824"
     capacity.topolvm.io/ssd: "1073741824"
     capacity.topolvm.io/hdd: "1099511627776"
 ```
@@ -249,7 +250,7 @@ Cons:
 This proposal would insert `topolvm.io/capacity` to resources and `capacity.topolvm.io/<device class>` annotation as follows:
 
 ```yaml
-metdta:
+metadata:
   annotations:
     capacity.topolvm.io/ssd: "1073741824"
     capacity.topolvm.io/hdd: "1099511627776"
@@ -258,6 +259,8 @@ spec:
   - name: testhttpd
     resources:
       requests:
+        topolvm.io/capacity: "1"
+      limits:
         topolvm.io/capacity: "1"
 ```
 
@@ -289,7 +292,7 @@ Users can specify dedicated `divisor` parameter for each device class as follows
 ```yaml
 apiVersion: v1
 kind: ConfigMap
-metaadta:
+metadata:
   name: topolvm-config
   namespace: topolvm-system
 data:
