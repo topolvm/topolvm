@@ -32,7 +32,7 @@ users may want to prepare and use volume groups for each storage type.
 - Allow users to specify a device class in StorageClass.
 - Create logical volumes on the target volume groups.
 - Schedule pods respecting the free storage space of the target volume group.
-- For ephemeral inline volumes, allow device class specification in the volume attributes.
+- Ephemeral inline volumes are created on the default volume group.
 - Keep backward compatibility.
 
 ## Proposal
@@ -305,33 +305,8 @@ data:
 ### Ephemeral Inline Volume
 
 Ephemeral Inline Volumes are not related to StorageClass.
-However, it has `volumeAttributes` parameter.
 
-This proposal will allow to specify device class in `volumeAttributes`.
-
-```yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: ubuntu
-  labels:
-    app.kubernetes.io/name: ubuntu
-spec:
-  containers:
-  - name: ubuntu
-    image: nginx4
-    volumeMounts:
-    - mountPath: /test1
-      name: my-volume
-  volumes:
-  - name: my-volume
-    csi:
-      driver: topolvm.io
-      fsType: xfs
-      volumeAttributes:
-        topolvm.io/size: "2"
-        topolvm.io/device-class: "hdd"
-```
+`topolvm-node` make `lvmd` create logical volumes for ephemeral inline volumes on the default volume group.
 
 ### Device class setting
 
@@ -348,8 +323,9 @@ device-classes:
     volume-group: hdd-vg
 ```
 
-If the name of device class in StorageClass Resources and ephemeral inline volums is empty,
+If the name of device class in StorageClass Resources is empty,
 `lvmd` will use the default device class.
+`lvmd` always uses the default device class for ephemeral inline volumes.
 
 ### Upgrade / Downgrade Strategy
 
@@ -359,4 +335,4 @@ Perform the following steps to upgrade:
 1. Prepare a configuration file for `lvmd`. (see [Device class setting](#device-class-setting))
 1. Replace `lvmd` binary and restart `lvmd.service`.
 1. Update container images for TopoLVM.
-1. Add the name of device class to StorageClass resources and ephemeral inline volumes. (optional)
+1. Add the name of device class to StorageClass resources. (optional)
