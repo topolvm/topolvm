@@ -469,7 +469,16 @@ func (s *nodeService) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 	}
 
 	device := filepath.Join(DeviceDirectory, vid)
-	lv, err := s.getLvFromContext(ctx, vid)
+	lvr, err := s.k8sLVService.GetVolume(ctx, vid)
+	var deviceClass string
+	if err == k8s.ErrVolumeNotFound {
+		deviceClass = "" //TODO: fix default device-class
+	} else if err != nil {
+		return nil, err
+	} else {
+		deviceClass = lvr.Spec.DeviceClass
+	}
+	lv, err := s.getLvFromContext(ctx, deviceClass, vid)
 	if err != nil {
 		return nil, err
 	}
