@@ -70,17 +70,18 @@ func (m podMutator) Handle(ctx context.Context, req admission.Request) admission
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
-	ephemeralCapacities, err := m.requestedEphemeralCapacity(pod)
+	ephemeralCapacity, err := m.requestedEphemeralCapacity(pod)
 	if err != nil {
 		pmLogger.Error(err, "requestedEphemeralCapacity failed")
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
-	for deviceClass, capacity := range ephemeralCapacities {
-		if v, ok := pvcCapacities[deviceClass]; ok {
-			pvcCapacities[deviceClass] = v + capacity
+	if ephemeralCapacity != 0 {
+		//TODO: fix default device-class
+		if v, ok := pvcCapacities[""]; ok {
+			pvcCapacities[""] = v + ephemeralCapacity
 		} else {
-			pvcCapacities[deviceClass] = capacity
+			pvcCapacities[""] = ephemeralCapacity
 		}
 	}
 
@@ -192,8 +193,8 @@ func (m podMutator) requestedPVCCapacity(ctx context.Context, pod *corev1.Pod, t
 	return capacities, nil
 }
 
-func (m podMutator) requestedEphemeralCapacity(pod *corev1.Pod) (map[string]int64, error) {
-	capacities := make(map[string]int64)
+func (m podMutator) requestedEphemeralCapacity(pod *corev1.Pod) (int64, error) {
+	var total int64
 	for _, vol := range pod.Spec.Volumes {
 		if vol.CSI == nil {
 			// We only want to look at CSI volumes
@@ -207,20 +208,14 @@ func (m podMutator) requestedEphemeralCapacity(pod *corev1.Pod) (map[string]int6
 					pmLogger.Error(err, "Invalid volume size",
 						topolvm.EphemeralVolumeSizeKey, volSizeStr,
 					)
-					return nil, err
+					return 0, err
 				}
 				size = volSize << 30
 			} else {
-				size += topolvm.DefaultSize
-			}
-			deviceClass := vol.CSI.VolumeAttributes[topolvm.EphemeralVolumeDeviceClassKey]
-			total, ok := capacities[deviceClass]
-			if !ok {
-				total = 0
+				size = topolvm.DefaultSize
 			}
 			total += size
-			capacities[deviceClass] = total
 		}
 	}
-	return capacities, nil
+	return total, nil
 }

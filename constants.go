@@ -47,9 +47,6 @@ const DefaultLVMdSocket = "/run/topolvm/lvmd.sock"
 // from the volume context
 const EphemeralVolumeSizeKey = "topolvm.io/size"
 
-// EphemeralVolumeDeviceClassKey is the key to obtain device class to which the ephemeral volume belongs.
-const EphemeralVolumeDeviceClassKey = "topolvm.io/device-class"
-
 // DefaultSizeGb is the default size in GiB for  volumes (PVC or inline ephemeral volumes) w/o capacity requests.
 const DefaultSizeGb = 1
 

@@ -85,8 +85,10 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	var lv *proto.LogicalVolume
+	var err error
 	if isInlineEphemeralVolumeReq {
-		lv, err := s.getLvFromContext(ctx, volumeID)
+		lv, err = s.getLvFromContext(ctx, "", volumeID) //TODO: fix default device-class
 		if err != nil {
 			return nil, err
 		}
@@ -100,23 +102,30 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 					return nil, status.Errorf(codes.InvalidArgument, "Invalid size: %s", sizeStr)
 				}
 			}
-			deviceClass := volumeContext[topolvm.EphemeralVolumeDeviceClassKey]
 			nodeLogger.Info("Processing ephemeral inline volume request", "reqGb", reqGb)
 			_, err := s.lvService.CreateLV(ctx, &proto.CreateLVRequest{
 				Name:        volumeID,
-				DeviceClass: deviceClass,
+				DeviceClass: "",
 				SizeGb:      reqGb,
 				Tags:        []string{"ephemeral"},
 			})
 			if err != nil {
 				return nil, status.Errorf(codes.Internal, "failed to create LV %v", err)
 			}
+			lv, err = s.getLvFromContext(ctx, "", volumeID) //TODO: fix default device-class
+			if err != nil {
+				return nil, err
+			}
 		}
-	}
-
-	lv, err := s.getLvFromContext(ctx, volumeID)
-	if err != nil {
-		return nil, err
+	} else {
+		lvr, err := s.k8sLVService.GetVolume(ctx, volumeID)
+		if err != nil {
+			return nil, err
+		}
+		lv, err = s.getLvFromContext(ctx, lvr.Spec.DeviceClass, volumeID)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if lv == nil {
 		return nil, status.Errorf(codes.NotFound, "failed to find LV: %s", volumeID)
@@ -252,12 +261,8 @@ func (s *nodeService) findVolumeByID(listResp *proto.GetLVListResponse, name str
 	return nil
 }
 
-func (s *nodeService) getLvFromContext(ctx context.Context, volumeID string) (*proto.LogicalVolume, error) {
-	lv, err := s.k8sLVService.GetVolume(ctx, volumeID)
-	if err != nil {
-		return nil, err
-	}
-	listResp, err := s.client.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: lv.Spec.DeviceClass})
+func (s *nodeService) getLvFromContext(ctx context.Context, deviceClass, volumeID string) (*proto.LogicalVolume, error) {
+	listResp, err := s.client.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: deviceClass})
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list LV: %v", err)
 	}
@@ -298,7 +303,16 @@ func (s *nodeService) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 		if err != nil {
 			return unpublishResp, err
 		}
-		volume, err := s.getLvFromContext(ctx, volID)
+		lvr, err := s.k8sLVService.GetVolume(ctx, volID)
+		var deviceClass string
+		if err == k8s.ErrVolumeNotFound {
+			deviceClass = "" //TODO: fix default device-class
+		} else if err != nil {
+			return nil, err
+		} else {
+			deviceClass = lvr.Spec.DeviceClass
+		}
+		volume, err := s.getLvFromContext(ctx, deviceClass, volID)
 		if err != nil {
 			return nil, err
 		}
