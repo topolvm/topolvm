@@ -17,9 +17,9 @@ func testNode(name string, cap1Gb, cap2Gb, cap3Gb int64) corev1.Node {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 			Annotations: map[string]string{
-				topolvm.CapacityKey("myvg1"): fmt.Sprintf("%d", cap1Gb<<30),
-				topolvm.CapacityKey("myvg2"): fmt.Sprintf("%d", cap2Gb<<30),
-				topolvm.CapacityKey("myvg3"): fmt.Sprintf("%d", cap3Gb<<30),
+				topolvm.CapacityKeyPrefix + "myvg1": fmt.Sprintf("%d", cap1Gb<<30),
+				topolvm.CapacityKeyPrefix + "myvg2": fmt.Sprintf("%d", cap2Gb<<30),
+				topolvm.CapacityKeyPrefix + "myvg3": fmt.Sprintf("%d", cap3Gb<<30),
 			},
 		},
 	}
@@ -45,7 +45,7 @@ func TestFilterNodes(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{
 							Name: "10.1.1.4",
 							Annotations: map[string]string{
-								topolvm.CapacityKey("myvg1"): "foo",
+								topolvm.CapacityKeyPrefix + "myvg1": "foo",
 							},
 						},
 					},
@@ -139,7 +139,7 @@ func TestExtractRequestedSize(t *testing.T) {
 			input: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						topolvm.CapacityKey("myvg1"): strconv.Itoa(5 << 30),
+						topolvm.CapacityKeyPrefix + "myvg1": strconv.Itoa(5 << 30),
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -175,7 +175,7 @@ func TestExtractRequestedSize(t *testing.T) {
 			input: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						topolvm.CapacityKey("myvg1"): strconv.Itoa(3 << 30),
+						topolvm.CapacityKeyPrefix + "myvg1": strconv.Itoa(3 << 30),
 					},
 				},
 				Spec: corev1.PodSpec{

@@ -77,11 +77,10 @@ func (m podMutator) Handle(ctx context.Context, req admission.Request) admission
 	}
 
 	if ephemeralCapacity != 0 {
-		//TODO: fix default device-class
-		if v, ok := pvcCapacities[""]; ok {
-			pvcCapacities[""] = v + ephemeralCapacity
+		if v, ok := pvcCapacities[topolvm.DefaultDeviceClassName]; ok {
+			pvcCapacities[topolvm.DefaultDeviceClassName] = v + ephemeralCapacity
 		} else {
-			pvcCapacities[""] = ephemeralCapacity
+			pvcCapacities[topolvm.DefaultDeviceClassName] = ephemeralCapacity
 		}
 	}
 
@@ -102,7 +101,7 @@ func (m podMutator) Handle(ctx context.Context, req admission.Request) admission
 
 	pod.Annotations = make(map[string]string)
 	for vg, capacity := range pvcCapacities {
-		pod.Annotations[topolvm.CapacityKey(vg)] = strconv.FormatInt(capacity, 10)
+		pod.Annotations[topolvm.CapacityKeyPrefix+vg] = strconv.FormatInt(capacity, 10)
 	}
 
 	marshaledPod, err := json.Marshal(pod)
@@ -182,7 +181,11 @@ func (m podMutator) requestedPVCCapacity(ctx context.Context, pod *corev1.Pod, t
 				requested = ((req.Value()-1)>>30 + 1) << 30
 			}
 		}
-		vgName := sc.Parameters[topolvm.DeviceClassKey]
+		vgName, ok := sc.Parameters[topolvm.DeviceClassKey]
+		if !ok {
+			vgName = topolvm.DefaultDeviceClassName
+		}
+
 		total, ok := capacities[vgName]
 		if !ok {
 			total = 0

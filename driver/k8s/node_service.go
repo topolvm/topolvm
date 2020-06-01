@@ -35,9 +35,9 @@ func (s NodeService) getNodes(ctx context.Context) (*corev1.NodeList, error) {
 }
 
 func (s NodeService) extractCapacityFromAnnotation(node *corev1.Node, deviceClass string) (int64, error) {
-	c, ok := node.Annotations[topolvm.CapacityKey(deviceClass)]
+	c, ok := node.Annotations[topolvm.CapacityKeyPrefix+deviceClass]
 	if !ok {
-		return 0, fmt.Errorf("%s is not found", topolvm.CapacityKey(deviceClass))
+		return 0, fmt.Errorf("%s is not found", topolvm.CapacityKeyPrefix+deviceClass)
 	}
 	return strconv.ParseInt(c, 10, 64)
 }

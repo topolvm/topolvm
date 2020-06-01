@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/cybozu-go/log"
+	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/lvmd/command"
 	"github.com/cybozu-go/topolvm/lvmd/proto"
 	"google.golang.org/grpc/codes"
@@ -106,7 +107,7 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 		}
 		if dc.Default {
 			res.Items = append(res.Items, &proto.WatchItem{
-				DeviceClass: "",
+				DeviceClass: topolvm.DefaultDeviceClassName,
 				FreeBytes:   vgFree,
 			})
 		}

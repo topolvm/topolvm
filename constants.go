@@ -3,15 +3,7 @@ package topolvm
 import corev1 "k8s.io/api/core/v1"
 
 // CapacityKeyPrefix is a key prefix of Node annotation that represents VG free space.
-const CapacityKeyPrefix = "capacity.topolvm.io"
-
-// CapacityKey is a key of Node annotation that represents VG free space.
-func CapacityKey(dc string) string {
-	if len(dc) == 0 {
-		return CapacityKeyPrefix
-	}
-	return CapacityKeyPrefix + "/" + dc
-}
+const CapacityKeyPrefix = "capacity.topolvm.io/"
 
 // CapacityResource is the resource name of topolvm capacity.
 const CapacityResource = corev1.ResourceName("topolvm.io/capacity")
@@ -46,6 +38,9 @@ const DefaultLVMdSocket = "/run/topolvm/lvmd.sock"
 // EphemeralVolumeSizeKey is the key used to obtain ephemeral inline volume size
 // from the volume context
 const EphemeralVolumeSizeKey = "topolvm.io/size"
+
+// DefaultDeviceClassName is the name for the default device class.
+const DefaultDeviceClassName = "__default__"
 
 // DefaultSizeGb is the default size in GiB for  volumes (PVC or inline ephemeral volumes) w/o capacity requests.
 const DefaultSizeGb = 1

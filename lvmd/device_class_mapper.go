@@ -1,5 +1,7 @@
 package lvmd
 
+import "github.com/cybozu-go/topolvm"
+
 // DeviceClass maps between device classes and volume groups.
 type DeviceClass struct {
 	// Name for the device class name
@@ -37,7 +39,7 @@ func (m DeviceClassMapper) defaultDeviceClass() *DeviceClass {
 
 // DeviceClass returns the device class by its name
 func (m DeviceClassMapper) DeviceClass(dcName string) *DeviceClass {
-	if len(dcName) == 0 {
+	if dcName == topolvm.DefaultDeviceClassName {
 		return m.defaultDeviceClass()
 	}
 	for _, dc := range m.deviceClasses {

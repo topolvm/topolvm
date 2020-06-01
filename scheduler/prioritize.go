@@ -36,7 +36,7 @@ func scoreNodes(pod *corev1.Pod, nodes []corev1.Node, defaultDivisor float64, di
 	var dcs []string
 	for k := range pod.Annotations {
 		if strings.HasPrefix(k, topolvm.CapacityKeyPrefix) {
-			dcs = append(dcs, strings.TrimPrefix(k[len(topolvm.CapacityKeyPrefix):], "/"))
+			dcs = append(dcs, k[len(topolvm.CapacityKeyPrefix):])
 		}
 	}
 	if len(dcs) == 0 {
@@ -46,7 +46,7 @@ func scoreNodes(pod *corev1.Pod, nodes []corev1.Node, defaultDivisor float64, di
 	for i, item := range nodes {
 		var score int
 		for _, dc := range dcs {
-			if val, ok := item.Annotations[topolvm.CapacityKey(dc)]; ok {
+			if val, ok := item.Annotations[topolvm.CapacityKeyPrefix+dc]; ok {
 				capacity, _ := strconv.ParseUint(val, 10, 64)
 				var divisor float64
 				if v, ok := divisors[dc]; ok {

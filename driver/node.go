@@ -88,7 +88,7 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	var lv *proto.LogicalVolume
 	var err error
 	if isInlineEphemeralVolumeReq {
-		lv, err = s.getLvFromContext(ctx, "", volumeID) //TODO: fix default device-class
+		lv, err = s.getLvFromContext(ctx, topolvm.DefaultDeviceClassName, volumeID)
 		if err != nil {
 			return nil, err
 		}
@@ -112,7 +112,7 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 			if err != nil {
 				return nil, status.Errorf(codes.Internal, "failed to create LV %v", err)
 			}
-			lv, err = s.getLvFromContext(ctx, "", volumeID) //TODO: fix default device-class
+			lv, err = s.getLvFromContext(ctx, topolvm.DefaultDeviceClassName, volumeID)
 			if err != nil {
 				return nil, err
 			}
@@ -306,7 +306,7 @@ func (s *nodeService) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 		lvr, err := s.k8sLVService.GetVolume(ctx, volID)
 		var deviceClass string
 		if err == k8s.ErrVolumeNotFound {
-			deviceClass = "" //TODO: fix default device-class
+			deviceClass = topolvm.DefaultDeviceClassName
 		} else if err != nil {
 			return nil, err
 		} else {
@@ -472,7 +472,7 @@ func (s *nodeService) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 	lvr, err := s.k8sLVService.GetVolume(ctx, vid)
 	var deviceClass string
 	if err == k8s.ErrVolumeNotFound {
-		deviceClass = "" //TODO: fix default device-class
+		deviceClass = topolvm.DefaultDeviceClassName
 	} else if err != nil {
 		return nil, err
 	} else {
