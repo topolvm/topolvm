@@ -16,7 +16,7 @@ type LogicalVolumeSpec struct {
 	Name     string            `json:"name"`
 	NodeName string            `json:"nodeName"`
 	Size     resource.Quantity `json:"size"`
-	// +kubebuilder:default=__default__
+	// +kubebuilder:default="00default"
 	DeviceClass string `json:"deviceClass"`
 }
 

@@ -40,7 +40,7 @@ const DefaultLVMdSocket = "/run/topolvm/lvmd.sock"
 const EphemeralVolumeSizeKey = "topolvm.cybozu.com/size"
 
 // DefaultDeviceClassName is the name for the default device class.
-const DefaultDeviceClassName = "__default__"
+const DefaultDeviceClassName = "00default"
 
 // DefaultSizeGb is the default size in GiB for  volumes (PVC or inline ephemeral volumes) w/o capacity requests.
 const DefaultSizeGb = 1
