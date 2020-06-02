@@ -12,7 +12,7 @@ rules:
   - apiGroups: [""]
     resources: ["nodes"]
     verbs: ["get", "list", "watch", "update", "patch"]
-  - apiGroups: ["topolvm.io"]
+  - apiGroups: ["topolvm.cybozu.com"]
     resources: ["logicalvolumes", "logicalvolumes/status"]
     verbs: ["get", "list", "watch", "create", "update", "delete", "patch"]
   - apiGroups: ["storage.k8s.io"]
@@ -96,11 +96,11 @@ spec:
           command:
             - /csi-node-driver-registrar
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
-            - "--kubelet-registration-path=/var/lib/kubelet/plugins/topolvm.io/node/csi-topolvm.sock"
+            - "--kubelet-registration-path=/var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock"
           lifecycle:
             preStop:
               exec:
-                command: ["/bin/sh", "-c", "rm -rf /registration/topolvm.io /registration/topolvm.io-reg.sock"]
+                command: ["/bin/sh", "-c", "rm -rf /registration/topolvm.cybozu.com /registration/topolvm.cybozu.com-reg.sock"]
           volumeMounts:
             - name: node-plugin-dir
               mountPath: /run/topolvm
@@ -123,7 +123,7 @@ spec:
             type: Directory
         - name: node-plugin-dir
           hostPath:
-            path: /var/lib/kubelet/plugins/topolvm.io/node
+            path: /var/lib/kubelet/plugins/topolvm.cybozu.com/node
             type: DirectoryOrCreate
         - name: csi-plugin-dir
           hostPath:

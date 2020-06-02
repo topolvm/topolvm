@@ -19,7 +19,7 @@ Scheduler policy
         "prioritizeVerb": "prioritize",
         "managedResources":
         [{
-          "name": "topolvm.io/capacity",
+          "name": "topolvm.cybozu.com/capacity",
           "ignoredByScheduler": true
         }],
         "nodeCacheCapable": false
@@ -27,7 +27,7 @@ Scheduler policy
 }
 ```
 
-As it showed, only pods that request `topolvm.io/capacity` resource are
+As it showed, only pods that request `topolvm.cybozu.com/capacity` resource are
 managed by `topolvm-scheduler`.
 
 Verbs
@@ -42,7 +42,7 @@ The extender provides two verbs:
 
 This verb filters out nodes whose volume groups have not enough free space.
 
-Volume group capacity is identified from the value of `capacity.topolvm.io/<volume group name>`
+Volume group capacity is identified from the value of `capacity.topolvm.cybozu.com/<volume group name>`
 annotation.
 
 ### `prioritize`

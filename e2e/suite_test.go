@@ -127,10 +127,10 @@ var _ = Describe("TopoLVM", func() {
 		})
 
 		sanity.GinkgoTest(&sanity.Config{
-			Address:           "/tmp/topolvm/worker1/plugins/topolvm.io/node/csi-topolvm.sock",
-			ControllerAddress: "/tmp/topolvm/worker1/plugins/topolvm.io/controller/csi-topolvm.sock",
-			TargetPath:        "/tmp/topolvm/worker1/plugins/topolvm.io/node/mountdir",
-			StagingPath:       "/tmp/topolvm/worker1/plugins/topolvm.io/node/stagingdir",
+			Address:           "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/csi-topolvm.sock",
+			ControllerAddress: "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/controller/csi-topolvm.sock",
+			TargetPath:        "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/mountdir",
+			StagingPath:       "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/stagingdir",
 			TestVolumeSize:    1073741824,
 			IDGen:             &sanity.DefaultIDGenerator{},
 		})

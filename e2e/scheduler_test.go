@@ -56,7 +56,7 @@ metadata:
   labels:
     app.kubernetes.io/name: testhttpd
   annotations:
-    capacity.topolvm.io/myvg1: "1073741824"
+    capacity.topolvm.cybozu.com/myvg1: "1073741824"
 spec:
   containers:
   - name: ubuntu
@@ -64,9 +64,9 @@ spec:
     command: ["/usr/local/bin/pause"]
     resources:
       requests:
-        topolvm.io/capacity: 1
+        topolvm.cybozu.com/capacity: 1
       limits:
-        topolvm.io/capacity: 1
+        topolvm.cybozu.com/capacity: 1
 `, ns)
 		stdout, stderr, err := kubectlWithInput([]byte(podYml), "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
@@ -105,7 +105,7 @@ metadata:
   labels:
     app.kubernetes.io/name: testhttpd
   annotations:
-    capacity.topolvm.io/myvg1: "21474836480"
+    capacity.topolvm.cybozu.com/myvg1: "21474836480"
 spec:
   containers:
   - name: ubuntu
@@ -113,9 +113,9 @@ spec:
     command: ["/usr/local/bin/pause"]
     resources:
       requests:
-        topolvm.io/capacity: 1
+        topolvm.cybozu.com/capacity: 1
       limits:
-        topolvm.io/capacity: 1
+        topolvm.cybozu.com/capacity: 1
 `, ns)
 		stdout, stderr, err := kubectlWithInput([]byte(podYml), "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)

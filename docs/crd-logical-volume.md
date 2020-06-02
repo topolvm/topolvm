@@ -44,7 +44,7 @@ when the volume size of the corresponding PVC is increased.
 `topolvm-node` watches the `LogicalVolume` resource and resizes the LVM logical
 volume when it finds the difference between `status.currentSize` and `spec.size`.
 In order for `topolvm-node` to retry resizing, `topolvm-controller` updates
-`metadata.annotations["topolvm.io/resize-requested-at"]` of `LogicalVolume`.
+`metadata.annotations["topolvm.cybozu.com/resize-requested-at"]` of `LogicalVolume`.
 
 After the LVM logical volume is expanded successfully, `topolvm-node` updates
 `status.currentSize` value.

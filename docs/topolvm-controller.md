@@ -23,15 +23,15 @@ Webhooks
 
 ### `/pod/mutate`
 
-Mutate new Pods to add `capacity.topolvm.io/<volume group name>` annotation to the pod
-and `topolvm.io/capacity` resource request to its first container.
+Mutate new Pods to add `capacity.topolvm.cybozu.com/<volume group name>` annotation to the pod
+and `topolvm.cybozu.com/capacity` resource request to its first container.
 This annotation and resource request will be used by
 [`topolvm-scheduler`](./topolvm-scheduler.md) to filter and score Nodes.
 
 This hook handles two classes of pods. First, pods having at least one _unbound_
 PersistentVolumeClaim (PVC) for TopoLVM and _no_ bound PVC for TopoLVM. Second,
 pods which have at least one inline ephemeral volume which specify using the CSI driver
-type `topolvm.io`.
+type `topolvm.cybozu.com`.
 
 For both PVCs and inline ephemeral volumes,the requested storage size for the
 volume is calculated as follows:
@@ -48,7 +48,7 @@ kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: topolvm
-provisioner: topolvm.io            # topolvm-scheduler works only for StorageClass with this provisioner.
+provisioner: topolvm.cybozu.com            # topolvm-scheduler works only for StorageClass with this provisioner.
 parameters:
   "csi.storage.k8s.io/fstype": "xfs"
 volumeBindingMode: WaitForFirstConsumer
@@ -86,21 +86,21 @@ spec:
       claimName: local-pvc1                # have the above PVC
 ```
 
-The hook inserts `capacity.topolvm.io/<volume group name>` to the annotations
-and `topolvm.io/capacity` to the first container as follows:
+The hook inserts `capacity.topolvm.cybozu.com/<volume group name>` to the annotations
+and `topolvm.cybozu.com/capacity` to the first container as follows:
 
 ```yaml
 metadata:
   annotations:
-    capacity.topolvm.io/myvg1: "1073741824"
+    capacity.topolvm.cybozu.com/myvg1: "1073741824"
 spec:
   containers:
   - name: testhttpd
     resources:
       limits:
-        topolvm.io/capacity: "1"
+        topolvm.cybozu.com/capacity: "1"
       requests:
-        topolvm.io/capacity: "1"
+        topolvm.cybozu.com/capacity: "1"
 ```
 
 Below is an example for TopoLVM inline ephemeral volumes:
@@ -122,22 +122,22 @@ spec:
   volumes:
   - name: my-volume
     csi:
-      driver: topolvm.io
+      driver: topolvm.cybozu.com
 ```
 
-The hook inserts `capacity.topolvm.io/<volume group name>` to the annotations and
-`topolvm.io/capacity` to the ubuntu container as follows:
+The hook inserts `capacity.topolvm.cybozu.com/<volume group name>` to the annotations and
+`topolvm.cybozu.com/capacity` to the ubuntu container as follows:
 
 ```yaml
 metadata:
   annotations:
-    capacity.topolvm.io/myvg1: "1073741824"
+    capacity.topolvm.cybozu.com/myvg1: "1073741824"
 spec:
   containers:
   - name: ubuntu
     resources:
       limits:
-        topolvm.io/capacity: "1"
+        topolvm.cybozu.com/capacity: "1"
 ```
 
 Inline ephemeral volume cannot specify arbitrarily volume group.
@@ -145,14 +145,14 @@ The default volume group will be used.
 
 ### `/pvc/mutate`
 
-Mutate new PVCs to add `topolvm.io/pvc` finalizer.
+Mutate new PVCs to add `topolvm.cybozu.com/pvc` finalizer.
 
 Controllers
 -----------
 
 ### Node finalizer
 
-`topolvm-metrics` adds `topolvm.io/node` finalizer.
+`topolvm-metrics` adds `topolvm.cybozu.com/node` finalizer.
 
 When a Node is being deleted, the controller deletes all PVCs for TopoLVM
 on the deleting node.

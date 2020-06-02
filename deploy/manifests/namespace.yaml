@@ -4,4 +4,4 @@ metadata:
   name: topolvm-system
   labels:
     app.kubernetes.io/name: topolvm-system
-    topolvm.io/webhook: ignore
+    topolvm.cybozu.com/webhook: ignore

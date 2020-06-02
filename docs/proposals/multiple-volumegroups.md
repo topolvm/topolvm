@@ -47,20 +47,20 @@ kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: topolvm-provisioner-hdd
-provisioner: topolvm.io
+provisioner: topolvm.cybozu.com
 parameters:
   "csi.storage.k8s.io/fstype": "xfs"
-  "topolvm.io/device-class": "hdd"
+  "topolvm.cybozu.com/device-class": "hdd"
 volumeBindingMode: WaitForFirstConsumer
 ---
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: topolvm-provisioner-ssd
-provisioner: topolvm.io
+provisioner: topolvm.cybozu.com
 parameters:
   "csi.storage.k8s.io/fstype": "xfs"
-  "topolvm.io/device-class": "ssd"
+  "topolvm.cybozu.com/device-class": "ssd"
 volumeBindingMode: WaitForFirstConsumer
 ```
 
@@ -89,7 +89,7 @@ kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: topolvm-provisioner-hdd
-provisioner: topolvm.io/hdd
+provisioner: topolvm.cybozu.com/hdd
 parameters:
   "csi.storage.k8s.io/fstype": "xfs"
 volumeBindingMode: WaitForFirstConsumer
@@ -98,7 +98,7 @@ kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: topolvm-provisioner-ssd
-provisioner: topolvm.io/ssd
+provisioner: topolvm.cybozu.com/ssd
 parameters:
   "csi.storage.k8s.io/fstype": "xfs"
 volumeBindingMode: WaitForFirstConsumer
@@ -122,17 +122,17 @@ because option B) is complicated to launch multiple TopoLVM for users.
 
 ### How to expose free storage capacity of nodes
 
-Currently `topolvm-node` exposes free storage capacity as `capacity.topolvm.io/<deviec calss>` annotation of each Node as follows:
+Currently `topolvm-node` exposes free storage capacity as `capacity.topolvm.cybozu.com/<deviec calss>` annotation of each Node as follows:
 
 ```yaml
 kind: Node
 metadata:
   name: worker-1
   annotations:
-    capacity.topolvm.io/ssd: "1073741824"
+    capacity.topolvm.cybozu.com/ssd: "1073741824"
 ```
 
-This proposal will change annotation to `capacity.topolvm.io/<device class>` as follows 
+This proposal will change annotation to `capacity.topolvm.cybozu.com/<device class>` as follows 
 to expose the capacity of each node:
 
 ```yaml
@@ -140,12 +140,12 @@ kind: Node
 metadata:
   name: worker-1
   annotations:
-    capacity.topolvm.io/__default__: "1073741824"
-    capacity.topolvm.io/ssd: "1073741824"
-    capacity.topolvm.io/hdd: "1099511627776"
+    capacity.topolvm.cybozu.com/__default__: "1073741824"
+    capacity.topolvm.cybozu.com/ssd: "1073741824"
+    capacity.topolvm.cybozu.com/hdd: "1099511627776"
 ```
 
-The default device class is annotated without the part of the name, like `capacity.topolvm.io`.
+The default device class is annotated without the part of the name, like `capacity.topolvm.cybozu.com`.
 
 ### How to annotate resources
 
@@ -185,7 +185,7 @@ There are two possible designs to manage capacities of multiple volume groups as
 
 #### A-1) insert multiple resources
 
-This proposal would insert `capacity.topolvm.io/<device class>` as follows:
+This proposal would insert `capacity.topolvm.cybozu.com/<device class>` as follows:
 
 ```yaml
 spec:
@@ -193,11 +193,11 @@ spec:
   - name: testhttpd
     resources:
       requests:
-        capacity.topolvm.io/ssd: "1073741824"
-        capacity.topolvm.io/hdd: "1099511627776"
+        capacity.topolvm.cybozu.com/ssd: "1073741824"
+        capacity.topolvm.cybozu.com/hdd: "1099511627776"
       limits:
-        capacity.topolvm.io/ssd: "1073741824"
-        capacity.topolvm.io/hdd: "1099511627776"
+        capacity.topolvm.cybozu.com/ssd: "1073741824"
+        capacity.topolvm.cybozu.com/hdd: "1099511627776"
 ```
 
 Then users should modify the scheduler policy as follows:
@@ -212,7 +212,7 @@ Then users should modify the scheduler policy as follows:
         "weight": 2,
         "managedResources":
         [{
-          "name": "capacity.topolvm.io/ssd",
+          "name": "capacity.topolvm.cybozu.com/ssd",
           "ignoredByScheduler": true
         }],
         "nodeCacheCapable": false
@@ -224,7 +224,7 @@ Then users should modify the scheduler policy as follows:
         "weight": 1,
         "managedResources":
         [{
-          "name": "capacity.topolvm.io/hdd",
+          "name": "capacity.topolvm.cybozu.com/hdd",
           "ignoredByScheduler": true
         }],
         "nodeCacheCapable": false
@@ -244,24 +244,24 @@ Cons:
 
 #### A-2) insert multiple annotations
 
-This proposal would insert `topolvm.io/capacity` to resources and `capacity.topolvm.io/<device class>` annotation as follows:
+This proposal would insert `topolvm.cybozu.com/capacity` to resources and `capacity.topolvm.cybozu.com/<device class>` annotation as follows:
 
 ```yaml
 metadata:
   annotations:
-    capacity.topolvm.io/ssd: "1073741824"
-    capacity.topolvm.io/hdd: "1099511627776"
+    capacity.topolvm.cybozu.com/ssd: "1073741824"
+    capacity.topolvm.cybozu.com/hdd: "1099511627776"
 spec:
   containers:
   - name: testhttpd
     resources:
       requests:
-        topolvm.io/capacity: "1"
+        topolvm.cybozu.com/capacity: "1"
       limits:
-        topolvm.io/capacity: "1"
+        topolvm.cybozu.com/capacity: "1"
 ```
 
-The values of `topolvm.io/capacity` don't matter.
+The values of `topolvm.cybozu.com/capacity` don't matter.
 
 Users shouldn't modify the scheduler policy.
 

@@ -8,7 +8,7 @@ An overview of setup is as follows:
 3. Determine how [topolvm-scheduler][] to be run:
    - If your Kubernetes have control plane nodes, `topolvm-scheduler` should be deployed as DaemonSet.
    - Otherwise, `topolvm-scheduler` should be deployed as Deployment and Service.
-4. Add `topolvm.io/webhook: ignore` label to system namespaces such as `kube-system`.
+4. Add `topolvm.cybozu.com/webhook: ignore` label to system namespaces such as `kube-system`.
 5. Apply manifests for TopoLVM.
 6. Configure `kube-scheduler` to use `topolvm-scheduler`.
 7. Adjust CSIDriver config for Kubernetes 1.15 and earlier
@@ -70,12 +70,12 @@ When doing so, do not apply [./manifests/certificates.yaml](./manifests/certific
       name: topolvm-hook
     # snip
     webhooks:
-      - name: pvc-hook.topolvm.io
+      - name: pvc-hook.topolvm.cybozu.com
         # snip
         clientConfig:
           caBundle: |  # Base64-encoded, PEM-encoded CA certificate that signs the server certificate
             ...
-      - name: pod-hook.topolvm.io
+      - name: pod-hook.topolvm.cybozu.com
         # snip
         clientConfig:
           caBundle: |  # The same CA certificate as above
@@ -203,7 +203,7 @@ Besides, the scoring weight can be passed to kube-scheduler via [scheduler-polic
       "weight": 100, ## EDIT THIS FIELD ##
       "managedResources":
       [{
-        "name": "topolvm.io/capacity",
+        "name": "topolvm.cybozu.com/capacity",
         "ignoredByScheduler": true
       }]
     }]
@@ -220,7 +220,7 @@ if the webhook pods and the system pods are both missing.
 To workaround the problem, add a label to system namespaces such as `kube-system` as follows.
 
 ```console
-$ kubectl label ns kube-system topolvm.io/webhook=ignore
+$ kubectl label ns kube-system topolvm.cybozu.com/webhook=ignore
 ```
 
 Apply manifests for TopoLVM
@@ -272,7 +272,7 @@ to account for features not supported on earlier versions:
 apiVersion: storage.k8s.io/v1beta1
 kind: CSIDriver
 metadata:
-  name: topolvm.io
+  name: topolvm.cybozu.com
 spec:
   attachRequired: true
 ```

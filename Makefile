@@ -136,9 +136,9 @@ manifests:
 		paths="./api/...;./controllers;./hook;./driver/k8s" \
 		output:crd:artifacts:config=config/crd/bases
 	# workaround to upgrade CRD from v1beta1 to v1. `preserveUnknownFields: false` is required, but controller-gen cannot generate it for v1.
-	sed -i -e "/^spec:$\/a \  preserveUnknownFields: false" config/crd/bases/topolvm.io_logicalvolumes.yaml
+	sed -i -e "/^spec:$\/a \  preserveUnknownFields: false" config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml
 	rm -f deploy/manifests/crd.yaml
-	cp config/crd/bases/topolvm.io_logicalvolumes.yaml deploy/manifests/crd.yaml
+	cp config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml deploy/manifests/crd.yaml
 
 generate: csi/csi.pb.go lvmd/proto/lvmd.pb.go docs/lvmd-protocol.md
 	controller-gen object:headerFile=./hack/boilerplate.go.txt paths="./api/..."

@@ -6,10 +6,10 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.3.0
   creationTimestamp: null
-  name: logicalvolumes.topolvm.io
+  name: logicalvolumes.topolvm.cybozu.com
 spec:
   preserveUnknownFields: false
-  group: topolvm.io
+  group: topolvm.cybozu.com
   names:
     kind: LogicalVolume
     listKind: LogicalVolumeList

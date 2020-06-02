@@ -59,7 +59,7 @@ func setupCommonResources() {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: topolvmProvisionerStorageClassName,
 		},
-		Provisioner:       "topolvm.io",
+		Provisioner:       "topolvm.cybozu.com",
 		VolumeBindingMode: modePtr(storagev1.VolumeBindingWaitForFirstConsumer),
 		Parameters: map[string]string{
 			topolvm.DeviceClassKey: "myvg1",
@@ -72,7 +72,7 @@ func setupCommonResources() {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: topolvmProvisioner2StorageClassName,
 		},
-		Provisioner:       "topolvm.io",
+		Provisioner:       "topolvm.cybozu.com",
 		VolumeBindingMode: modePtr(storagev1.VolumeBindingWaitForFirstConsumer),
 		Parameters: map[string]string{
 			topolvm.DeviceClassKey: "myvg2",
@@ -85,7 +85,7 @@ func setupCommonResources() {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: topolvmProvisioner3StorageClassName,
 		},
-		Provisioner:       "topolvm.io",
+		Provisioner:       "topolvm.cybozu.com",
 		VolumeBindingMode: modePtr(storagev1.VolumeBindingWaitForFirstConsumer),
 		Parameters: map[string]string{
 			topolvm.DeviceClassKey: "myvg3",
@@ -98,7 +98,7 @@ func setupCommonResources() {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: topolvmProvisionerImmediateStorageClassName,
 		},
-		Provisioner:       "topolvm.io",
+		Provisioner:       "topolvm.cybozu.com",
 		VolumeBindingMode: modePtr(storagev1.VolumeBindingImmediate),
 		Parameters: map[string]string{
 			topolvm.DeviceClassKey: "myvg1",
@@ -143,7 +143,7 @@ var _ = BeforeSuite(func() {
 				},
 				Webhooks: []admissionregistrationv1beta1.MutatingWebhook{
 					{
-						Name:          "pod-hook.topolvm.io",
+						Name:          "pod-hook.topolvm.cybozu.com",
 						FailurePolicy: &failPolicy,
 						ClientConfig: admissionregistrationv1beta1.WebhookClientConfig{
 							Service: &admissionregistrationv1beta1.ServiceReference{
@@ -164,7 +164,7 @@ var _ = BeforeSuite(func() {
 						},
 					},
 					{
-						Name:          "pvc-hook.topolvm.io",
+						Name:          "pvc-hook.topolvm.cybozu.com",
 						FailurePolicy: &failPolicy,
 						ClientConfig: admissionregistrationv1beta1.WebhookClientConfig{
 							Service: &admissionregistrationv1beta1.ServiceReference{

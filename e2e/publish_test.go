@@ -55,7 +55,7 @@ func testPublishVolume() {
 		nc   csi.NodeClient
 		conn *grpc.ClientConn
 	)
-	nodeSocket := "/tmp/topolvm/worker1/plugins/topolvm.io/node/csi-topolvm.sock"
+	nodeSocket := "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/csi-topolvm.sock"
 
 	BeforeEach(func() {
 		dialer := &net.Dialer{}
@@ -81,7 +81,7 @@ func testPublishVolume() {
 		mountTargetPath := "/mnt/csi-node-test"
 
 		By("creating a logical volume resource")
-		lvYaml := []byte(`apiVersion: topolvm.io/v1
+		lvYaml := []byte(`apiVersion: topolvm.cybozu.com/v1
 kind: LogicalVolume
 metadata:
   name: csi-node-test-fs
@@ -181,7 +181,7 @@ spec:
 		deviceTargetPath := "/dev/csi-node-test"
 
 		By("creating a logical volume resource")
-		lvYaml := []byte(`apiVersion: topolvm.io/v1
+		lvYaml := []byte(`apiVersion: topolvm.cybozu.com/v1
 kind: LogicalVolume
 metadata:
   name: csi-node-test-block

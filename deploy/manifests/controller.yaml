@@ -2,7 +2,7 @@
 apiVersion: storage.k8s.io/v1beta1
 kind: CSIDriver
 metadata:
-  name: topolvm.io
+  name: topolvm.cybozu.com
 spec:
   attachRequired: true
   podInfoOnMount: true
@@ -34,7 +34,7 @@ rules:
   - apiGroups: ["storage.k8s.io"]
     resources: ["storageclasses","csidrivers"]
     verbs: ["get", "list", "watch"]
-  - apiGroups: ["topolvm.io"]
+  - apiGroups: ["topolvm.cybozu.com"]
     resources: ["logicalvolumes", "logicalvolumes/status"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 ---
