@@ -105,7 +105,7 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 			nodeLogger.Info("Processing ephemeral inline volume request", "reqGb", reqGb)
 			_, err := s.lvService.CreateLV(ctx, &proto.CreateLVRequest{
 				Name:        volumeID,
-				DeviceClass: "",
+				DeviceClass: topolvm.DefaultDeviceClassName,
 				SizeGb:      reqGb,
 				Tags:        []string{"ephemeral"},
 			})
@@ -303,16 +303,7 @@ func (s *nodeService) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 		if err != nil {
 			return unpublishResp, err
 		}
-		lvr, err := s.k8sLVService.GetVolume(ctx, volID)
-		var deviceClass string
-		if err == k8s.ErrVolumeNotFound {
-			deviceClass = topolvm.DefaultDeviceClassName
-		} else if err != nil {
-			return nil, err
-		} else {
-			deviceClass = lvr.Spec.DeviceClass
-		}
-		volume, err := s.getLvFromContext(ctx, deviceClass, volID)
+		volume, err := s.getLvFromContext(ctx, topolvm.DefaultDeviceClassName, volID)
 		if err != nil {
 			return nil, err
 		}

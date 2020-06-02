@@ -217,7 +217,7 @@ spec:
   resources:
     requests:
       storage: 2Gi
-  storageClassName: topolvm-provisioner
+  storageClassName: topolvm-provisioner-default
 ---
 apiVersion: v1
 kind: Pod
@@ -240,14 +240,12 @@ spec:
           fsType: xfs
           volumeAttributes:
             topolvm.cybozu.com/size: "2"
-            topolvm.cybozu.com/device-class: "myvg1"
       - name: my-ephemeral-volume2
         csi:
           driver: topolvm.cybozu.com
           fsType: xfs
           volumeAttributes:
             topolvm.cybozu.com/size: "1"
-            topolvm.cybozu.com/device-class: "myvg1"
       - name: my-pvc-volume1
         persistentVolumeClaim:
           claimName: local-pvc1
@@ -278,7 +276,7 @@ spec:
 				return errors.New("resources.Requests is not mutated")
 			}
 
-			capacity, ok := pod.Annotations[topolvm.CapacityKeyPrefix+"myvg1"]
+			capacity, ok := pod.Annotations[topolvm.CapacityKeyPrefix+topolvm.DefaultDeviceClassName]
 			if !ok {
 				return errors.New("not annotated")
 			}

@@ -32,6 +32,13 @@ volumeBindingMode: WaitForFirstConsumer
 parameters:
   "topolvm.cybozu.com/device-class": "myvg3"
 ---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: topolvm-provisioner-default
+provisioner: topolvm.cybozu.com
+volumeBindingMode: WaitForFirstConsumer
+---
 apiVersion: v1
 kind: PersistentVolume
 metadata:

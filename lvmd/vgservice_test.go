@@ -113,7 +113,8 @@ func testWatch(t *testing.T) {
 }
 
 func testVGService(t *testing.T, vg *command.VolumeGroup) {
-	vgService, _ := NewVGService(NewDeviceClassMapper([]*DeviceClass{{Name: "myvg1", VolumeGroup: "myvg1"}}))
+	spareGB := uint64(1)
+	vgService, _ := NewVGService(NewDeviceClassMapper([]*DeviceClass{{Name: vg.Name(), VolumeGroup: vg.Name(), SpareGB: &spareGB}}))
 	res, err := vgService.GetLVList(context.Background(), &proto.GetLVListRequest{DeviceClass: vg.Name()})
 	if err != nil {
 		t.Fatal(err)

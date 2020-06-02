@@ -107,26 +107,34 @@ spec:
 
 		// As pvc and pod are deleted in the finalizer of node resource, comfirm the resources before deleted.
 		By("getting target pvcs/pods")
+		var targetPod *corev1.Pod
 		targetNode := "kind-worker3"
-		stdout, stderr, err = kubectl("-n", cleanupTest, "get", "pods", "-o=json")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		var pods corev1.PodList
-		err = json.Unmarshal(stdout, &pods)
-		Expect(err).ShouldNot(HaveOccurred())
+		Eventually(func() error {
+			stdout, stderr, err = kubectl("-n", cleanupTest, "get", "pods", "-o=json")
+			if err != nil {
+				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, stdout, stderr)
+			}
+			var pods corev1.PodList
+			err = json.Unmarshal(stdout, &pods)
+			if err != nil {
+				return err
+			}
 
-		var targetPod corev1.Pod
-		for _, pod := range pods.Items {
-			if pod.Spec.NodeName == targetNode {
-				for _, volume := range pod.Spec.Volumes {
-					if volume.PersistentVolumeClaim == nil {
-						continue
-					}
-					if strings.Contains(volume.PersistentVolumeClaim.ClaimName, "test-sts-pvc") {
-						targetPod = pod
+			for _, pod := range pods.Items {
+				if pod.Spec.NodeName == targetNode {
+					for _, volume := range pod.Spec.Volumes {
+						if volume.PersistentVolumeClaim == nil {
+							continue
+						}
+						if strings.Contains(volume.PersistentVolumeClaim.ClaimName, "test-sts-pvc") {
+							targetPod = &pod
+							return nil
+						}
 					}
 				}
 			}
-		}
+			return errors.New("target pod not found")
+		}).Should(Succeed())
 
 		stdout, stderr, err = kubectl("-n", cleanupTest, "get", "pvc", "-o=json")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
@@ -164,6 +172,7 @@ spec:
 		By("deleting topolvm-node pod")
 		stdout, stderr, err = kubectl("-n", "topolvm-system", "get", "pods", "-o=json")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		var pods corev1.PodList
 		err = json.Unmarshal(stdout, &pods)
 		Expect(err).ShouldNot(HaveOccurred())
 

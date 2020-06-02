@@ -714,7 +714,6 @@ spec:
       fsType: xfs
       volumeAttributes:
         topolvm.cybozu.com/size: "2"
-        topolvm.cybozu.com/device-class: "myvg1"
   - name: my-default-volume
     csi:
       driver: topolvm.cybozu.com
