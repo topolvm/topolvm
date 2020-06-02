@@ -1,8 +1,8 @@
 CSI_VERSION=1.1.0
 PROTOBUF_VERSION=3.11.4
 CURL=curl -Lsf
-KUBEBUILDER_VERSION = 2.3.0
-CTRLTOOLS_VERSION = 0.2.7
+KUBEBUILDER_VERSION = 2.3.1
+CTRLTOOLS_VERSION = 0.3.0
 
 GOOS := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
@@ -130,11 +130,13 @@ test:
 # Generate manifests e.g. CRD, RBAC etc.
 manifests:
 	controller-gen \
-		crd:trivialVersions=true \
+		crd:crdVersions=v1,preserveUnknownFields=false \
 		rbac:roleName=topolvm-controller \
 		webhook \
 		paths="./api/...;./controllers;./hook;./driver/k8s" \
 		output:crd:artifacts:config=config/crd/bases
+	# workaround to upgrade CRD from v1beta1 to v1. `preserveUnknownFields: false` is required, but controller-gen cannot generate it for v1.
+	sed -i -e "/^spec:$\/a \  preserveUnknownFields: false" config/crd/bases/topolvm.io_logicalvolumes.yaml
 	rm -f deploy/manifests/crd.yaml
 	cp config/crd/bases/topolvm.io_logicalvolumes.yaml deploy/manifests/crd.yaml
 
