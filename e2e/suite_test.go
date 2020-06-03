@@ -104,6 +104,7 @@ var _ = Describe("TopoLVM", func() {
 	Context("metrics", testMetrics)
 	Context("publish", testPublishVolume)
 	Context("e2e", testE2E)
+	Context("multiple-vg", testMultipleVolumeGroups)
 	Context("cleanup", testCleanup)
 	Context("CSI sanity", func() {
 		It("should add node selector to node DaemonSet for CSI test", func() {

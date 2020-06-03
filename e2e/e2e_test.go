@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -721,14 +720,6 @@ spec:
     csi:
       driver: topolvm.cybozu.com
 `
-		currentK8sVersion := getCurrentK8sMinorVersion()
-		if currentK8sVersion < 16 {
-			Skip(fmt.Sprintf(
-				"inline ephemeral volumes not supported on Kubernetes version: 1.%d. Min supported version is 1.16",
-				currentK8sVersion,
-			))
-		}
-
 		By("reading current count of LVMs")
 		baseLvmCount, err := countLVMs()
 		Expect(err).ShouldNot(HaveOccurred())
@@ -786,14 +777,6 @@ spec:
 	})
 
 	It("should resize filesystem", func() {
-		currentK8sVersion := getCurrentK8sMinorVersion()
-		if currentK8sVersion < 16 {
-			Skip(fmt.Sprintf(
-				"resizing is not supported on Kubernetes version: 1.%d. Min supported version is 1.16",
-				currentK8sVersion,
-			))
-		}
-
 		By("deploying Pod with PVC")
 		podYAML := `apiVersion: v1
 kind: Pod
@@ -959,14 +942,6 @@ spec:
 	})
 
 	It("should resize a block device", func() {
-		currentK8sVersion := getCurrentK8sMinorVersion()
-		if currentK8sVersion < 16 {
-			Skip(fmt.Sprintf(
-				"resizing is not supported on Kubernetes version: 1.%d. Min supported version is 1.16",
-				currentK8sVersion,
-			))
-		}
-
 		By("deploying Pod with PVC")
 		deviceFile := "/dev/e2etest"
 		podYAML := fmt.Sprintf(`apiVersion: v1
@@ -1138,14 +1113,4 @@ func countLVMs() (int, error) {
 		return -1, fmt.Errorf("failed to lvs. stdout %s, err %v", stdout, err)
 	}
 	return bytes.Count(stdout, []byte("\n")), nil
-}
-
-func getCurrentK8sMinorVersion() int64 {
-	kubernetesVersionStr := os.Getenv("TEST_KUBERNETES_VERSION")
-	kubernetesVersion := strings.Split(kubernetesVersionStr, ".")
-	Expect(len(kubernetesVersion)).To(Equal(2))
-	kubernetesMinorVersion, err := strconv.ParseInt(kubernetesVersion[1], 10, 64)
-	Expect(err).ShouldNot(HaveOccurred())
-
-	return kubernetesMinorVersion
 }
