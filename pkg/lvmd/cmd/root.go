@@ -70,11 +70,15 @@ func subMain() error {
 	if err != nil {
 		return err
 	}
-	log.Info("loaded configuration file: ", map[string]interface{}{
+	log.Info("configuration file loaded: ", map[string]interface{}{
 		"device_classes": config.DeviceClasses,
 		"socket_name":    config.SocketName,
 		"file_name":      cfgFilePath,
 	})
+	err = lvmd.ValidateDeviceClasses(config.DeviceClasses)
+	if err != nil {
+		return err
+	}
 
 	// UNIX domain socket file should be removed before listening.
 	err = os.Remove(config.SocketName)
@@ -87,10 +91,10 @@ func subMain() error {
 		return err
 	}
 	grpcServer := grpc.NewServer()
-	mapper := lvmd.NewDeviceClassMapper(config.DeviceClasses)
-	vgService, notifier := lvmd.NewVGService(mapper)
+	manager := lvmd.NewDeviceClassManager(config.DeviceClasses)
+	vgService, notifier := lvmd.NewVGService(manager)
 	proto.RegisterVGServiceServer(grpcServer, vgService)
-	proto.RegisterLVServiceServer(grpcServer, lvmd.NewLVService(mapper, notifier))
+	proto.RegisterLVServiceServer(grpcServer, lvmd.NewLVService(manager, notifier))
 	well.Go(func(ctx context.Context) error {
 		return grpcServer.Serve(lis)
 	})

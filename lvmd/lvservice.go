@@ -11,7 +11,7 @@ import (
 )
 
 // NewLVService creates a new LVServiceServer
-func NewLVService(mapper *DeviceClassMapper, notifyFunc func()) proto.LVServiceServer {
+func NewLVService(mapper *DeviceClassManager, notifyFunc func()) proto.LVServiceServer {
 	return lvService{
 		mapper:     mapper,
 		notifyFunc: notifyFunc,
@@ -19,7 +19,7 @@ func NewLVService(mapper *DeviceClassMapper, notifyFunc func()) proto.LVServiceS
 }
 
 type lvService struct {
-	mapper     *DeviceClassMapper
+	mapper     *DeviceClassManager
 	notifyFunc func()
 }
 
@@ -31,9 +31,9 @@ func (s lvService) notify() {
 }
 
 func (s lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*proto.CreateLVResponse, error) {
-	dc := s.mapper.DeviceClass(req.DeviceClass)
-	if dc == nil {
-		return nil, status.Errorf(codes.NotFound, "device class not found: %s", req.DeviceClass)
+	dc, err := s.mapper.DeviceClass(req.DeviceClass)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
 	}
 	vg, err := command.FindVolumeGroup(dc.VolumeGroup)
 	if err != nil {
@@ -83,9 +83,9 @@ func (s lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*pro
 }
 
 func (s lvService) RemoveLV(_ context.Context, req *proto.RemoveLVRequest) (*proto.Empty, error) {
-	dc := s.mapper.DeviceClass(req.DeviceClass)
-	if dc == nil {
-		return nil, status.Errorf(codes.NotFound, "device class not found: %s", req.DeviceClass)
+	dc, err := s.mapper.DeviceClass(req.DeviceClass)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
 	}
 	vg, err := command.FindVolumeGroup(dc.VolumeGroup)
 	if err != nil {
@@ -124,9 +124,9 @@ func (s lvService) RemoveLV(_ context.Context, req *proto.RemoveLVRequest) (*pro
 }
 
 func (s lvService) ResizeLV(_ context.Context, req *proto.ResizeLVRequest) (*proto.Empty, error) {
-	dc := s.mapper.DeviceClass(req.DeviceClass)
-	if dc == nil {
-		return nil, status.Errorf(codes.NotFound, "device class not found: %s", req.DeviceClass)
+	dc, err := s.mapper.DeviceClass(req.DeviceClass)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
 	}
 	vg, err := command.FindVolumeGroup(dc.VolumeGroup)
 	if err != nil {

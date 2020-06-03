@@ -41,7 +41,7 @@ func TestLVService(t *testing.T) {
 	notifier := func() {
 		count++
 	}
-	lvService := NewLVService(NewDeviceClassMapper([]*DeviceClass{{Name: vgName, VolumeGroup: vgName}}), notifier)
+	lvService := NewLVService(NewDeviceClassManager([]*DeviceClass{{Name: vgName, VolumeGroup: vgName}}), notifier)
 	res, err := lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
 		Name:        "test1",
 		DeviceClass: vgName,

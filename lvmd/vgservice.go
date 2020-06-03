@@ -13,17 +13,17 @@ import (
 )
 
 // NewVGService creates a VGServiceServer
-func NewVGService(mapper *DeviceClassMapper) (proto.VGServiceServer, func()) {
+func NewVGService(manager *DeviceClassManager) (proto.VGServiceServer, func()) {
 	svc := &vgService{
-		mapper:   mapper,
-		watchers: make(map[int]chan struct{}),
+		dcManager: manager,
+		watchers:  make(map[int]chan struct{}),
 	}
 
 	return svc, svc.notifyWatchers
 }
 
 type vgService struct {
-	mapper *DeviceClassMapper
+	dcManager *DeviceClassManager
 
 	mu             sync.Mutex
 	watcherCounter int
@@ -31,9 +31,9 @@ type vgService struct {
 }
 
 func (s *vgService) GetLVList(_ context.Context, req *proto.GetLVListRequest) (*proto.GetLVListResponse, error) {
-	dc := s.mapper.DeviceClass(req.DeviceClass)
-	if dc == nil {
-		return nil, status.Errorf(codes.NotFound, "device class not found: %s", req.DeviceClass)
+	dc, err := s.dcManager.DeviceClass(req.DeviceClass)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
 	}
 	vg, err := command.FindVolumeGroup(dc.VolumeGroup)
 	if err != nil {
@@ -62,9 +62,9 @@ func (s *vgService) GetLVList(_ context.Context, req *proto.GetLVListRequest) (*
 }
 
 func (s *vgService) GetFreeBytes(_ context.Context, req *proto.GetFreeBytesRequest) (*proto.GetFreeBytesResponse, error) {
-	dc := s.mapper.DeviceClass(req.DeviceClass)
-	if dc == nil {
-		return nil, status.Errorf(codes.NotFound, "device class not found: %s", req.DeviceClass)
+	dc, err := s.dcManager.DeviceClass(req.DeviceClass)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
 	}
 	vg, err := command.FindVolumeGroup(dc.VolumeGroup)
 	if err != nil {
@@ -78,7 +78,7 @@ func (s *vgService) GetFreeBytes(_ context.Context, req *proto.GetFreeBytesReque
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	spare := s.mapper.GetSpare(req.DeviceClass)
+	spare := dc.GetSpare()
 	if vgFree < spare {
 		vgFree = 0
 	} else {
@@ -101,8 +101,8 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 		if err != nil {
 			return status.Error(codes.Internal, err.Error())
 		}
-		dc := s.mapper.DeviceClassWithVGName(vg.Name())
-		if dc == nil {
+		dc, err := s.dcManager.FindDeviceClassByVGName(vg.Name())
+		if err != nil {
 			continue
 		}
 		if dc.Default {
