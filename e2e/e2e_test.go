@@ -27,7 +27,10 @@ func testE2E() {
 	})
 
 	AfterEach(func() {
-		kubectl("delete", "namespaces/"+ns)
+		// When a test fails, I want to investigate the cause. So please don't remove the namespace!
+		if !CurrentGinkgoTestDescription().Failed {
+			kubectl("delete", "namespaces/"+ns)
+		}
 	})
 
 	It("should be mounted in specified path", func() {
