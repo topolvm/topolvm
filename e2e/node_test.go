@@ -110,7 +110,7 @@ func testNode() {
 				continue
 			}
 			found = true
-			Expect(family.Metric).Should(HaveLen(1))
+			Expect(family.Metric).Should(HaveLen(2))
 
 			stdout, stderr, err := kubectl("get", "node", pod.Spec.NodeName, "-o=json")
 			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
@@ -118,19 +118,29 @@ func testNode() {
 			var node corev1.Node
 			err = json.Unmarshal(stdout, &node)
 			Expect(err).ShouldNot(HaveOccurred())
-			capacity1, ok := node.Annotations[topolvm.CapacityKeyPrefix+topolvm.DefaultDeviceClassName]
-			Expect(ok).Should(BeTrue())
-			capacity2, ok := node.Annotations[topolvm.CapacityKeyPrefix+"myvg1"]
-			Expect(ok).Should(BeTrue())
-			cap1, err := strconv.ParseFloat(capacity1, 64)
-			Expect(err).ShouldNot(HaveOccurred())
-			cap2, err := strconv.ParseFloat(capacity2, 64)
-			Expect(err).ShouldNot(HaveOccurred())
-			expected := cap1 + cap2
+			for k, v := range node.Annotations {
+				if !strings.HasPrefix(k, topolvm.CapacityKeyPrefix) {
+					continue
+				}
+				dc := k[len(topolvm.CapacityKeyPrefix):]
+				if dc == topolvm.DefaultDeviceClassName {
+					continue
+				}
+				expected, err := strconv.ParseFloat(v, 64)
+				Expect(err).ShouldNot(HaveOccurred())
 
-			val := family.Metric[0].Gauge.Value
-			Expect(val).ShouldNot(BeNil())
-			Expect(*val).Should(Equal(expected))
+				var targetValue *float64
+				for _, m := range family.Metric {
+					for _, label := range m.Label {
+						if *label.Name == "device_class" && *label.Value == dc {
+							targetValue = m.Gauge.Value
+							break
+						}
+					}
+				}
+				Expect(targetValue).ShouldNot(BeNil())
+				Expect(*targetValue).Should(BeNumerically("==", expected))
+			}
 			break
 		}
 		Expect(found).Should(BeTrue())
