@@ -70,16 +70,30 @@ shutdown-kind:
 start-lvmd:
 	mkdir -p build
 	go build -o build/lvmd ../pkg/lvmd
-	if [ -f build/backing_store1 ] || [ -f build/backing_store2 ] || [ -f build/backing_store3 ]; then $(MAKE) stop-lvmd; fi
+	if [ -f build/backing_store* ]; then $(MAKE) stop-lvmd; fi
 
 	for i in $$(seq 3); do \
 		mkdir -p /tmp/topolvm/worker$$i; \
 		mkdir -p /tmp/topolvm/lvmd$$i; \
-		truncate --size=20G build/backing_store$$i; \
-		$(SUDO) losetup -f build/backing_store$$i; \
-		$(SUDO) vgcreate -y node$$i-myvg1 $$($(SUDO) losetup -j build/backing_store$$i | cut -d: -f1); \
-		$(SUDO) lvcreate -y -n csi-node-test-block -L 1G node$$i-myvg1; \
-		$(SUDO) lvcreate -y -n csi-node-test-fs -L 1G node$$i-myvg1; \
+		truncate --size=20G build/backing_store$${i}_1; \
+		$(SUDO) losetup -f build/backing_store$${i}_1; \
+		$(SUDO) vgcreate -y node$${i}-myvg1 $$($(SUDO) losetup -j build/backing_store$${i}_1 | cut -d: -f1); \
+		$(SUDO) lvcreate -y -n csi-node-test-block -L 1G node$${i}-myvg1; \
+		$(SUDO) lvcreate -y -n csi-node-test-fs -L 1G node$${i}-myvg1; \
+	done
+
+	# Create additional Volume Groups
+	truncate --size=10G build/backing_store1_2; \
+	$(SUDO) losetup -f build/backing_store1_2; \
+	$(SUDO) vgcreate -y node1-myvg2 $$($(SUDO) losetup -j build/backing_store1_2 | cut -d: -f1); \
+	truncate --size=10G build/backing_store2_2; \
+	$(SUDO) losetup -f build/backing_store2_2; \
+	$(SUDO) vgcreate -y node2-myvg2 $$($(SUDO) losetup -j build/backing_store2_2 | cut -d: -f1); \
+	truncate --size=10G build/backing_store3_3; \
+	$(SUDO) losetup -f build/backing_store3_3; \
+	$(SUDO) vgcreate -y node3-myvg3 $$($(SUDO) losetup -j build/backing_store3_3 | cut -d: -f1); \
+
+	for i in $$(seq 3); do \
 		$(SUDO) systemd-run --unit=lvmd$$i.service $(shell pwd)/build/lvmd --listen=/tmp/topolvm/lvmd$$i/lvmd.sock --config=$(shell pwd)/lvmd$$i.yaml; \
 	done
 
@@ -87,12 +101,14 @@ stop-lvmd:
 	$(MAKE) shutdown-kind
 	for i in $$(seq 3); do \
 		if systemctl is-active -q lvmd$$i.service; then $(SUDO) systemctl stop lvmd$$i.service; fi; \
-		if [ -f build/backing_store$$i ]; then \
-			$(SUDO) vgremove -ffy node$$i-myvg1; \
-			$(SUDO) pvremove -ffy $$($(SUDO) losetup -j build/backing_store$$i | cut -d: -f1); \
-			$(SUDO) losetup -d $$($(SUDO) losetup -j build/backing_store$$i | cut -d: -f1); \
-			rm -f build/backing_store$$i; \
-		fi; \
+		for j in $$(seq 3); do \
+			if [ -f build/backing_store$${i}_$${j} ]; then \
+				$(SUDO) vgremove -ffy node$${i}-myvg$${j}; \
+				$(SUDO) pvremove -ffy $$($(SUDO) losetup -j build/backing_store$${i}_$${j} | cut -d: -f1); \
+				$(SUDO) losetup -d $$($(SUDO) losetup -j build/backing_store$${i}_$${j} | cut -d: -f1); \
+				rm -f build/backing_store$${i}_$${j}; \
+			fi; \
+		done; \
 	done
 
 # --load_restrictor='none' allows the certificates to be loaded from a path which

@@ -2,4 +2,7 @@ device-classes:
   - name: "myvg1"
     volume-group: "node1-myvg1"
     default: true
-    spare-gb: 10
+    spare-gb: 1
+  - name: "myvg2"
+    volume-group: "node1-myvg2"
+    spare-gb: 1
