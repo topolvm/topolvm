@@ -11,11 +11,31 @@
 
 Command-line options are:
 
-| Option         | Type   | Default value            | Description                          |
-| -------------- | ------ | ------------------------ | ------------------------------------ |
-| `listen`       | string | `/run/topolvm/lvmd.sock` | unix domain socket endpoint of gRPC  |
-| `spare`        | uint64 | 10                       | Storage capacity in GiB to be spared |
-| `vg-prefix`    | string |                          | Prefix of volume group name. If the prefix is specified, the actual volume group is with the prefix, but lvmd user can operate the volume group as a name without the prefix. |
+| Option         | Type   | Default value            | Description                                |
+| -------------- | ------ | ------------------------ | ------------------------------------------ |
+| `listen`       | string | `/run/topolvm/lvmd.sock` | unix domain socket endpoint of gRPC        |
+| `config`       | string | `/etc/topolvm/lvmd.yaml` | Config file path for device class settings |
+
+The device class settings can be specified in YAML file:
+
+```yaml
+device-classes:
+  - name: ssd
+    volume-group: ssd-vg
+    spare-gb: 10
+    default: true
+  - name: hdd
+    volume-group: hdd-vg
+    spare-gb: 10
+```
+
+| Name           | Type   | Default | Description                                                    |
+| -------------- | ------ | ------- | -------------------------------------------------------------- |
+| `name`         | string | -       | The name of a device class.                                    |
+| `volume-group` | string | -       | The group where this device class creates the logical volumes. |
+| `spare-gb`     | uint64 | `10`    | Storage capacity in GiB to be spared.                          |
+| `default`      | bool   | `false` | A flag to indicate that this device class is used by default.  |
+
 
 Spare capacity
 --------------

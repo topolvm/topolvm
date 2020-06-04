@@ -16,12 +16,12 @@ node services.
 LogicalVolumeSpec
 -----------------
 
-| Field      | Type         | Description                                                    |
-| ---------- | ------------ | -------------------------------------------------------------- |
-| `name`     | string       | Suggested name of the logical volume.                          |
-| `nodeName` | string       | Name of the node where the logical volume should be created.   |
-| `size`     | [Quantity][] | Amount of local storage required for the logical volume.       |
-| `vgName`   | string       | Name of the volume group that the logical volume belongs with. |
+| Field         | Type         | Description                                                    |
+| ------------- | ------------ | -------------------------------------------------------------- |
+| `name`        | string       | Suggested name of the logical volume.                          |
+| `nodeName`    | string       | Name of the node where the logical volume should be created.   |
+| `size`        | [Quantity][] | Amount of local storage required for the logical volume.       |
+| `deviceClass` | string       | Name of the device class that the logical volume belongs with. |
 
 LogicalVolumeStatus
 -------------------
@@ -55,5 +55,5 @@ the returned error.
 When a `LogicalVolume` is being deleted, `topolvm-node` on the target node deletes
 the corresponding LVM logical volume and clears the finalizer.
 
-[ObjectMeta]: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.17/#objectmeta-v1-meta
-[Quantity]: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.17/#quantity-resource-core
+[ObjectMeta]: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#objectmeta-v1-meta
+[Quantity]: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#quantity-resource-core

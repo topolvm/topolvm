@@ -42,7 +42,7 @@ The extender provides two verbs:
 
 This verb filters out nodes whose volume groups have not enough free space.
 
-Volume group capacity is identified from the value of `capacity.topolvm.cybozu.com/<volume group name>`
+Volume group capacity is identified from the value of `capacity.topolvm.cybozu.com/<device class name>`
 annotation.
 
 ### `prioritize`
@@ -51,9 +51,7 @@ This verb scores nodes.  The score of a node is calculated by this formula:
 
     min(10, max(0, log2(capacity >> 30 / divisor)))
 
-`divisor` can be changed with `divisor` command-line flag.
-
-<!-- TODO -->
+`divisor` can be changed with a configuration file.
 
 Command-line flags
 ------------------
@@ -61,16 +59,22 @@ Command-line flags
 | Name      | Type    | Default                       | Description            |
 | --------- | ------- | ----------------------------: | ---------------------- |
 | `listen`  | string  | `:8000`                       | HTTP listening address |
-| `config`  | float64 | `/etc/topolvm/scheduler.yaml` | Config file path       |
+| `config`  | string  | `/etc/topolvm/scheduler.yaml` | Config file path       |
 
 Config file format
 ------------------
 
-<!-- TODO -->
+The divisor parameter can be specified in YAML file:
 
 ```yaml
-default-divisor: 1
+default-divisor: 10
 divisors:
-  myvg1: 2
-  myvg2: 4
+  ssd: 5
+  hdd: 10
 ```
+
+| Name              | Type                 | Default | Description                                       |
+| ----------------- | -------------------- | ------- | ------------------------------------------------- |
+| `default-divisor` | float64              | `1`     | A default value of the variable for node scoring. |
+| `divisors`        | `map[string]float64` | `{}`    | A variable for node scoring per device class.     |
+

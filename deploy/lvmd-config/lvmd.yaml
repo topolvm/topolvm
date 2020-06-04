@@ -1,0 +1,5 @@
+device-classes:
+  - name: myvg1
+    volume-group: myvg1
+    default: true
+    spare-gb: 10

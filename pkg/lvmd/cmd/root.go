@@ -133,5 +133,5 @@ func Execute() {
 
 func init() {
 	rootCmd.Flags().StringVar(&config.SocketName, "listen", topolvm.DefaultLVMdSocket, "Unix domain socket name")
-	rootCmd.PersistentFlags().StringVar(&cfgFilePath, "config", filepath.Join("etc", "lvmd", "config.yml"), "config file")
+	rootCmd.PersistentFlags().StringVar(&cfgFilePath, "config", filepath.Join("etc", "topolvm", "lvmd.yaml"), "config file")
 }

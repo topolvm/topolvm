@@ -16,6 +16,7 @@ An overview of setup is as follows:
 
 Example configuration files are included in the following sub directories:
 
+- `lvmd-config/`: Configuration file for `lvmd`
 - `manifests/`: Manifests for Kubernetes.
 - `scheduler-config/`: Configurations to extend `kube-scheduler` with `topolvm-scheduler`.
 - `systemd/`: A systemd unit file for `lvmd`.
@@ -32,10 +33,14 @@ It can be built from source code by `GO111MODULE=on go build ./pkg/lvmd`.
 To setup `lvmd`:
 
 1. Prepare an LVM volume group.  A non-empty volume group can be used.
-2. Edit the following line in [lvmd.service](./systemd/lvmd.service) if the volume group name is not `myvg`.
+2. Edit [lvmd.yaml](./lvmd-config/lvmd.yaml) if the volume group name is not `myvg1` or you want to use multiple volume groups.
 
-    ```
-    ExecStart=/opt/sbin/lvmd --volume-group=myvg --listen=/run/topolvm/lvmd.sock
+    ```yaml
+    device-classes:
+      - name: myvg1
+        volume-group: myvg1
+        default: true
+        spare-gb: 10
     ```
 
 3. Install `lvmd` and `lvmd.service`, then start the service.
@@ -249,7 +254,7 @@ apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
 metadata:
   name: config
-kubernetesVersion: v1.15.3
+kubernetesVersion: v1.18.2
 scheduler:
   extraVolumes:
     - name: "config"
@@ -261,21 +266,6 @@ scheduler:
 ```
 
 Otherwise, consult the manual of your Kubernetes cluster distribution.
-
-Adjust CSIDriver config for Kubernetes 1.15 and earlier
-----------------------
-
-If you are running Kubernetes 1.15 or prior, modify the `CSIDriver` as follows
-to account for features not supported on earlier versions:
-
-```yaml
-apiVersion: storage.k8s.io/v1beta1
-kind: CSIDriver
-metadata:
-  name: topolvm.cybozu.com
-spec:
-  attachRequired: true
-```
 
 Prepare StorageClasses
 ----------------------

@@ -318,9 +318,11 @@ Therefore, `lvmd` should have a device class setting as follows:
 device-classes:
   - name: ssd
     volume-group: ssd-vg
+    spare-gb: 10
     default: true
   - name: hdd
     volume-group: hdd-vg
+    spare-gb: 10
 ```
 
 If the name of device class in StorageClass Resources is empty,
@@ -336,3 +338,26 @@ Perform the following steps to upgrade:
 1. Replace `lvmd` binary and restart `lvmd.service`.
 1. Update container images for TopoLVM.
 1. Add the name of device class to StorageClass resources. (optional)
+
+If you've run `lvmd` in the previous version as follows:
+
+```console
+$ lvmd --volume-group=myvg1 --listen=/run/topolvm/lvmd.sock --spare=10
+```
+
+You have to prepare a configuration file as follows:
+
+```yaml
+device-classes:
+  - name: myvg1
+    volume-group: myvg1
+    default: true
+    spare-gb: 10
+```
+
+And run `lvmd` with the following options:
+
+```console
+$ lvmd --listen=/run/topolvm/lvmd.sock --config=/path/to/your-config.yaml
+```
+
