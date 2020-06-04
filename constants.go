@@ -2,7 +2,7 @@ package topolvm
 
 import corev1 "k8s.io/api/core/v1"
 
-// CapacityKeyPrefix is a key prefix of Node annotation that represents VG free space.
+// CapacityKeyPrefix is the key prefix of Node annotation that represents VG free space.
 const CapacityKeyPrefix = "capacity.topolvm.cybozu.com/"
 
 // CapacityResource is the resource name of topolvm capacity.
@@ -11,13 +11,13 @@ const CapacityResource = corev1.ResourceName("topolvm.cybozu.com/capacity")
 // PluginName is the name of the CSI plugin.
 const PluginName = "topolvm.cybozu.com"
 
-// TopologyNodeKey is a key of topology that represents node name.
+// TopologyNodeKey is the key of topology that represents node name.
 const TopologyNodeKey = "topology.topolvm.cybozu.com/node"
 
-// DeviceClassKey is a key of VolumeGroup which the LogicalVolume belongs.
+// DeviceClassKey is the key used in CSI volume create requests to specify a device class.
 const DeviceClassKey = "topolvm.cybozu.com/device-class"
 
-// ResizeRequestedAtKey is a key of LogicalVolume that represents the timestamp of the resize request.
+// ResizeRequestedAtKey is the key of LogicalVolume that represents the timestamp of the resize request.
 const ResizeRequestedAtKey = "topolvm.cybozu.com/resize-requested-at"
 
 // LogicalVolumeFinalizer is the name of LogicalVolume finalizer

@@ -27,7 +27,7 @@ Scheduler policy
 }
 ```
 
-As it showed, only pods that request `topolvm.cybozu.com/capacity` resource are
+As shown, only pods that request `topolvm.cybozu.com/capacity` resource are
 managed by `topolvm-scheduler`.
 
 Verbs
