@@ -88,7 +88,7 @@ metadata:
 spec:
   deviceClass: myvg1
   name: csi-node-test-fs
-  nodeName: kind-worker
+  nodeName: topolvm-e2e-worker
   size: 1Gi
 `)
 
@@ -188,7 +188,7 @@ metadata:
 spec:
   deviceClass: myvg1
   name: csi-node-test-block
-  nodeName: kind-worker
+  nodeName: topolvm-e2e-worker
   size: 1Gi
 `)
 

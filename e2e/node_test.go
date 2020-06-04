@@ -59,10 +59,10 @@ func testNode() {
 		Expect(len(nodes.Items)).To(Equal(4))
 
 		vgNameMap := map[string]string{
-			"kind-worker":        "node1-myvg1",
-			"kind-worker2":       "node2-myvg1",
-			"kind-worker3":       "node3-myvg1",
-			"kind-control-plane": "",
+			"topolvm-e2e-worker":        "node1-myvg1",
+			"topolvm-e2e-worker2":       "node2-myvg1",
+			"topolvm-e2e-worker3":       "node3-myvg1",
+			"topolvm-e2e-control-plane": "",
 		}
 
 		for _, node := range nodes.Items {

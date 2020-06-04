@@ -108,7 +108,7 @@ spec:
 		// As pvc and pod are deleted in the finalizer of node resource, comfirm the resources before deleted.
 		By("getting target pvcs/pods")
 		var targetPod *corev1.Pod
-		targetNode := "kind-worker3"
+		targetNode := "topolvm-e2e-worker3"
 		Eventually(func() error {
 			stdout, stderr, err = kubectl("-n", cleanupTest, "get", "pods", "-o=json")
 			if err != nil {
@@ -165,7 +165,7 @@ spec:
 			}
 		}
 
-		By("setting unschedule flag to Node kind-worker3")
+		By("setting unschedule flag to Node topolvm-e2e-worker3")
 		stdout, stderr, err = kubectl("cordon", targetNode)
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
@@ -183,11 +183,11 @@ spec:
 				break
 			}
 		}
-		Expect(targetTopolvmNode).ShouldNot(Equal(""), "cannot get topolmv-node name on kind-worker3")
+		Expect(targetTopolvmNode).ShouldNot(Equal(""), "cannot get topolmv-node name on topolvm-e2e-worker3")
 		stdout, stderr, err = kubectl("-n", "topolvm-system", "delete", "pod", targetTopolvmNode)
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
-		By("deleting Node kind-worker3")
+		By("deleting Node topolvm-e2e-worker3")
 		stdout, stderr, err = kubectl("delete", "node", targetNode, "--wait=true")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 

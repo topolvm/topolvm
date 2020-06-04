@@ -108,7 +108,7 @@ var _ = Describe("TopoLVM", func() {
 	Context("cleanup", testCleanup)
 	Context("CSI sanity", func() {
 		It("should add node selector to node DaemonSet for CSI test", func() {
-			_, _, err := kubectl("delete", "nodes", "kind-worker2")
+			_, _, err := kubectl("delete", "nodes", "topolvm-e2e-worker2")
 			Expect(err).ShouldNot(HaveOccurred())
 			Eventually(func() error {
 				var ds appsv1.DaemonSet

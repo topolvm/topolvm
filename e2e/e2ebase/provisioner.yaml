@@ -58,7 +58,7 @@ spec:
         - key: kubernetes.io/hostname
           operator: NotIn
           values:
-          - kind-control-plane
+          - topolvm-e2e-control-plane
 ---
 apiVersion: v1
 kind: PersistentVolume
@@ -79,4 +79,4 @@ spec:
         - key: kubernetes.io/hostname
           operator: NotIn
           values:
-          - kind-control-plane
+          - topolvm-e2e-control-plane

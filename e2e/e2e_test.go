@@ -306,7 +306,7 @@ spec:
 			var maxCapNodes []string
 			var maxCapacity int
 			for _, node := range nodes.Items {
-				if node.Name == "kind-control-plane" {
+				if node.Name == "topolvm-e2e-control-plane" {
 					continue
 				}
 				strCap, ok := node.Annotations[topolvm.CapacityKeyPrefix+"myvg1"]
@@ -582,7 +582,7 @@ spec:
 		var targetNode string
 		var maxCapacity int
 		for _, node := range nodeList.Items {
-			if node.Name == "kind-control-plane" {
+			if node.Name == "topolvm-e2e-control-plane" {
 				continue
 			}
 
