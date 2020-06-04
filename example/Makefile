@@ -5,6 +5,7 @@ GINKGO=$(GOPATH)/bin/ginkgo
 KUBECTL=/usr/local/bin/kubectl
 KUBERNETES_VERSION=1.18.2
 KIND_VERSION=0.8.1
+KIND_CLUSTER_NAME=topolvm-example
 
 GO_FILES := $(shell find .. -path ../vendor -prune -o -path ../e2e -prune -o -name '*.go' -print)
 CA_FILES=./build/certs/ca.csr ./build/certs/ca.pem ./build/certs/ca-key.pem
@@ -52,10 +53,10 @@ launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml /tmp/topolvm/scheduler
 	$(MAKE) shutdown-kind
 	$(SUDO) rm -rf /tmp/topolvm/controller /tmp/topolvm/worker*
 	sed s/@KUBERNETES_VERSION@/$(KUBERNETES_VERSION)/ kind/topolvm-cluster.yaml > /tmp/topolvm-cluster.yaml
-	kind create cluster --name=topolvm-example --config /tmp/topolvm-cluster.yaml --image kindest/node:v$(KUBERNETES_VERSION)
+	kind create cluster --name=$(KIND_CLUSTER_NAME) --config /tmp/topolvm-cluster.yaml --image kindest/node:v$(KUBERNETES_VERSION)
 
 shutdown-kind:
-	kind delete cluster --name=topolvm-example || true
+	kind delete cluster --name=$(KIND_CLUSTER_NAME) || true
 	for d in $$($(SUDO) find /tmp/topolvm -type d); do \
 		if $(SUDO) mountpoint -q $$d; then \
 			$(SUDO) umount $$d; \
