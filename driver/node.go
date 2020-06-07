@@ -43,18 +43,12 @@ func NewNodeService(nodeName string, conn *grpc.ClientConn) csi.NodeServer {
 }
 
 type nodeService struct {
+	*csi.UnimplementedNodeServer
+
 	nodeName  string
 	client    proto.VGServiceClient
 	lvService proto.LVServiceClient
 	mu        sync.Mutex
-}
-
-func (s *nodeService) NodeStageVolume(context.Context, *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "NodeStageVolume not implemented")
-}
-
-func (s *nodeService) NodeUnstageVolume(context.Context, *csi.NodeUnstageVolumeRequest) (*csi.NodeUnstageVolumeResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "NodeUnstageVolume not implemented")
 }
 
 func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
