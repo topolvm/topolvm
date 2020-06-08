@@ -44,7 +44,7 @@ func scoreNodes(pod *corev1.Pod, nodes []corev1.Node, defaultDivisor float64, di
 	}
 
 	for i, item := range nodes {
-		var score int
+		minScore := 10
 		for _, dc := range dcs {
 			if val, ok := item.Annotations[topolvm.CapacityKeyPrefix+dc]; ok {
 				capacity, _ := strconv.ParseUint(val, 10, 64)
@@ -54,10 +54,13 @@ func scoreNodes(pod *corev1.Pod, nodes []corev1.Node, defaultDivisor float64, di
 				} else {
 					divisor = defaultDivisor
 				}
-				score += capacityToScore(capacity, divisor)
+				score := capacityToScore(capacity, divisor)
+				if score < minScore {
+					minScore = score
+				}
 			}
 		}
-		result[i] = HostPriority{Host: item.Name, Score: score / len(dcs)}
+		result[i] = HostPriority{Host: item.Name, Score: minScore}
 	}
 
 	return result
