@@ -276,7 +276,7 @@ spec:
 				return errors.New("resources.Requests is not mutated")
 			}
 
-			capacity, ok := pod.Annotations[topolvm.CapacityKeyPrefix+topolvm.DefaultDeviceClassName]
+			capacity, ok := pod.Annotations[topolvm.CapacityKeyPrefix+topolvm.DefaultDeviceClassAnnotationName]
 			if !ok {
 				return errors.New("not annotated")
 			}

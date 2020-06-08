@@ -123,7 +123,7 @@ func testNode() {
 					continue
 				}
 				dc := k[len(topolvm.CapacityKeyPrefix):]
-				if dc == topolvm.DefaultDeviceClassName {
+				if dc == topolvm.DefaultDeviceClassAnnotationName {
 					continue
 				}
 				expected, err := strconv.ParseFloat(v, 64)

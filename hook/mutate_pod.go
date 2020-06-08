@@ -77,10 +77,10 @@ func (m podMutator) Handle(ctx context.Context, req admission.Request) admission
 	}
 
 	if ephemeralCapacity != 0 {
-		if v, ok := pvcCapacities[topolvm.DefaultDeviceClassName]; ok {
-			pvcCapacities[topolvm.DefaultDeviceClassName] = v + ephemeralCapacity
+		if v, ok := pvcCapacities[topolvm.DefaultDeviceClassAnnotationName]; ok {
+			pvcCapacities[topolvm.DefaultDeviceClassAnnotationName] = v + ephemeralCapacity
 		} else {
-			pvcCapacities[topolvm.DefaultDeviceClassName] = ephemeralCapacity
+			pvcCapacities[topolvm.DefaultDeviceClassAnnotationName] = ephemeralCapacity
 		}
 	}
 
@@ -183,7 +183,7 @@ func (m podMutator) requestedPVCCapacity(ctx context.Context, pod *corev1.Pod, t
 		}
 		vgName, ok := sc.Parameters[topolvm.DeviceClassKey]
 		if !ok {
-			vgName = topolvm.DefaultDeviceClassName
+			vgName = topolvm.DefaultDeviceClassAnnotationName
 		}
 
 		total, ok := capacities[vgName]

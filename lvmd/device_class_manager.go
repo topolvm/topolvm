@@ -3,6 +3,8 @@ package lvmd
 import (
 	"errors"
 	"regexp"
+
+	"github.com/cybozu-go/topolvm"
 )
 
 // ErrNotFound is returned when a VG or LV is not found.
@@ -89,7 +91,7 @@ func (m DeviceClassManager) defaultDeviceClass() *DeviceClass {
 
 // DeviceClass returns the device class by its name
 func (m DeviceClassManager) DeviceClass(dcName string) (*DeviceClass, error) {
-	if dcName == "" {
+	if dcName == topolvm.DefaultDeviceClassName {
 		return m.defaultDeviceClass(), nil
 	}
 	for _, dc := range m.deviceClasses {

@@ -267,7 +267,7 @@ var _ = Describe("pod mutation webhook", func() {
 		pod = getPod()
 		request := pod.Spec.Containers[0].Resources.Requests[topolvm.CapacityResource]
 		limit := pod.Spec.Containers[0].Resources.Limits[topolvm.CapacityResource]
-		capacity := pod.Annotations[topolvm.CapacityKeyPrefix+topolvm.DefaultDeviceClassName]
+		capacity := pod.Annotations[topolvm.CapacityKeyPrefix+topolvm.DefaultDeviceClassAnnotationName]
 		Expect(request.Value()).Should(BeNumerically("==", 1))
 		Expect(limit.Value()).Should(BeNumerically("==", 1))
 		Expect(capacity).Should(Equal(strconv.Itoa(2 << 30)))
@@ -294,7 +294,7 @@ var _ = Describe("pod mutation webhook", func() {
 		pod = getPod()
 		request := pod.Spec.Containers[0].Resources.Requests[topolvm.CapacityResource]
 		limit := pod.Spec.Containers[0].Resources.Limits[topolvm.CapacityResource]
-		capacity := pod.Annotations[topolvm.CapacityKeyPrefix+topolvm.DefaultDeviceClassName]
+		capacity := pod.Annotations[topolvm.CapacityKeyPrefix+topolvm.DefaultDeviceClassAnnotationName]
 		Expect(request.Value()).Should(BeNumerically("==", 1))
 		Expect(limit.Value()).Should(BeNumerically("==", 1))
 		Expect(capacity).Should(Equal(strconv.Itoa(1 << 30)))
