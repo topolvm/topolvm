@@ -104,9 +104,6 @@ func (m *metricsExporter) updateNode(ctx context.Context, wc proto.VGService_Wat
 		}
 
 		for _, item := range res.Items {
-			if item.DeviceClass == "" {
-				continue
-			}
 			ch <- NodeMetrics{
 				DeviceClass: item.DeviceClass,
 				FreeBytes:   item.FreeBytes,
@@ -136,12 +133,9 @@ func (m *metricsExporter) updateNode(ctx context.Context, wc proto.VGService_Wat
 			node2.Finalizers = append(node2.Finalizers, topolvm.NodeFinalizer)
 		}
 
+		node2.Annotations[topolvm.CapacityKeyPrefix+topolvm.DefaultDeviceClassAnnotationName] = strconv.FormatUint(res.FreeBytes, 10)
 		for _, item := range res.Items {
-			dc := item.DeviceClass
-			if len(dc) == 0 {
-				dc = topolvm.DefaultDeviceClassName
-			}
-			node2.Annotations[topolvm.CapacityKeyPrefix+dc] = strconv.FormatUint(item.FreeBytes, 10)
+			node2.Annotations[topolvm.CapacityKeyPrefix+item.DeviceClass] = strconv.FormatUint(item.FreeBytes, 10)
 		}
 		if err := m.Patch(ctx, node2, client.MergeFrom(&node)); err != nil {
 			return err

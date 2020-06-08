@@ -105,15 +105,13 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 			continue
 		}
 		if dc.Default {
+			res.FreeBytes = vgFree
+		} else {
 			res.Items = append(res.Items, &proto.WatchItem{
-				DeviceClass: "",
+				DeviceClass: dc.Name,
 				FreeBytes:   vgFree,
 			})
 		}
-		res.Items = append(res.Items, &proto.WatchItem{
-			DeviceClass: dc.Name,
-			FreeBytes:   vgFree,
-		})
 	}
 	return server.Send(res)
 }

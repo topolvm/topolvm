@@ -69,7 +69,8 @@ message GetFreeBytesRequest {
 
 // Represents the stream output from Watch.
 message WatchResponse {
-    repeated WatchItem items = 1;
+    uint64 free_bytes = 1;  // Free space of the default volume group in bytes.
+    repeated WatchItem items = 2;
 }
 
 message WatchItem {
