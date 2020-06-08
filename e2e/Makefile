@@ -3,27 +3,27 @@ GOFLAGS=-mod=vendor
 export GOFLAGS
 GINKGO=$(GOPATH)/bin/ginkgo
 KUBECTL=/usr/local/bin/kubectl
-KIND_VERSION=0.8.1
+KIND_VERSION=0.7.0
 KUSTOMIZE_VERSION=3.5.4
 KUSTOMIZE=/usr/local/bin/kustomize
 KIND_CLUSTER_NAME=topolvm-e2e
 
 # If you want to change the Kubernetes version for e2e test, specify this variable from command line.
 # e.g. $ make TEST_KUBERNETES_VERSION=1.17 setup test
-TEST_KUBERNETES_VERSION=1.18
+TEST_KUBERNETES_VERSION=1.17
 
-ifeq ($(TEST_KUBERNETES_VERSION),1.18)
-KUBERNETES_VERSION=1.18.2
-KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
-KUSTOMIZE_DIR=e2ebase
-else ifeq ($(TEST_KUBERNETES_VERSION),1.17)
-KUBERNETES_VERSION=1.17.5
+ifeq ($(TEST_KUBERNETES_VERSION),1.17)
+KUBERNETES_VERSION=1.17.2
 KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
 KUSTOMIZE_DIR=e2ebase
 else ifeq ($(TEST_KUBERNETES_VERSION),1.16)
-KUBERNETES_VERSION=1.16.9
+KUBERNETES_VERSION=1.16.4
 KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
 KUSTOMIZE_DIR=e2ebase
+else ifeq ($(TEST_KUBERNETES_VERSION),1.15)
+KUBERNETES_VERSION=1.15.7
+KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
+KUSTOMIZE_DIR=legacy
 endif
 
 GO_FILES := $(shell find .. -path ../vendor -prune -o -path ../e2e -prune -o -name '*.go' -print)
