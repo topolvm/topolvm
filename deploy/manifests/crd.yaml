@@ -8,7 +8,7 @@ metadata:
   creationTimestamp: null
   name: logicalvolumes.topolvm.cybozu.com
 spec:
-  group: topolvm.io
+  group: topolvm.cybozu.com
   names:
     kind: LogicalVolume
     listKind: LogicalVolumeList
@@ -37,7 +37,6 @@ spec:
           description: LogicalVolumeSpec defines the desired state of LogicalVolume
           properties:
             deviceClass:
-              default: __default__
               type: string
             name:
               description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster

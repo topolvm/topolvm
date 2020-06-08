@@ -3,8 +3,6 @@ package lvmd
 import (
 	"errors"
 	"regexp"
-
-	"github.com/cybozu-go/topolvm"
 )
 
 // ErrNotFound is returned when a VG or LV is not found.
@@ -46,9 +44,6 @@ func ValidateDeviceClasses(deviceClasses []*DeviceClass) error {
 			return errors.New("device class name should not be empty")
 		} else if len(dc.Name) > 63 {
 			return errors.New("device class name is too long")
-		}
-		if dc.Name == topolvm.DefaultDeviceClassName {
-			return errors.New("device class name should not be " + topolvm.DefaultDeviceClassName)
 		}
 		if !qualifiedNameRegexp.MatchString(dc.Name) {
 			return errors.New("device class name should consist of alphanumeric characters, '-', '_' or '.', and should start and end with an alphanumeric character")
@@ -94,7 +89,7 @@ func (m DeviceClassManager) defaultDeviceClass() *DeviceClass {
 
 // DeviceClass returns the device class by its name
 func (m DeviceClassManager) DeviceClass(dcName string) (*DeviceClass, error) {
-	if dcName == topolvm.DefaultDeviceClassName {
+	if dcName == "" {
 		return m.defaultDeviceClass(), nil
 	}
 	for _, dc := range m.deviceClasses {

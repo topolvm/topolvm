@@ -31,10 +31,7 @@ type controllerService struct {
 func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	capabilities := req.GetVolumeCapabilities()
 	source := req.GetVolumeContentSource()
-	deviceClass, ok := req.Parameters[topolvm.DeviceClassKey]
-	if !ok {
-		deviceClass = topolvm.DefaultDeviceClassName
-	}
+	deviceClass := req.Parameters[topolvm.DeviceClassKey]
 
 	ctrlLogger.Info("CreateVolume called",
 		"name", req.GetName(),
@@ -237,10 +234,7 @@ func (s controllerService) GetCapacity(ctx context.Context, req *csi.GetCapacity
 		ctrlLogger.Info("capability argument is not nil, but TopoLVM ignores it")
 	}
 
-	deviceClass, ok := req.GetParameters()[topolvm.DeviceClassKey]
-	if !ok {
-		deviceClass = topolvm.DefaultDeviceClassName
-	}
+	deviceClass := req.GetParameters()[topolvm.DeviceClassKey]
 
 	var capacity int64
 	switch topology {

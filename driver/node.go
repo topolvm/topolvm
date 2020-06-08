@@ -88,7 +88,7 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	var lv *proto.LogicalVolume
 	var err error
 	if isInlineEphemeralVolumeReq {
-		lv, err = s.getLvFromContext(ctx, topolvm.DefaultDeviceClassName, volumeID)
+		lv, err = s.getLvFromContext(ctx, "", volumeID)
 		if err != nil {
 			return nil, err
 		}
@@ -105,14 +105,14 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 			nodeLogger.Info("Processing ephemeral inline volume request", "reqGb", reqGb)
 			_, err := s.lvService.CreateLV(ctx, &proto.CreateLVRequest{
 				Name:        volumeID,
-				DeviceClass: topolvm.DefaultDeviceClassName,
+				DeviceClass: "",
 				SizeGb:      reqGb,
 				Tags:        []string{"ephemeral"},
 			})
 			if err != nil {
 				return nil, status.Errorf(codes.Internal, "failed to create LV %v", err)
 			}
-			lv, err = s.getLvFromContext(ctx, topolvm.DefaultDeviceClassName, volumeID)
+			lv, err = s.getLvFromContext(ctx, "", volumeID)
 			if err != nil {
 				return nil, err
 			}
@@ -303,7 +303,7 @@ func (s *nodeService) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 		if err != nil {
 			return unpublishResp, err
 		}
-		volume, err := s.getLvFromContext(ctx, topolvm.DefaultDeviceClassName, volID)
+		volume, err := s.getLvFromContext(ctx, "", volID)
 		if err != nil {
 			return nil, err
 		}
@@ -462,12 +462,10 @@ func (s *nodeService) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 	device := filepath.Join(DeviceDirectory, vid)
 	lvr, err := s.k8sLVService.GetVolume(ctx, vid)
 	var deviceClass string
-	if err == k8s.ErrVolumeNotFound {
-		deviceClass = topolvm.DefaultDeviceClassName
-	} else if err != nil {
-		return nil, err
-	} else {
+	if err == nil {
 		deviceClass = lvr.Spec.DeviceClass
+	} else if err != k8s.ErrVolumeNotFound {
+		return nil, err
 	}
 	lv, err := s.getLvFromContext(ctx, deviceClass, vid)
 	if err != nil {

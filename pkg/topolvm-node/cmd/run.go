@@ -128,7 +128,7 @@ func checkFunc(conn *grpc.ClientConn, r client.Reader) func() error {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		if _, err := vgs.GetFreeBytes(ctx, &proto.GetFreeBytesRequest{DeviceClass: topolvm.DefaultDeviceClassName}); err != nil {
+		if _, err := vgs.GetFreeBytes(ctx, &proto.GetFreeBytesRequest{DeviceClass: ""}); err != nil {
 			return err
 		}
 
