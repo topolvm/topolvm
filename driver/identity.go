@@ -20,10 +20,12 @@ var idLogger = logf.Log.WithName("driver").WithName("identity")
 // If the plugin is not yet ready, it should return (false, nil).
 // Otherwise, return (true, nil).
 func NewIdentityService(ready func() (bool, error)) csi.IdentityServer {
-	return &identityService{ready}
+	return &identityService{ready: ready}
 }
 
 type identityService struct {
+	*csi.UnimplementedIdentityServer
+
 	ready func() (bool, error)
 }
 

@@ -22,6 +22,8 @@ func NewControllerService(lvService *k8s.LogicalVolumeService, nodeService *k8s.
 }
 
 type controllerService struct {
+	*csi.UnimplementedControllerServer
+
 	lvService   *k8s.LogicalVolumeService
 	nodeService *k8s.NodeService
 }
@@ -185,14 +187,6 @@ func (s controllerService) DeleteVolume(ctx context.Context, req *csi.DeleteVolu
 	return &csi.DeleteVolumeResponse{}, nil
 }
 
-func (s controllerService) ControllerPublishVolume(context.Context, *csi.ControllerPublishVolumeRequest) (*csi.ControllerPublishVolumeResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "ControllerPublishVolume not implemented")
-}
-
-func (s controllerService) ControllerUnpublishVolume(context.Context, *csi.ControllerUnpublishVolumeRequest) (*csi.ControllerUnpublishVolumeResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "ControllerUnpublishVolume not implemented")
-}
-
 func (s controllerService) ValidateVolumeCapabilities(ctx context.Context, req *csi.ValidateVolumeCapabilitiesRequest) (*csi.ValidateVolumeCapabilitiesResponse, error) {
 	ctrlLogger.Info("ValidateVolumeCapabilities called",
 		"volume_id", req.GetVolumeId(),
@@ -225,10 +219,6 @@ func (s controllerService) ValidateVolumeCapabilities(ctx context.Context, req *
 			Parameters:         req.GetParameters(),
 		},
 	}, nil
-}
-
-func (s controllerService) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (*csi.ListVolumesResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "ListVolumes not implemented")
 }
 
 func (s controllerService) GetCapacity(ctx context.Context, req *csi.GetCapacityRequest) (*csi.GetCapacityResponse, error) {
@@ -293,18 +283,6 @@ func (s controllerService) ControllerGetCapabilities(context.Context, *csi.Contr
 	return &csi.ControllerGetCapabilitiesResponse{
 		Capabilities: csiCaps,
 	}, nil
-}
-
-func (s controllerService) CreateSnapshot(context.Context, *csi.CreateSnapshotRequest) (*csi.CreateSnapshotResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "CreateSnapshot not implemented")
-}
-
-func (s controllerService) DeleteSnapshot(context.Context, *csi.DeleteSnapshotRequest) (*csi.DeleteSnapshotResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "DeleteSnapshot not implemented")
-}
-
-func (s controllerService) ListSnapshots(context.Context, *csi.ListSnapshotsRequest) (*csi.ListSnapshotsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "ListSnapshots not implemented")
 }
 
 func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
