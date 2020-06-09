@@ -296,7 +296,7 @@ metadata:
   namespace: topolvm-system
 data:
   scheduler.yaml: |
-    default-divisor: 10
+    default-divisor: 1
     divisors:
       ssd: 5
       hdd: 10
