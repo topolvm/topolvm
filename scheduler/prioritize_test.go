@@ -64,7 +64,7 @@ func TestScoreNodes(t *testing.T) {
 	expected := []HostPriority{
 		{
 			Host:  "10.1.1.1",
-			Score: 4,
+			Score: 3,
 		},
 		{
 			Host:  "10.1.1.2",

@@ -44,7 +44,7 @@ func scoreNodes(pod *corev1.Pod, nodes []corev1.Node, defaultDivisor float64, di
 	}
 
 	for i, item := range nodes {
-		minScore := 10
+		minScore := math.MaxInt32
 		for _, dc := range dcs {
 			if val, ok := item.Annotations[topolvm.CapacityKeyPrefix+dc]; ok {
 				capacity, _ := strconv.ParseUint(val, 10, 64)
@@ -59,6 +59,9 @@ func scoreNodes(pod *corev1.Pod, nodes []corev1.Node, defaultDivisor float64, di
 					minScore = score
 				}
 			}
+		}
+		if minScore == math.MaxInt32 {
+			minScore = 0
 		}
 		result[i] = HostPriority{Host: item.Name, Score: minScore}
 	}
