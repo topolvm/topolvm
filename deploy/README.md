@@ -267,6 +267,21 @@ scheduler:
 
 Otherwise, consult the manual of your Kubernetes cluster distribution.
 
+Adjust CSIDriver config for Kubernetes 1.15 and earlier
+----------------------
+
+If you are running Kubernetes 1.15 or prior, modify the `CSIDriver` as follows
+to account for features not supported on earlier versions:
+
+```yaml
+apiVersion: storage.k8s.io/v1beta1
+kind: CSIDriver
+metadata:
+  name: topolvm.cybozu.com
+spec:
+  attachRequired: true
+```
+
 Prepare StorageClasses
 ----------------------
 
