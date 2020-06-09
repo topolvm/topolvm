@@ -47,10 +47,11 @@ func NewNodeService(nodeName string, conn *grpc.ClientConn, service *k8s.Logical
 type nodeService struct {
 	*csi.UnimplementedNodeServer
 
-	nodeName  string
-	client    proto.VGServiceClient
-	lvService proto.LVServiceClient
-	mu        sync.Mutex
+	nodeName     string
+	client       proto.VGServiceClient
+	lvService    proto.LVServiceClient
+	k8sLVService *k8s.LogicalVolumeService
+	mu           sync.Mutex
 }
 
 func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
