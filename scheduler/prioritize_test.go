@@ -39,9 +39,9 @@ func TestScoreNodes(t *testing.T) {
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
-				topolvm.CapacityKeyPrefix + "myvg1": "64",
-				topolvm.CapacityKeyPrefix + "myvg2": "64",
-				topolvm.CapacityKeyPrefix + "myvg3": "64",
+				topolvm.CapacityKeyPrefix + "ssd":  "64",
+				topolvm.CapacityKeyPrefix + "hdd1": "64",
+				topolvm.CapacityKeyPrefix + "hdd2": "64",
 			},
 		},
 	}
@@ -56,7 +56,7 @@ func TestScoreNodes(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "10.1.1.3",
 				Annotations: map[string]string{
-					topolvm.CapacityKeyPrefix + "myvg1": "foo",
+					topolvm.CapacityKeyPrefix + "ssd": "foo",
 				},
 			},
 		},
@@ -78,8 +78,8 @@ func TestScoreNodes(t *testing.T) {
 
 	defaultDivisor := 2.0
 	divisors := map[string]float64{
-		"myvg1": 4,
-		"myvg2": 10,
+		"ssd":  4,
+		"hdd1": 10,
 	}
 	result := scoreNodes(pod, input, defaultDivisor, divisors)
 	if !reflect.DeepEqual(result, expected) {

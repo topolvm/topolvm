@@ -86,7 +86,7 @@ kind: LogicalVolume
 metadata:
   name: csi-node-test-fs
 spec:
-  deviceClass: myvg1
+  deviceClass: ssd
   name: csi-node-test-fs
   nodeName: topolvm-e2e-worker
   size: 1Gi
@@ -186,7 +186,7 @@ kind: LogicalVolume
 metadata:
   name: csi-node-test-block
 spec:
-  deviceClass: myvg1
+  deviceClass: ssd
   name: csi-node-test-block
   nodeName: topolvm-e2e-worker
   size: 1Gi

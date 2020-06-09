@@ -349,7 +349,7 @@ You have to prepare a configuration file as follows:
 
 ```yaml
 device-classes:
-  - name: myvg1
+  - name: ssd
     volume-group: myvg1
     default: true
     spare-gb: 10

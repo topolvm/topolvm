@@ -84,7 +84,7 @@ func testNode() {
 				vgName,
 			)
 			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", targetBytes, stderr)
-			val, ok := node.Annotations[topolvm.CapacityKeyPrefix+"myvg1"]
+			val, ok := node.Annotations[topolvm.CapacityKeyPrefix+"ssd"]
 			Expect(ok).To(Equal(true), "capacity is not annotated: "+node.Name)
 			Expect(val).To(Equal(strings.TrimSpace(string(targetBytes))), "unexpected capacity: "+node.Name)
 		}

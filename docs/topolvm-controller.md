@@ -92,7 +92,7 @@ and `topolvm.cybozu.com/capacity` to the first container as follows:
 ```yaml
 metadata:
   annotations:
-    capacity.topolvm.cybozu.com/myvg1: "1073741824"
+    capacity.topolvm.cybozu.com/ssd: "1073741824"
 spec:
   containers:
   - name: testhttpd
@@ -131,7 +131,7 @@ The hook inserts `capacity.topolvm.cybozu.com/<volume group name>` to the annota
 ```yaml
 metadata:
   annotations:
-    capacity.topolvm.cybozu.com/myvg1: "1073741824"
+    capacity.topolvm.cybozu.com/ssd: "1073741824"
 spec:
   containers:
   - name: ubuntu

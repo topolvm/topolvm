@@ -27,7 +27,7 @@ metadata:
 provisioner: topolvm.cybozu.com
 parameters:
   "csi.storage.k8s.io/fstype": "xfs"
-  "topolvm.cybozu.com/device-class": "myvg1"
+  "topolvm.cybozu.com/device-class": "ssd"
 volumeBindingMode: WaitForFirstConsumer
 allowVolumeExpansion: true
 ```

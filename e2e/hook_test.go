@@ -138,7 +138,7 @@ spec:
 				return errors.New("resources.Requests is not mutated")
 			}
 
-			capacity, ok := pod.Annotations[topolvm.CapacityKeyPrefix+"myvg1"]
+			capacity, ok := pod.Annotations[topolvm.CapacityKeyPrefix+"ssd"]
 			if !ok {
 				return errors.New("not annotated")
 			}

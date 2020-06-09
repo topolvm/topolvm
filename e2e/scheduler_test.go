@@ -56,7 +56,7 @@ metadata:
   labels:
     app.kubernetes.io/name: testhttpd
   annotations:
-    capacity.topolvm.cybozu.com/myvg1: "1073741824"
+    capacity.topolvm.cybozu.com/ssd: "1073741824"
 spec:
   containers:
   - name: ubuntu
@@ -105,7 +105,7 @@ metadata:
   labels:
     app.kubernetes.io/name: testhttpd
   annotations:
-    capacity.topolvm.cybozu.com/myvg1: "21474836480"
+    capacity.topolvm.cybozu.com/ssd: "21474836480"
 spec:
   containers:
   - name: ubuntu

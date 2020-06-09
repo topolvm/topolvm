@@ -32,12 +32,12 @@ It can be built from source code by `GO111MODULE=on go build ./pkg/lvmd`.
 
 To setup `lvmd`:
 
-1. Prepare an LVM volume group.  A non-empty volume group can be used.
-2. Edit [lvmd.yaml](./lvmd-config/lvmd.yaml) if the volume group name is not `myvg1` or you want to use multiple volume groups.
+1. Prepare LVM volume groups.  A non-empty volume group can be used because LV names wouldn't conflict.
+2. Edit [lvmd.yaml](./lvmd-config/lvmd.yaml) if you want to specify the device class settings to use multiple volume groups. See [lvmd.md](../docs/lvmd.md) for details.
 
     ```yaml
     device-classes:
-      - name: myvg1
+      - name: ssd
         volume-group: myvg1
         default: true
         spare-gb: 10
