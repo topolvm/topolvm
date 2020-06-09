@@ -158,8 +158,8 @@ of ext4 will be used.
 
 Supported filesystems are: `ext4`, `xfs`, and `btrfs`.
 
-It is not possible to specify a device class in an inline ephemeral volume.
-Inline ephemeral volumes are always created on default device class.
+It is not possible to specify a device class for an inline ephemeral volume.
+Inline ephemeral volumes are always created on the default device class.
 
 Limitations
 -----------
