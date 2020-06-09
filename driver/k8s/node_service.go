@@ -35,6 +35,9 @@ func (s NodeService) getNodes(ctx context.Context) (*corev1.NodeList, error) {
 }
 
 func (s NodeService) extractCapacityFromAnnotation(node *corev1.Node, deviceClass string) (int64, error) {
+	if deviceClass == topolvm.DefaultDeviceClassName {
+		deviceClass = topolvm.DefaultDeviceClassAnnotationName
+	}
 	c, ok := node.Annotations[topolvm.CapacityKeyPrefix+deviceClass]
 	if !ok {
 		return 0, fmt.Errorf("%s is not found", topolvm.CapacityKeyPrefix+deviceClass)
