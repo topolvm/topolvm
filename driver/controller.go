@@ -31,7 +31,7 @@ type controllerService struct {
 func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	capabilities := req.GetVolumeCapabilities()
 	source := req.GetVolumeContentSource()
-	deviceClass := req.Parameters[topolvm.DeviceClassKey]
+	deviceClass := req.GetParameters()[topolvm.DeviceClassKey]
 
 	ctrlLogger.Info("CreateVolume called",
 		"name", req.GetName(),

@@ -77,11 +77,7 @@ func (m podMutator) Handle(ctx context.Context, req admission.Request) admission
 	}
 
 	if ephemeralCapacity != 0 {
-		if v, ok := pvcCapacities[topolvm.DefaultDeviceClassAnnotationName]; ok {
-			pvcCapacities[topolvm.DefaultDeviceClassAnnotationName] = v + ephemeralCapacity
-		} else {
-			pvcCapacities[topolvm.DefaultDeviceClassAnnotationName] = ephemeralCapacity
-		}
+		pvcCapacities[topolvm.DefaultDeviceClassAnnotationName] += ephemeralCapacity
 	}
 
 	if len(pvcCapacities) == 0 {
@@ -100,8 +96,8 @@ func (m podMutator) Handle(ctx context.Context, req admission.Request) admission
 	ctnr.Resources.Limits[topolvm.CapacityResource] = *quantity
 
 	pod.Annotations = make(map[string]string)
-	for vg, capacity := range pvcCapacities {
-		pod.Annotations[topolvm.CapacityKeyPrefix+vg] = strconv.FormatInt(capacity, 10)
+	for dc, capacity := range pvcCapacities {
+		pod.Annotations[topolvm.CapacityKeyPrefix+dc] = strconv.FormatInt(capacity, 10)
 	}
 
 	marshaledPod, err := json.Marshal(pod)

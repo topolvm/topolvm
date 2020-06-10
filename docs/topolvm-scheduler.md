@@ -51,7 +51,7 @@ This verb scores nodes.  The score of a node is calculated by this formula:
 
     min(10, max(0, log2(capacity >> 30 / divisor)))
 
-`divisor` can be changed with a configuration file.
+`divisor` can be given through the configuration file.
 
 Command-line flags
 ------------------
