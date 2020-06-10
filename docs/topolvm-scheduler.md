@@ -56,10 +56,10 @@ This verb scores nodes.  The score of a node is calculated by this formula:
 Command-line flags
 ------------------
 
-| Name      | Type    | Default                       | Description            |
-| --------- | ------- | ----------------------------: | ---------------------- |
-| `listen`  | string  | `:8000`                       | HTTP listening address |
-| `config`  | string  | `/etc/topolvm/scheduler.yaml` | Config file path       |
+| Name      | Type    | Default | Description            |
+| --------- | ------- | ------- | ---------------------- |
+| `listen`  | string  | `:8000` | HTTP listening address |
+| `config`  | string  | ``      | Config file path       |
 
 Config file format
 ------------------

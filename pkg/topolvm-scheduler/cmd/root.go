@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path/filepath"
 
 	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/scheduler"
@@ -15,6 +14,8 @@ import (
 )
 
 var cfgFilePath string
+
+const defaultDivisor = 1
 
 // Config represents configuration parameters for topolvm-scheduler
 type Config struct {
@@ -60,13 +61,17 @@ func subMain() error {
 		return err
 	}
 
-	b, err := ioutil.ReadFile(cfgFilePath)
-	if err != nil {
-		return err
-	}
-	err = yaml.Unmarshal(b, &config)
-	if err != nil {
-		return err
+	if len(cfgFilePath) != 0 {
+		b, err := ioutil.ReadFile(cfgFilePath)
+		if err != nil {
+			return err
+		}
+		err = yaml.Unmarshal(b, &config)
+		if err != nil {
+			return err
+		}
+	} else {
+		config.DefaultDivisor = defaultDivisor
 	}
 
 	h, err := scheduler.NewHandler(config.DefaultDivisor, config.Divisors)
@@ -105,5 +110,5 @@ func Execute() {
 
 func init() {
 	rootCmd.Flags().StringVar(&config.ListenAddr, "listen", ":8000", "listen address")
-	rootCmd.PersistentFlags().StringVar(&cfgFilePath, "config", filepath.Join("etc", "topolvm-scheduler", "config.yml"), "config file")
+	rootCmd.PersistentFlags().StringVar(&cfgFilePath, "config", "", "config file")
 }
