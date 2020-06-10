@@ -77,6 +77,9 @@ func (m podMutator) Handle(ctx context.Context, req admission.Request) admission
 	}
 
 	if ephemeralCapacity != 0 {
+		if pvcCapacities == nil {
+			pvcCapacities = make(map[string]int64)
+		}
 		pvcCapacities[topolvm.DefaultDeviceClassAnnotationName] += ephemeralCapacity
 	}
 
@@ -95,7 +98,6 @@ func (m podMutator) Handle(ctx context.Context, req admission.Request) admission
 	}
 	ctnr.Resources.Limits[topolvm.CapacityResource] = *quantity
 
-	pod.Annotations = make(map[string]string)
 	for dc, capacity := range pvcCapacities {
 		pod.Annotations[topolvm.CapacityKeyPrefix+dc] = strconv.FormatInt(capacity, 10)
 	}
@@ -168,7 +170,7 @@ func (m podMutator) requestedPVCCapacity(ctx context.Context, pod *corev1.Pod, t
 		// If the Pod has a bound PVC of TopoLVM, the pod will be scheduled
 		// to the node of the existing PV.
 		if pvc.Status.Phase != corev1.ClaimPending {
-			return make(map[string]int64), nil
+			return nil, nil
 		}
 
 		var requested int64 = topolvm.DefaultSize
@@ -177,17 +179,17 @@ func (m podMutator) requestedPVCCapacity(ctx context.Context, pod *corev1.Pod, t
 				requested = ((req.Value()-1)>>30 + 1) << 30
 			}
 		}
-		vgName, ok := sc.Parameters[topolvm.DeviceClassKey]
+		dc, ok := sc.Parameters[topolvm.DeviceClassKey]
 		if !ok {
-			vgName = topolvm.DefaultDeviceClassAnnotationName
+			dc = topolvm.DefaultDeviceClassAnnotationName
 		}
 
-		total, ok := capacities[vgName]
+		total, ok := capacities[dc]
 		if !ok {
 			total = 0
 		}
 		total += requested
-		capacities[vgName] = total
+		capacities[dc] = total
 	}
 	return capacities, nil
 }
@@ -200,7 +202,6 @@ func (m podMutator) requestedEphemeralCapacity(pod *corev1.Pod) (int64, error) {
 			continue
 		}
 		if vol.CSI.Driver == topolvm.PluginName {
-			var size int64
 			if volSizeStr, ok := vol.CSI.VolumeAttributes[topolvm.EphemeralVolumeSizeKey]; ok {
 				volSize, err := strconv.ParseInt(volSizeStr, 10, 64)
 				if err != nil {
@@ -209,11 +210,10 @@ func (m podMutator) requestedEphemeralCapacity(pod *corev1.Pod) (int64, error) {
 					)
 					return 0, err
 				}
-				size = volSize << 30
+				total += volSize << 30
 			} else {
-				size = topolvm.DefaultSize
+				total += topolvm.DefaultSize
 			}
-			total += size
 		}
 	}
 	return total, nil

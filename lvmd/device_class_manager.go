@@ -12,8 +12,9 @@ var ErrNotFound = errors.New("device-class not found")
 
 const defaultSpareGB = 10
 
+// This regexp is based on the following validation:
+//   https://github.com/kubernetes/apimachinery/blob/v0.18.3/pkg/util/validation/validation.go#L42
 var qualifiedNameRegexp = regexp.MustCompile("^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$")
-var lvmNameRegexp = regexp.MustCompile("^([A-Za-z0-9_.][-A-Za-z0-9_.]*)?$")
 
 // DeviceClass maps between device-classes and volume groups.
 type DeviceClass struct {
@@ -54,9 +55,6 @@ func ValidateDeviceClasses(deviceClasses []*DeviceClass) error {
 			return errors.New("volume group name should not be empty")
 		} else if len(dc.VolumeGroup) > 126 {
 			return errors.New("volume group name is too long")
-		}
-		if !lvmNameRegexp.MatchString(dc.VolumeGroup) {
-			return errors.New("volume group name should consist of alphanumeric characters, '-', '_' or '.', and should not start with '-'")
 		}
 		if dc.Default {
 			countDefault++
