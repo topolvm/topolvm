@@ -23,7 +23,7 @@ Webhooks
 
 ### `/pod/mutate`
 
-Mutate new Pods to add `apacity.topolvm.cybozu.com/<device-class>` annotations to the pod
+Mutate new Pods to add `capacity.topolvm.cybozu.com/<device-class>` annotations to the pod
 and `topolvm.cybozu.com/capacity` resource request to its first container.
 These annotations and the resource request will be used by
 [`topolvm-scheduler`](./topolvm-scheduler.md) to filter and score Nodes.
