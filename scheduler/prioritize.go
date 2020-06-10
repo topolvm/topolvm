@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/cybozu-go/topolvm"
 	corev1 "k8s.io/api/core/v1"
@@ -31,8 +32,6 @@ func capacityToScore(capacity uint64, divisor float64) int {
 }
 
 func scoreNodes(pod *corev1.Pod, nodes []corev1.Node, defaultDivisor float64, divisors map[string]float64) []HostPriority {
-	result := make([]HostPriority, len(nodes))
-
 	var dcs []string
 	for k := range pod.Annotations {
 		if strings.HasPrefix(k, topolvm.CapacityKeyPrefix) {
@@ -43,30 +42,47 @@ func scoreNodes(pod *corev1.Pod, nodes []corev1.Node, defaultDivisor float64, di
 		return nil
 	}
 
-	for i, item := range nodes {
-		minScore := math.MaxInt32
-		for _, dc := range dcs {
-			if val, ok := item.Annotations[topolvm.CapacityKeyPrefix+dc]; ok {
-				capacity, _ := strconv.ParseUint(val, 10, 64)
-				var divisor float64
-				if v, ok := divisors[dc]; ok {
-					divisor = v
-				} else {
-					divisor = defaultDivisor
-				}
-				score := capacityToScore(capacity, divisor)
-				if score < minScore {
-					minScore = score
-				}
-			}
-		}
-		if minScore == math.MaxInt32 {
-			minScore = 0
-		}
-		result[i] = HostPriority{Host: item.Name, Score: minScore}
+	result := make([]HostPriority, len(nodes))
+	wg := &sync.WaitGroup{}
+	wg.Add(len(nodes))
+	for i := range nodes {
+		r := &result[i]
+		item := nodes[i]
+		go func() {
+			score := scoreNode(item, dcs, defaultDivisor, divisors)
+			*r = HostPriority{Host: item.Name, Score: score}
+			wg.Done()
+		}()
 	}
+	wg.Wait()
 
 	return result
+}
+
+func scoreNode(item corev1.Node, deviceClasses []string, defaultDivisor float64, divisors map[string]float64) int {
+	minScore := math.MaxInt32
+	for _, dc := range deviceClasses {
+		if val, ok := item.Annotations[topolvm.CapacityKeyPrefix+dc]; ok {
+			capacity, _ := strconv.ParseUint(val, 10, 64)
+			if _, ok := divisors[dc]; !ok {
+				continue
+			}
+			var divisor float64
+			if v, ok := divisors[dc]; ok {
+				divisor = v
+			} else {
+				divisor = defaultDivisor
+			}
+			score := capacityToScore(capacity, divisor)
+			if score < minScore {
+				minScore = score
+			}
+		}
+	}
+	if minScore == math.MaxInt32 {
+		minScore = 0
+	}
+	return minScore
 }
 
 func (s scheduler) prioritize(w http.ResponseWriter, r *http.Request) {

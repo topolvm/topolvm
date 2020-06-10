@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/cybozu-go/topolvm"
 	corev1 "k8s.io/api/core/v1"
@@ -17,33 +18,47 @@ func filterNodes(nodes corev1.NodeList, requested map[string]int64) ExtenderFilt
 		}
 	}
 
-	filtered := corev1.NodeList{}
-	failed := FailedNodesMap{}
-
-NODE_LOOP:
-	for _, node := range nodes.Items {
-		for dc, required := range requested {
-			val, ok := node.Annotations[topolvm.CapacityKeyPrefix+dc]
-			if !ok {
-				failed[node.Name] = "no capacity annotation"
-				continue NODE_LOOP
-			}
-			capacity, err := strconv.ParseUint(val, 10, 64)
-			if err != nil {
-				failed[node.Name] = "bad capacity annotation: " + val
-				continue NODE_LOOP
-			}
-			if capacity < uint64(required) {
-				failed[node.Name] = "out of VG free space"
-				continue NODE_LOOP
-			}
+	failedNodes := make([]string, len(nodes.Items))
+	wg := &sync.WaitGroup{}
+	wg.Add(len(nodes.Items))
+	for i := range nodes.Items {
+		reason := &failedNodes[i]
+		node := nodes.Items[i]
+		go func() {
+			*reason = filterNode(node, requested)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	result := ExtenderFilterResult{
+		Nodes:       &corev1.NodeList{},
+		FailedNodes: FailedNodesMap{},
+	}
+	for i, reason := range failedNodes {
+		if len(reason) == 0 {
+			result.Nodes.Items = append(result.Nodes.Items, nodes.Items[i])
+		} else {
+			result.FailedNodes[nodes.Items[i].Name] = reason
 		}
-		filtered.Items = append(filtered.Items, node)
 	}
-	return ExtenderFilterResult{
-		Nodes:       &filtered,
-		FailedNodes: failed,
+	return result
+}
+
+func filterNode(node corev1.Node, requested map[string]int64) string {
+	for dc, required := range requested {
+		val, ok := node.Annotations[topolvm.CapacityKeyPrefix+dc]
+		if !ok {
+			return "no capacity annotation"
+		}
+		capacity, err := strconv.ParseUint(val, 10, 64)
+		if err != nil {
+			return "bad capacity annotation: " + val
+		}
+		if capacity < uint64(required) {
+			return "out of VG free space"
+		}
 	}
+	return ""
 }
 
 func extractRequestedSize(pod *corev1.Pod) map[string]int64 {
