@@ -23,9 +23,9 @@ Webhooks
 
 ### `/pod/mutate`
 
-Mutate new Pods to add `capacity.topolvm.cybozu.com/<device class name>` annotation to the pod
+Mutate new Pods to add `apacity.topolvm.cybozu.com/<device-class>` annotations to the pod
 and `topolvm.cybozu.com/capacity` resource request to its first container.
-This annotation and resource request will be used by
+These annotations and the resource request will be used by
 [`topolvm-scheduler`](./topolvm-scheduler.md) to filter and score Nodes.
 
 This hook handles two classes of pods. First, pods having at least one _unbound_
@@ -51,6 +51,7 @@ metadata:
 provisioner: topolvm.cybozu.com            # topolvm-scheduler works only for StorageClass with this provisioner.
 parameters:
   "csi.storage.k8s.io/fstype": "xfs"
+  "topolvm.cybozu.com/device-class": "ssd"
 volumeBindingMode: WaitForFirstConsumer
 ---
 kind: PersistentVolumeClaim
@@ -86,7 +87,7 @@ spec:
       claimName: local-pvc1                # have the above PVC
 ```
 
-The hook inserts `capacity.topolvm.cybozu.com/<volume group name>` to the annotations
+The hook inserts `capacity.topolvm.cybozu.com/<device-class>` to the annotations
 and `topolvm.cybozu.com/capacity` to the first container as follows:
 
 ```yaml
@@ -102,6 +103,9 @@ spec:
       requests:
         topolvm.cybozu.com/capacity: "1"
 ```
+
+If the specified StorageClass does not have `topolvm.cybozu.com/device-class` parameter,
+it will be annotated with `capacity.topolvm.cybozu.com/00default`.
 
 Below is an example for TopoLVM inline ephemeral volumes:
 
@@ -125,13 +129,13 @@ spec:
       driver: topolvm.cybozu.com
 ```
 
-The hook inserts `capacity.topolvm.cybozu.com/<volume group name>` to the annotations and
+The hook inserts `capacity.topolvm.cybozu.com/00default` to the annotations and
 `topolvm.cybozu.com/capacity` to the ubuntu container as follows:
 
 ```yaml
 metadata:
   annotations:
-    capacity.topolvm.cybozu.com/ssd: "1073741824"
+    capacity.topolvm.cybozu.com/00default: "1073741824"
 spec:
   containers:
   - name: ubuntu
@@ -140,8 +144,8 @@ spec:
         topolvm.cybozu.com/capacity: "1"
 ```
 
-Inline ephemeral volume cannot specify arbitrarily volume group.
-The default volume group will be used.
+Inline ephemeral volume cannot specify arbitrarily device-class.
+Therefore, `00default` is annotated to indicate the default device-class.
 
 ### `/pvc/mutate`
 

@@ -14,9 +14,9 @@ Command-line options are:
 | Option         | Type   | Default value            | Description                                |
 | -------------- | ------ | ------------------------ | ------------------------------------------ |
 | `listen`       | string | `/run/topolvm/lvmd.sock` | unix domain socket endpoint of gRPC        |
-| `config`       | string | `/etc/topolvm/lvmd.yaml` | Config file path for device class settings |
+| `config`       | string | `/etc/topolvm/lvmd.yaml` | Config file path for device-class settings |
 
-The device class settings can be specified in YAML file:
+The device-class settings can be specified in YAML file:
 
 ```yaml
 device-classes:
@@ -31,10 +31,10 @@ device-classes:
 
 | Name           | Type   | Default | Description                                                    |
 | -------------- | ------ | ------- | -------------------------------------------------------------- |
-| `name`         | string | -       | The name of a device class.                                    |
-| `volume-group` | string | -       | The group where this device class creates the logical volumes. |
+| `name`         | string | -       | The name of a device-class.                                    |
+| `volume-group` | string | -       | The group where this device-class creates the logical volumes. |
 | `spare-gb`     | uint64 | `10`    | Storage capacity in GiB to be spared.                          |
-| `default`      | bool   | `false` | A flag to indicate that this device class is used by default.  |
+| `default`      | bool   | `false` | A flag to indicate that this device-class is used by default.  |
 
 
 Spare capacity

@@ -141,7 +141,7 @@ func TestDeviceClassManager(t *testing.T) {
 		t.Fatal("default not found")
 	}
 	if dc.Name != "ssd" {
-		t.Fatal("wrong device class found")
+		t.Fatal("wrong device-class found")
 	}
 	if dc.GetSpare() != defaultSpareGB<<30 {
 		t.Error("ssd's spare should be default")

@@ -36,8 +36,8 @@ allowVolumeExpansion: true
 
 `parameters` are optional.
 To specify a filesystem type, give `csi.storage.k8s.io/fstype` parameter.
-To specify a device class name to be used, give `topolvm.cybozu.com/device-class` parameter. 
-If no `topolvm.cybozu.com/device-class` is specified, the default device class is used.
+To specify a device-class name to be used, give `topolvm.cybozu.com/device-class` parameter. 
+If no `topolvm.cybozu.com/device-class` is specified, the default device-class is used.
 
 Supported filesystems are: `ext4`, `xfs`, and `btrfs`.
 TopoLVM sets the following mount options regardless of `mountOptions`.
@@ -158,8 +158,8 @@ of ext4 will be used.
 
 Supported filesystems are: `ext4`, `xfs`, and `btrfs`.
 
-It is not possible to specify a device class for an inline ephemeral volume.
-Inline ephemeral volumes are always created on the default device class.
+It is not possible to specify a device-class for an inline ephemeral volume.
+Inline ephemeral volumes are always created on the default device-class.
 
 Limitations
 -----------

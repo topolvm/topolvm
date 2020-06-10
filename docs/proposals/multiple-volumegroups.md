@@ -5,7 +5,7 @@
 - [Motivation](#motivation)
   - [Goals](#goals)
 - [Proposal](#proposal)
-  - [Option A) device class](#option-a-device-class)
+  - [Option A) device-class](#option-a-device-class)
   - [Option B) multiple provisioner](#option-b-multiple-provisioner)
   - [Decision Outcome](#decision-outcome)
 - [Design Details](#design-details)
@@ -13,7 +13,7 @@
   - [How to annotate resources](#how-to-annotate-resources)
   - [Setting of divisors](#setting-of-divisors)
   - [Ephemeral Inline Volume](#ephemeral-inline-volume)
-  - [Device class setting](#device-class-setting)
+  - [Device-class setting](#device-class-setting)
   - [Upgrade / Downgrade Strategy](#upgrade--downgrade-strategy)
 <!-- /toc -->
 
@@ -28,8 +28,8 @@ users may want to prepare and use volume groups for each storage type.
 
 ### Goals
 
-- Introduce a new concept called device classes to indicate a target volume group.
-- Allow users to specify a device class in StorageClass.
+- Introduce a new concept called device-classes to indicate a target volume group.
+- Allow users to specify a device-class in StorageClass.
 - Create logical volumes on the target volume groups.
 - Schedule pods respecting the free storage space of the target volume group.
 - Ephemeral inline volumes are created on the default volume group.
@@ -37,9 +37,9 @@ users may want to prepare and use volume groups for each storage type.
 
 ## Proposal
 
-### Option A) device class
+### Option A) device-class
 
-This proposal make it possible to specify a name of device class
+This proposal make it possible to specify a name of device-class
 as a parameter of a StorageClass as follows:
 
 ```yaml
@@ -64,18 +64,18 @@ parameters:
 volumeBindingMode: WaitForFirstConsumer
 ```
 
-The device class name is then passed to `lvmd`.
-`lvmd` has a mapping between device classes and LVM volume groups.
+The device-class name is then passed to `lvmd`.
+`lvmd` has a mapping between device-classes and LVM volume groups.
 It can, therefore, create a logical volume in multiple volume groups.
 
-If no device class is given, `lvmd` will use the default volume group.
+If no device-class is given, `lvmd` will use the default volume group.
 Therefore, it is possible to keep compatibility without changing existing storageClasses when upgrading.
 
 Pros:
 - It requires to launch only one TopoLVM to support multiple volume groups.
 
 Cons:
-- Users need to prepare device class setting for `lvmd`.
+- Users need to prepare device-class setting for `lvmd`.
 
 ### Option B) multiple provisioner
 
@@ -115,14 +115,14 @@ Cons:
 
 ### Decision Outcome
 
-Choose options: [A) device class](#option-a-device-class),
+Choose options: [A) device-class](#option-a-device-class),
 because option B) is complicated to launch multiple TopoLVM for users.
 
 ## Design Details
 
 ### How to expose free storage capacity of nodes
 
-Currently `topolvm-node` exposes free storage capacity as `capacity.topolvm.cybozu.com/<deviec calss>` annotation of each Node as follows:
+Currently `topolvm-node` exposes free storage capacity as `capacity.topolvm.cybozu.com/<deviec-calss>` annotation of each Node as follows:
 
 ```yaml
 kind: Node
@@ -132,7 +132,7 @@ metadata:
     capacity.topolvm.cybozu.com/ssd: "1073741824"
 ```
 
-This proposal will change annotation to `capacity.topolvm.cybozu.com/<device class>` as follows 
+This proposal will change annotation to `capacity.topolvm.cybozu.com/<device-class>` as follows 
 to expose the capacity of each node:
 
 ```yaml
@@ -145,7 +145,7 @@ metadata:
     capacity.topolvm.cybozu.com/hdd: "1099511627776"
 ```
 
-The default device class is annotated without the part of the name, like `capacity.topolvm.cybozu.com`.
+The default device-class is annotated without the part of the name, like `capacity.topolvm.cybozu.com`.
 
 ### How to annotate resources
 
@@ -185,7 +185,7 @@ There are two possible designs to manage capacities of multiple volume groups as
 
 #### A-1) insert multiple resources
 
-This proposal would insert `capacity.topolvm.cybozu.com/<device class>` as follows:
+This proposal would insert `capacity.topolvm.cybozu.com/<device-class>` as follows:
 
 ```yaml
 spec:
@@ -232,19 +232,19 @@ Then users should modify the scheduler policy as follows:
 }
 ```
 
-Users will need to add a extender setting for each device class.
-In order for the scheduler to know the device class name, users need to pass the device class name in verb.
-Then, users can specify weight parameter for each device class.
+Users will need to add a extender setting for each device-class.
+In order for the scheduler to know the device-class name, users need to pass the device-class name in verb.
+Then, users can specify weight parameter for each device-class.
 
 Pros:
-- The weight of extender can be adjusted for each device class.
+- The weight of extender can be adjusted for each device-class.
 
 Cons:
 - The settings of scheduler policy are complicated and must be rewritten according to your environment.
 
 #### A-2) insert multiple annotations
 
-This proposal would insert `topolvm.cybozu.com/capacity` to resources and `capacity.topolvm.cybozu.com/<device class>` annotation as follows:
+This proposal would insert `topolvm.cybozu.com/capacity` to resources and `capacity.topolvm.cybozu.com/<device-class>` annotation as follows:
 
 ```yaml
 metadata:
@@ -284,9 +284,10 @@ Currently, topolvm-scheduler calculates the score of a node by this formula:
 
     min(10, max(0, log2(capacity >> 30 / divisor)))
 
-This proposal would calculate the score of each device class by the above formula.
+This proposal would calculate the score of each device-class by the above formula.
+Then the smallest value of them will be used as the final score.
 
-Users can specify dedicated `divisor` parameter for each device class as follows:
+Users can specify dedicated `divisor` parameter for each device-class as follows:
  
 ```yaml
 apiVersion: v1
@@ -308,11 +309,11 @@ Ephemeral Inline Volumes are not related to StorageClass.
 
 `topolvm-node` make `lvmd` create logical volumes for ephemeral inline volumes on the default volume group.
 
-### Device class setting
+### Device-class setting
 
-This proposal makes use of the concept of device class to hide volume group names that are node-local.
+This proposal makes use of the concept of device-class to hide volume group names that are node-local.
 
-Therefore, `lvmd` should have a device class setting as follows:
+Therefore, `lvmd` should have a device-class setting as follows:
 
 ```yaml
 device-classes:
@@ -325,19 +326,19 @@ device-classes:
     spare-gb: 10
 ```
 
-If the name of device class in StorageClass Resources is empty,
-`lvmd` will use the default device class.
-`lvmd` always uses the default device class for ephemeral inline volumes.
+If StorageClass has no `topolvm.cybozu.com/device-class` parameter,
+`lvmd` will use the default device-class.
+`lvmd` always uses the default device-class for ephemeral inline volumes.
 
 ### Upgrade / Downgrade Strategy
 
 Perform the following steps to upgrade:
 
 1. Add `ConfigMap` resource for setting of divisors. (see [Setting of divisors](#setting-of-divisors))
-1. Prepare a configuration file for `lvmd`. (see [Device class setting](#device-class-setting))
+1. Prepare a configuration file for `lvmd`. (see [Device-class setting](#device-class-setting))
 1. Replace `lvmd` binary and restart `lvmd.service`.
 1. Update container images for TopoLVM.
-1. Add the name of device class to StorageClass resources. (optional)
+1. Add the name of device-class to StorageClass resources. (optional)
 
 If you've run `lvmd` in the previous version as follows:
 

@@ -14,7 +14,7 @@ const PluginName = "topolvm.cybozu.com"
 // TopologyNodeKey is the key of topology that represents node name.
 const TopologyNodeKey = "topology.topolvm.cybozu.com/node"
 
-// DeviceClassKey is the key used in CSI volume create requests to specify a device class.
+// DeviceClassKey is the key used in CSI volume create requests to specify a device-class.
 const DeviceClassKey = "topolvm.cybozu.com/device-class"
 
 // ResizeRequestedAtKey is the key of LogicalVolume that represents the timestamp of the resize request.
@@ -39,10 +39,10 @@ const DefaultLVMdSocket = "/run/topolvm/lvmd.sock"
 // from the volume context
 const EphemeralVolumeSizeKey = "topolvm.cybozu.com/size"
 
-// DefaultDeviceClassAnnotationName is the part of annotation name for the default device class.
+// DefaultDeviceClassAnnotationName is the part of annotation name for the default device-class.
 const DefaultDeviceClassAnnotationName = "00default"
 
-// DefaultDeviceClassName is the name for the default device class.
+// DefaultDeviceClassName is the name for the default device-class.
 const DefaultDeviceClassName = ""
 
 // DefaultSizeGb is the default size in GiB for  volumes (PVC or inline ephemeral volumes) w/o capacity requests.

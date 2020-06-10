@@ -42,7 +42,7 @@ The extender provides two verbs:
 
 This verb filters out nodes whose volume groups have not enough free space.
 
-Volume group capacity is identified from the value of `capacity.topolvm.cybozu.com/<device class name>`
+Volume group capacity is identified from the value of `capacity.topolvm.cybozu.com/<device-class>`
 annotation.
 
 ### `prioritize`
@@ -76,5 +76,5 @@ divisors:
 | Name              | Type                 | Default | Description                                       |
 | ----------------- | -------------------- | ------- | ------------------------------------------------- |
 | `default-divisor` | float64              | `1`     | A default value of the variable for node scoring. |
-| `divisors`        | `map[string]float64` | `{}`    | A variable for node scoring per device class.     |
+| `divisors`        | `map[string]float64` | `{}`    | A variable for node scoring per device-class.     |
 

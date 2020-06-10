@@ -27,7 +27,7 @@ func testMultipleVolumeGroups() {
 		}
 	})
 
-	It("should use specified device class", func() {
+	It("should use specified device-class", func() {
 		By("deploying Pod with PVC")
 		podYAML := `apiVersion: v1
 kind: Pod
@@ -86,7 +86,7 @@ spec:
 		Expect("node3-myvg3").Should(Equal(lv.vgName))
 	})
 
-	It("should not schedule pod because there are no nodes that have specified device classes", func() {
+	It("should not schedule pod because there are no nodes that have specified device-classes", func() {
 		By("deploying Pod with PVC")
 		podYAML := `apiVersion: v1
 kind: Pod

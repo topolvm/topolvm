@@ -21,7 +21,7 @@ LogicalVolumeSpec
 | `name`        | string       | Suggested name of the logical volume.                          |
 | `nodeName`    | string       | Name of the node where the logical volume should be created.   |
 | `size`        | [Quantity][] | Amount of local storage required for the logical volume.       |
-| `deviceClass` | string       | Name of the device class that the logical volume belongs with. |
+| `deviceClass` | string       | Name of the device-class that the logical volume belongs with. |
 
 LogicalVolumeStatus
 -------------------

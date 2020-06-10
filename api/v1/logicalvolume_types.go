@@ -16,7 +16,7 @@ type LogicalVolumeSpec struct {
 	Name        string            `json:"name"`
 	NodeName    string            `json:"nodeName"`
 	Size        resource.Quantity `json:"size"`
-	DeviceClass string            `json:"deviceClass"`
+	DeviceClass string            `json:"deviceClass,omitempty"`
 }
 
 // LogicalVolumeStatus defines the observed state of LogicalVolume

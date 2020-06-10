@@ -11,7 +11,7 @@ import (
 )
 
 func filterNodes(nodes corev1.NodeList, requested map[string]int64) ExtenderFilterResult {
-	if len(requested) <= 0 {
+	if len(requested) == 0 {
 		return ExtenderFilterResult{
 			Nodes: &nodes,
 		}
