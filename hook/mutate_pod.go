@@ -98,6 +98,9 @@ func (m podMutator) Handle(ctx context.Context, req admission.Request) admission
 	}
 	ctnr.Resources.Limits[topolvm.CapacityResource] = *quantity
 
+	if pod.Annotations == nil {
+		pod.Annotations = make(map[string]string)
+	}
 	for dc, capacity := range pvcCapacities {
 		pod.Annotations[topolvm.CapacityKeyPrefix+dc] = strconv.FormatInt(capacity, 10)
 	}

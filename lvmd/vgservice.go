@@ -102,6 +102,8 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 		}
 		dc, err := s.dcManager.FindDeviceClassByVGName(vg.Name())
 		if err != nil {
+			return err
+		} else if err != ErrNotFound {
 			continue
 		}
 		if dc.Default {

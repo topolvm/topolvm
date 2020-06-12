@@ -19,11 +19,11 @@ const defaultDivisor = 1
 
 // Config represents configuration parameters for topolvm-scheduler
 type Config struct {
-	// ListenAddr is listen address of topolvm-scheduler
+	// ListenAddr is listen address of topolvm-scheduler.
 	ListenAddr string `json:"listen"`
-	// Divisors are capacity divisor for each volume group
+	// Divisors is a mapping between device-class names and their divisors.
 	Divisors map[string]float64 `json:"divisors"`
-	// DefaultDivisor is the default value of divisor which is used if the value for the given volume group does not exist in `divisors`
+	// DefaultDivisor is the default divisor value.
 	DefaultDivisor float64 `json:"default-divisor"`
 }
 

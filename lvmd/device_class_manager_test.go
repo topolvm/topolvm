@@ -37,9 +37,13 @@ func TestValidateDeviceClasses(t *testing.T) {
 		{
 			deviceClasses: []*DeviceClass{
 				{
-					Name:        "hdd",
-					VolumeGroup: "-invalid-volume-group-name",
+					Name:        "duplicate-name",
+					VolumeGroup: "node1-myvg1",
 					Default:     true,
+				},
+				{
+					Name:        "duplicate-name",
+					VolumeGroup: "node1-myvg2",
 				},
 			},
 			valid: false,
@@ -136,7 +140,7 @@ func TestDeviceClassManager(t *testing.T) {
 		t.Error("'unknown' should not be found")
 	}
 
-	dc = manager.defaultDeviceClass()
+	dc = manager.defaultDeviceClass
 	if dc == nil {
 		t.Fatal("default not found")
 	}

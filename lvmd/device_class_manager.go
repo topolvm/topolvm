@@ -2,6 +2,7 @@ package lvmd
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 
 	"github.com/cybozu-go/topolvm"
@@ -42,23 +43,31 @@ func ValidateDeviceClasses(deviceClasses []*DeviceClass) error {
 		return errors.New("should have at least one device-class")
 	}
 	var countDefault = 0
+	dcNames := make(map[string]bool)
+	vgNames := make(map[string]bool)
 	for _, dc := range deviceClasses {
 		if len(dc.Name) == 0 {
 			return errors.New("device-class name should not be empty")
 		} else if len(dc.Name) > 63 {
-			return errors.New("device-class name is too long")
+			return fmt.Errorf("device-class name is too long: %s", dc.Name)
 		}
 		if !qualifiedNameRegexp.MatchString(dc.Name) {
-			return errors.New("device-class name should consist of alphanumeric characters, '-', '_' or '.', and should start and end with an alphanumeric character")
+			return fmt.Errorf("device-class name should consist of alphanumeric characters, '-', '_' or '.', and should start and end with an alphanumeric character: %s", dc.Name)
 		}
 		if len(dc.VolumeGroup) == 0 {
-			return errors.New("volume group name should not be empty")
-		} else if len(dc.VolumeGroup) > 126 {
-			return errors.New("volume group name is too long")
+			return fmt.Errorf("volume group name should not be empty: %s", dc.Name)
 		}
 		if dc.Default {
 			countDefault++
 		}
+		if dcNames[dc.Name] {
+			return fmt.Errorf("duplicate device-class name: %s", dc.Name)
+		}
+		if vgNames[dc.VolumeGroup] {
+			return fmt.Errorf("duplicate volume group name: %s, %s", dc.Name, dc.VolumeGroup)
+		}
+		dcNames[dc.Name] = true
+		vgNames[dc.VolumeGroup] = true
 	}
 	if countDefault != 1 {
 		return errors.New("should have only one default device-class")
@@ -68,44 +77,41 @@ func ValidateDeviceClasses(deviceClasses []*DeviceClass) error {
 
 // DeviceClassManager maps between device-classes and volume groups.
 type DeviceClassManager struct {
-	deviceClasses []*DeviceClass
+	defaultDeviceClass  *DeviceClass
+	deviceClassByName   map[string]*DeviceClass
+	deviceClassByVGName map[string]*DeviceClass
 }
 
 // NewDeviceClassManager creates a new DeviceClassManager
 func NewDeviceClassManager(deviceClasses []*DeviceClass) *DeviceClassManager {
-	return &DeviceClassManager{
-		deviceClasses: deviceClasses,
-	}
-}
-
-func (m DeviceClassManager) defaultDeviceClass() *DeviceClass {
-	for _, dc := range m.deviceClasses {
+	dcm := DeviceClassManager{}
+	dcm.deviceClassByName = make(map[string]*DeviceClass)
+	dcm.deviceClassByVGName = make(map[string]*DeviceClass)
+	for _, dc := range deviceClasses {
 		if dc.Default {
-			return dc
+			dcm.defaultDeviceClass = dc
 		}
+		dcm.deviceClassByName[dc.Name] = dc
+		dcm.deviceClassByVGName[dc.VolumeGroup] = dc
 	}
-	return nil
+	return &dcm
 }
 
 // DeviceClass returns the device-class by its name
 func (m DeviceClassManager) DeviceClass(dcName string) (*DeviceClass, error) {
 	if dcName == topolvm.DefaultDeviceClassName {
-		return m.defaultDeviceClass(), nil
+		return m.defaultDeviceClass, nil
 	}
-	for _, dc := range m.deviceClasses {
-		if dc.Name == dcName {
-			return dc, nil
-		}
+	if v, ok := m.deviceClassByName[dcName]; ok {
+		return v, nil
 	}
 	return nil, ErrNotFound
 }
 
 // FindDeviceClassByVGName returns the device-class with the volume group name
 func (m DeviceClassManager) FindDeviceClassByVGName(vgName string) (*DeviceClass, error) {
-	for _, dc := range m.deviceClasses {
-		if dc.VolumeGroup == vgName {
-			return dc, nil
-		}
+	if v, ok := m.deviceClassByVGName[vgName]; ok {
+		return v, nil
 	}
 	return nil, ErrNotFound
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/lvmd"
+	"github.com/cybozu-go/topolvm/lvmd/command"
 	"github.com/cybozu-go/topolvm/lvmd/proto"
 	"github.com/cybozu-go/well"
 	"github.com/spf13/cobra"
@@ -78,6 +79,12 @@ func subMain() error {
 	err = lvmd.ValidateDeviceClasses(config.DeviceClasses)
 	if err != nil {
 		return err
+	}
+	for _, dc := range config.DeviceClasses {
+		_, err := command.FindVolumeGroup(dc.VolumeGroup)
+		if err != nil {
+			return err
+		}
 	}
 
 	// UNIX domain socket file should be removed before listening.
