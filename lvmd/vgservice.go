@@ -100,10 +100,10 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 			return status.Error(codes.Internal, err.Error())
 		}
 		dc, err := s.dcManager.FindDeviceClassByVGName(vg.Name())
-		if err != nil {
-			return err
-		} else if err != ErrNotFound {
+		if err == ErrNotFound {
 			continue
+		} else if err != nil {
+			return err
 		}
 		if dc.Default {
 			res.FreeBytes = vgFree
