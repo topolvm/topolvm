@@ -48,7 +48,7 @@ func (s *mockWatchServer) RecvMsg(m interface{}) error {
 
 func testWatch(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	vgService, notifier := NewVGService(NewDeviceClassManager([]*DeviceClass{{Name: "ssd", VolumeGroup: "ssd"}}))
+	vgService, notifier := NewVGService(NewDeviceClassManager([]*DeviceClass{{Name: "ssd", VolumeGroup: "test_vgservice"}}))
 
 	ch1 := make(chan struct{})
 	server1 := &mockWatchServer{
