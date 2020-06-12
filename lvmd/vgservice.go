@@ -49,12 +49,11 @@ func (s *vgService) GetLVList(_ context.Context, req *proto.GetLVListRequest) (*
 	vols := make([]*proto.LogicalVolume, len(lvs))
 	for i, lv := range lvs {
 		vols[i] = &proto.LogicalVolume{
-			Name:        lv.Name(),
-			SizeGb:      (lv.Size() + (1 << 30) - 1) >> 30,
-			DevMajor:    lv.MajorNumber(),
-			DevMinor:    lv.MinorNumber(),
-			Tags:        lv.Tags(),
-			DeviceClass: req.DeviceClass,
+			Name:     lv.Name(),
+			SizeGb:   (lv.Size() + (1 << 30) - 1) >> 30,
+			DevMajor: lv.MajorNumber(),
+			DevMinor: lv.MinorNumber(),
+			Tags:     lv.Tags(),
 		}
 	}
 	return &proto.GetLVListResponse{Volumes: vols}, nil

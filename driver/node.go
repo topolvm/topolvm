@@ -144,7 +144,7 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 			// guarantee that NodePublishVolume will be called again, so if
 			// anything fails after the volume is created we need to attempt to
 			// clean up the LVM so we don't leak storage space.
-			if _, err = s.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: volumeID, DeviceClass: lv.DeviceClass}); err != nil {
+			if _, err = s.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: volumeID, DeviceClass: topolvm.DefaultDeviceClassName}); err != nil {
 				return nil, status.Errorf(codes.Internal, "failed to remove LV for %s: %v", volumeID, err)
 			}
 		}
@@ -309,7 +309,7 @@ func (s *nodeService) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 			return nil, err
 		}
 		if volume != nil && s.isEphemeralVolume(volume) {
-			if _, err = s.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: volID, DeviceClass: volume.DeviceClass}); err != nil {
+			if _, err = s.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: volID, DeviceClass: topolvm.DefaultDeviceClassName}); err != nil {
 				return nil, status.Errorf(codes.Internal, "failed to remove LV for %s: %v", volID, err)
 			}
 		}

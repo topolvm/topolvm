@@ -17,7 +17,6 @@ message LogicalVolume {
     uint32 dev_major = 3;     // Device major number.
     uint32 dev_minor = 4;     // Device minor number.
     repeated string tags = 5; // Tags to add to the volume during creation
-    string device_class = 6;
 }
 
 // Represents the input for CreateLV.

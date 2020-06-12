@@ -154,7 +154,6 @@ Represents a logical volume.
 | dev_major | [uint32](#uint32) |  | Device major number. |
 | dev_minor | [uint32](#uint32) |  | Device minor number. |
 | tags | [string](#string) | repeated | Tags to add to the volume during creation |
-| device_class | [string](#string) |  |  |
 
 
 
