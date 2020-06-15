@@ -5,6 +5,7 @@ metadata:
   namespace: topolvm-system
 data:
   scheduler.yaml: |
+    listen: "localhost:9251"
     default-divisor: 1
     divisors:
       ssd: 10

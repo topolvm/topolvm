@@ -58,7 +58,6 @@ Command-line flags
 
 | Name      | Type    | Default | Description            |
 | --------- | ------- | ------- | ---------------------- |
-| `listen`  | string  | `:8000` | HTTP listening address |
 | `config`  | string  | ``      | Config file path       |
 
 Config file format
@@ -75,6 +74,6 @@ divisors:
 
 | Name              | Type                 | Default | Description                                       |
 | ----------------- | -------------------- | ------- | ------------------------------------------------- |
+| `listen`          | string               | `:8000` | HTTP listening address                            |
 | `default-divisor` | float64              | `1`     | A default value of the variable for node scoring. |
 | `divisors`        | `map[string]float64` | `{}`    | A variable for node scoring per device-class.     |
-

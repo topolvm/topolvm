@@ -187,12 +187,7 @@ func (m podMutator) requestedPVCCapacity(ctx context.Context, pod *corev1.Pod, t
 			dc = topolvm.DefaultDeviceClassAnnotationName
 		}
 
-		total, ok := capacities[dc]
-		if !ok {
-			total = 0
-		}
-		total += requested
-		capacities[dc] = total
+		capacities[dc] += requested
 	}
 	return capacities, nil
 }

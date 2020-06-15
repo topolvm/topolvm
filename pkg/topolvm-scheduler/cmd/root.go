@@ -16,6 +16,7 @@ import (
 var cfgFilePath string
 
 const defaultDivisor = 1
+const defaultListenAddr = ":8000"
 
 // Config represents configuration parameters for topolvm-scheduler
 type Config struct {
@@ -27,7 +28,10 @@ type Config struct {
 	DefaultDivisor float64 `json:"default-divisor"`
 }
 
-var config Config
+var config = &Config{
+	ListenAddr:     defaultListenAddr,
+	DefaultDivisor: defaultDivisor,
+}
 
 var rootCmd = &cobra.Command{
 	Use:     "topolvm-scheduler",
@@ -66,12 +70,10 @@ func subMain() error {
 		if err != nil {
 			return err
 		}
-		err = yaml.Unmarshal(b, &config)
+		err = yaml.Unmarshal(b, config)
 		if err != nil {
 			return err
 		}
-	} else {
-		config.DefaultDivisor = defaultDivisor
 	}
 
 	h, err := scheduler.NewHandler(config.DefaultDivisor, config.Divisors)
@@ -109,6 +111,5 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().StringVar(&config.ListenAddr, "listen", ":8000", "listen address")
 	rootCmd.PersistentFlags().StringVar(&cfgFilePath, "config", "", "config file")
 }

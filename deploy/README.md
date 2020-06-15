@@ -158,11 +158,18 @@ spec:
           image: quay.io/cybozu/topolvm:0.4.8
           command:
             - /topolvm-scheduler
-            - --listen=:9251
+            - --config=/etc/topolvm/scheduler.yaml
           livenessProbe:
             httpGet:
               port: 9251
               path: /status
+          volumeMounts:
+            - mountPath: /etc/topolvm
+              name: topolvm-config
+      volumes:
+        - name: topolvm-config
+          configMap:
+            name: topolvm-config
 ---
 apiVersion: v1
 kind: Service
@@ -237,10 +244,11 @@ Once you finish editing manifests, apply them in the following order:
 2. [crd.yaml](./manifests/crd.yaml)
 3. [psp.yaml](./manifests/psp.yaml)
 4. [certificates.yaml](./manifests/certificates.yaml) if `cert-manager` is installed
-5. [scheduler.yaml](./manifests/scheduler.yaml)
-6. [mutatingwebhooks.yaml](./manifests/mutatingwebhooks.yaml)
-7. [controller.yaml](./manifests/controller.yaml)
-8. [node.yaml](./manifests/node.yaml)
+5. [configmap.yaml](./manifests/configmap.yaml)
+6. [scheduler.yaml](./manifests/scheduler.yaml)
+7. [mutatingwebhooks.yaml](./manifests/mutatingwebhooks.yaml)
+8. [controller.yaml](./manifests/controller.yaml)
+9. [node.yaml](./manifests/node.yaml)
 
 Configure kube-scheduler
 ------------------------
