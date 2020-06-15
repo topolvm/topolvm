@@ -8,7 +8,7 @@ Type=simple
 Restart=on-failure
 RestartForceExitStatus=SIGPIPE
 ExecStartPre=/bin/mkdir -p /run/topolvm 
-ExecStart=/opt/sbin/lvmd --volume-group=myvg --listen=/run/topolvm/lvmd.sock
+ExecStart=/opt/sbin/lvmd --listen=/run/topolvm/lvmd.sock
 
 [Install]
 WantedBy=multi-user.target

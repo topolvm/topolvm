@@ -1,0 +1,5 @@
+device-classes:
+  - name: ssd
+    volume-group: myvg1
+    default: true
+    spare-gb: 10

@@ -132,6 +132,7 @@ type CreateLVRequest struct {
 	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	SizeGb               uint64   `protobuf:"varint,2,opt,name=size_gb,json=sizeGb,proto3" json:"size_gb,omitempty"`
 	Tags                 []string `protobuf:"bytes,3,rep,name=tags,proto3" json:"tags,omitempty"`
+	DeviceClass          string   `protobuf:"bytes,4,opt,name=device_class,json=deviceClass,proto3" json:"device_class,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -183,6 +184,13 @@ func (m *CreateLVRequest) GetTags() []string {
 	return nil
 }
 
+func (m *CreateLVRequest) GetDeviceClass() string {
+	if m != nil {
+		return m.DeviceClass
+	}
+	return ""
+}
+
 // Represents the response of CreateLV.
 type CreateLVResponse struct {
 	Volume               *LogicalVolume `protobuf:"bytes,1,opt,name=volume,proto3" json:"volume,omitempty"`
@@ -226,6 +234,7 @@ func (m *CreateLVResponse) GetVolume() *LogicalVolume {
 // Represents the input for RemoveLV.
 type RemoveLVRequest struct {
 	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	DeviceClass          string   `protobuf:"bytes,2,opt,name=device_class,json=deviceClass,proto3" json:"device_class,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -263,6 +272,13 @@ func (m *RemoveLVRequest) GetName() string {
 	return ""
 }
 
+func (m *RemoveLVRequest) GetDeviceClass() string {
+	if m != nil {
+		return m.DeviceClass
+	}
+	return ""
+}
+
 // Represents the input for ResizeLV.
 //
 // The volume must already exist.
@@ -270,6 +286,7 @@ func (m *RemoveLVRequest) GetName() string {
 type ResizeLVRequest struct {
 	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	SizeGb               uint64   `protobuf:"varint,2,opt,name=size_gb,json=sizeGb,proto3" json:"size_gb,omitempty"`
+	DeviceClass          string   `protobuf:"bytes,3,opt,name=device_class,json=deviceClass,proto3" json:"device_class,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -312,6 +329,13 @@ func (m *ResizeLVRequest) GetSizeGb() uint64 {
 		return m.SizeGb
 	}
 	return 0
+}
+
+func (m *ResizeLVRequest) GetDeviceClass() string {
+	if m != nil {
+		return m.DeviceClass
+	}
+	return ""
 }
 
 // Represents the response of GetLVList.
@@ -394,19 +418,98 @@ func (m *GetFreeBytesResponse) GetFreeBytes() uint64 {
 	return 0
 }
 
-// Represents the stream output from Watch.
-type WatchResponse struct {
-	FreeBytes            uint64   `protobuf:"varint,1,opt,name=free_bytes,json=freeBytes,proto3" json:"free_bytes,omitempty"`
+type GetLVListRequest struct {
+	DeviceClass          string   `protobuf:"bytes,1,opt,name=device_class,json=deviceClass,proto3" json:"device_class,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetLVListRequest) Reset()         { *m = GetLVListRequest{} }
+func (m *GetLVListRequest) String() string { return proto.CompactTextString(m) }
+func (*GetLVListRequest) ProtoMessage()    {}
+func (*GetLVListRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cb3c510e545f3bbd, []int{8}
+}
+
+func (m *GetLVListRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetLVListRequest.Unmarshal(m, b)
+}
+func (m *GetLVListRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetLVListRequest.Marshal(b, m, deterministic)
+}
+func (m *GetLVListRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetLVListRequest.Merge(m, src)
+}
+func (m *GetLVListRequest) XXX_Size() int {
+	return xxx_messageInfo_GetLVListRequest.Size(m)
+}
+func (m *GetLVListRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetLVListRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetLVListRequest proto.InternalMessageInfo
+
+func (m *GetLVListRequest) GetDeviceClass() string {
+	if m != nil {
+		return m.DeviceClass
+	}
+	return ""
+}
+
+type GetFreeBytesRequest struct {
+	DeviceClass          string   `protobuf:"bytes,1,opt,name=device_class,json=deviceClass,proto3" json:"device_class,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetFreeBytesRequest) Reset()         { *m = GetFreeBytesRequest{} }
+func (m *GetFreeBytesRequest) String() string { return proto.CompactTextString(m) }
+func (*GetFreeBytesRequest) ProtoMessage()    {}
+func (*GetFreeBytesRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cb3c510e545f3bbd, []int{9}
+}
+
+func (m *GetFreeBytesRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetFreeBytesRequest.Unmarshal(m, b)
+}
+func (m *GetFreeBytesRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetFreeBytesRequest.Marshal(b, m, deterministic)
+}
+func (m *GetFreeBytesRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetFreeBytesRequest.Merge(m, src)
+}
+func (m *GetFreeBytesRequest) XXX_Size() int {
+	return xxx_messageInfo_GetFreeBytesRequest.Size(m)
+}
+func (m *GetFreeBytesRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetFreeBytesRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetFreeBytesRequest proto.InternalMessageInfo
+
+func (m *GetFreeBytesRequest) GetDeviceClass() string {
+	if m != nil {
+		return m.DeviceClass
+	}
+	return ""
+}
+
+// Represents the stream output from Watch.
+type WatchResponse struct {
+	FreeBytes            uint64       `protobuf:"varint,1,opt,name=free_bytes,json=freeBytes,proto3" json:"free_bytes,omitempty"`
+	Items                []*WatchItem `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
+	XXX_unrecognized     []byte       `json:"-"`
+	XXX_sizecache        int32        `json:"-"`
 }
 
 func (m *WatchResponse) Reset()         { *m = WatchResponse{} }
 func (m *WatchResponse) String() string { return proto.CompactTextString(m) }
 func (*WatchResponse) ProtoMessage()    {}
 func (*WatchResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cb3c510e545f3bbd, []int{8}
+	return fileDescriptor_cb3c510e545f3bbd, []int{10}
 }
 
 func (m *WatchResponse) XXX_Unmarshal(b []byte) error {
@@ -434,6 +537,60 @@ func (m *WatchResponse) GetFreeBytes() uint64 {
 	return 0
 }
 
+func (m *WatchResponse) GetItems() []*WatchItem {
+	if m != nil {
+		return m.Items
+	}
+	return nil
+}
+
+type WatchItem struct {
+	FreeBytes            uint64   `protobuf:"varint,1,opt,name=free_bytes,json=freeBytes,proto3" json:"free_bytes,omitempty"`
+	DeviceClass          string   `protobuf:"bytes,2,opt,name=device_class,json=deviceClass,proto3" json:"device_class,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *WatchItem) Reset()         { *m = WatchItem{} }
+func (m *WatchItem) String() string { return proto.CompactTextString(m) }
+func (*WatchItem) ProtoMessage()    {}
+func (*WatchItem) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cb3c510e545f3bbd, []int{11}
+}
+
+func (m *WatchItem) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_WatchItem.Unmarshal(m, b)
+}
+func (m *WatchItem) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_WatchItem.Marshal(b, m, deterministic)
+}
+func (m *WatchItem) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_WatchItem.Merge(m, src)
+}
+func (m *WatchItem) XXX_Size() int {
+	return xxx_messageInfo_WatchItem.Size(m)
+}
+func (m *WatchItem) XXX_DiscardUnknown() {
+	xxx_messageInfo_WatchItem.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_WatchItem proto.InternalMessageInfo
+
+func (m *WatchItem) GetFreeBytes() uint64 {
+	if m != nil {
+		return m.FreeBytes
+	}
+	return 0
+}
+
+func (m *WatchItem) GetDeviceClass() string {
+	if m != nil {
+		return m.DeviceClass
+	}
+	return ""
+}
+
 func init() {
 	proto.RegisterType((*Empty)(nil), "proto.Empty")
 	proto.RegisterType((*LogicalVolume)(nil), "proto.LogicalVolume")
@@ -443,7 +600,10 @@ func init() {
 	proto.RegisterType((*ResizeLVRequest)(nil), "proto.ResizeLVRequest")
 	proto.RegisterType((*GetLVListResponse)(nil), "proto.GetLVListResponse")
 	proto.RegisterType((*GetFreeBytesResponse)(nil), "proto.GetFreeBytesResponse")
+	proto.RegisterType((*GetLVListRequest)(nil), "proto.GetLVListRequest")
+	proto.RegisterType((*GetFreeBytesRequest)(nil), "proto.GetFreeBytesRequest")
 	proto.RegisterType((*WatchResponse)(nil), "proto.WatchResponse")
+	proto.RegisterType((*WatchItem)(nil), "proto.WatchItem")
 }
 
 func init() {
@@ -451,34 +611,40 @@ func init() {
 }
 
 var fileDescriptor_cb3c510e545f3bbd = []byte{
-	// 423 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x92, 0xdf, 0x8a, 0xd3, 0x40,
-	0x14, 0xc6, 0x19, 0x93, 0xb4, 0xcd, 0x71, 0xcb, 0xea, 0xb0, 0xba, 0xa1, 0x8b, 0x10, 0x06, 0x84,
-	0x5e, 0x68, 0x76, 0xe9, 0xe2, 0x85, 0x08, 0x22, 0x2e, 0x9a, 0x9b, 0x78, 0x33, 0x42, 0xbc, 0x2c,
-	0x49, 0x7b, 0xb6, 0x46, 0x9a, 0x4e, 0xcd, 0xcc, 0x06, 0xea, 0x23, 0xf8, 0x28, 0xe2, 0x43, 0xca,
-	0x4c, 0xfe, 0xb4, 0x49, 0x51, 0xd4, 0xab, 0x9e, 0x73, 0xe6, 0xfb, 0xce, 0x7c, 0xfd, 0x4d, 0xe0,
-	0xd1, 0xba, 0xcc, 0x97, 0x97, 0xdb, 0x42, 0x28, 0x71, 0xa9, 0xcb, 0xc0, 0x94, 0xd4, 0x31, 0x3f,
-	0x6c, 0x08, 0xce, 0xbb, 0x7c, 0xab, 0x76, 0xec, 0x3b, 0x81, 0x71, 0x24, 0x56, 0xd9, 0x22, 0x59,
-	0xc7, 0x62, 0x7d, 0x97, 0x23, 0xa5, 0x60, 0x6f, 0x92, 0x1c, 0x3d, 0xe2, 0x93, 0xa9, 0xcb, 0x4d,
-	0x4d, 0xcf, 0x61, 0x28, 0xb3, 0x6f, 0x38, 0x5f, 0xa5, 0xde, 0x3d, 0x9f, 0x4c, 0x6d, 0x3e, 0xd0,
-	0x6d, 0x98, 0xd2, 0x0b, 0x70, 0x97, 0x58, 0xce, 0xf3, 0xe4, 0x8b, 0x28, 0x3c, 0xcb, 0x27, 0xd3,
-	0x31, 0x1f, 0x2d, 0xb1, 0xfc, 0xa0, 0xfb, 0xf6, 0x30, 0xdb, 0x88, 0xc2, 0xb3, 0xf7, 0x87, 0xba,
-	0xd7, 0xd7, 0xa8, 0x64, 0x25, 0x3d, 0xc7, 0xb7, 0xf4, 0x35, 0xba, 0x66, 0x1c, 0x4e, 0x6f, 0x0a,
-	0x4c, 0x14, 0x46, 0x31, 0xc7, 0xaf, 0x77, 0x28, 0xd5, 0xbf, 0xa5, 0x69, 0x76, 0x5a, 0x07, 0x3b,
-	0xdf, 0xc0, 0x83, 0xfd, 0x4e, 0xb9, 0x15, 0x1b, 0x89, 0xf4, 0x19, 0x0c, 0x4a, 0xf3, 0x67, 0xcd,
-	0xda, 0xfb, 0xb3, 0xb3, 0x0a, 0x4e, 0xd0, 0x01, 0xc1, 0x6b, 0x0d, 0x7b, 0x0a, 0xa7, 0x1c, 0x73,
-	0x51, 0xfe, 0x39, 0x15, 0x7b, 0xad, 0x65, 0x3a, 0xc8, 0xff, 0x85, 0x67, 0x37, 0xf0, 0x30, 0x44,
-	0x15, 0xc5, 0x51, 0x26, 0x55, 0x9b, 0x34, 0x80, 0x61, 0x95, 0x42, 0x7a, 0xc4, 0xb7, 0x7e, 0x1b,
-	0xb5, 0x11, 0xb1, 0x17, 0x70, 0x16, 0xa2, 0x7a, 0x5f, 0x20, 0xbe, 0xdd, 0x29, 0x94, 0xed, 0x9e,
-	0x27, 0x00, 0xb7, 0x05, 0xe2, 0x3c, 0xd5, 0x53, 0x93, 0xc7, 0xe6, 0xee, 0x6d, 0x23, 0x63, 0x01,
-	0x8c, 0x3f, 0x25, 0x6a, 0xf1, 0xf9, 0x2f, 0xf5, 0xb3, 0x9f, 0x04, 0xdc, 0x28, 0xfe, 0x88, 0x45,
-	0x99, 0x2d, 0x90, 0xbe, 0x82, 0x51, 0x83, 0x98, 0x3e, 0xae, 0xf3, 0xf5, 0xde, 0x71, 0x72, 0x7e,
-	0x34, 0xaf, 0x6f, 0xba, 0x82, 0x51, 0x43, 0xb7, 0x35, 0xf7, 0x70, 0x4f, 0x4e, 0xea, 0xb9, 0xf9,
-	0x64, 0x2b, 0x47, 0x05, 0xfa, 0xc0, 0xd1, 0x21, 0xdf, 0x75, 0xcc, 0x7e, 0x10, 0x70, 0xe3, 0xb0,
-	0x89, 0x7b, 0x0d, 0x6e, 0x0b, 0x9a, 0x76, 0x84, 0x13, 0xaf, 0xee, 0x8e, 0x1f, 0xe2, 0x25, 0x9c,
-	0x1c, 0x82, 0xed, 0xf9, 0x2e, 0xf6, 0xbe, 0x63, 0xf6, 0xcf, 0xc1, 0x31, 0x70, 0x7b, 0x9e, 0xe6,
-	0x25, 0x3b, 0xe0, 0xaf, 0x48, 0x3a, 0x30, 0xe3, 0xeb, 0x5f, 0x01, 0x00, 0x00, 0xff, 0xff, 0xb7,
-	0xae, 0x9b, 0x5b, 0xc1, 0x03, 0x00, 0x00,
+	// 513 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x54, 0xdf, 0x8a, 0xd3, 0x4e,
+	0x14, 0x66, 0x36, 0x4d, 0xdb, 0x9c, 0x6d, 0xd9, 0xfe, 0xe6, 0x57, 0xdd, 0x90, 0x45, 0x88, 0xb9,
+	0x90, 0x5e, 0x68, 0x77, 0xa9, 0x2c, 0x08, 0x82, 0x88, 0x45, 0xa3, 0x90, 0xbd, 0x19, 0x21, 0x5e,
+	0x96, 0xb4, 0x3d, 0x5b, 0x23, 0x4d, 0x53, 0x33, 0xd3, 0xc0, 0xfa, 0x08, 0x3e, 0x8b, 0x6f, 0xe1,
+	0x8b, 0xc9, 0x4c, 0xfe, 0xb4, 0x49, 0x94, 0xae, 0x5e, 0xf5, 0xcc, 0xf9, 0xf7, 0x7d, 0xe7, 0x7c,
+	0xa7, 0x81, 0x07, 0xeb, 0x34, 0x5a, 0x5e, 0x6e, 0x93, 0x58, 0xc4, 0x97, 0xd2, 0x1c, 0x2b, 0x93,
+	0xea, 0xea, 0xc7, 0xe9, 0x80, 0xfe, 0x36, 0xda, 0x8a, 0x3b, 0xe7, 0x3b, 0x81, 0xbe, 0x17, 0xaf,
+	0xc2, 0x45, 0xb0, 0xf6, 0xe3, 0xf5, 0x2e, 0x42, 0x4a, 0xa1, 0xb5, 0x09, 0x22, 0x34, 0x89, 0x4d,
+	0x46, 0x06, 0x53, 0x36, 0x3d, 0x87, 0x0e, 0x0f, 0xbf, 0xe1, 0x6c, 0x35, 0x37, 0x4f, 0x6c, 0x32,
+	0x6a, 0xb1, 0xb6, 0x7c, 0xba, 0x73, 0x7a, 0x01, 0xc6, 0x12, 0xd3, 0x59, 0x14, 0x7c, 0x89, 0x13,
+	0x53, 0xb3, 0xc9, 0xa8, 0xcf, 0xba, 0x4b, 0x4c, 0x6f, 0xe4, 0xbb, 0x0c, 0x86, 0x9b, 0x38, 0x31,
+	0x5b, 0xfb, 0xa0, 0x7c, 0x4b, 0x18, 0x11, 0xac, 0xb8, 0xa9, 0xdb, 0x9a, 0x84, 0x91, 0xb6, 0xb3,
+	0x83, 0xb3, 0x69, 0x82, 0x81, 0x40, 0xcf, 0x67, 0xf8, 0x75, 0x87, 0x5c, 0xfc, 0x1d, 0x9b, 0xa2,
+	0xa7, 0xb6, 0xef, 0x49, 0x1f, 0x43, 0x6f, 0x89, 0x69, 0xb8, 0xc0, 0xd9, 0x62, 0x1d, 0x70, 0xae,
+	0x78, 0x18, 0xec, 0x34, 0xf3, 0x4d, 0xa5, 0xcb, 0x79, 0x0d, 0x83, 0x3d, 0x2c, 0xdf, 0xc6, 0x1b,
+	0x8e, 0xf4, 0x29, 0xb4, 0x53, 0xb5, 0x0f, 0x85, 0x7c, 0x3a, 0x19, 0x66, 0xfb, 0x1b, 0x57, 0x76,
+	0xc5, 0xf2, 0x1c, 0xe7, 0x3d, 0x9c, 0x31, 0x8c, 0xe2, 0xf4, 0x08, 0xf1, 0x3a, 0x97, 0x93, 0x26,
+	0x97, 0x40, 0x76, 0x92, 0xe3, 0xfc, 0xe3, 0x0a, 0xea, 0x10, 0x5a, 0x13, 0x62, 0x0a, 0xff, 0xb9,
+	0x28, 0x3c, 0xdf, 0x0b, 0xb9, 0x28, 0xe7, 0x1d, 0x43, 0x27, 0x9b, 0x85, 0x9b, 0xc4, 0xd6, 0xfe,
+	0x38, 0x70, 0x91, 0xe4, 0x5c, 0xc3, 0xd0, 0x45, 0xf1, 0x2e, 0x41, 0x7c, 0x73, 0x27, 0x90, 0x97,
+	0x7d, 0x1e, 0x01, 0xdc, 0x26, 0x88, 0xb3, 0xb9, 0xf4, 0x2a, 0xca, 0x2d, 0x66, 0xdc, 0x16, 0x69,
+	0xce, 0x35, 0x0c, 0x0e, 0xb0, 0xb3, 0xf9, 0xea, 0x94, 0x49, 0x93, 0xf2, 0x0b, 0xf8, 0xbf, 0x8a,
+	0x76, 0xef, 0x4a, 0x1f, 0xfa, 0x9f, 0x02, 0xb1, 0xf8, 0x7c, 0x4f, 0x82, 0xf4, 0x09, 0xe8, 0xa1,
+	0xc0, 0x48, 0x6a, 0x23, 0xb7, 0x30, 0xc8, 0xb7, 0xa0, 0x7a, 0x7c, 0x10, 0x18, 0xb1, 0x2c, 0xec,
+	0xdc, 0x80, 0x51, 0xfa, 0x8e, 0xf5, 0x3c, 0x2e, 0xfb, 0xe4, 0x07, 0x01, 0xc3, 0xf3, 0x3f, 0x62,
+	0x22, 0x5d, 0xf4, 0x25, 0x74, 0x8b, 0x83, 0xa4, 0x0f, 0x73, 0x06, 0xb5, 0x3f, 0x86, 0x75, 0xde,
+	0xf0, 0xe7, 0x03, 0x5e, 0x41, 0xb7, 0xb8, 0xc5, 0xb2, 0xb8, 0x76, 0x9c, 0x56, 0x2f, 0xf7, 0xab,
+	0x6f, 0x40, 0x56, 0x91, 0xdd, 0xdc, 0x41, 0x45, 0xe5, 0x08, 0xab, 0x15, 0x93, 0x9f, 0x04, 0x0c,
+	0xdf, 0x2d, 0xe8, 0xbe, 0x02, 0xa3, 0x14, 0x95, 0x16, 0xbc, 0xea, 0x32, 0x5b, 0x66, 0x33, 0x90,
+	0x33, 0x76, 0xa1, 0x77, 0xa8, 0x2e, 0xb5, 0xf6, 0x99, 0x75, 0xc9, 0xad, 0x8b, 0xdf, 0xc6, 0xf2,
+	0x46, 0xcf, 0x40, 0x57, 0xa2, 0xd0, 0x0a, 0x5b, 0x6b, 0x78, 0x28, 0x62, 0x91, 0x7c, 0x45, 0xe6,
+	0x6d, 0xe5, 0x7e, 0xfe, 0x2b, 0x00, 0x00, 0xff, 0xff, 0x77, 0x48, 0x1e, 0x43, 0x2b, 0x05, 0x00,
+	0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -644,9 +810,9 @@ var _LVService_serviceDesc = grpc.ServiceDesc{
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type VGServiceClient interface {
 	// Get the list of logical volumes in the volume group.
-	GetLVList(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*GetLVListResponse, error)
+	GetLVList(ctx context.Context, in *GetLVListRequest, opts ...grpc.CallOption) (*GetLVListResponse, error)
 	// Get the free space of the volume group in bytes.
-	GetFreeBytes(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*GetFreeBytesResponse, error)
+	GetFreeBytes(ctx context.Context, in *GetFreeBytesRequest, opts ...grpc.CallOption) (*GetFreeBytesResponse, error)
 	// Stream the volume group metrics.
 	Watch(ctx context.Context, in *Empty, opts ...grpc.CallOption) (VGService_WatchClient, error)
 }
@@ -659,7 +825,7 @@ func NewVGServiceClient(cc grpc.ClientConnInterface) VGServiceClient {
 	return &vGServiceClient{cc}
 }
 
-func (c *vGServiceClient) GetLVList(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*GetLVListResponse, error) {
+func (c *vGServiceClient) GetLVList(ctx context.Context, in *GetLVListRequest, opts ...grpc.CallOption) (*GetLVListResponse, error) {
 	out := new(GetLVListResponse)
 	err := c.cc.Invoke(ctx, "/proto.VGService/GetLVList", in, out, opts...)
 	if err != nil {
@@ -668,7 +834,7 @@ func (c *vGServiceClient) GetLVList(ctx context.Context, in *Empty, opts ...grpc
 	return out, nil
 }
 
-func (c *vGServiceClient) GetFreeBytes(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*GetFreeBytesResponse, error) {
+func (c *vGServiceClient) GetFreeBytes(ctx context.Context, in *GetFreeBytesRequest, opts ...grpc.CallOption) (*GetFreeBytesResponse, error) {
 	out := new(GetFreeBytesResponse)
 	err := c.cc.Invoke(ctx, "/proto.VGService/GetFreeBytes", in, out, opts...)
 	if err != nil {
@@ -712,9 +878,9 @@ func (x *vGServiceWatchClient) Recv() (*WatchResponse, error) {
 // VGServiceServer is the server API for VGService service.
 type VGServiceServer interface {
 	// Get the list of logical volumes in the volume group.
-	GetLVList(context.Context, *Empty) (*GetLVListResponse, error)
+	GetLVList(context.Context, *GetLVListRequest) (*GetLVListResponse, error)
 	// Get the free space of the volume group in bytes.
-	GetFreeBytes(context.Context, *Empty) (*GetFreeBytesResponse, error)
+	GetFreeBytes(context.Context, *GetFreeBytesRequest) (*GetFreeBytesResponse, error)
 	// Stream the volume group metrics.
 	Watch(*Empty, VGService_WatchServer) error
 }
@@ -723,10 +889,10 @@ type VGServiceServer interface {
 type UnimplementedVGServiceServer struct {
 }
 
-func (*UnimplementedVGServiceServer) GetLVList(ctx context.Context, req *Empty) (*GetLVListResponse, error) {
+func (*UnimplementedVGServiceServer) GetLVList(ctx context.Context, req *GetLVListRequest) (*GetLVListResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetLVList not implemented")
 }
-func (*UnimplementedVGServiceServer) GetFreeBytes(ctx context.Context, req *Empty) (*GetFreeBytesResponse, error) {
+func (*UnimplementedVGServiceServer) GetFreeBytes(ctx context.Context, req *GetFreeBytesRequest) (*GetFreeBytesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetFreeBytes not implemented")
 }
 func (*UnimplementedVGServiceServer) Watch(req *Empty, srv VGService_WatchServer) error {
@@ -738,7 +904,7 @@ func RegisterVGServiceServer(s *grpc.Server, srv VGServiceServer) {
 }
 
 func _VGService_GetLVList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Empty)
+	in := new(GetLVListRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -750,13 +916,13 @@ func _VGService_GetLVList_Handler(srv interface{}, ctx context.Context, dec func
 		FullMethod: "/proto.VGService/GetLVList",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(VGServiceServer).GetLVList(ctx, req.(*Empty))
+		return srv.(VGServiceServer).GetLVList(ctx, req.(*GetLVListRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _VGService_GetFreeBytes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Empty)
+	in := new(GetFreeBytesRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -768,7 +934,7 @@ func _VGService_GetFreeBytes_Handler(srv interface{}, ctx context.Context, dec f
 		FullMethod: "/proto.VGService/GetFreeBytes",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(VGServiceServer).GetFreeBytes(ctx, req.(*Empty))
+		return srv.(VGServiceServer).GetFreeBytes(ctx, req.(*GetFreeBytesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

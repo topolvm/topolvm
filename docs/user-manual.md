@@ -27,14 +27,17 @@ metadata:
 provisioner: topolvm.cybozu.com
 parameters:
   "csi.storage.k8s.io/fstype": "xfs"
+  "topolvm.cybozu.com/device-class": "ssd"
 volumeBindingMode: WaitForFirstConsumer
 allowVolumeExpansion: true
 ```
 
 `provisioner` must be `topolvm.cybozu.com`.
 
-`parameters` are optional.  To specify a filesystem type, give
-`csi.storage.k8s.io/fstype` parameter.
+`parameters` are optional.
+To specify a filesystem type, give `csi.storage.k8s.io/fstype` parameter.
+To specify a device-class name to be used, give `topolvm.cybozu.com/device-class` parameter. 
+If no `topolvm.cybozu.com/device-class` is specified, the default device-class is used.
 
 Supported filesystems are: `ext4`, `xfs`, and `btrfs`.
 TopoLVM sets the following mount options regardless of `mountOptions`.
@@ -154,6 +157,9 @@ of ext4 will be used.
 1 GiB will be used.
 
 Supported filesystems are: `ext4`, `xfs`, and `btrfs`.
+
+It is not possible to specify the device-class for inline ephemeral volumes.
+Inline ephemeral volumes are always created on the default device-class.
 
 Limitations
 -----------

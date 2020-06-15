@@ -24,7 +24,7 @@ $ kubectl get pv
 % pvc-05df10d2-b7ee-11e9-8da2-0242ac110002 1Gi RWO Delete Bound topolvm-system/topolvm-pvc topolvm-provisioner 25m
 
 $ sudo lvscan
-% ACTIVE '/dev/myvg/05e33db5-b7ee-11e9-8da2-0242ac110002' [1.00 GiB] inherit
+% ACTIVE '/dev/myvg1/05e33db5-b7ee-11e9-8da2-0242ac110002' [1.00 GiB] inherit
 ```
 
 To stop the demonstration environment, run:

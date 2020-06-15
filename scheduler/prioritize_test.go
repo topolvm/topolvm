@@ -36,8 +36,17 @@ func TestCapacityToScore(t *testing.T) {
 }
 
 func TestScoreNodes(t *testing.T) {
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{
+				topolvm.CapacityKeyPrefix + "ssd":  "64",
+				topolvm.CapacityKeyPrefix + "hdd1": "64",
+				topolvm.CapacityKeyPrefix + "hdd2": "64",
+			},
+		},
+	}
 	input := []corev1.Node{
-		testNode("10.1.1.1", 128),
+		testNode("10.1.1.1", 128, 128, 128),
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "10.1.1.2",
@@ -47,7 +56,7 @@ func TestScoreNodes(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "10.1.1.3",
 				Annotations: map[string]string{
-					topolvm.CapacityKey: "foo",
+					topolvm.CapacityKeyPrefix + "ssd": "foo",
 				},
 			},
 		},
@@ -55,7 +64,7 @@ func TestScoreNodes(t *testing.T) {
 	expected := []HostPriority{
 		{
 			Host:  "10.1.1.1",
-			Score: 5,
+			Score: 3,
 		},
 		{
 			Host:  "10.1.1.2",
@@ -67,7 +76,12 @@ func TestScoreNodes(t *testing.T) {
 		},
 	}
 
-	result := scoreNodes(input, 4)
+	defaultDivisor := 2.0
+	divisors := map[string]float64{
+		"ssd":  4,
+		"hdd1": 10,
+	}
+	result := scoreNodes(pod, input, defaultDivisor, divisors)
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("expected scoreNodes() to be %#v, but actual %#v", expected, result)
 	}

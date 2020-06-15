@@ -3,8 +3,9 @@ GOFLAGS=-mod=vendor
 export GOFLAGS
 GINKGO=$(GOPATH)/bin/ginkgo
 KUBECTL=/usr/local/bin/kubectl
-KUBERNETES_VERSION=1.17.2
-KIND_VERSION=0.7.0
+KUBERNETES_VERSION=1.18.2
+KIND_VERSION=0.8.1
+KIND_CLUSTER_NAME=topolvm-example
 
 GO_FILES := $(shell find .. -path ../vendor -prune -o -path ../e2e -prune -o -name '*.go' -print)
 CA_FILES=./build/certs/ca.csr ./build/certs/ca.pem ./build/certs/ca-key.pem
@@ -44,37 +45,39 @@ clean: stop-lvmd
 	mkdir -p /tmp/topolvm/scheduler
 	cp $< $@
 
+/tmp/topolvm/lvmd/lvmd.yaml: ../deploy/lvmd-config/lvmd.yaml
+	mkdir -p /tmp/topolvm/lvmd
+	cp $< $@
+
 launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml /tmp/topolvm/scheduler/scheduler-policy.cfg kind/topolvm-cluster.yaml
 	$(MAKE) shutdown-kind
 	$(SUDO) rm -rf /tmp/topolvm/controller /tmp/topolvm/worker*
 	sed s/@KUBERNETES_VERSION@/$(KUBERNETES_VERSION)/ kind/topolvm-cluster.yaml > /tmp/topolvm-cluster.yaml
-	kind create cluster --config /tmp/topolvm-cluster.yaml --image kindest/node:v$(KUBERNETES_VERSION)
+	kind create cluster --name=$(KIND_CLUSTER_NAME) --config /tmp/topolvm-cluster.yaml --image kindest/node:v$(KUBERNETES_VERSION)
 
 shutdown-kind:
-	kind delete cluster || true
+	kind delete cluster --name=$(KIND_CLUSTER_NAME) || true
 	for d in $$($(SUDO) find /tmp/topolvm -type d); do \
 		if $(SUDO) mountpoint -q $$d; then \
 			$(SUDO) umount $$d; \
 		fi; \
 	done
 
-start-lvmd:
+start-lvmd: /tmp/topolvm/lvmd/lvmd.yaml
 	go build -o build/lvmd ../pkg/lvmd
 	if [ -f build/backing_store ]; then $(MAKE) stop-lvmd; fi
 	mkdir -p /tmp/topolvm/worker; \
 	mkdir -p /tmp/topolvm/lvmd; \
 	truncate --size=20G build/backing_store; \
 	$(SUDO) losetup -f build/backing_store; \
-	$(SUDO) vgcreate -y myvg $$($(SUDO) losetup -j build/backing_store | cut -d: -f1); \
-	$(SUDO) lvcreate -y -n csi-node-test-block -L 1G myvg; \
-	$(SUDO) lvcreate -y -n csi-node-test-fs -L 1G myvg; \
-	$(SUDO) systemd-run --unit=lvmd.service $(shell pwd)/build/lvmd --volume-group=myvg --listen=/tmp/topolvm/lvmd/lvmd.sock --spare=1; \
+	$(SUDO) vgcreate -y myvg1 $$($(SUDO) losetup -j build/backing_store | cut -d: -f1); \
+	$(SUDO) systemd-run --unit=lvmd.service $(shell pwd)/build/lvmd --listen=/tmp/topolvm/lvmd/lvmd.sock --config=/tmp/topolvm/lvmd/lvmd.yaml; \
 
 stop-lvmd:
 	$(MAKE) shutdown-kind
 	if systemctl is-active -q lvmd.service; then $(SUDO) systemctl stop lvmd.service; fi; \
 	if [ -f build/backing_store ]; then \
-		$(SUDO) vgremove -ffy myvg; \
+		$(SUDO) vgremove -ffy myvg1; \
 		$(SUDO) pvremove -ffy $$($(SUDO) losetup -j build/backing_store | cut -d: -f1); \
 		$(SUDO) losetup -d $$($(SUDO) losetup -j build/backing_store | cut -d: -f1); \
 		rm -f build/backing_store; \

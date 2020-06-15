@@ -3,6 +3,7 @@ package scheduler
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"testing"
 
 	"github.com/cybozu-go/topolvm"
@@ -11,12 +12,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func testNode(name string, capGb int64) corev1.Node {
+func testNode(name string, cap1Gb, cap2Gb, cap3Gb int64) corev1.Node {
 	return corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 			Annotations: map[string]string{
-				topolvm.CapacityKey: fmt.Sprintf("%d", capGb<<30),
+				topolvm.CapacityKeyPrefix + "ssd":  fmt.Sprintf("%d", cap1Gb<<30),
+				topolvm.CapacityKeyPrefix + "hdd1": fmt.Sprintf("%d", cap2Gb<<30),
+				topolvm.CapacityKeyPrefix + "hdd2": fmt.Sprintf("%d", cap3Gb<<30),
 			},
 		},
 	}
@@ -25,14 +28,14 @@ func testNode(name string, capGb int64) corev1.Node {
 func TestFilterNodes(t *testing.T) {
 	testCases := []struct {
 		nodes     corev1.NodeList
-		requested int64
+		requested map[string]int64
 		expect    ExtenderFilterResult
 	}{
 		{
 			nodes: corev1.NodeList{
 				Items: []corev1.Node{
-					testNode("10.1.1.1", 5),
-					testNode("10.1.1.2", 1),
+					testNode("10.1.1.1", 5, 10, 10),
+					testNode("10.1.1.2", 1, 10, 10),
 					{
 						ObjectMeta: metav1.ObjectMeta{
 							Name: "10.1.1.3",
@@ -42,17 +45,19 @@ func TestFilterNodes(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{
 							Name: "10.1.1.4",
 							Annotations: map[string]string{
-								topolvm.CapacityKey: "foo",
+								topolvm.CapacityKeyPrefix + "ssd": "foo",
 							},
 						},
 					},
 				},
 			},
-			requested: 2 << 30,
+			requested: map[string]int64{
+				"ssd": 2 << 30,
+			},
 			expect: ExtenderFilterResult{
 				Nodes: &corev1.NodeList{
 					Items: []corev1.Node{
-						testNode("10.1.1.1", 5),
+						testNode("10.1.1.1", 5, 10, 10),
 					},
 				},
 				FailedNodes: FailedNodesMap{
@@ -65,17 +70,44 @@ func TestFilterNodes(t *testing.T) {
 		{
 			nodes: corev1.NodeList{
 				Items: []corev1.Node{
-					testNode("10.1.1.1", 5),
+					testNode("10.1.1.1", 10, 20, 30),
+					testNode("10.1.1.2", 1, 5, 10),
+					testNode("10.1.1.3", 100, 5, 100),
 				},
 			},
-			requested: 0,
+			requested: map[string]int64{
+				"ssd":  5 << 30,
+				"hdd1": 10 << 30,
+				"hdd2": 20 << 30,
+			},
 			expect: ExtenderFilterResult{
 				Nodes: &corev1.NodeList{
 					Items: []corev1.Node{
-						testNode("10.1.1.1", 5),
+						testNode("10.1.1.1", 5, 10, 10),
 					},
 				},
-				FailedNodes: nil,
+				FailedNodes: FailedNodesMap{
+					"10.1.1.2": "out of VG free space",
+					"10.1.1.3": "out of VG free space",
+				},
+			},
+		},
+		{
+			nodes: corev1.NodeList{
+				Items: []corev1.Node{
+					testNode("10.1.1.1", 5, 10, 10),
+				},
+			},
+			requested: map[string]int64{
+				"ssd": 0,
+			},
+			expect: ExtenderFilterResult{
+				Nodes: &corev1.NodeList{
+					Items: []corev1.Node{
+						testNode("10.1.1.1", 5, 10, 10),
+					},
+				},
+				FailedNodes: map[string]string{},
 			},
 		},
 	}
@@ -101,59 +133,79 @@ func TestFilterNodes(t *testing.T) {
 func TestExtractRequestedSize(t *testing.T) {
 	testCases := []struct {
 		input    *corev1.Pod
-		expected int64
+		expected map[string]int64
 	}{
 		{
 			input: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						topolvm.CapacityKeyPrefix + "ssd": strconv.Itoa(5 << 30),
+					},
+				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
 							Resources: corev1.ResourceRequirements{
-								Limits: corev1.ResourceList{
-									topolvm.CapacityResource: *resource.NewQuantity(5<<30, resource.BinarySI),
-								},
 								Requests: corev1.ResourceList{
-									topolvm.CapacityResource: *resource.NewQuantity(3<<30, resource.BinarySI),
+									topolvm.CapacityResource: *resource.NewQuantity(1, resource.BinarySI),
+								},
+								Limits: corev1.ResourceList{
+									topolvm.CapacityResource: *resource.NewQuantity(1, resource.BinarySI),
 								},
 							},
 						},
 						{
 							Resources: corev1.ResourceRequirements{
-								Limits: corev1.ResourceList{
-									topolvm.CapacityResource: *resource.NewQuantity(2<<30, resource.BinarySI),
-								},
 								Requests: corev1.ResourceList{
-									topolvm.CapacityResource: *resource.NewQuantity(1<<30, resource.BinarySI),
+									topolvm.CapacityResource: *resource.NewQuantity(1, resource.BinarySI),
+								},
+								Limits: corev1.ResourceList{
+									topolvm.CapacityResource: *resource.NewQuantity(1, resource.BinarySI),
 								},
 							},
 						},
 					},
 				},
 			},
-			expected: 5 << 30,
+			expected: map[string]int64{
+				"ssd": 5 << 30,
+			},
 		},
 		{
 			input: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						topolvm.CapacityKeyPrefix + "ssd": strconv.Itoa(3 << 30),
+					},
+				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
-									topolvm.CapacityResource: *resource.NewQuantity(3<<30, resource.BinarySI),
+									topolvm.CapacityResource: *resource.NewQuantity(1, resource.BinarySI),
 								},
 							},
 						},
 					},
 				},
 			},
-			expected: 3 << 30,
+			expected: map[string]int64{
+				"ssd": 3 << 30,
+			},
 		},
 	}
 
 	for _, tt := range testCases {
 		result := extractRequestedSize(tt.input)
-		if result != tt.expected {
-			t.Errorf("expected extractRequestedSize() to be %d, but actual %d", tt.expected, result)
+		for vg, cap := range tt.expected {
+			if v, ok := result[vg]; ok {
+				if v != cap {
+					t.Errorf("expected extractRequestedSize() to be %d, but actual %d", cap, v)
+				}
+			} else {
+				t.Errorf("clould not find target: %v", result)
+			}
 		}
 	}
 }

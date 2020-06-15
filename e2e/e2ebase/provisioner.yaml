@@ -11,6 +11,33 @@ metadata:
   name: topolvm-provisioner-immediate
 provisioner: topolvm.cybozu.com
 volumeBindingMode: Immediate
+parameters:
+  "topolvm.cybozu.com/device-class": "ssd"
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: topolvm-provisioner2
+provisioner: topolvm.cybozu.com
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  "topolvm.cybozu.com/device-class": "hdd1"
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: topolvm-provisioner3
+provisioner: topolvm.cybozu.com
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  "topolvm.cybozu.com/device-class": "hdd2"
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: topolvm-provisioner-default
+provisioner: topolvm.cybozu.com
+volumeBindingMode: WaitForFirstConsumer
 ---
 apiVersion: v1
 kind: PersistentVolume
@@ -31,7 +58,7 @@ spec:
         - key: kubernetes.io/hostname
           operator: NotIn
           values:
-          - kind-control-plane
+          - topolvm-e2e-control-plane
 ---
 apiVersion: v1
 kind: PersistentVolume
@@ -52,4 +79,4 @@ spec:
         - key: kubernetes.io/hostname
           operator: NotIn
           values:
-          - kind-control-plane
+          - topolvm-e2e-control-plane

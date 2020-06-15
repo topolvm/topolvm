@@ -12,27 +12,33 @@ import (
 )
 
 // NewVGService creates a VGServiceServer
-func NewVGService(vg *command.VolumeGroup, spareGB uint64) (proto.VGServiceServer, func()) {
+func NewVGService(manager *DeviceClassManager) (proto.VGServiceServer, func()) {
 	svc := &vgService{
-		vg:       vg,
-		spare:    spareGB << 30,
-		watchers: make(map[int]chan struct{}),
+		dcManager: manager,
+		watchers:  make(map[int]chan struct{}),
 	}
 
 	return svc, svc.notifyWatchers
 }
 
 type vgService struct {
-	vg    *command.VolumeGroup
-	spare uint64
+	dcManager *DeviceClassManager
 
 	mu             sync.Mutex
 	watcherCounter int
 	watchers       map[int]chan struct{}
 }
 
-func (s *vgService) GetLVList(context.Context, *proto.Empty) (*proto.GetLVListResponse, error) {
-	lvs, err := s.vg.ListVolumes()
+func (s *vgService) GetLVList(_ context.Context, req *proto.GetLVListRequest) (*proto.GetLVListResponse, error) {
+	dc, err := s.dcManager.DeviceClass(req.DeviceClass)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
+	}
+	vg, err := command.FindVolumeGroup(dc.VolumeGroup)
+	if err != nil {
+		return nil, err
+	}
+	lvs, err := vg.ListVolumes()
 	if err != nil {
 		log.Error("failed to list volumes", map[string]interface{}{
 			log.FnError: err,
@@ -53,8 +59,16 @@ func (s *vgService) GetLVList(context.Context, *proto.Empty) (*proto.GetLVListRe
 	return &proto.GetLVListResponse{Volumes: vols}, nil
 }
 
-func (s *vgService) GetFreeBytes(context.Context, *proto.Empty) (*proto.GetFreeBytesResponse, error) {
-	vgFree, err := s.vg.Free()
+func (s *vgService) GetFreeBytes(_ context.Context, req *proto.GetFreeBytesRequest) (*proto.GetFreeBytesResponse, error) {
+	dc, err := s.dcManager.DeviceClass(req.DeviceClass)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
+	}
+	vg, err := command.FindVolumeGroup(dc.VolumeGroup)
+	if err != nil {
+		return nil, err
+	}
+	vgFree, err := vg.Free()
 	if err != nil {
 		log.Error("failed to free VG", map[string]interface{}{
 			log.FnError: err,
@@ -62,10 +76,11 @@ func (s *vgService) GetFreeBytes(context.Context, *proto.Empty) (*proto.GetFreeB
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	if vgFree < s.spare {
+	spare := dc.GetSpare()
+	if vgFree < spare {
 		vgFree = 0
 	} else {
-		vgFree -= s.spare
+		vgFree -= spare
 	}
 
 	return &proto.GetFreeBytesResponse{
@@ -74,13 +89,32 @@ func (s *vgService) GetFreeBytes(context.Context, *proto.Empty) (*proto.GetFreeB
 }
 
 func (s *vgService) send(server proto.VGService_WatchServer) error {
-	vgFree, err := s.vg.Free()
+	vgs, err := command.ListVolumeGroups()
 	if err != nil {
-		return status.Error(codes.Internal, err.Error())
+		return err
 	}
-	return server.Send(&proto.WatchResponse{
-		FreeBytes: vgFree,
-	})
+	res := &proto.WatchResponse{}
+	for _, vg := range vgs {
+		vgFree, err := vg.Free()
+		if err != nil {
+			return status.Error(codes.Internal, err.Error())
+		}
+		dc, err := s.dcManager.FindDeviceClassByVGName(vg.Name())
+		if err == ErrNotFound {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		if dc.Default {
+			res.FreeBytes = vgFree
+		}
+		res.Items = append(res.Items, &proto.WatchItem{
+			DeviceClass: dc.Name,
+			FreeBytes:   vgFree,
+		})
+	}
+	return server.Send(res)
 }
 
 func (s *vgService) addWatcher(ch chan struct{}) int {

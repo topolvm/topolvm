@@ -59,10 +59,10 @@ func testNode() {
 		Expect(len(nodes.Items)).To(Equal(4))
 
 		vgNameMap := map[string]string{
-			"kind-worker":        "myvg1",
-			"kind-worker2":       "myvg2",
-			"kind-worker3":       "myvg3",
-			"kind-control-plane": "",
+			"topolvm-e2e-worker":        "node1-myvg1",
+			"topolvm-e2e-worker2":       "node2-myvg1",
+			"topolvm-e2e-worker3":       "node3-myvg1",
+			"topolvm-e2e-control-plane": "",
 		}
 
 		for _, node := range nodes.Items {
@@ -84,7 +84,7 @@ func testNode() {
 				vgName,
 			)
 			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", targetBytes, stderr)
-			val, ok := node.Annotations[topolvm.CapacityKey]
+			val, ok := node.Annotations[topolvm.CapacityKeyPrefix+"ssd"]
 			Expect(ok).To(Equal(true), "capacity is not annotated: "+node.Name)
 			Expect(val).To(Equal(strings.TrimSpace(string(targetBytes))), "unexpected capacity: "+node.Name)
 		}
@@ -110,7 +110,7 @@ func testNode() {
 				continue
 			}
 			found = true
-			Expect(family.Metric).Should(HaveLen(1))
+			Expect(family.Metric).Should(HaveLen(2))
 
 			stdout, stderr, err := kubectl("get", "node", pod.Spec.NodeName, "-o=json")
 			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
@@ -118,14 +118,29 @@ func testNode() {
 			var node corev1.Node
 			err = json.Unmarshal(stdout, &node)
 			Expect(err).ShouldNot(HaveOccurred())
-			capacity, ok := node.Annotations[topolvm.CapacityKey]
-			Expect(ok).Should(BeTrue())
-			expected, err := strconv.ParseFloat(capacity, 64)
-			Expect(err).ShouldNot(HaveOccurred())
+			for k, v := range node.Annotations {
+				if !strings.HasPrefix(k, topolvm.CapacityKeyPrefix) {
+					continue
+				}
+				dc := k[len(topolvm.CapacityKeyPrefix):]
+				if dc == topolvm.DefaultDeviceClassAnnotationName {
+					continue
+				}
+				expected, err := strconv.ParseFloat(v, 64)
+				Expect(err).ShouldNot(HaveOccurred())
 
-			val := family.Metric[0].Gauge.Value
-			Expect(val).ShouldNot(BeNil())
-			Expect(*val).Should(Equal(expected))
+				var targetValue *float64
+				for _, m := range family.Metric {
+					for _, label := range m.Label {
+						if *label.Name == "device_class" && *label.Value == dc {
+							targetValue = m.Gauge.Value
+							break
+						}
+					}
+				}
+				Expect(targetValue).ShouldNot(BeNil())
+				Expect(*targetValue).Should(BeNumerically("==", expected))
+			}
 			break
 		}
 		Expect(found).Should(BeTrue())

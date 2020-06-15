@@ -25,14 +25,15 @@ var meLogger = logf.Log.WithName("runners").WithName("metrics_exporter")
 
 // NodeMetrics is a set of metrics of a TopoLVM Node.
 type NodeMetrics struct {
-	FreeBytes uint64
+	FreeBytes   uint64
+	DeviceClass string
 }
 
 type metricsExporter struct {
 	client.Client
 	nodeName       string
 	vgService      proto.VGServiceClient
-	availableBytes prometheus.Gauge
+	availableBytes *prometheus.GaugeVec
 }
 
 var _ manager.LeaderElectionRunnable = &metricsExporter{}
@@ -40,13 +41,13 @@ var _ manager.LeaderElectionRunnable = &metricsExporter{}
 // NewMetricsExporter creates controller-runtime's manager.Runnable to run
 // a metrics exporter for a node.
 func NewMetricsExporter(conn *grpc.ClientConn, mgr manager.Manager, nodeName string) manager.Runnable {
-	availableBytes := prometheus.NewGauge(prometheus.GaugeOpts{
+	availableBytes := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace:   metricsNamespace,
 		Subsystem:   "volumegroup",
 		Name:        "available_bytes",
 		Help:        "LVM VG available bytes under lvmd management",
 		ConstLabels: prometheus.Labels{"node": nodeName},
-	})
+	}, []string{"device_class"})
 	metrics.Registry.MustRegister(availableBytes)
 
 	return &metricsExporter{
@@ -66,7 +67,7 @@ func (m *metricsExporter) Start(ch <-chan struct{}) error {
 			case <-ch:
 				return
 			case met := <-metricsCh:
-				m.availableBytes.Set(float64(met.FreeBytes))
+				m.availableBytes.WithLabelValues(met.DeviceClass).Set(float64(met.FreeBytes))
 			}
 		}
 	}()
@@ -102,8 +103,11 @@ func (m *metricsExporter) updateNode(ctx context.Context, wc proto.VGService_Wat
 			return err
 		}
 
-		ch <- NodeMetrics{
-			FreeBytes: res.GetFreeBytes(),
+		for _, item := range res.Items {
+			ch <- NodeMetrics{
+				DeviceClass: item.DeviceClass,
+				FreeBytes:   item.FreeBytes,
+			}
 		}
 
 		var node corev1.Node
@@ -129,7 +133,10 @@ func (m *metricsExporter) updateNode(ctx context.Context, wc proto.VGService_Wat
 			node2.Finalizers = append(node2.Finalizers, topolvm.NodeFinalizer)
 		}
 
-		node2.Annotations[topolvm.CapacityKey] = strconv.FormatUint(res.GetFreeBytes(), 10)
+		node2.Annotations[topolvm.CapacityKeyPrefix+topolvm.DefaultDeviceClassAnnotationName] = strconv.FormatUint(res.FreeBytes, 10)
+		for _, item := range res.Items {
+			node2.Annotations[topolvm.CapacityKeyPrefix+item.DeviceClass] = strconv.FormatUint(item.FreeBytes, 10)
+		}
 		if err := m.Patch(ctx, node2, client.MergeFrom(&node)); err != nil {
 			return err
 		}

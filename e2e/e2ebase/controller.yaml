@@ -10,7 +10,7 @@ spec:
     spec:
       securityContext: null
       nodeSelector:
-        kubernetes.io/hostname: kind-worker
+        kubernetes.io/hostname: topolvm-e2e-worker
 
       containers:
         - name: topolvm-controller

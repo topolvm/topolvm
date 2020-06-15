@@ -4,62 +4,78 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
+	"sync"
 
 	"github.com/cybozu-go/topolvm"
 	corev1 "k8s.io/api/core/v1"
 )
 
-func filterNodes(nodes corev1.NodeList, requested int64) ExtenderFilterResult {
-	if requested <= 0 {
+func filterNodes(nodes corev1.NodeList, requested map[string]int64) ExtenderFilterResult {
+	if len(requested) == 0 {
 		return ExtenderFilterResult{
 			Nodes: &nodes,
 		}
 	}
 
-	required := uint64(requested)
-	filtered := corev1.NodeList{}
-	failed := FailedNodesMap{}
+	failedNodes := make([]string, len(nodes.Items))
+	wg := &sync.WaitGroup{}
+	wg.Add(len(nodes.Items))
+	for i := range nodes.Items {
+		reason := &failedNodes[i]
+		node := nodes.Items[i]
+		go func() {
+			*reason = filterNode(node, requested)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	result := ExtenderFilterResult{
+		Nodes:       &corev1.NodeList{},
+		FailedNodes: FailedNodesMap{},
+	}
+	for i, reason := range failedNodes {
+		if len(reason) == 0 {
+			result.Nodes.Items = append(result.Nodes.Items, nodes.Items[i])
+		} else {
+			result.FailedNodes[nodes.Items[i].Name] = reason
+		}
+	}
+	return result
+}
 
-	for _, node := range nodes.Items {
-		val, ok := node.Annotations[topolvm.CapacityKey]
+func filterNode(node corev1.Node, requested map[string]int64) string {
+	for dc, required := range requested {
+		val, ok := node.Annotations[topolvm.CapacityKeyPrefix+dc]
 		if !ok {
-			failed[node.Name] = "no capacity annotation"
-			continue
+			return "no capacity annotation"
 		}
 		capacity, err := strconv.ParseUint(val, 10, 64)
 		if err != nil {
-			failed[node.Name] = "bad capacity annotation: " + val
-			continue
+			return "bad capacity annotation: " + val
 		}
-
-		if capacity < required {
-			failed[node.Name] = "out of VG free space"
-			continue
+		if capacity < uint64(required) {
+			return "out of VG free space"
 		}
-
-		filtered.Items = append(filtered.Items, node)
 	}
-	return ExtenderFilterResult{
-		Nodes:       &filtered,
-		FailedNodes: failed,
-	}
+	return ""
 }
 
-func extractRequestedSize(pod *corev1.Pod) int64 {
-	for _, container := range pod.Spec.Containers {
-		for k, v := range container.Resources.Limits {
-			if k == topolvm.CapacityResource {
-				return v.Value()
-			}
+func extractRequestedSize(pod *corev1.Pod) map[string]int64 {
+	result := make(map[string]int64)
+	for k, v := range pod.Annotations {
+		if !strings.HasPrefix(k, topolvm.CapacityKeyPrefix) {
+			continue
 		}
-		for k, v := range container.Resources.Requests {
-			if k == topolvm.CapacityResource {
-				return v.Value()
-			}
+		dc := k[len(topolvm.CapacityKeyPrefix):]
+		capacity, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			continue
 		}
+		result[dc] = capacity
 	}
 
-	return 0
+	return result
 }
 
 func (s scheduler) predicate(w http.ResponseWriter, r *http.Request) {

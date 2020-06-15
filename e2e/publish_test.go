@@ -2,13 +2,16 @@ package e2e
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	topolvmv1 "github.com/cybozu-go/topolvm/api/v1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"google.golang.org/grpc"
+	"sigs.k8s.io/yaml"
 )
 
 type cleanup struct {
@@ -75,8 +78,45 @@ func testPublishVolume() {
 	})
 
 	It("should publish filesystem", func() {
-		volumeID := "csi-node-test-fs"
 		mountTargetPath := "/mnt/csi-node-test"
+
+		By("creating a logical volume resource")
+		lvYaml := []byte(`apiVersion: topolvm.cybozu.com/v1
+kind: LogicalVolume
+metadata:
+  name: csi-node-test-fs
+spec:
+  deviceClass: ssd
+  name: csi-node-test-fs
+  nodeName: topolvm-e2e-worker
+  size: 1Gi
+`)
+
+		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+
+		defer kubectl("delete", "logicalvolume", "csi-node-test-fs")
+
+		var volumeID string
+		Eventually(func() error {
+			stdout, stderr, err := kubectl("get", "logicalvolume", "csi-node-test-fs", "-o", "yaml")
+			if err != nil {
+				return fmt.Errorf("failed to get logical volume. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+
+			var lv topolvmv1.LogicalVolume
+			err = yaml.Unmarshal(stdout, &lv)
+			if err != nil {
+				return err
+			}
+
+			if len(lv.Status.VolumeID) == 0 {
+				return errors.New("VolumeID is not set")
+			}
+			volumeID = lv.Status.VolumeID
+			return nil
+		}).Should(Succeed())
+
 		cl.register(volumeID, mountTargetPath)
 
 		By("creating Filesystem volume")
@@ -139,7 +179,43 @@ func testPublishVolume() {
 
 	It("should be worked NodePublishVolume successfully to create a block device", func() {
 		deviceTargetPath := "/dev/csi-node-test"
-		volumeID := "csi-node-test-block"
+
+		By("creating a logical volume resource")
+		lvYaml := []byte(`apiVersion: topolvm.cybozu.com/v1
+kind: LogicalVolume
+metadata:
+  name: csi-node-test-block
+spec:
+  deviceClass: ssd
+  name: csi-node-test-block
+  nodeName: topolvm-e2e-worker
+  size: 1Gi
+`)
+
+		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+		defer kubectl("delete", "logicalvolume", "csi-node-test-block")
+
+		var volumeID string
+		Eventually(func() error {
+			stdout, stderr, err := kubectl("get", "logicalvolume", "csi-node-test-block", "-o", "yaml")
+			if err != nil {
+				return fmt.Errorf("failed to get logical volume. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+
+			var lv topolvmv1.LogicalVolume
+			err = yaml.Unmarshal(stdout, &lv)
+			if err != nil {
+				return err
+			}
+
+			if len(lv.Status.VolumeID) == 0 {
+				return errors.New("VolumeID is not set")
+			}
+			volumeID = lv.Status.VolumeID
+			return nil
+		}).Should(Succeed())
+
 		cl.register(volumeID, deviceTargetPath)
 
 		By("creating raw block volume")

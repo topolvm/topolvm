@@ -12,6 +12,7 @@ import (
 	"github.com/cybozu-go/topolvm/controllers"
 	"github.com/cybozu-go/topolvm/csi"
 	"github.com/cybozu-go/topolvm/driver"
+	"github.com/cybozu-go/topolvm/driver/k8s"
 	"github.com/cybozu-go/topolvm/lvmd/proto"
 	"github.com/cybozu-go/topolvm/runners"
 	"github.com/spf13/viper"
@@ -97,12 +98,16 @@ func subMain() error {
 	}
 
 	// Add gRPC server to manager.
+	s, err := k8s.NewLogicalVolumeService(mgr)
+	if err != nil {
+		return err
+	}
 	if err := os.MkdirAll(driver.DeviceDirectory, 0755); err != nil {
 		return err
 	}
 	grpcServer := grpc.NewServer()
 	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityService(checker.Ready))
-	csi.RegisterNodeServer(grpcServer, driver.NewNodeService(nodename, conn))
+	csi.RegisterNodeServer(grpcServer, driver.NewNodeService(nodename, conn, s))
 	err = mgr.Add(runners.NewGRPCRunner(grpcServer, config.csiSocket, false))
 	if err != nil {
 		return err
@@ -123,7 +128,7 @@ func checkFunc(conn *grpc.ClientConn, r client.Reader) func() error {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		if _, err := vgs.GetFreeBytes(ctx, &proto.Empty{}); err != nil {
+		if _, err := vgs.GetFreeBytes(ctx, &proto.GetFreeBytesRequest{DeviceClass: topolvm.DefaultDeviceClassName}); err != nil {
 			return err
 		}
 

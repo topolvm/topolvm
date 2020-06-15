@@ -136,8 +136,8 @@ kubectl label namespace cert-manager topolvm.cybozu.com/webhook=ignore
 Create VG (VolumeGroup) on `worker1` and `worker2`.
 
 ```console
-gcloud compute ssh --zone ${ZONE} worker1 -- sudo vgcreate myvg /dev/nvme0n1
-gcloud compute ssh --zone ${ZONE} worker2 -- sudo vgcreate myvg /dev/nvme0n1
+gcloud compute ssh --zone ${ZONE} worker1 -- sudo vgcreate myvg1 /dev/nvme0n1
+gcloud compute ssh --zone ${ZONE} worker2 -- sudo vgcreate myvg1 /dev/nvme0n1
 ```
 
 Install `lvmd` on `worker1` and `worker2`.
@@ -149,6 +149,9 @@ gcloud compute ssh --zone ${ZONE} worker1
 TOPOLVM_VERSION=0.4.0
 sudo mkdir -p /opt/sbin
 curl -sSLf https://github.com/cybozu-go/topolvm/releases/download/v${TOPOLVM_VERSION}/lvmd-${TOPOLVM_VERSION}.tar.gz | sudo tar xzf - -C /opt/sbin
+
+# Put configuration file
+sudo curl -sSL -o /etc/topolvm/lvmd.yaml https://raw.githubusercontent.com/cybozu-go/topolvm/v${TOPOLVM_VERSION}/deploy/lvmd-config/lvmd.yaml
 
 # Register service
 sudo curl -sSL -o /etc/systemd/system/lvmd.service https://raw.githubusercontent.com/cybozu-go/topolvm/v${TOPOLVM_VERSION}/deploy/systemd/lvmd.service
@@ -164,6 +167,9 @@ gcloud compute ssh --zone ${ZONE} worker2
 TOPOLVM_VERSION=0.4.0
 sudo mkdir -p /opt/sbin
 curl -sSLf https://github.com/cybozu-go/topolvm/releases/download/v${TOPOLVM_VERSION}/lvmd-${TOPOLVM_VERSION}.tar.gz | sudo tar xzf - -C /opt/sbin
+
+# Put configuration file
+sudo curl -sSL -o /etc/topolvm/lvmd.yaml https://raw.githubusercontent.com/cybozu-go/topolvm/v${TOPOLVM_VERSION}/deploy/lvmd-config/lvmd.yaml
 
 # Register service
 sudo curl -sSL -o /etc/systemd/system/lvmd.service https://raw.githubusercontent.com/cybozu-go/topolvm/v${TOPOLVM_VERSION}/deploy/systemd/lvmd.service

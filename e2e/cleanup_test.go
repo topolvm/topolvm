@@ -77,6 +77,15 @@ spec:
           volumeMounts:
           - mountPath: /test1
             name: test-sts-pvc
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: test-sts-container
+              topologyKey: kubernetes.io/hostname
+            weight: 100
   volumeClaimTemplates:
   - metadata:
       name: test-sts-pvc
@@ -105,28 +114,32 @@ spec:
 			return nil
 		}).Should(Succeed())
 
-		// As pvc and pod are deleted in the finalizer of node resource, comfirm the resources before deleted.
+		// As pvc and pod are deleted in the finalizer of node resource, confirm the resources before deleted.
 		By("getting target pvcs/pods")
-		targetNode := "kind-worker3"
+		var targetPod *corev1.Pod
+		targetNode := "topolvm-e2e-worker3"
 		stdout, stderr, err = kubectl("-n", cleanupTest, "get", "pods", "-o=json")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		Expect(err).ShouldNot(HaveOccurred())
 		var pods corev1.PodList
 		err = json.Unmarshal(stdout, &pods)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		var targetPod corev1.Pod
+	Outer:
 		for _, pod := range pods.Items {
-			if pod.Spec.NodeName == targetNode {
-				for _, volume := range pod.Spec.Volumes {
-					if volume.PersistentVolumeClaim == nil {
-						continue
-					}
-					if strings.Contains(volume.PersistentVolumeClaim.ClaimName, "test-sts-pvc") {
-						targetPod = pod
-					}
+			if pod.Spec.NodeName != targetNode {
+				continue
+			}
+			for _, volume := range pod.Spec.Volumes {
+				if volume.PersistentVolumeClaim == nil {
+					continue
+				}
+				if strings.Contains(volume.PersistentVolumeClaim.ClaimName, "test-sts-pvc") {
+					targetPod = &pod
+					break Outer
 				}
 			}
 		}
+		Expect(targetPod).ShouldNot(BeNil())
 
 		stdout, stderr, err = kubectl("-n", cleanupTest, "get", "pvc", "-o=json")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
@@ -134,7 +147,7 @@ spec:
 		err = json.Unmarshal(stdout, &pvcs)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		var targetPVC corev1.PersistentVolumeClaim
+		var targetPVC *corev1.PersistentVolumeClaim
 		for _, pvc := range pvcs.Items {
 			if _, ok := pvc.Annotations[controllers.AnnSelectedNode]; !ok {
 				continue
@@ -142,8 +155,10 @@ spec:
 			if pvc.Annotations[controllers.AnnSelectedNode] != targetNode {
 				continue
 			}
-			targetPVC = pvc
+			targetPVC = &pvc
+			break
 		}
+		Expect(targetPVC).ShouldNot(BeNil())
 
 		stdout, stderr, err = kubectl("get", "logicalvolume", "-o=json")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
@@ -157,7 +172,7 @@ spec:
 			}
 		}
 
-		By("setting unschedule flag to Node kind-worker3")
+		By("setting unschedule flag to Node topolvm-e2e-worker3")
 		stdout, stderr, err = kubectl("cordon", targetNode)
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
@@ -174,11 +189,11 @@ spec:
 				break
 			}
 		}
-		Expect(targetTopolvmNode).ShouldNot(Equal(""), "cannot get topolmv-node name on kind-worker3")
+		Expect(targetTopolvmNode).ShouldNot(Equal(""), "cannot get topolmv-node name on topolvm-e2e-worker3")
 		stdout, stderr, err = kubectl("-n", "topolvm-system", "delete", "pod", targetTopolvmNode)
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
-		By("deleting Node kind-worker3")
+		By("deleting Node topolvm-e2e-worker3")
 		stdout, stderr, err = kubectl("delete", "node", targetNode, "--wait=true")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 

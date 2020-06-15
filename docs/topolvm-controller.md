@@ -23,8 +23,9 @@ Webhooks
 
 ### `/pod/mutate`
 
-Mutate new Pods to add `topolvm.cybozu.com/capacity` resource request to
-its first container.  This resource request will be used by
+Mutate new Pods to add `capacity.topolvm.cybozu.com/<device-class>` annotations to the pod
+and `topolvm.cybozu.com/capacity` resource request to its first container.
+These annotations and the resource request will be used by
 [`topolvm-scheduler`](./topolvm-scheduler.md) to filter and score Nodes.
 
 This hook handles two classes of pods. First, pods having at least one _unbound_
@@ -50,6 +51,7 @@ metadata:
 provisioner: topolvm.cybozu.com            # topolvm-scheduler works only for StorageClass with this provisioner.
 parameters:
   "csi.storage.k8s.io/fstype": "xfs"
+  "topolvm.cybozu.com/device-class": "ssd"
 volumeBindingMode: WaitForFirstConsumer
 ---
 kind: PersistentVolumeClaim
@@ -85,20 +87,28 @@ spec:
       claimName: local-pvc1                # have the above PVC
 ```
 
-The hook inserts `topolvm.cybozu.com/capacity` to the first container as follows:
+The hook inserts `capacity.topolvm.cybozu.com/<device-class>` to the annotations
+and `topolvm.cybozu.com/capacity` to the first container as follows:
 
 ```yaml
+metadata:
+  annotations:
+    capacity.topolvm.cybozu.com/ssd: "1073741824"
 spec:
   containers:
   - name: testhttpd
     resources:
       limits:
-        topolvm.cybozu.com/capacity: "1073741824"
+        topolvm.cybozu.com/capacity: "1"
       requests:
-        topolvm.cybozu.com/capacity: "1073741824"
+        topolvm.cybozu.com/capacity: "1"
 ```
 
+If the specified StorageClass does not have `topolvm.cybozu.com/device-class` parameter,
+it will be annotated with `capacity.topolvm.cybozu.com/00default`.
+
 Below is an example for TopoLVM inline ephemeral volumes:
+
 ```yaml
 kind: Pod
 metadata:
@@ -119,16 +129,23 @@ spec:
       driver: topolvm.cybozu.com
 ```
 
-The hook inserts `topolvm.cybozu.com/capacity` to the ubuntu container as follows:
+The hook inserts `capacity.topolvm.cybozu.com/00default` to the annotations and
+`topolvm.cybozu.com/capacity` to the ubuntu container as follows:
 
 ```yaml
+metadata:
+  annotations:
+    capacity.topolvm.cybozu.com/00default: "1073741824"
 spec:
   containers:
   - name: ubuntu
     resources:
       limits:
-        topolvm.cybozu.com/capacity: "1073741824"
+        topolvm.cybozu.com/capacity: "1"
 ```
+
+Inline ephemeral volume cannot specify arbitrarily device-class.
+Therefore, `00default` is annotated to indicate the default device-class.
 
 ### `/pvc/mutate`
 

@@ -31,9 +31,11 @@ type controllerService struct {
 func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	capabilities := req.GetVolumeCapabilities()
 	source := req.GetVolumeContentSource()
+	deviceClass := req.GetParameters()[topolvm.DeviceClassKey]
 
 	ctrlLogger.Info("CreateVolume called",
 		"name", req.GetName(),
+		"device_class", deviceClass,
 		"required", req.GetCapacityRange().GetRequiredBytes(),
 		"limit", req.GetCapacityRange().GetLimitBytes(),
 		"parameters", req.GetParameters(),
@@ -86,7 +88,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 		// - https://github.com/container-storage-interface/spec/blob/release-1.1/spec.md#createvolume
 		// - https://github.com/kubernetes-csi/csi-test/blob/6738ab2206eac88874f0a3ede59b40f680f59f43/pkg/sanity/controller.go#L404-L428
 		ctrlLogger.Info("decide node because accessibility_requirements not found")
-		nodeName, capacity, err := s.nodeService.GetMaxCapacity(ctx)
+		nodeName, capacity, err := s.nodeService.GetMaxCapacity(ctx, deviceClass)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to get max capacity node %v", err)
 		}
@@ -124,7 +126,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 
 	name = strings.ToLower(name)
 
-	volumeID, err := s.lvService.CreateVolume(ctx, node, name, requestGb)
+	volumeID, err := s.lvService.CreateVolume(ctx, node, deviceClass, name, requestGb)
 	if err != nil {
 		_, ok := status.FromError(err)
 		if !ok {
@@ -232,11 +234,13 @@ func (s controllerService) GetCapacity(ctx context.Context, req *csi.GetCapacity
 		ctrlLogger.Info("capability argument is not nil, but TopoLVM ignores it")
 	}
 
+	deviceClass := req.GetParameters()[topolvm.DeviceClassKey]
+
 	var capacity int64
 	switch topology {
 	case nil:
 		var err error
-		capacity, err = s.nodeService.GetTotalCapacity(ctx)
+		capacity, err = s.nodeService.GetTotalCapacity(ctx, deviceClass)
 		if err != nil {
 			return nil, status.Error(codes.Internal, err.Error())
 		}
@@ -246,7 +250,7 @@ func (s controllerService) GetCapacity(ctx context.Context, req *csi.GetCapacity
 			return nil, status.Errorf(codes.Internal, "%s is not found in req.AccessibleTopology", topolvm.TopologyNodeKey)
 		}
 		var err error
-		capacity, err = s.nodeService.GetCapacityByTopologyLabel(ctx, v)
+		capacity, err = s.nodeService.GetCapacityByTopologyLabel(ctx, v, deviceClass)
 		switch err {
 		case k8s.ErrNodeNotFound:
 			ctrlLogger.Info("target is not found", "accessible_topology", req.AccessibleTopology)
@@ -329,8 +333,7 @@ func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.
 			NodeExpansionRequired: true,
 		}, nil
 	}
-
-	capacity, err := s.nodeService.GetCapacityByName(ctx, lv.Spec.NodeName)
+	capacity, err := s.nodeService.GetCapacityByName(ctx, lv.Spec.NodeName, lv.Spec.DeviceClass)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}

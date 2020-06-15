@@ -72,6 +72,7 @@ var _ = BeforeSuite(func() {
 	Eventually(waitKindnet).Should(Succeed())
 	time.Sleep(5 * time.Second)
 	Eventually(waitKindnet).Should(Succeed())
+	SetDefaultEventuallyTimeout(3 * time.Minute)
 
 	podYAML := `apiVersion: v1
 kind: Pod
@@ -103,10 +104,11 @@ var _ = Describe("TopoLVM", func() {
 	Context("metrics", testMetrics)
 	Context("publish", testPublishVolume)
 	Context("e2e", testE2E)
+	Context("multiple-vg", testMultipleVolumeGroups)
 	Context("cleanup", testCleanup)
 	Context("CSI sanity", func() {
 		It("should add node selector to node DaemonSet for CSI test", func() {
-			_, _, err := kubectl("delete", "nodes", "kind-worker2")
+			_, _, err := kubectl("delete", "nodes", "topolvm-e2e-worker2")
 			Expect(err).ShouldNot(HaveOccurred())
 			Eventually(func() error {
 				var ds appsv1.DaemonSet

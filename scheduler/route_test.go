@@ -6,21 +6,28 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strconv"
 	"testing"
 
 	"github.com/cybozu-go/topolvm"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var extenderArgs = ExtenderArgs{
 	Pod: &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{
+				topolvm.CapacityKeyPrefix + "ssd": strconv.Itoa(3 << 30),
+			},
+		},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
 				{
 					Resources: corev1.ResourceRequirements{
 						Limits: corev1.ResourceList{
-							topolvm.CapacityResource: *resource.NewQuantity(3<<30, resource.BinarySI),
+							topolvm.CapacityResource: *resource.NewQuantity(1, resource.BinarySI),
 						},
 					},
 				},
@@ -29,8 +36,8 @@ var extenderArgs = ExtenderArgs{
 	},
 	Nodes: &corev1.NodeList{
 		Items: []corev1.Node{
-			testNode("10.1.1.1", 2),
-			testNode("10.1.1.2", 5),
+			testNode("10.1.1.1", 2, 10, 10),
+			testNode("10.1.1.2", 5, 10, 10),
 		},
 	},
 }
@@ -38,7 +45,9 @@ var extenderArgs = ExtenderArgs{
 func testPredicate(t *testing.T) {
 	t.Parallel()
 
-	handler, err := NewHandler(1)
+	handler, err := NewHandler(1, map[string]float64{
+		"ssd": 1,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,7 +92,9 @@ func testPredicate(t *testing.T) {
 func testPrioritize(t *testing.T) {
 	t.Parallel()
 
-	handler, err := NewHandler(1)
+	handler, err := NewHandler(1, map[string]float64{
+		"ssd": 1,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

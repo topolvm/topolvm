@@ -36,6 +36,8 @@ spec:
         spec:
           description: LogicalVolumeSpec defines the desired state of LogicalVolume
           properties:
+            deviceClass:
+              type: string
             name:
               description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
                 Important: Run "make" to regenerate code after modifying this file'

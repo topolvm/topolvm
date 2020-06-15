@@ -10,6 +10,7 @@ import (
 
 	"github.com/cybozu-go/topolvm"
 	"github.com/cybozu-go/topolvm/csi"
+	"github.com/cybozu-go/topolvm/driver/k8s"
 	"github.com/cybozu-go/topolvm/filesystem"
 	"github.com/cybozu-go/topolvm/lvmd/proto"
 	"golang.org/x/sys/unix"
@@ -34,21 +35,23 @@ const (
 var nodeLogger = logf.Log.WithName("driver").WithName("node")
 
 // NewNodeService returns a new NodeServer.
-func NewNodeService(nodeName string, conn *grpc.ClientConn) csi.NodeServer {
+func NewNodeService(nodeName string, conn *grpc.ClientConn, service *k8s.LogicalVolumeService) csi.NodeServer {
 	return &nodeService{
-		nodeName:  nodeName,
-		client:    proto.NewVGServiceClient(conn),
-		lvService: proto.NewLVServiceClient(conn),
+		nodeName:     nodeName,
+		client:       proto.NewVGServiceClient(conn),
+		lvService:    proto.NewLVServiceClient(conn),
+		k8sLVService: service,
 	}
 }
 
 type nodeService struct {
 	*csi.UnimplementedNodeServer
 
-	nodeName  string
-	client    proto.VGServiceClient
-	lvService proto.LVServiceClient
-	mu        sync.Mutex
+	nodeName     string
+	client       proto.VGServiceClient
+	lvService    proto.LVServiceClient
+	k8sLVService *k8s.LogicalVolumeService
+	mu           sync.Mutex
 }
 
 func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
@@ -83,15 +86,17 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	var lv *proto.LogicalVolume
+	var err error
 	if isInlineEphemeralVolumeReq {
-		lv, err := s.getLvFromContext(ctx, volumeID)
+		lv, err = s.getLvFromContext(ctx, topolvm.DefaultDeviceClassName, volumeID)
 		if err != nil {
 			return nil, err
 		}
 		// Need to check if the LV already exists so this block is idempotent.
 		if lv == nil {
 			var reqGb uint64 = topolvm.DefaultSizeGb
-			if sizeStr, ok := volumeContext[topolvm.SizeVolConKey]; ok {
+			if sizeStr, ok := volumeContext[topolvm.EphemeralVolumeSizeKey]; ok {
 				var err error
 				reqGb, err = strconv.ParseUint(sizeStr, 10, 64)
 				if err != nil {
@@ -100,19 +105,28 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 			}
 			nodeLogger.Info("Processing ephemeral inline volume request", "reqGb", reqGb)
 			_, err := s.lvService.CreateLV(ctx, &proto.CreateLVRequest{
-				Name:   volumeID,
-				SizeGb: reqGb,
-				Tags:   []string{"ephemeral"},
+				Name:        volumeID,
+				DeviceClass: topolvm.DefaultDeviceClassName,
+				SizeGb:      reqGb,
+				Tags:        []string{"ephemeral"},
 			})
 			if err != nil {
 				return nil, status.Errorf(codes.Internal, "failed to create LV %v", err)
 			}
+			lv, err = s.getLvFromContext(ctx, topolvm.DefaultDeviceClassName, volumeID)
+			if err != nil {
+				return nil, err
+			}
 		}
-	}
-
-	lv, err := s.getLvFromContext(ctx, volumeID)
-	if err != nil {
-		return nil, err
+	} else {
+		lvr, err := s.k8sLVService.GetVolume(ctx, volumeID)
+		if err != nil {
+			return nil, err
+		}
+		lv, err = s.getLvFromContext(ctx, lvr.Spec.DeviceClass, volumeID)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if lv == nil {
 		return nil, status.Errorf(codes.NotFound, "failed to find LV: %s", volumeID)
@@ -130,7 +144,7 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 			// guarantee that NodePublishVolume will be called again, so if
 			// anything fails after the volume is created we need to attempt to
 			// clean up the LVM so we don't leak storage space.
-			if _, err = s.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: volumeID}); err != nil {
+			if _, err = s.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: volumeID, DeviceClass: topolvm.DefaultDeviceClassName}); err != nil {
 				return nil, status.Errorf(codes.Internal, "failed to remove LV for %s: %v", volumeID, err)
 			}
 		}
@@ -248,8 +262,8 @@ func (s *nodeService) findVolumeByID(listResp *proto.GetLVListResponse, name str
 	return nil
 }
 
-func (s *nodeService) getLvFromContext(ctx context.Context, volumeID string) (*proto.LogicalVolume, error) {
-	listResp, err := s.client.GetLVList(ctx, &proto.Empty{})
+func (s *nodeService) getLvFromContext(ctx context.Context, deviceClass, volumeID string) (*proto.LogicalVolume, error) {
+	listResp, err := s.client.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: deviceClass})
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list LV: %v", err)
 	}
@@ -290,12 +304,12 @@ func (s *nodeService) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 		if err != nil {
 			return unpublishResp, err
 		}
-		volume, err := s.getLvFromContext(ctx, volID)
+		volume, err := s.getLvFromContext(ctx, topolvm.DefaultDeviceClassName, volID)
 		if err != nil {
 			return nil, err
 		}
 		if volume != nil && s.isEphemeralVolume(volume) {
-			if _, err = s.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: volID}); err != nil {
+			if _, err = s.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: volID, DeviceClass: topolvm.DefaultDeviceClassName}); err != nil {
 				return nil, status.Errorf(codes.Internal, "failed to remove LV for %s: %v", volID, err)
 			}
 		}
@@ -447,7 +461,14 @@ func (s *nodeService) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 	}
 
 	device := filepath.Join(DeviceDirectory, vid)
-	lv, err := s.getLvFromContext(ctx, vid)
+	lvr, err := s.k8sLVService.GetVolume(ctx, vid)
+	deviceClass := topolvm.DefaultDeviceClassName
+	if err == nil {
+		deviceClass = lvr.Spec.DeviceClass
+	} else if err != k8s.ErrVolumeNotFound {
+		return nil, err
+	}
+	lv, err := s.getLvFromContext(ctx, deviceClass, vid)
 	if err != nil {
 		return nil, err
 	}

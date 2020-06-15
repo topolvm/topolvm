@@ -1,0 +1,8 @@
+device-classes:
+  - name: "ssd"
+    volume-group: "node1-myvg1"
+    default: true
+    spare-gb: 1
+  - name: "hdd1"
+    volume-group: "node1-myvg2"
+    spare-gb: 1

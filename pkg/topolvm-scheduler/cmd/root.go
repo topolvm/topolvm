@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 
@@ -9,11 +10,27 @@ import (
 	"github.com/cybozu-go/topolvm/scheduler"
 	"github.com/cybozu-go/well"
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/yaml"
 )
 
-var config struct {
-	listenAddr string
-	divisor    float64
+var cfgFilePath string
+
+const defaultDivisor = 1
+const defaultListenAddr = ":8000"
+
+// Config represents configuration parameters for topolvm-scheduler
+type Config struct {
+	// ListenAddr is listen address of topolvm-scheduler.
+	ListenAddr string `json:"listen"`
+	// Divisors is a mapping between device-class names and their divisors.
+	Divisors map[string]float64 `json:"divisors"`
+	// DefaultDivisor is the default divisor value.
+	DefaultDivisor float64 `json:"default-divisor"`
+}
+
+var config = &Config{
+	ListenAddr:     defaultListenAddr,
+	DefaultDivisor: defaultDivisor,
 }
 
 var rootCmd = &cobra.Command{
@@ -26,7 +43,7 @@ The extender implements filter and prioritize verbs.
 
 The filter verb is "predicate" and served at "/predicate" via HTTP.
 It filters out nodes that have less storage capacity than requested.
-The requested capacity is read from "topolvm.cybozu.com/capacity"
+The requested capacity is read from "capacity.topolvm.cybozu.com/<device-class>"
 resource value.
 
 The prioritize verb is "prioritize" and served at "/prioritize" via HTTP.
@@ -48,14 +65,25 @@ func subMain() error {
 		return err
 	}
 
-	h, err := scheduler.NewHandler(config.divisor)
+	if len(cfgFilePath) != 0 {
+		b, err := ioutil.ReadFile(cfgFilePath)
+		if err != nil {
+			return err
+		}
+		err = yaml.Unmarshal(b, config)
+		if err != nil {
+			return err
+		}
+	}
+
+	h, err := scheduler.NewHandler(config.DefaultDivisor, config.Divisors)
 	if err != nil {
 		return err
 	}
 
 	serv := &well.HTTPServer{
 		Server: &http.Server{
-			Addr:    config.listenAddr,
+			Addr:    config.ListenAddr,
 			Handler: h,
 		},
 	}
@@ -83,6 +111,5 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().StringVar(&config.listenAddr, "listen", ":8000", "listen address")
-	rootCmd.Flags().Float64Var(&config.divisor, "divisor", 1, "capacity divisor")
+	rootCmd.PersistentFlags().StringVar(&cfgFilePath, "config", "", "config file")
 }

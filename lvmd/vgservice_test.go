@@ -46,9 +46,9 @@ func (s *mockWatchServer) RecvMsg(m interface{}) error {
 	panic("implement me")
 }
 
-func testWatch(t *testing.T, vg *command.VolumeGroup) {
+func testWatch(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	vgService, notifier := NewVGService(vg, 1)
+	vgService, notifier := NewVGService(NewDeviceClassManager([]*DeviceClass{{Name: "ssd", VolumeGroup: "test_vgservice"}}))
 
 	ch1 := make(chan struct{})
 	server1 := &mockWatchServer{
@@ -113,8 +113,9 @@ func testWatch(t *testing.T, vg *command.VolumeGroup) {
 }
 
 func testVGService(t *testing.T, vg *command.VolumeGroup) {
-	vgService, _ := NewVGService(vg, 1)
-	res, err := vgService.GetLVList(context.Background(), &proto.Empty{})
+	spareGB := uint64(1)
+	vgService, _ := NewVGService(NewDeviceClassManager([]*DeviceClass{{Name: vg.Name(), VolumeGroup: vg.Name(), SpareGB: &spareGB}}))
+	res, err := vgService.GetLVList(context.Background(), &proto.GetLVListRequest{DeviceClass: vg.Name()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +129,7 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 		t.Fatal(err)
 	}
 
-	res, err = vgService.GetLVList(context.Background(), &proto.Empty{})
+	res, err = vgService.GetLVList(context.Background(), &proto.GetLVListRequest{DeviceClass: vg.Name()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +161,7 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 		t.Fatal(err)
 	}
 
-	res, err = vgService.GetLVList(context.Background(), &proto.Empty{})
+	res, err = vgService.GetLVList(context.Background(), &proto.GetLVListRequest{DeviceClass: vg.Name()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -169,7 +170,7 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 		t.Fatalf("numVolumes must be 2: %d", numVols3)
 	}
 
-	res2, err := vgService.GetFreeBytes(context.Background(), &proto.Empty{})
+	res2, err := vgService.GetFreeBytes(context.Background(), &proto.GetFreeBytesRequest{DeviceClass: vg.Name()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -212,6 +213,6 @@ func TestVGService(t *testing.T) {
 		testVGService(t, vg)
 	})
 	t.Run("Watch", func(t *testing.T) {
-		testWatch(t, vg)
+		testWatch(t)
 	})
 }

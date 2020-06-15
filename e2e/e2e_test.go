@@ -27,7 +27,10 @@ func testE2E() {
 	})
 
 	AfterEach(func() {
-		kubectl("delete", "namespaces/"+ns)
+		// When a test fails, I want to investigate the cause. So please don't remove the namespace!
+		if !CurrentGinkgoTestDescription().Failed {
+			kubectl("delete", "namespaces/"+ns)
+		}
 	})
 
 	It("should be mounted in specified path", func() {
@@ -304,10 +307,10 @@ spec:
 			var maxCapNodes []string
 			var maxCapacity int
 			for _, node := range nodes.Items {
-				if node.Name == "kind-control-plane" {
+				if node.Name == "topolvm-e2e-control-plane" {
 					continue
 				}
-				strCap, ok := node.Annotations[topolvm.CapacityKey]
+				strCap, ok := node.Annotations[topolvm.CapacityKeyPrefix+"ssd"]
 				Expect(ok).To(Equal(true), "capacity is not annotated: "+node.Name)
 				capacity, err := strconv.Atoi(strCap)
 				Expect(err).ShouldNot(HaveOccurred())
@@ -580,11 +583,11 @@ spec:
 		var targetNode string
 		var maxCapacity int
 		for _, node := range nodeList.Items {
-			if node.Name == "kind-control-plane" {
+			if node.Name == "topolvm-e2e-control-plane" {
 				continue
 			}
 
-			strCap, ok := node.Annotations[topolvm.CapacityKey]
+			strCap, ok := node.Annotations[topolvm.CapacityKeyPrefix+"ssd"]
 			Expect(ok).To(Equal(true), "capacity is not annotated: "+node.Name)
 			capacity, err := strconv.Atoi(strCap)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -725,7 +728,6 @@ spec:
 				currentK8sVersion,
 			))
 		}
-
 		By("reading current count of LVMs")
 		baseLvmCount, err := countLVMs()
 		Expect(err).ShouldNot(HaveOccurred())
@@ -790,7 +792,6 @@ spec:
 				currentK8sVersion,
 			))
 		}
-
 		By("deploying Pod with PVC")
 		podYAML := `apiVersion: v1
 kind: Pod
@@ -846,7 +847,7 @@ spec:
 			if err != nil {
 				return fmt.Errorf("failed to get volume size. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
 			}
-			dfFields := strings.Fields((string(stdout)))
+			dfFields := strings.Fields(string(stdout))
 			volSize, err := strconv.Atoi(dfFields[1])
 			if err != nil {
 				return fmt.Errorf("failed to convert volume size string. stdout: %s, err: %v", stdout, err)
@@ -963,7 +964,6 @@ spec:
 				currentK8sVersion,
 			))
 		}
-
 		By("deploying Pod with PVC")
 		deviceFile := "/dev/e2etest"
 		podYAML := fmt.Sprintf(`apiVersion: v1
