@@ -43,13 +43,7 @@ Bump version
 2. Checkout `master` branch.
 3. Make a branch to release, for example by `git neco dev bump-$VERSION`
 4. Update `version.go`.
-5. Update image versions in documents.
-
-    ```console
-    $ sed -r -i "s/:[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/:${VERSION}/g" \
-        deploy/README.md deploy/manifests/*.yaml
-    ```
-
+5. Update image versions in deploy/README.md and deploy/manifests/kustomization.yaml.
 6. Edit `CHANGELOG.md` for the new version ([example][]).
 7. Commit the change and create a pull request:
 

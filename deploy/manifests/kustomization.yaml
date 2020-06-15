@@ -12,4 +12,4 @@ resources:
   - scheduler.yaml
 imageTags:
   - name: quay.io/cybozu/topolvm
-    newTag: 0.4.8
+    newTag: 0.5.0-rc.1
