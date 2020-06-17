@@ -15,8 +15,6 @@ require (
 	github.com/go-sql-driver/mysql v1.4.1 // indirect
 	github.com/golang/protobuf v1.3.4
 	github.com/google/certificate-transparency-go v1.0.21 // indirect
-	github.com/gostaticanalysis/comment v1.3.0 // indirect
-	github.com/gostaticanalysis/nilerr v0.0.0-20190308085927-d5e696fc40f8 // indirect
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/jmhodges/clock v0.0.0-20160418191101-880ee4c33548 // indirect
 	github.com/jmoiron/sqlx v1.2.0 // indirect
@@ -32,8 +30,10 @@ require (
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/viper v1.3.2
 	go.uber.org/atomic v1.4.0 // indirect
+	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b // indirect
 	golang.org/x/sys v0.0.0-20190922100055-0a153f010e69
-	golang.org/x/tools v0.0.0-20200526224456-8b020aee10d2 // indirect
+	golang.org/x/text v0.3.3 // indirect
+	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect
 	google.golang.org/grpc v1.28.0
 	k8s.io/api v0.17.5
 	k8s.io/apimachinery v0.17.5
