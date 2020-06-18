@@ -47,7 +47,7 @@ clean: stop-lvmd
 
 /tmp/topolvm/lvmd/lvmd.yaml: ../deploy/lvmd-config/lvmd.yaml
 	mkdir -p /tmp/topolvm/lvmd
-	cp $< $@
+	sed -e 's/\/run\/topolvm\/lvmd.sock/\/tmp\/topolvm\/lvmd\/lvmd.sock/' $< > $@
 
 launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml /tmp/topolvm/scheduler/scheduler-policy.cfg kind/topolvm-cluster.yaml
 	$(MAKE) shutdown-kind
@@ -71,7 +71,7 @@ start-lvmd: /tmp/topolvm/lvmd/lvmd.yaml
 	truncate --size=20G build/backing_store; \
 	$(SUDO) losetup -f build/backing_store; \
 	$(SUDO) vgcreate -y myvg1 $$($(SUDO) losetup -j build/backing_store | cut -d: -f1); \
-	$(SUDO) systemd-run --unit=lvmd.service $(shell pwd)/build/lvmd --listen=/tmp/topolvm/lvmd/lvmd.sock --config=/tmp/topolvm/lvmd/lvmd.yaml; \
+	$(SUDO) systemd-run --unit=lvmd.service $(shell pwd)/build/lvmd --config=/tmp/topolvm/lvmd/lvmd.yaml; \
 
 stop-lvmd:
 	$(MAKE) shutdown-kind

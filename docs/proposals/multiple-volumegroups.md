@@ -349,6 +349,7 @@ $ lvmd --volume-group=myvg1 --listen=/run/topolvm/lvmd.sock --spare=10
 You have to prepare a configuration file as follows:
 
 ```yaml
+socket-name: /run/topolvm/lvmd.sock
 device-classes:
   - name: ssd
     volume-group: myvg1
@@ -359,6 +360,6 @@ device-classes:
 And run `lvmd` with the following options:
 
 ```console
-$ lvmd --listen=/run/topolvm/lvmd.sock --config=/path/to/your-config.yaml
+$ lvmd --config=/path/to/your-config.yaml
 ```
 

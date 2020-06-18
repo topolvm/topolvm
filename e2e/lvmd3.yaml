@@ -1,3 +1,4 @@
+socket-name: /tmp/topolvm/lvmd3/lvmd.sock
 device-classes:
   - name: "ssd"
     volume-group: "node3-myvg1"

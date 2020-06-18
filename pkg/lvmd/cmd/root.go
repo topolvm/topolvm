@@ -30,7 +30,9 @@ type Config struct {
 	DeviceClasses []*lvmd.DeviceClass `json:"device-classes"`
 }
 
-var config Config
+var config = &Config{
+	SocketName: topolvm.DefaultLVMdSocket,
+}
 
 const (
 	maxDevNameLength = 127
@@ -139,6 +141,5 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().StringVar(&config.SocketName, "listen", topolvm.DefaultLVMdSocket, "Unix domain socket name")
 	rootCmd.PersistentFlags().StringVar(&cfgFilePath, "config", filepath.Join("etc", "topolvm", "lvmd.yaml"), "config file")
 }
