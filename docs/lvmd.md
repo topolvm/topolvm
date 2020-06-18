@@ -13,12 +13,12 @@ Command-line options are:
 
 | Option         | Type   | Default value            | Description                                |
 | -------------- | ------ | ------------------------ | ------------------------------------------ |
-| `listen`       | string | `/run/topolvm/lvmd.sock` | unix domain socket endpoint of gRPC        |
 | `config`       | string | `/etc/topolvm/lvmd.yaml` | Config file path for device-class settings |
 
 The device-class settings can be specified in YAML file:
 
 ```yaml
+socket-name: /run/topolvm/lvmd.sock
 device-classes:
   - name: ssd
     volume-group: ssd-vg
@@ -28,6 +28,12 @@ device-classes:
     volume-group: hdd-vg
     spare-gb: 10
 ```
+
+| Name             | Type                     | Default                  | Description                         |
+| `socket-name`    | string                   | `/run/topolvm/lvmd.sock` | Unix domain socket endpoint of gRPC |
+| `device-classes` | `map[string]DeviceClass` | -                        | The device-class settings           |
+
+The device-class settings can be specified in the following fields:
 
 | Name           | Type   | Default | Description                                                    |
 | -------------- | ------ | ------- | -------------------------------------------------------------- |

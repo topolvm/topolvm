@@ -95,7 +95,7 @@ start-lvmd:
 	$(SUDO) vgcreate -y node3-myvg3 $$($(SUDO) losetup -j build/backing_store3_3 | cut -d: -f1); \
 
 	for i in $$(seq 3); do \
-		$(SUDO) systemd-run --unit=lvmd$$i.service $(shell pwd)/build/lvmd --listen=/tmp/topolvm/lvmd$$i/lvmd.sock --config=$(shell pwd)/lvmd$$i.yaml; \
+		$(SUDO) systemd-run --unit=lvmd$$i.service $(shell pwd)/build/lvmd --config=$(shell pwd)/lvmd$$i.yaml; \
 	done
 
 stop-lvmd:
