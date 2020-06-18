@@ -1,0 +1,31 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: topolvm-system
+  name: topolvm-scheduler
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: topolvm-system
+  name: psp:topolvm-scheduler
+rules:
+  - apiGroups: ["policy"]
+    resources: ["podsecuritypolicies"]
+    verbs: ["use"]
+    resourceNames: ["topolvm-scheduler"]
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: topolvm-system
+  name: topolvm-scheduler:psp:topolvm-scheduler
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: psp:topolvm-scheduler
+subjects:
+- kind: ServiceAccount
+  namespace: topolvm-system
+  name: topolvm-scheduler

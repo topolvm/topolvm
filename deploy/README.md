@@ -54,7 +54,7 @@ Follow the [documentation](https://docs.cert-manager.io/en/latest/getting-starte
 ### Prepare the certificate without cert-manager
 
 You can prepare the certificate manually without `cert-manager`.
-When doing so, do not apply [./manifests/certificates.yaml](./manifests/certificates.yaml).
+When doing so, do not apply [certificates.yaml](./manifests/base/certificates.yaml).
 
 1. Prepare PEM encoded self-signed certificate and key files.  
     The certificate must be valid for hostname `controller.topolvm-system.svc`.
@@ -66,7 +66,7 @@ When doing so, do not apply [./manifests/certificates.yaml](./manifests/certific
         --cert=<CERTIFICATE FILE> --key=<KEY FILE>
     ```
 
-4. Edit `MutatingWebhookConfiguration` in [./manifests/mutating/webhooks.yaml](./manifests/mutating/webhooks.yaml) as follows:
+4. Edit `MutatingWebhookConfiguration` in [webhooks.yaml](./manifests/base/mutating/webhooks.yaml) as follows:
 
     ```yaml
     apiVersion: admissionregistration.k8s.io/v1beta1
@@ -101,7 +101,7 @@ Otherwise, `topolvm-scheduler` should be run as Deployment and Service.
 
 ### Running topolvm-scheduler using DaemonSet
 
-The [example manifest](./manifests/scheduler.yaml) can be used almost as is.
+The [example manifest](./manifests/overlays/daemonset-scheduler/scheduler.yaml) can be used almost as is.
 You may need to change the taint key or label name of the DaemonSet.
 
 ```yaml
@@ -129,65 +129,11 @@ spec:
 
 ### Running topolvm-scheduler using Deployment and Service
 
-In this case, DaemonSet in [./manifests/scheduler.yaml](./manifests/scheduler.yaml) must be removed.
-
-Instead, add the following resources:
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  namespace: topolvm-system
-  name: topolvm-scheduler
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: topolvm-scheduler
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/name: topolvm-scheduler
-    spec:
-      securityContext:
-        runAsUser:  10000
-        runAsGroup: 10000
-      serviceAccountName: topolvm-scheduler
-      containers:
-        - name: topolvm-scheduler
-          image: quay.io/cybozu/topolvm:0.5.0-rc.1
-          command:
-            - /topolvm-scheduler
-            - --config=/etc/topolvm/scheduler.yaml
-          livenessProbe:
-            httpGet:
-              port: 9251
-              path: /status
-          volumeMounts:
-            - mountPath: /etc/topolvm
-              name: topolvm-config
-      volumes:
-        - name: topolvm-config
-          configMap:
-            name: topolvm-config
----
-apiVersion: v1
-kind: Service
-metadata:
-  namespace: topolvm-system
-  name: topolvm-scheduler
-spec:
-  type: LoadBalancer
-  selector:
-    app.kubernetes.io/name: topolvm-scheduler
-  ports:
-  - protocol: TCP
-    port: 9251
-```
+In this case, you can use [deployment-scheduler/scheduler.yaml](./manifests/overlays/deployment-scheduler/scheduler.yaml) instead of [daemonset-scheduler/scheduler.yaml](./manifests/overlays/daemonset-scheduler/scheduler.yaml).
 
 This way, `topolvm-scheduler` is exposed by LoadBalancer service.
 
-Then edit `urlPrefix` in [./scheduler-config/scheduler-policy.cfg](./scheduler-config/scheduler-policy.cfg) to specify the LoadBalancer address.
+Then edit `urlPrefix` in [scheduler-policy.cfg](./scheduler-config/scheduler-policy.cfg) to specify the LoadBalancer address.
 
 ### How to tune the node scoring
 
@@ -199,7 +145,14 @@ The scoring expression in `topolvm-scheduler` is as follows:
 ```
 min(10, max(0, log2(capacity >> 30 / divisor)))
 ```
-For example, the default of `divisor` is `1`, then if a node has the free disk capacity more than `1024GiB`, `topolvm-scheduler` scores the node as `10`. `divisor` should be adjusted to suit each environment. It can be passed as the command line parameter of `topolvm-scheduler`.
+For example, the default of `divisor` is `1`, then if a node has the free disk capacity more than `1024GiB`, `topolvm-scheduler` scores the node as `10`. `divisor` should be adjusted to suit each environment. It can be specified the default value and values for each device-class in [scheduler-options.yaml](./manifests/base/scheduler-options.yaml) as follows:
+
+```yaml
+default-divisor: 1
+divisors:
+  ssd: 1
+  hdd: 10
+```
 
 Besides, the scoring weight can be passed to kube-scheduler via [scheduler-policy.cfg](./scheduler-config/scheduler-policy.cfg). Almost all scoring algorithms in kube-scheduler are weighted as `"weight": 1`. So if you want to give a priority to the scoring by `topolvm-scheduler`, you have to set the weight as a value larger than one like as follows:
 ```json
@@ -238,17 +191,25 @@ $ kubectl label ns kube-system topolvm.cybozu.com/webhook=ignore
 Apply manifests for TopoLVM
 ---------------------------
 
-Once you finish editing manifests, apply them in the following order:
+Once you finish editing manifests, apply them as follows.
 
-1. [namespace.yaml](./manifests/namespace.yaml)
-2. [crd.yaml](./manifests/crd.yaml)
-3. [psp.yaml](./manifests/psp.yaml)
-4. [certificates.yaml](./manifests/certificates.yaml) if `cert-manager` is installed
-5. [configmap.yaml](./manifests/configmap.yaml)
-6. [scheduler.yaml](./manifests/scheduler.yaml)
-7. [mutatingwebhooks.yaml](./manifests/mutatingwebhooks.yaml)
-8. [controller.yaml](./manifests/controller.yaml)
-9. [node.yaml](./manifests/node.yaml)
+If you want to apply `topolvm-scheduler` as a DaemonSet, run the following command: 
+
+```console
+kustomize build ./deply/manifests/overlays/daemonset-scheduler | kubectl apply -f -
+```
+
+Instead, if you want to apply `topolvm-scheduler` as a Deployment, run the following command: 
+
+```console
+kustomize build ./deply/manifests/overlays/deployment-scheduler | kubectl apply -f -
+```
+
+If you use `cert-manager`, run the following command in addition:
+
+```console
+kubectl apply -f ./deploy/manifests/base/certificates.yaml
+```
 
 Configure kube-scheduler
 ------------------------
@@ -295,9 +256,9 @@ Prepare StorageClasses
 
 Finally, you need to create [StorageClasses](https://kubernetes.io/docs/concepts/storage/storage-classes/) for TopoLVM.
 
-An example is available in [./manifests/provisioner.yaml](./manifests/provisioner.yaml).
+An example is available in [provisioner.yaml](./manifests/base/provisioner.yaml).
 
-See [example/podpvc.yaml](../example/podpvc.yaml) for how to use TopoLVM provisioner.
+See [podpvc.yaml](../example/podpvc.yaml) for how to use TopoLVM provisioner.
 
 [lvmd]: ../docs/lvmd.md
 [cert-manager]: https://github.com/jetstack/cert-manager

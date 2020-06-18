@@ -183,7 +183,7 @@ exit
 ```console
 TOPOLVM_VERSION=0.4.0
 kubectl apply -k https://github.com/cybozu-go/topolvm/deploy/manifests?ref=v${TOPOLVM_VERSION}
-kubectl apply -f https://raw.githubusercontent.com/cybozu-go/topolvm/v${TOPOLVM_VERSION}/deploy/manifests/certificates.yaml
+kubectl apply -f https://raw.githubusercontent.com/cybozu-go/topolvm/v${TOPOLVM_VERSION}/deploy/manifests/base/certificates.yaml
 ```
 
 ## 6. Configure `topolvm-scheduler`
