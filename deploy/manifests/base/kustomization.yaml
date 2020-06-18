@@ -2,7 +2,6 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - crd.yaml
-  - configmap.yaml
   - controller.yaml
   - mutatingwebhooks.yaml
   - namespace.yaml
@@ -10,6 +9,11 @@ resources:
   - provisioner.yaml
   - psp.yaml
   - scheduler.yaml
+configMapGenerator:
+  - name: scheduler-options
+    namespace: topolvm-system
+    files:
+      - scheduler-options.yaml
 imageTags:
   - name: quay.io/cybozu/topolvm
     newTag: 0.5.0-rc.1
