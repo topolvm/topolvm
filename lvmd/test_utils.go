@@ -20,19 +20,25 @@ func MakeLoopbackVG(name string) (string, error) {
 		return "", err
 	}
 	loopDev := strings.TrimRight(loop.String(), "\n")
-	err = exec.Command("truncate", "--size=4G", name).Run()
+	out, err := exec.Command("truncate", "--size=4G", name).CombinedOutput()
 	if err != nil {
-		log.Error("failed to truncate", nil)
+		log.Error("failed to truncate", map[string]interface{}{
+			"output": string(out),
+		})
 		return "", err
 	}
-	err = exec.Command("losetup", loopDev, name).Run()
+	out, err = exec.Command("losetup", loopDev, name).CombinedOutput()
 	if err != nil {
-		log.Error("failed to losetup", nil)
+		log.Error("failed to losetup", map[string]interface{}{
+			"output": string(out),
+		})
 		return "", err
 	}
-	err = exec.Command("vgcreate", name, loopDev).Run()
+	out, err = exec.Command("vgcreate", name, loopDev).CombinedOutput()
 	if err != nil {
-		log.Error("failed to vgcreate", nil)
+		log.Error("failed to vgcreate", map[string]interface{}{
+			"output": string(out),
+		})
 		return "", err
 	}
 	return loopDev, nil
