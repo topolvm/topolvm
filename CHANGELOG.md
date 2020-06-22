@@ -7,6 +7,21 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.5.0] - 2020-06-22
+
+### Changed
+
+- lvmd
+  - **BREAKING**: Introduce device-class configuration file, instead of `--volume-group`, `--spare` and `--listen` options
+  - Change gRPC interfaces of `lvmd`
+
+- kube-scheduler
+  - **BREAKING**: Introduce the configuration file, instead of `--listen` and `--divisor` options
+
+### Added
+
+- Support for multiple volume groups (#147)
+
 ## [0.5.0-rc.1] - 2020-06-15
 
 ### Changed
@@ -149,7 +164,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/cybozu-go/topolvm/compare/v0.5.0-rc.1...HEAD
+[Unreleased]: https://github.com/cybozu-go/topolvm/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/cybozu-go/topolvm/compare/v0.5.0-rc.1...v0.5.0
 [0.5.0-rc.1]: https://github.com/cybozu-go/topolvm/compare/v0.4.8...v0.5.0-rc.1
 [0.4.8]: https://github.com/cybozu-go/topolvm/compare/v0.4.7...v0.4.8
 [0.4.7]: https://github.com/cybozu-go/topolvm/compare/v0.4.6...v0.4.7
