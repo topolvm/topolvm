@@ -30,6 +30,7 @@ device-classes:
 ```
 
 | Name             | Type                     | Default                  | Description                         |
+| ---------------- | ------------------------ | ------------------------ | ----------------------------------- |
 | `socket-name`    | string                   | `/run/topolvm/lvmd.sock` | Unix domain socket endpoint of gRPC |
 | `device-classes` | `map[string]DeviceClass` | -                        | The device-class settings           |
 
