@@ -13,9 +13,9 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 - lvmd
   - **BREAKING**: Introduce device-class configuration file, instead of `--volume-group`, `--spare` and `--listen` options
-  - Change gRPC interfaces of `lvmd`
+  - Enhance gRPC interfaces of `lvmd` to support multiple volume groups
 
-- kube-scheduler
+- topolvm-scheduler
   - **BREAKING**: Introduce the configuration file, instead of `--listen` and `--divisor` options
 
 ### Added
@@ -28,9 +28,9 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 - lvmd
   - **BREAKING**: Introduce device-class configuration file, instead of `--volume-group` and `--spare` options
-  - **BREAKING**: Change gRPC interfaces of `lvmd`
+  - Enhance gRPC interfaces of `lvmd` to support multiple volume groups
 
-- kube-scheduler
+- topolvm-scheduler
   - **BREAKING**: Introduce the configuration file, instead of `--listen` and `--divisor` options
 
 ### Added
