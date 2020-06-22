@@ -3,3 +3,6 @@ kind: Kustomization
 resources:
   - ../../base
   - scheduler.yaml
+imageTags:
+  - name: quay.io/cybozu/topolvm
+    newTag: 0.5.0
