@@ -32,3 +32,32 @@ jobs:
       - run: |
           export GOPATH=$HOME/go
           make build
+  e2e:
+    name: e2e
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.13
+        id: go
+      - run: |
+          mkdir -p $HOME/go
+          cd $HOME/go
+          export GOPATH=$HOME/go
+          export GOBIN=$GOPATH/bin
+          go get golang.org/x/tools/cmd/goimports
+          go get golang.org/x/lint/golint
+          go get github.com/gordonklaus/ineffassign
+          go get github.com/tcnksm/ghr
+          go get github.com/gostaticanalysis/nilerr/cmd/nilerr
+          go get github.com/cybozu/neco-containers/golang/analyzer/cmd/...
+      - run: |
+          make setup
+          cd e2e
+          make TEST_KUBERNETES_VERSION=1.17 setup
+      - run: |
+          export GOPATH=$HOME/go
+          cd e2e
+          make start-lvmd
+          make TEST_KUBERNETES_VERSION=1.17 test
