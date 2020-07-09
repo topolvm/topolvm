@@ -218,7 +218,8 @@ spec:
 			}
 			stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "test", "-b", deviceFile)
 			if err != nil {
-				return fmt.Errorf("failed to test. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+				podinfo, _, _ := kubectl("-n", ns, "describe", "pod", "ubuntu")
+				return fmt.Errorf("failed to test. stdout: %s, stderr: %s, err: %v; ubuntu pod info stdout: %s", stdout, stderr, err, podinfo)
 			}
 			return nil
 		}).Should(Succeed())

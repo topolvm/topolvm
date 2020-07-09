@@ -19,7 +19,6 @@ jobs:
           go get golang.org/x/tools/cmd/goimports
           go get golang.org/x/lint/golint
           go get github.com/gordonklaus/ineffassign
-          go get github.com/tcnksm/ghr
           go get github.com/gostaticanalysis/nilerr/cmd/nilerr
           go get github.com/cybozu/neco-containers/golang/analyzer/cmd/...
       - run: |
@@ -32,8 +31,11 @@ jobs:
       - run: |
           export GOPATH=$HOME/go
           make build
-  e2e:
-    name: e2e
+  # test-node:
+  #   name: test-node
+  #   runs-on: ubuntu-18.04
+  e2e-k8s-v1_17:
+    name: e2e-k8s-v1_17
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
@@ -49,7 +51,6 @@ jobs:
           go get golang.org/x/tools/cmd/goimports
           go get golang.org/x/lint/golint
           go get github.com/gordonklaus/ineffassign
-          go get github.com/tcnksm/ghr
           go get github.com/gostaticanalysis/nilerr/cmd/nilerr
           go get github.com/cybozu/neco-containers/golang/analyzer/cmd/...
       - run: |
@@ -61,3 +62,59 @@ jobs:
           cd e2e
           make start-lvmd
           env GOROOT=${GOROOT} make TEST_KUBERNETES_VERSION=1.17 test
+  # e2e-k8s-v1_16:
+  #   name: e2e-k8s-v1_16
+  #   runs-on: ubuntu-18.04
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: actions/setup-go@v2
+  #       with:
+  #         go-version: 1.13
+  #       id: go
+  #     - run: |
+  #         mkdir -p $HOME/go
+  #         cd $HOME/go
+  #         export GOPATH=$HOME/go
+  #         export GOBIN=$GOPATH/bin
+  #         go get golang.org/x/tools/cmd/goimports
+  #         go get golang.org/x/lint/golint
+  #         go get github.com/gordonklaus/ineffassign
+  #         go get github.com/gostaticanalysis/nilerr/cmd/nilerr
+  #         go get github.com/cybozu/neco-containers/golang/analyzer/cmd/...
+  #     - run: |
+  #         make setup
+  #         cd e2e
+  #         make TEST_KUBERNETES_VERSION=1.16 setup
+  #     - run: |
+  #         export GOPATH=$HOME/go
+  #         cd e2e
+  #         make start-lvmd
+  #         env GOROOT=${GOROOT} make TEST_KUBERNETES_VERSION=1.16 test
+  # e2e-k8s-v1_15:
+  #   name: e2e-k8s-v1_15
+  #   runs-on: ubuntu-18.04
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: actions/setup-go@v2
+  #       with:
+  #         go-version: 1.13
+  #       id: go
+  #     - run: |
+  #         mkdir -p $HOME/go
+  #         cd $HOME/go
+  #         export GOPATH=$HOME/go
+  #         export GOBIN=$GOPATH/bin
+  #         go get golang.org/x/tools/cmd/goimports
+  #         go get golang.org/x/lint/golint
+  #         go get github.com/gordonklaus/ineffassign
+  #         go get github.com/gostaticanalysis/nilerr/cmd/nilerr
+  #         go get github.com/cybozu/neco-containers/golang/analyzer/cmd/...
+  #     - run: |
+  #         make setup
+  #         cd e2e
+  #         make TEST_KUBERNETES_VERSION=1.15 setup
+  #     - run: |
+  #         export GOPATH=$HOME/go
+  #         cd e2e
+  #         make start-lvmd
+  #         env GOROOT=${GOROOT} make TEST_KUBERNETES_VERSION=1.15 test
