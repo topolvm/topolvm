@@ -60,4 +60,4 @@ jobs:
           export GOPATH=$HOME/go
           cd e2e
           make start-lvmd
-          make TEST_KUBERNETES_VERSION=1.17 test
+          env GOROOT=${GOROOT} make TEST_KUBERNETES_VERSION=1.17 test

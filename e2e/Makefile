@@ -1,5 +1,6 @@
 SUDO=sudo
 GOFLAGS=-mod=vendor
+GOROOT ?= ${GOROOT}
 export GOFLAGS
 GINKGO=$(GOPATH)/bin/ginkgo
 KUBECTL=/usr/local/bin/kubectl
@@ -124,6 +125,7 @@ test: topolvm.img $(SERVER_CERT_FILES)
 		GOPATH=$(GOPATH) \
 		GO111MODULE=on \
 		GOFLAGS=$(GOFLAGS) \
+		GOROOT=$(GOROOT) \
 		E2ETEST=1 \
 		TEST_KUBERNETES_VERSION=$(TEST_KUBERNETES_VERSION) \
 		$(GINKGO) --failFast -v .
