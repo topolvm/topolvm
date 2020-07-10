@@ -16,7 +16,7 @@ jobs:
           diffs=$(git diff --name-only)
           if [ "$diffs" != "" ]; then printf "%s\n" "$diffs"; exit 1; fi
       - run: make test
-      - run: env GOPATH=${HOME}/go make build
+      - run: make build
       - run: make image
   test-node:
     name: test-node

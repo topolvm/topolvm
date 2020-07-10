@@ -22,76 +22,6 @@ BUILD_TARGET=hypertopolvm
 
 IMAGE_TAG ?= latest
 
-# CSI sidecar containers
-EXTERNAL_PROVISIONER_VERSION=1.5.0
-NODE_DRIVER_REGISTRAR_VERSION=1.2.0
-EXTERNAL_ATTACHER_VERSION=2.1.1
-EXTERNAL_RESIZER_VERSION=0.4.0
-LIVENESSPROBE_VERSION = 2.0.0
-CSI_SIDECARS = \
-	external-provisioner \
-	node-driver-registrar \
-	external-attacher \
-	external-resizer \
-	livenessprobe
-
-all: build
-
-external-provisioner:
-	mkdir -p build
-	mkdir -p $(GOPATH)/src/github.com/kubernetes-csi
-	rm -rf $(GOPATH)/src/github.com/kubernetes-csi/external-provisioner
-	curl -sSLf https://github.com/kubernetes-csi/external-provisioner/archive/v$(EXTERNAL_PROVISIONER_VERSION).tar.gz | \
-        tar zxf - -C $(GOPATH)/src/github.com/kubernetes-csi/
-	mv $(GOPATH)/src/github.com/kubernetes-csi/external-provisioner-$(EXTERNAL_PROVISIONER_VERSION) \
-		$(GOPATH)/src/github.com/kubernetes-csi/external-provisioner/
-	(cd $(GOPATH)/src/github.com/kubernetes-csi/external-provisioner/; GO111MODULE=off make)
-	cp -f $(GOPATH)/src/github.com/kubernetes-csi/external-provisioner/bin/csi-provisioner ./build/
-
-node-driver-registrar:
-	mkdir -p build
-	mkdir -p $(GOPATH)/src/github.com/kubernetes-csi
-	rm -rf $(GOPATH)/src/github.com/kubernetes-csi/node-driver-registrar
-	curl -sSLf https://github.com/kubernetes-csi/node-driver-registrar/archive/v$(NODE_DRIVER_REGISTRAR_VERSION).tar.gz | \
-        tar zxf - -C $(GOPATH)/src/github.com/kubernetes-csi/
-	mv $(GOPATH)/src/github.com/kubernetes-csi/node-driver-registrar-$(NODE_DRIVER_REGISTRAR_VERSION) \
-		$(GOPATH)/src/github.com/kubernetes-csi/node-driver-registrar/
-	(cd $(GOPATH)/src/github.com/kubernetes-csi/node-driver-registrar/; GO111MODULE=off make)
-	cp -f $(GOPATH)/src/github.com/kubernetes-csi/node-driver-registrar/bin/csi-node-driver-registrar ./build/
-
-external-attacher:
-	mkdir -p build
-	mkdir -p $(GOPATH)/src/github.com/kubernetes-csi
-	rm -rf $(GOPATH)/src/github.com/kubernetes-csi/external-attacher
-	curl -sSLf https://github.com/kubernetes-csi/external-attacher/archive/v$(EXTERNAL_ATTACHER_VERSION).tar.gz | \
-        tar zxf - -C $(GOPATH)/src/github.com/kubernetes-csi/
-	mv $(GOPATH)/src/github.com/kubernetes-csi/external-attacher-$(EXTERNAL_ATTACHER_VERSION) \
-		$(GOPATH)/src/github.com/kubernetes-csi/external-attacher/
-	(cd $(GOPATH)/src/github.com/kubernetes-csi/external-attacher/; GO111MODULE=off make)
-	cp -f $(GOPATH)/src/github.com/kubernetes-csi/external-attacher/bin/csi-attacher ./build/
-
-external-resizer:
-	mkdir -p build
-	mkdir -p $(GOPATH)/src/github.com/kubernetes-csi
-	rm -rf $(GOPATH)/src/github.com/kubernetes-csi/external-resizer
-	curl -sSLf https://github.com/kubernetes-csi/external-resizer/archive/v$(EXTERNAL_RESIZER_VERSION).tar.gz | \
-        tar zxf - -C $(GOPATH)/src/github.com/kubernetes-csi/
-	mv $(GOPATH)/src/github.com/kubernetes-csi/external-resizer-$(EXTERNAL_RESIZER_VERSION) \
-		$(GOPATH)/src/github.com/kubernetes-csi/external-resizer/
-	cd $(GOPATH)/src/github.com/kubernetes-csi/external-resizer/; GO111MODULE=on make
-	cp -f $(GOPATH)/src/github.com/kubernetes-csi/external-resizer/bin/csi-resizer ./build/
-
-livenessprobe:
-	mkdir -p build
-	mkdir -p $(GOPATH)/src/github.com/kubernetes-csi
-	rm -rf $(GOPATH)/src/github.com/kubernetes-csi/livenessprobe
-	curl -sSLf https://github.com/kubernetes-csi/livenessprobe/archive/v$(LIVENESSPROBE_VERSION).tar.gz | \
-        tar zxf - -C $(GOPATH)/src/github.com/kubernetes-csi/
-	mv $(GOPATH)/src/github.com/kubernetes-csi/livenessprobe-$(LIVENESSPROBE_VERSION) \
-		$(GOPATH)/src/github.com/kubernetes-csi/livenessprobe/
-	(cd $(GOPATH)/src/github.com/kubernetes-csi/livenessprobe/; GO111MODULE=off make)
-	cp -f $(GOPATH)/src/github.com/kubernetes-csi/livenessprobe/bin/livenessprobe ./build/
-
 csi.proto:
 	$(CURL) -o $@ https://raw.githubusercontent.com/container-storage-interface/spec/v$(CSI_VERSION)/csi.proto
 
@@ -142,18 +72,22 @@ manifests:
 generate: csi/csi.pb.go lvmd/proto/lvmd.pb.go docs/lvmd-protocol.md
 	controller-gen object:headerFile=./hack/boilerplate.go.txt paths="./api/..."
 
-build: $(BUILD_TARGET) $(CSI_SIDECARS) build/lvmd
+build: build/hypertopolvm build/lvmd csi-sidecars
 
-image:
-	docker build -t $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG) .
+build/hypertopolvm: $(GO_FILES)
+	mkdir -p build
+	go build -o $@ ./pkg/hypertopolvm
 
 build/lvmd:
 	mkdir -p build
 	CGO_ENABLED=0 go build -o $@ ./pkg/lvmd
 
-$(BUILD_TARGET): $(GO_FILES)
+csi-sidecars:
 	mkdir -p build
-	go build -o ./build/$@ ./pkg/$@
+	make -f csi-sidecars.mk OUTPUT_DIR=build
+
+image:
+	docker build -t $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG) .
 
 clean:
 	rm -rf build/
@@ -177,4 +111,4 @@ setup: tools
 	$(SUDO) chmod a+x /usr/local/kubebuilder/bin/kustomize
 	cd /tmp; env GOFLAGS= GO111MODULE=on go get sigs.k8s.io/controller-tools/cmd/controller-gen@v$(CTRLTOOLS_VERSION)
 
-.PHONY: all test manifests generate build image tools setup $(CSI_SIDECARS)
+.PHONY: all test manifests generate build csi-sidecars image tools setup
