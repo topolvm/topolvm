@@ -10,12 +10,13 @@ jobs:
         with:
           go-version: 1.13
       - run: make setup
+      - run: env GOPATH=${HOME}/go make setup
       - run: |
           make manifests generate
           diffs=$(git diff --name-only)
           if [ "$diffs" != "" ]; then printf "%s\n" "$diffs"; exit 1; fi
       - run: make test
-      - run: make build
+      - run: env GOPATH=${HOME}/go make build
   e2e-k8s:
     name: e2e-k8s
     runs-on: ubuntu-18.04

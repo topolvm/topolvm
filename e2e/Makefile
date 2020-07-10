@@ -121,6 +121,16 @@ test: topolvm.img $(SERVER_CERT_FILES)
 	kind load image-archive --name=$(KIND_CLUSTER_NAME) topolvm.img
 	kustomize build --load_restrictor='none' $(KUSTOMIZE_DIR) | kubectl apply -f -
 	env E2ETEST=1 $(GINKGO) --failFast -v .
+	$(SUDO) env \
+		PATH=$(PATH) \
+		GOPATH=$(GOPATH) \
+		GO111MODULE=on \
+		GOFLAGS=$(GOFLAGS) \
+		GOROOT=$(GOROOT) \
+		E2ETEST=1 \
+		TEST_KUBERNETES_VERSION=$(TEST_KUBERNETES_VERSION) \
+		$(GINKGO) --failFast -v .
+
 
 $(CA_FILES): ./certs/csr.json
 	cfssl gencert -initca certs/csr.json | cfssljson -bare certs/ca
