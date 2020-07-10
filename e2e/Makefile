@@ -145,4 +145,4 @@ setup: $(KUBECTL)
 clean: stop-lvmd
 	rm -rf $(CA_FILES) $(SERVER_CERT_FILES) topolvm.img build/
 
-.PHONY: launch-kind shutdown-kind start-lvmd stop-lvmd test secret setup clean
+.PHONY: launch-kind shutdown-kind start-lvmd stop-lvmd test setup clean
