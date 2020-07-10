@@ -9,28 +9,16 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: 1.13
+      - run: sudo apt-get update
       - run: make setup
-      - run: env GOPATH=${HOME}/go make setup
       - run: |
           make manifests generate
           diffs=$(git diff --name-only)
           if [ "$diffs" != "" ]; then printf "%s\n" "$diffs"; exit 1; fi
       - run: make test
+      - run: sudo -E env PATH=${PATH} go test -mod=vendor -race -v ./lvmd ./driver ./filesystem
       - run: make build
       - run: make image
-  test-node:
-    name: test-node
-    runs-on: ubuntu-18.04
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v2
-        with:
-          go-version: 1.13
-      - name: install lvm2
-        run: |
-          sudo apt-get update
-          sudo apt-get -y install --no-install-recommends lvm2
-      - run: sudo -E env PATH=${PATH} GO111MODULE=on go test -mod=vendor -race -v ./lvmd ./driver ./filesystem
   e2e-k8s:
     name: e2e-k8s
     runs-on: ubuntu-18.04
