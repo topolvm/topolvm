@@ -1,6 +1,6 @@
 SUDO=sudo
 GOFLAGS=-mod=vendor
-GOROOT ?= ${GOROOT}
+GOROOT:=${GOROOT}
 export GOFLAGS
 GINKGO=$(GOPATH)/bin/ginkgo
 KUBECTL=/usr/local/bin/kubectl
