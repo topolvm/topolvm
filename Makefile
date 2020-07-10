@@ -116,7 +116,6 @@ docs/lvmd-protocol.md: lvmd/proto/lvmd.proto bin/protoc bin/protoc-gen-doc
 	PATH="$(shell pwd)/bin:$(PATH)" bin/protoc -I. --doc_out=./docs --doc_opt=markdown,$@ $<
 
 test:
-	cd /tmp; GO111MODULE=on GOFLAGS= go install github.com/cybozu/neco-containers/golang/analyzer/cmd/custom-checker
 	test -z "$$(gofmt -s -l . | grep -v '^vendor' | tee /dev/stderr)"
 	test -z "$$(golint $$(go list ./... | grep -v /vendor/) | tee /dev/stderr)"
 	test -z "$$(nilerr ./... 2>&1 | tee /dev/stderr)"
@@ -156,7 +155,7 @@ clean:
 	rm -rf bin/
 	rm -rf include/
 
-setup:
+setup: tools
 	$(SUDO) apt-get update
 	$(SUDO) apt-get -y install --no-install-recommends $(PACKAGES)
 	curl -sL https://go.kubebuilder.io/dl/$(KUBEBUILDER_VERSION)/$(GOOS)/$(GOARCH) | tar -xz -C /tmp/
@@ -164,6 +163,13 @@ setup:
 	$(SUDO) mv /tmp/kubebuilder_$(KUBEBUILDER_VERSION)_$(GOOS)_$(GOARCH) /usr/local/kubebuilder
 	$(SUDO) curl -o /usr/local/kubebuilder/bin/kustomize -sL https://go.kubebuilder.io/kustomize/$(GOOS)/$(GOARCH)
 	$(SUDO) chmod a+x /usr/local/kubebuilder/bin/kustomize
-	cd /tmp; GO111MODULE=on GOFLAGS= go get sigs.k8s.io/controller-tools/cmd/controller-gen@v$(CTRLTOOLS_VERSION)
+	cd /tmp; env GOFLAGS= GO111MODULE=on go get sigs.k8s.io/controller-tools/cmd/controller-gen@v$(CTRLTOOLS_VERSION)
 
-.PHONY: all test manifests generate build setup $(CSI_SIDECARS)
+tools:
+	cd /tmp; env GOFLAGS= GO111MODULE=on go get golang.org/x/tools/cmd/goimports
+	cd /tmp; env GOFLAGS= GO111MODULE=on go get golang.org/x/lint/golint
+	cd /tmp; env GOFLAGS= GO111MODULE=on go get github.com/gordonklaus/ineffassign
+	cd /tmp; env GOFLAGS= GO111MODULE=on go get github.com/gostaticanalysis/nilerr/cmd/nilerr
+	cd /tmp; env GOFLAGS= GO111MODULE=on go get github.com/cybozu/neco-containers/golang/analyzer/cmd/...
+
+.PHONY: all test manifests generate build setup tools $(CSI_SIDECARS)
