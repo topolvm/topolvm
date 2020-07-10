@@ -9,12 +9,8 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: 1.13
-      - run: sudo apt-get update
       - run: make setup
-      - run: |
-          make manifests generate
-          diffs=$(git diff --name-only)
-          if [ "$diffs" != "" ]; then printf "%s\n" "$diffs"; exit 1; fi
+      - run: make check-uncommitted
       - run: make test
       - run: sudo -E env PATH=${PATH} go test -mod=vendor -race -v ./lvmd ./driver ./filesystem
       - run: make build

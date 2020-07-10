@@ -72,6 +72,11 @@ manifests:
 generate: csi/csi.pb.go lvmd/proto/lvmd.pb.go docs/lvmd-protocol.md
 	controller-gen object:headerFile=./hack/boilerplate.go.txt paths="./api/..."
 
+check-uncommitted:
+	$(MAKE) manifests
+	$(MAKE) generate
+	diffs=$$(git diff --name-only); if [ "$$diffs" != "" ]; then printf "\n>>> Uncommited changes \n%s\n\n" "$$diffs"; exit 1; fi
+
 build: build/hypertopolvm build/lvmd csi-sidecars
 
 build/hypertopolvm: $(GO_FILES)
@@ -111,4 +116,4 @@ setup: tools
 	$(SUDO) chmod a+x /usr/local/kubebuilder/bin/kustomize
 	cd /tmp; env GOFLAGS= GO111MODULE=on go get sigs.k8s.io/controller-tools/cmd/controller-gen@v$(CTRLTOOLS_VERSION)
 
-.PHONY: all test manifests generate build csi-sidecars image tools setup
+.PHONY: all test manifests generate check-uncommitted build csi-sidecars image tools setup
