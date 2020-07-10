@@ -11,7 +11,6 @@ KIND_CLUSTER_NAME=topolvm-e2e
 # If you want to change the Kubernetes version for e2e test, specify this variable from command line.
 # e.g. $ make TEST_KUBERNETES_VERSION=1.17 setup test
 TEST_KUBERNETES_VERSION?=1.17
-export TEST_KUBERNETES_VERSION
 
 ifeq ($(TEST_KUBERNETES_VERSION),1.17)
 KUBERNETES_VERSION=1.17.2
@@ -120,17 +119,7 @@ test: topolvm.img $(SERVER_CERT_FILES)
 	$(MAKE) launch-kind
 	kind load image-archive --name=$(KIND_CLUSTER_NAME) topolvm.img
 	kustomize build --load_restrictor='none' $(KUSTOMIZE_DIR) | kubectl apply -f -
-	env E2ETEST=1 $(GINKGO) --failFast -v .
-	$(SUDO) env \
-		PATH=$(PATH) \
-		GOPATH=$(GOPATH) \
-		GO111MODULE=on \
-		GOFLAGS=$(GOFLAGS) \
-		GOROOT=$(GOROOT) \
-		E2ETEST=1 \
-		TEST_KUBERNETES_VERSION=$(TEST_KUBERNETES_VERSION) \
-		$(GINKGO) --failFast -v .
-
+	$(SUDO) -E env PATH=${PATH} E2ETEST=1 $(GINKGO) --failFast -v .
 
 $(CA_FILES): ./certs/csr.json
 	cfssl gencert -initca certs/csr.json | cfssljson -bare certs/ca

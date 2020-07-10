@@ -20,6 +20,8 @@ PACKAGES := unzip
 GO_FILES=$(shell find -name '*.go' -not -name '*_test.go')
 BUILD_TARGET=hypertopolvm
 
+IMAGE_TAG ?= latest
+
 # CSI sidecar containers
 EXTERNAL_PROVISIONER_VERSION=1.5.0
 NODE_DRIVER_REGISTRAR_VERSION=1.2.0
@@ -142,6 +144,9 @@ generate: csi/csi.pb.go lvmd/proto/lvmd.pb.go docs/lvmd-protocol.md
 
 build: $(BUILD_TARGET) $(CSI_SIDECARS) build/lvmd
 
+image:
+	docker build -t $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG) .
+
 build/lvmd:
 	mkdir -p build
 	CGO_ENABLED=0 go build -o $@ ./pkg/lvmd
@@ -155,6 +160,13 @@ clean:
 	rm -rf bin/
 	rm -rf include/
 
+tools:
+	cd /tmp; env GOFLAGS= GO111MODULE=on go get golang.org/x/tools/cmd/goimports
+	cd /tmp; env GOFLAGS= GO111MODULE=on go get golang.org/x/lint/golint
+	cd /tmp; env GOFLAGS= GO111MODULE=on go get github.com/gordonklaus/ineffassign
+	cd /tmp; env GOFLAGS= GO111MODULE=on go get github.com/gostaticanalysis/nilerr/cmd/nilerr
+	cd /tmp; env GOFLAGS= GO111MODULE=on go get github.com/cybozu/neco-containers/golang/analyzer/cmd/...
+
 setup: tools
 	$(SUDO) apt-get update
 	$(SUDO) apt-get -y install --no-install-recommends $(PACKAGES)
@@ -165,11 +177,4 @@ setup: tools
 	$(SUDO) chmod a+x /usr/local/kubebuilder/bin/kustomize
 	cd /tmp; env GOFLAGS= GO111MODULE=on go get sigs.k8s.io/controller-tools/cmd/controller-gen@v$(CTRLTOOLS_VERSION)
 
-tools:
-	cd /tmp; env GOFLAGS= GO111MODULE=on go get golang.org/x/tools/cmd/goimports
-	cd /tmp; env GOFLAGS= GO111MODULE=on go get golang.org/x/lint/golint
-	cd /tmp; env GOFLAGS= GO111MODULE=on go get github.com/gordonklaus/ineffassign
-	cd /tmp; env GOFLAGS= GO111MODULE=on go get github.com/gostaticanalysis/nilerr/cmd/nilerr
-	cd /tmp; env GOFLAGS= GO111MODULE=on go get github.com/cybozu/neco-containers/golang/analyzer/cmd/...
-
-.PHONY: all test manifests generate build setup tools $(CSI_SIDECARS)
+.PHONY: all test manifests generate build image tools setup $(CSI_SIDECARS)
