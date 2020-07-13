@@ -94,6 +94,9 @@ csi-sidecars:
 image:
 	docker build -t $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG) .
 
+push:
+	docker push $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG)
+
 clean:
 	rm -rf build/
 	rm -rf bin/

@@ -1,0 +1,40 @@
+name: Release
+on:
+  push:
+    tags:
+      - 'v*'
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Validate Release Version
+        id: check_version
+        run: |
+          VERSION=$(echo $GITHUB_REF | sed -ne 's/[^0-9]*\([0-9]\+\.[0-9]\+\.[0-9]\+\(-.*\)\?\).*/\1/p')
+          if [ "$VERSION" = "" ]; then
+            # Invalid version format
+            exit 1
+          fi
+          if [ $(echo $VERSION | grep "-") ]; then PRERELEASE=true; else PRERELEASE=false; fi
+          echo "::set-output name=version::${VERSION}"
+          echo "::set-output name=prerelease::${PRERELEASE}"
+      - run: docker login -u $QUAY_USER -p $QUAY_PASSWORD quay.io
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.13
+      - run: make setup
+      - run: make build
+      - run: make image IMAGE_TAG=${{ steps.check_version.outputs.version }}
+      - run: make push IMAGE_TAG=${{ steps.check_version.outputs.version }}
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release v${{ steps.check_version.outputs.version  }}
+          draft: true
+          prerelease: ${{ steps.check_version.outputs.prerelease }}
