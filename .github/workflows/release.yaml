@@ -26,6 +26,7 @@ jobs:
           go-version: 1.13
       - run: make setup
       - run: make build
+      - run: tar czf lvmd-${{ steps.check_version.outputs.version }}.tar.gz -C ./build lvmd
       - run: make image push IMAGE_PREFIX=${{ secrets.IMAGE_PREFIX }} IMAGE_TAG=${{ steps.check_version.outputs.version }}
       - name: Create Release
         id: create_release
@@ -37,3 +38,13 @@ jobs:
           release_name: Release v${{ steps.check_version.outputs.version  }}
           draft: true
           prerelease: ${{ steps.check_version.outputs.prerelease }}
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./lvmd-${{ steps.check_version.outputs.version }}.tar.gz
+          asset_name: lvmd-${{ steps.check_version.outputs.version }}.tar.gz
+          asset_content_type: application/gzip
