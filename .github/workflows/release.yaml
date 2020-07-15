@@ -27,7 +27,7 @@ jobs:
         with:
           go-version: 1.13
       - run: make setup
-      - run: make build
+      - run: make build TOPOLVM_VERSION=${{ steps.check_version.outputs.version }}
       - run: tar czf lvmd-${{ steps.check_version.outputs.version }}.tar.gz -C ./build lvmd
       - run: make image
       - run: make tag push IMAGE_TAG=${{ steps.check_version.outputs.version }}

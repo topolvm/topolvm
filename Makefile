@@ -20,6 +20,7 @@ PACKAGES := unzip
 GO_FILES=$(shell find -name '*.go' -not -name '*_test.go')
 BUILD_TARGET=hypertopolvm
 
+TOPOLVM_VERSION ?= devel
 IMAGE_TAG ?= latest
 
 csi.proto:
@@ -81,11 +82,11 @@ build: build/hypertopolvm build/lvmd csi-sidecars
 
 build/hypertopolvm: $(GO_FILES)
 	mkdir -p build
-	go build -o $@ ./pkg/hypertopolvm
+	go build -o $@ -ldflags "-X github.com/cybozu-go/topolvm.Version=$(TOPOLVM_VERSION)" ./pkg/hypertopolvm
 
 build/lvmd:
 	mkdir -p build
-	CGO_ENABLED=0 go build -o $@ ./pkg/lvmd
+	CGO_ENABLED=0 go build -o $@ -ldflags "-X github.com/cybozu-go/topolvm.Version=$(TOPOLVM_VERSION)" ./pkg/lvmd
 
 csi-sidecars:
 	mkdir -p build
