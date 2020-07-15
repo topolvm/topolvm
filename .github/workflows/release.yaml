@@ -7,6 +7,8 @@ jobs:
   release:
     name: release
     runs-on: ubuntu-18.04
+    env:
+      IMAGE_PREFIX: ${{ secrets.IMAGE_PREFIX }}
     steps:
       - name: Validate Release Version
         id: check_version
@@ -27,7 +29,13 @@ jobs:
       - run: make setup
       - run: make build
       - run: tar czf lvmd-${{ steps.check_version.outputs.version }}.tar.gz -C ./build lvmd
-      - run: make image push IMAGE_PREFIX=${{ secrets.IMAGE_PREFIX }} IMAGE_TAG=${{ steps.check_version.outputs.version }}
+      - run: make image
+      - run: make tag push IMAGE_TAG=${{ steps.check_version.outputs.version }}
+      - name: Push branch tag
+        if: ${{ steps.check_version.outputs.prerelease == 'false' }}
+        run: |
+          BRANCH=$(echo ${{ steps.check_version.outputs.version }} | cut -d "." -f 1-2)
+          make tag push IMAGE_TAG=$BRANCH
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1

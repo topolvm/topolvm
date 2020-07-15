@@ -92,7 +92,10 @@ csi-sidecars:
 	make -f csi-sidecars.mk OUTPUT_DIR=build
 
 image:
-	docker build -t $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG) .
+	docker build -t $(IMAGE_PREFIX)topolvm:devel .
+
+tag:
+	docker tag $(IMAGE_PREFIX)topolvm:devel $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG)
 
 push:
 	docker push $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG)
