@@ -10,13 +10,6 @@ func TestDetectFilesystem(t *testing.T) {
 	if os.Getuid() != 0 {
 		t.Skip("run as root")
 	}
-	circleci := os.Getenv("CIRCLECI") == "true"
-	if circleci {
-		executorType := os.Getenv("CIRCLECI_EXECUTOR")
-		if executorType != "machine" {
-			t.Skip("run on machine executor")
-		}
-	}
 
 	dev, err := createDevice()
 	if err != nil {
