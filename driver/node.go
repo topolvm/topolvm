@@ -182,7 +182,7 @@ func (s *nodeService) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequ
 		}
 	}
 
-	err = os.MkdirAll(req.GetTargetPath(), 0755)
+	err = os.MkdirAll(req.GetTargetPath(), 2777)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "mkdir failed: target=%s, error=%v", req.GetTargetPath(), err)
 	}
