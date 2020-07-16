@@ -20,75 +20,8 @@ PACKAGES := unzip
 GO_FILES=$(shell find -name '*.go' -not -name '*_test.go')
 BUILD_TARGET=hypertopolvm
 
-# CSI sidecar containers
-EXTERNAL_PROVISIONER_VERSION=1.5.0
-NODE_DRIVER_REGISTRAR_VERSION=1.2.0
-EXTERNAL_ATTACHER_VERSION=2.1.1
-EXTERNAL_RESIZER_VERSION=0.4.0
-LIVENESSPROBE_VERSION = 2.0.0
-CSI_SIDECARS = \
-	external-provisioner \
-	node-driver-registrar \
-	external-attacher \
-	external-resizer \
-	livenessprobe
-
-all: build
-
-external-provisioner:
-	mkdir -p build
-	mkdir -p $(GOPATH)/src/github.com/kubernetes-csi
-	rm -rf $(GOPATH)/src/github.com/kubernetes-csi/external-provisioner
-	curl -sSLf https://github.com/kubernetes-csi/external-provisioner/archive/v$(EXTERNAL_PROVISIONER_VERSION).tar.gz | \
-        tar zxf - -C $(GOPATH)/src/github.com/kubernetes-csi/
-	mv $(GOPATH)/src/github.com/kubernetes-csi/external-provisioner-$(EXTERNAL_PROVISIONER_VERSION) \
-		$(GOPATH)/src/github.com/kubernetes-csi/external-provisioner/
-	(cd $(GOPATH)/src/github.com/kubernetes-csi/external-provisioner/; GO111MODULE=off make)
-	cp -f $(GOPATH)/src/github.com/kubernetes-csi/external-provisioner/bin/csi-provisioner ./build/
-
-node-driver-registrar:
-	mkdir -p build
-	mkdir -p $(GOPATH)/src/github.com/kubernetes-csi
-	rm -rf $(GOPATH)/src/github.com/kubernetes-csi/node-driver-registrar
-	curl -sSLf https://github.com/kubernetes-csi/node-driver-registrar/archive/v$(NODE_DRIVER_REGISTRAR_VERSION).tar.gz | \
-        tar zxf - -C $(GOPATH)/src/github.com/kubernetes-csi/
-	mv $(GOPATH)/src/github.com/kubernetes-csi/node-driver-registrar-$(NODE_DRIVER_REGISTRAR_VERSION) \
-		$(GOPATH)/src/github.com/kubernetes-csi/node-driver-registrar/
-	(cd $(GOPATH)/src/github.com/kubernetes-csi/node-driver-registrar/; GO111MODULE=off make)
-	cp -f $(GOPATH)/src/github.com/kubernetes-csi/node-driver-registrar/bin/csi-node-driver-registrar ./build/
-
-external-attacher:
-	mkdir -p build
-	mkdir -p $(GOPATH)/src/github.com/kubernetes-csi
-	rm -rf $(GOPATH)/src/github.com/kubernetes-csi/external-attacher
-	curl -sSLf https://github.com/kubernetes-csi/external-attacher/archive/v$(EXTERNAL_ATTACHER_VERSION).tar.gz | \
-        tar zxf - -C $(GOPATH)/src/github.com/kubernetes-csi/
-	mv $(GOPATH)/src/github.com/kubernetes-csi/external-attacher-$(EXTERNAL_ATTACHER_VERSION) \
-		$(GOPATH)/src/github.com/kubernetes-csi/external-attacher/
-	(cd $(GOPATH)/src/github.com/kubernetes-csi/external-attacher/; GO111MODULE=off make)
-	cp -f $(GOPATH)/src/github.com/kubernetes-csi/external-attacher/bin/csi-attacher ./build/
-
-external-resizer:
-	mkdir -p build
-	mkdir -p $(GOPATH)/src/github.com/kubernetes-csi
-	rm -rf $(GOPATH)/src/github.com/kubernetes-csi/external-resizer
-	curl -sSLf https://github.com/kubernetes-csi/external-resizer/archive/v$(EXTERNAL_RESIZER_VERSION).tar.gz | \
-        tar zxf - -C $(GOPATH)/src/github.com/kubernetes-csi/
-	mv $(GOPATH)/src/github.com/kubernetes-csi/external-resizer-$(EXTERNAL_RESIZER_VERSION) \
-		$(GOPATH)/src/github.com/kubernetes-csi/external-resizer/
-	cd $(GOPATH)/src/github.com/kubernetes-csi/external-resizer/; GO111MODULE=on make
-	cp -f $(GOPATH)/src/github.com/kubernetes-csi/external-resizer/bin/csi-resizer ./build/
-
-livenessprobe:
-	mkdir -p build
-	mkdir -p $(GOPATH)/src/github.com/kubernetes-csi
-	rm -rf $(GOPATH)/src/github.com/kubernetes-csi/livenessprobe
-	curl -sSLf https://github.com/kubernetes-csi/livenessprobe/archive/v$(LIVENESSPROBE_VERSION).tar.gz | \
-        tar zxf - -C $(GOPATH)/src/github.com/kubernetes-csi/
-	mv $(GOPATH)/src/github.com/kubernetes-csi/livenessprobe-$(LIVENESSPROBE_VERSION) \
-		$(GOPATH)/src/github.com/kubernetes-csi/livenessprobe/
-	(cd $(GOPATH)/src/github.com/kubernetes-csi/livenessprobe/; GO111MODULE=off make)
-	cp -f $(GOPATH)/src/github.com/kubernetes-csi/livenessprobe/bin/livenessprobe ./build/
+TOPOLVM_VERSION ?= devel
+IMAGE_TAG ?= latest
 
 csi.proto:
 	$(CURL) -o $@ https://raw.githubusercontent.com/container-storage-interface/spec/v$(CSI_VERSION)/csi.proto
@@ -116,7 +49,6 @@ docs/lvmd-protocol.md: lvmd/proto/lvmd.proto bin/protoc bin/protoc-gen-doc
 	PATH="$(shell pwd)/bin:$(PATH)" bin/protoc -I. --doc_out=./docs --doc_opt=markdown,$@ $<
 
 test:
-	cd /tmp; GO111MODULE=on GOFLAGS= go install github.com/cybozu/neco-containers/golang/analyzer/cmd/custom-checker
 	test -z "$$(gofmt -s -l . | grep -v '^vendor' | tee /dev/stderr)"
 	test -z "$$(golint $$(go list ./... | grep -v /vendor/) | tee /dev/stderr)"
 	test -z "$$(nilerr ./... 2>&1 | tee /dev/stderr)"
@@ -141,22 +73,47 @@ manifests:
 generate: csi/csi.pb.go lvmd/proto/lvmd.pb.go docs/lvmd-protocol.md
 	controller-gen object:headerFile=./hack/boilerplate.go.txt paths="./api/..."
 
-build: $(BUILD_TARGET) $(CSI_SIDECARS) build/lvmd
+check-uncommitted:
+	$(MAKE) manifests
+	$(MAKE) generate
+	diffs=$$(git diff --name-only); if [ "$$diffs" != "" ]; then printf "\n>>> Uncommited changes \n%s\n\n" "$$diffs"; exit 1; fi
+
+build: build/hypertopolvm build/lvmd csi-sidecars
+
+build/hypertopolvm: $(GO_FILES)
+	mkdir -p build
+	go build -o $@ -ldflags "-X github.com/cybozu-go/topolvm.Version=$(TOPOLVM_VERSION)" ./pkg/hypertopolvm
 
 build/lvmd:
 	mkdir -p build
-	CGO_ENABLED=0 go build -o $@ ./pkg/lvmd
+	CGO_ENABLED=0 go build -o $@ -ldflags "-X github.com/cybozu-go/topolvm.Version=$(TOPOLVM_VERSION)" ./pkg/lvmd
 
-$(BUILD_TARGET): $(GO_FILES)
+csi-sidecars:
 	mkdir -p build
-	go build -o ./build/$@ ./pkg/$@
+	make -f csi-sidecars.mk OUTPUT_DIR=build
+
+image:
+	docker build -t $(IMAGE_PREFIX)topolvm:devel .
+
+tag:
+	docker tag $(IMAGE_PREFIX)topolvm:devel $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG)
+
+push:
+	docker push $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG)
 
 clean:
 	rm -rf build/
 	rm -rf bin/
 	rm -rf include/
 
-setup:
+tools:
+	cd /tmp; env GOFLAGS= GO111MODULE=on go get golang.org/x/tools/cmd/goimports
+	cd /tmp; env GOFLAGS= GO111MODULE=on go get golang.org/x/lint/golint
+	cd /tmp; env GOFLAGS= GO111MODULE=on go get github.com/gordonklaus/ineffassign
+	cd /tmp; env GOFLAGS= GO111MODULE=on go get github.com/gostaticanalysis/nilerr/cmd/nilerr
+	cd /tmp; env GOFLAGS= GO111MODULE=on go get github.com/cybozu/neco-containers/golang/analyzer/cmd/...
+
+setup: tools
 	$(SUDO) apt-get update
 	$(SUDO) apt-get -y install --no-install-recommends $(PACKAGES)
 	curl -sL https://go.kubebuilder.io/dl/$(KUBEBUILDER_VERSION)/$(GOOS)/$(GOARCH) | tar -xz -C /tmp/
@@ -164,6 +121,6 @@ setup:
 	$(SUDO) mv /tmp/kubebuilder_$(KUBEBUILDER_VERSION)_$(GOOS)_$(GOARCH) /usr/local/kubebuilder
 	$(SUDO) curl -o /usr/local/kubebuilder/bin/kustomize -sL https://go.kubebuilder.io/kustomize/$(GOOS)/$(GOARCH)
 	$(SUDO) chmod a+x /usr/local/kubebuilder/bin/kustomize
-	cd /tmp; GO111MODULE=on GOFLAGS= go get sigs.k8s.io/controller-tools/cmd/controller-gen@v$(CTRLTOOLS_VERSION)
+	cd /tmp; env GOFLAGS= GO111MODULE=on go get sigs.k8s.io/controller-tools/cmd/controller-gen@v$(CTRLTOOLS_VERSION)
 
-.PHONY: all test manifests generate build setup $(CSI_SIDECARS)
+.PHONY: all test manifests generate check-uncommitted build csi-sidecars image tools setup

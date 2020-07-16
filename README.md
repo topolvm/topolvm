@@ -1,5 +1,5 @@
 [![GitHub release](https://img.shields.io/github/release/cybozu-go/topolvm.svg?maxAge=60)][releases]
-[![CircleCI](https://circleci.com/gh/cybozu-go/topolvm.svg?style=svg)](https://circleci.com/gh/cybozu-go/topolvm)
+[![Main](https://github.com/cybozu-go/topolvm/workflows/Main/badge.svg)](https://github.com/cybozu-go/topolvm/actions)
 [![GoDoc](https://godoc.org/github.com/cybozu-go/topolvm?status.svg)][godoc]
 [![Go Report Card](https://goreportcard.com/badge/github.com/cybozu-go/topolvm)](https://goreportcard.com/report/github.com/cybozu-go/topolvm)
 
