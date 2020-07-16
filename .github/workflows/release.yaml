@@ -7,8 +7,6 @@ jobs:
   release:
     name: release
     runs-on: ubuntu-18.04
-    env:
-      IMAGE_PREFIX: ${{ secrets.IMAGE_PREFIX }}
     steps:
       - name: Validate Release Version
         id: check_version
@@ -22,6 +20,10 @@ jobs:
           echo "::set-output name=version::${VERSION}"
           echo "::set-output name=prerelease::${PRERELEASE}"
       - run: echo ${{ secrets.QUAY_PASSWORD }} | docker login -u ${{ secrets.QUAY_USER }} --password-stdin quay.io
+      - name: Export IMAGE_PREFIX
+        run: |
+          if [ "${{ secrets.IMAGE_PREFIX }}" != "" ]; then IMAGE_PREFIX=${{ secrets.IMAGE_PREFIX }}; else IMAGE_PREFIX=quay.io/topolvm/; fi
+          echo "::set-env name=IMAGE_PREFIX::${IMAGE_PREFIX}"
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
         with:
