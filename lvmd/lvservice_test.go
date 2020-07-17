@@ -17,13 +17,6 @@ func TestLVService(t *testing.T) {
 	if uid != 0 {
 		t.Skip("run as root")
 	}
-	circleci := os.Getenv("CIRCLECI") == "true"
-	if circleci {
-		executorType := os.Getenv("CIRCLECI_EXECUTOR")
-		if executorType != "machine" {
-			t.Skip("run on machine executor")
-		}
-	}
 
 	vgName := "test_lvservice"
 	loop, err := MakeLoopbackVG(vgName)
