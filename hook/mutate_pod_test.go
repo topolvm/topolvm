@@ -3,9 +3,9 @@ package hook
 import (
 	"strconv"
 
-	"github.com/cybozu-go/topolvm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/topolvm/topolvm"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"

@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cybozu-go/topolvm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/prometheus/common/expfmt"
+	"github.com/topolvm/topolvm"
 	corev1 "k8s.io/api/core/v1"
 )
 

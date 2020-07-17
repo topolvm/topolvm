@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cybozu-go/topolvm"
-	"github.com/cybozu-go/topolvm/csi"
-	"github.com/cybozu-go/topolvm/driver/k8s"
+	"github.com/topolvm/topolvm"
+	"github.com/topolvm/topolvm/csi"
+	"github.com/topolvm/topolvm/driver/k8s"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"

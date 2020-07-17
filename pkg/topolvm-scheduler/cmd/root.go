@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/cybozu-go/topolvm"
-	"github.com/cybozu-go/topolvm/scheduler"
 	"github.com/cybozu-go/well"
 	"github.com/spf13/cobra"
+	"github.com/topolvm/topolvm"
+	"github.com/topolvm/topolvm/scheduler"
 	"sigs.k8s.io/yaml"
 )
 

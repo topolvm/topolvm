@@ -5,9 +5,9 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/cybozu-go/topolvm"
-	"github.com/cybozu-go/topolvm/lvmd/proto"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/topolvm/topolvm"
+	"github.com/topolvm/topolvm/lvmd/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

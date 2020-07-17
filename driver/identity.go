@@ -3,9 +3,9 @@ package driver
 import (
 	"context"
 
-	"github.com/cybozu-go/topolvm"
-	"github.com/cybozu-go/topolvm/csi"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/topolvm/topolvm"
+	"github.com/topolvm/topolvm/csi"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"

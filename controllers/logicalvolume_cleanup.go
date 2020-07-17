@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/cybozu-go/topolvm"
-	topolvmv1 "github.com/cybozu-go/topolvm/api/v1"
 	"github.com/go-logr/logr"
+	"github.com/topolvm/topolvm"
+	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"

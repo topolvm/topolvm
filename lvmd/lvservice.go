@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/cybozu-go/log"
-	"github.com/cybozu-go/topolvm/lvmd/command"
-	"github.com/cybozu-go/topolvm/lvmd/proto"
+	"github.com/topolvm/topolvm/lvmd/command"
+	"github.com/topolvm/topolvm/lvmd/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

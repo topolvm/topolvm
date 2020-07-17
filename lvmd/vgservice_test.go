@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cybozu-go/topolvm/lvmd/command"
-	"github.com/cybozu-go/topolvm/lvmd/proto"
+	"github.com/topolvm/topolvm/lvmd/command"
+	"github.com/topolvm/topolvm/lvmd/proto"
 	"google.golang.org/grpc/metadata"
 )
 
