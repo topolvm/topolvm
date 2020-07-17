@@ -1,6 +1,6 @@
 module github.com/topolvm/topolvm
 
-go 1.12
+go 1.13
 
 replace launchpad.net/gocheck => github.com/go-check/check v0.0.0-20180628173108-788fd7840127
 
