@@ -148,13 +148,13 @@ gcloud compute ssh --zone ${ZONE} worker1
 # Install lvmd
 TOPOLVM_VERSION=0.5.0
 sudo mkdir -p /opt/sbin
-curl -sSLf https://github.com/cybozu-go/topolvm/releases/download/v${TOPOLVM_VERSION}/lvmd-${TOPOLVM_VERSION}.tar.gz | sudo tar xzf - -C /opt/sbin
+curl -sSLf https://github.com/topolvm/topolvm/releases/download/v${TOPOLVM_VERSION}/lvmd-${TOPOLVM_VERSION}.tar.gz | sudo tar xzf - -C /opt/sbin
 
 # Put configuration file
-sudo curl -sSL -o /etc/topolvm/lvmd.yaml https://raw.githubusercontent.com/cybozu-go/topolvm/v${TOPOLVM_VERSION}/deploy/lvmd-config/lvmd.yaml
+sudo curl -sSL -o /etc/topolvm/lvmd.yaml https://raw.githubusercontent.com/topolvm/topolvm/v${TOPOLVM_VERSION}/deploy/lvmd-config/lvmd.yaml
 
 # Register service
-sudo curl -sSL -o /etc/systemd/system/lvmd.service https://raw.githubusercontent.com/cybozu-go/topolvm/v${TOPOLVM_VERSION}/deploy/systemd/lvmd.service
+sudo curl -sSL -o /etc/systemd/system/lvmd.service https://raw.githubusercontent.com/topolvm/topolvm/v${TOPOLVM_VERSION}/deploy/systemd/lvmd.service
 sudo systemctl enable lvmd
 sudo systemctl start lvmd
 exit
@@ -166,13 +166,13 @@ gcloud compute ssh --zone ${ZONE} worker2
 # Install lvmd
 TOPOLVM_VERSION=0.5.0
 sudo mkdir -p /opt/sbin
-curl -sSLf https://github.com/cybozu-go/topolvm/releases/download/v${TOPOLVM_VERSION}/lvmd-${TOPOLVM_VERSION}.tar.gz | sudo tar xzf - -C /opt/sbin
+curl -sSLf https://github.com/topolvm/topolvm/releases/download/v${TOPOLVM_VERSION}/lvmd-${TOPOLVM_VERSION}.tar.gz | sudo tar xzf - -C /opt/sbin
 
 # Put configuration file
-sudo curl -sSL -o /etc/topolvm/lvmd.yaml https://raw.githubusercontent.com/cybozu-go/topolvm/v${TOPOLVM_VERSION}/deploy/lvmd-config/lvmd.yaml
+sudo curl -sSL -o /etc/topolvm/lvmd.yaml https://raw.githubusercontent.com/topolvm/topolvm/v${TOPOLVM_VERSION}/deploy/lvmd-config/lvmd.yaml
 
 # Register service
-sudo curl -sSL -o /etc/systemd/system/lvmd.service https://raw.githubusercontent.com/cybozu-go/topolvm/v${TOPOLVM_VERSION}/deploy/systemd/lvmd.service
+sudo curl -sSL -o /etc/systemd/system/lvmd.service https://raw.githubusercontent.com/topolvm/topolvm/v${TOPOLVM_VERSION}/deploy/systemd/lvmd.service
 sudo systemctl enable lvmd
 sudo systemctl start lvmd
 exit
@@ -182,8 +182,8 @@ exit
 
 ```console
 TOPOLVM_VERSION=0.5.0
-kubectl apply -k https://github.com/cybozu-go/topolvm/deploy/manifests?ref=v${TOPOLVM_VERSION}
-kubectl apply -f https://raw.githubusercontent.com/cybozu-go/topolvm/v${TOPOLVM_VERSION}/deploy/manifests/base/certificates.yaml
+kubectl apply -k https://github.com/topolvm/topolvm/deploy/manifests?ref=v${TOPOLVM_VERSION}
+kubectl apply -f https://raw.githubusercontent.com/topolvm/topolvm/v${TOPOLVM_VERSION}/deploy/manifests/base/certificates.yaml
 ```
 
 ## 6. Configure `topolvm-scheduler`
@@ -244,8 +244,8 @@ gcloud compute ssh --zone ${ZONE} master
 
 TOPOLVM_VERSION=0.5.0
 sudo mkdir -p /etc/kubernetes/scheduler
-sudo curl -sSL -o /etc/kubernetes/scheduler/scheduler-policy.cfg https://raw.githubusercontent.com/cybozu-go/topolvm/v${TOPOLVM_VERSION}/deploy/scheduler-config/scheduler-policy.cfg
-sudo curl -sSL -o /etc/kubernetes/scheduler/scheduler-config.yaml https://raw.githubusercontent.com/cybozu-go/topolvm/v${TOPOLVM_VERSION}/docs/rancher/scheduler-config.yaml
+sudo curl -sSL -o /etc/kubernetes/scheduler/scheduler-policy.cfg https://raw.githubusercontent.com/topolvm/topolvm/v${TOPOLVM_VERSION}/deploy/scheduler-config/scheduler-policy.cfg
+sudo curl -sSL -o /etc/kubernetes/scheduler/scheduler-config.yaml https://raw.githubusercontent.com/topolvm/topolvm/v${TOPOLVM_VERSION}/docs/rancher/scheduler-config.yaml
 exit
 ```
 

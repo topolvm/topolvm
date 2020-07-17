@@ -164,22 +164,22 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/cybozu-go/topolvm/compare/v0.5.0...HEAD
-[0.5.0]: https://github.com/cybozu-go/topolvm/compare/v0.5.0-rc.1...v0.5.0
-[0.5.0-rc.1]: https://github.com/cybozu-go/topolvm/compare/v0.4.8...v0.5.0-rc.1
-[0.4.8]: https://github.com/cybozu-go/topolvm/compare/v0.4.7...v0.4.8
-[0.4.7]: https://github.com/cybozu-go/topolvm/compare/v0.4.6...v0.4.7
-[0.4.6]: https://github.com/cybozu-go/topolvm/compare/v0.4.5...v0.4.6
-[0.4.5]: https://github.com/cybozu-go/topolvm/compare/v0.4.4...v0.4.5
-[0.4.4]: https://github.com/cybozu-go/topolvm/compare/v0.4.3...v0.4.4
-[0.4.3]: https://github.com/cybozu-go/topolvm/compare/v0.4.2...v0.4.3
-[0.4.2]: https://github.com/cybozu-go/topolvm/compare/v0.4.1...v0.4.2
-[0.4.1]: https://github.com/cybozu-go/topolvm/compare/v0.4.0...v0.4.1
-[0.4.0]: https://github.com/cybozu-go/topolvm/compare/v0.3.0...v0.4.0
-[0.3.0]: https://github.com/cybozu-go/topolvm/compare/v0.2.2...v0.3.0
-[0.2.2]: https://github.com/cybozu-go/topolvm/compare/v0.2.1...v0.2.2
-[0.2.1]: https://github.com/cybozu-go/topolvm/compare/v0.2.0...v0.2.1
-[0.2.0]: https://github.com/cybozu-go/topolvm/compare/v0.1.2...v0.2.0
-[0.1.2]: https://github.com/cybozu-go/topolvm/compare/v0.1.1...v0.1.2
-[0.1.1]: https://github.com/cybozu-go/topolvm/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/cybozu-go/topolvm/compare/8d34ac6690b0326d1c08be34f8f4667cff47e9c0...v0.1.0
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/topolvm/topolvm/compare/v0.5.0-rc.1...v0.5.0
+[0.5.0-rc.1]: https://github.com/topolvm/topolvm/compare/v0.4.8...v0.5.0-rc.1
+[0.4.8]: https://github.com/topolvm/topolvm/compare/v0.4.7...v0.4.8
+[0.4.7]: https://github.com/topolvm/topolvm/compare/v0.4.6...v0.4.7
+[0.4.6]: https://github.com/topolvm/topolvm/compare/v0.4.5...v0.4.6
+[0.4.5]: https://github.com/topolvm/topolvm/compare/v0.4.4...v0.4.5
+[0.4.4]: https://github.com/topolvm/topolvm/compare/v0.4.3...v0.4.4
+[0.4.3]: https://github.com/topolvm/topolvm/compare/v0.4.2...v0.4.3
+[0.4.2]: https://github.com/topolvm/topolvm/compare/v0.4.1...v0.4.2
+[0.4.1]: https://github.com/topolvm/topolvm/compare/v0.4.0...v0.4.1
+[0.4.0]: https://github.com/topolvm/topolvm/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/topolvm/topolvm/compare/v0.2.2...v0.3.0
+[0.2.2]: https://github.com/topolvm/topolvm/compare/v0.2.1...v0.2.2
+[0.2.1]: https://github.com/topolvm/topolvm/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/topolvm/topolvm/compare/v0.1.2...v0.2.0
+[0.1.2]: https://github.com/topolvm/topolvm/compare/v0.1.1...v0.1.2
+[0.1.1]: https://github.com/topolvm/topolvm/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/topolvm/topolvm/compare/8d34ac6690b0326d1c08be34f8f4667cff47e9c0...v0.1.0
