@@ -1,6 +1,6 @@
 version: "2"
-domain: topolvm.io
-repo: github.com/topolvm/topolvm
+domain: cybozu.com
+repo: github.com/cybozu-go/topolvm
 resources:
 - group: topolvm
   version: v1
