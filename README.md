@@ -1,6 +1,6 @@
 [![GitHub release](https://img.shields.io/github/v/release/topolvm/topolvm.svg?maxAge=60)][releases]
 [![Main](https://github.com/topolvm/topolvm/workflows/Main/badge.svg)](https://github.com/topolvm/topolvm/actions)
-[![GoDoc](https://godoc.org/github.com/topolvm/topolvm?status.svg)][godoc]
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/topolvm/topolvm?tab=overview)](https://pkg.go.dev/github.com/topolvm/topolvm?tab=overview)
 [![Go Report Card](https://goreportcard.com/badge/github.com/topolvm/topolvm)](https://goreportcard.com/badge/github.com/topolvm/topolvm)
 
 TopoLVM
@@ -74,7 +74,6 @@ Documentation
 [docs](docs/) directory contains documents about designs and specifications.
 
 [releases]: https://github.com/topolvm/topolvm/releases
-[godoc]: https://godoc.org/github.com/topolvm/topolvm
 [CSI]: https://github.com/container-storage-interface/spec
 [kind]: https://github.com/kubernetes-sigs/kind
 
