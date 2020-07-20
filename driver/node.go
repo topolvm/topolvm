@@ -189,7 +189,7 @@ func (s *nodeService) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequ
 	if err := fs.Mount(req.GetTargetPath(), req.GetReadonly()); err != nil {
 		return nil, status.Errorf(codes.Internal, "mount failed: volume=%s, error=%v", req.GetVolumeId(), err)
 	}
-	if err := os.Chmod(req.GetTargetPath(), 02777); err != nil {
+	if err := os.Chmod(req.GetTargetPath(), 0777|os.ModeSetgid); err != nil {
 		return nil, status.Errorf(codes.Internal, "chmod 2777 failed: target=%s, error=%v", req.GetTargetPath(), err)
 	}
 
