@@ -3,10 +3,10 @@ package controllers
 import (
 	"context"
 
-	"github.com/cybozu-go/topolvm"
-	topolvmv1 "github.com/cybozu-go/topolvm/api/v1"
-	"github.com/cybozu-go/topolvm/lvmd/proto"
 	"github.com/go-logr/logr"
+	"github.com/topolvm/topolvm"
+	topolvmv1 "github.com/topolvm/topolvm/api/v1"
+	"github.com/topolvm/topolvm/lvmd/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

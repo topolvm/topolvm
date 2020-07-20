@@ -1,7 +1,7 @@
-[![GitHub release](https://img.shields.io/github/release/cybozu-go/topolvm.svg?maxAge=60)][releases]
-[![Main](https://github.com/cybozu-go/topolvm/workflows/Main/badge.svg)](https://github.com/cybozu-go/topolvm/actions)
-[![GoDoc](https://godoc.org/github.com/cybozu-go/topolvm?status.svg)][godoc]
-[![Go Report Card](https://goreportcard.com/badge/github.com/cybozu-go/topolvm)](https://goreportcard.com/report/github.com/cybozu-go/topolvm)
+[![GitHub release](https://img.shields.io/github/v/release/topolvm/topolvm.svg?maxAge=60)][releases]
+[![Main](https://github.com/topolvm/topolvm/workflows/Main/badge.svg)](https://github.com/topolvm/topolvm/actions)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/topolvm/topolvm?tab=overview)](https://pkg.go.dev/github.com/topolvm/topolvm?tab=overview)
+[![Go Report Card](https://goreportcard.com/badge/github.com/topolvm/topolvm)](https://goreportcard.com/badge/github.com/topolvm/topolvm)
 
 TopoLVM
 =======
@@ -73,8 +73,7 @@ Documentation
 
 [docs](docs/) directory contains documents about designs and specifications.
 
-[releases]: https://github.com/cybozu-go/topolvm/releases
-[godoc]: https://godoc.org/github.com/cybozu-go/topolvm
+[releases]: https://github.com/topolvm/topolvm/releases
 [CSI]: https://github.com/container-storage-interface/spec
 [kind]: https://github.com/kubernetes-sigs/kind
 

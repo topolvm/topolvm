@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cybozu-go/topolvm"
-	topolvmv1 "github.com/cybozu-go/topolvm/api/v1"
+	"github.com/topolvm/topolvm"
+	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"

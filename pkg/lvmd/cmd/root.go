@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"github.com/cybozu-go/log"
-	"github.com/cybozu-go/topolvm"
-	"github.com/cybozu-go/topolvm/lvmd"
-	"github.com/cybozu-go/topolvm/lvmd/command"
-	"github.com/cybozu-go/topolvm/lvmd/proto"
 	"github.com/cybozu-go/well"
 	"github.com/spf13/cobra"
+	"github.com/topolvm/topolvm"
+	"github.com/topolvm/topolvm/lvmd"
+	"github.com/topolvm/topolvm/lvmd/command"
+	"github.com/topolvm/topolvm/lvmd/proto"
 	"google.golang.org/grpc"
 	"sigs.k8s.io/yaml"
 )

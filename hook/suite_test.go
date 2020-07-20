@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cybozu-go/topolvm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/topolvm/topolvm"
 
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	storagev1 "k8s.io/api/storage/v1"

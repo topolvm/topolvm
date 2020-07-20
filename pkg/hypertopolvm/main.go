@@ -5,10 +5,10 @@ import (
 	"os"
 	"path/filepath"
 
-	lvmd "github.com/cybozu-go/topolvm/pkg/lvmd/cmd"
-	controller "github.com/cybozu-go/topolvm/pkg/topolvm-controller/cmd"
-	node "github.com/cybozu-go/topolvm/pkg/topolvm-node/cmd"
-	scheduler "github.com/cybozu-go/topolvm/pkg/topolvm-scheduler/cmd"
+	lvmd "github.com/topolvm/topolvm/pkg/lvmd/cmd"
+	controller "github.com/topolvm/topolvm/pkg/topolvm-controller/cmd"
+	node "github.com/topolvm/topolvm/pkg/topolvm-node/cmd"
+	scheduler "github.com/topolvm/topolvm/pkg/topolvm-scheduler/cmd"
 )
 
 func usage() {

@@ -69,9 +69,9 @@ Once a new tag is pushed to GitHub, [GitHub Actions][] automatically
 builds a tar archive for the new release, and uploads it to GitHub
 releases page.
 
-Visit https://github.com/cybozu-go/topolvm/releases to check
+Visit https://github.com/topolvm/topolvm/releases to check
 the result.  You may manually edit the page to describe the release.
 
 [semver]: https://semver.org/spec/v2.0.0.html
 [example]: https://github.com/cybozu-go/etcdpasswd/commit/77d95384ac6c97e7f48281eaf23cb94f68867f79
-[GitHub Actions]: https://github.com/cybozu-go/topolvm/actions
+[GitHub Actions]: https://github.com/topolvm/topolvm/actions

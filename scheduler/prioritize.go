@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/cybozu-go/topolvm"
+	"github.com/topolvm/topolvm"
 	corev1 "k8s.io/api/core/v1"
 )
 

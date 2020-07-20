@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cybozu-go/topolvm"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/topolvm/topolvm"
 	"k8s.io/klog"
 )
 

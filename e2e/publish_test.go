@@ -7,9 +7,9 @@ import (
 	"net"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	topolvmv1 "github.com/cybozu-go/topolvm/api/v1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	"google.golang.org/grpc"
 	"sigs.k8s.io/yaml"
 )

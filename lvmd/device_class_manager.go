@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/cybozu-go/topolvm"
+	"github.com/topolvm/topolvm"
 )
 
 // ErrNotFound is returned when a VG or LV is not found.

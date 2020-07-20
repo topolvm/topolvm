@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/cybozu-go/topolvm/pkg/topolvm-node/cmd"
+	"github.com/topolvm/topolvm/pkg/topolvm-node/cmd"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 

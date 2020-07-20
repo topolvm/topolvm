@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cybozu-go/topolvm"
-	topolvmv1 "github.com/cybozu-go/topolvm/api/v1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/topolvm/topolvm"
+	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	corev1 "k8s.io/api/core/v1"
 )
 

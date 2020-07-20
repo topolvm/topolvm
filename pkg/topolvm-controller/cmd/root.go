@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/cybozu-go/topolvm"
 	"github.com/spf13/cobra"
+	"github.com/topolvm/topolvm"
 	"k8s.io/klog"
 )
 
