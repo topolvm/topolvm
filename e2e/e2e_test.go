@@ -773,7 +773,7 @@ spec:
 		By("confirming the mounted dir permission is 2777")
 		stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "stat", "/test1", "-c", "'%a'")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		Expect(strings.TrimSpace(string(stdout))).To(Equal("2777"))
+		Expect(strings.TrimSpace(string(stdout))).To(Equal("'2777'"))
 
 		By("confirming two LVMs were created")
 		postCreateLvmCount, err := countLVMs()

@@ -182,12 +182,15 @@ func (s *nodeService) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequ
 		}
 	}
 
-	err = os.MkdirAll(req.GetTargetPath(), 2777)
+	err = os.MkdirAll(req.GetTargetPath(), 0755)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "mkdir failed: target=%s, error=%v", req.GetTargetPath(), err)
 	}
 	if err := fs.Mount(req.GetTargetPath(), req.GetReadonly()); err != nil {
 		return nil, status.Errorf(codes.Internal, "mount failed: volume=%s, error=%v", req.GetVolumeId(), err)
+	}
+	if err := os.Chmod(req.GetTargetPath(), 02777); err != nil {
+		return nil, status.Errorf(codes.Internal, "chmod 2777 failed: target=%s, error=%v", req.GetTargetPath(), err)
 	}
 
 	nodeLogger.Info("NodePublishVolume(fs) succeeded",
