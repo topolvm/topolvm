@@ -146,7 +146,7 @@ Install `lvmd` on `worker1` and `worker2`.
 gcloud compute ssh --zone ${ZONE} worker1
 
 # Install lvmd
-TOPOLVM_VERSION=0.5.0
+TOPOLVM_VERSION=0.5.1
 sudo mkdir -p /opt/sbin
 curl -sSLf https://github.com/topolvm/topolvm/releases/download/v${TOPOLVM_VERSION}/lvmd-${TOPOLVM_VERSION}.tar.gz | sudo tar xzf - -C /opt/sbin
 
@@ -164,7 +164,7 @@ exit
 gcloud compute ssh --zone ${ZONE} worker2
 
 # Install lvmd
-TOPOLVM_VERSION=0.5.0
+TOPOLVM_VERSION=0.5.1
 sudo mkdir -p /opt/sbin
 curl -sSLf https://github.com/topolvm/topolvm/releases/download/v${TOPOLVM_VERSION}/lvmd-${TOPOLVM_VERSION}.tar.gz | sudo tar xzf - -C /opt/sbin
 
@@ -181,7 +181,7 @@ exit
 ## 5. Deploy TopoLVM
 
 ```console
-TOPOLVM_VERSION=0.5.0
+TOPOLVM_VERSION=0.5.1
 kubectl apply -k https://github.com/topolvm/topolvm/deploy/manifests?ref=v${TOPOLVM_VERSION}
 kubectl apply -f https://raw.githubusercontent.com/topolvm/topolvm/v${TOPOLVM_VERSION}/deploy/manifests/base/certificates.yaml
 ```
@@ -242,7 +242,7 @@ They must be placed under `/etc/kubernetes` on `master` because `kube-scheduler`
 ```console
 gcloud compute ssh --zone ${ZONE} master
 
-TOPOLVM_VERSION=0.5.0
+TOPOLVM_VERSION=0.5.1
 sudo mkdir -p /etc/kubernetes/scheduler
 sudo curl -sSL -o /etc/kubernetes/scheduler/scheduler-policy.cfg https://raw.githubusercontent.com/topolvm/topolvm/v${TOPOLVM_VERSION}/deploy/scheduler-config/scheduler-policy.cfg
 sudo curl -sSL -o /etc/kubernetes/scheduler/scheduler-config.yaml https://raw.githubusercontent.com/topolvm/topolvm/v${TOPOLVM_VERSION}/docs/rancher/scheduler-config.yaml
