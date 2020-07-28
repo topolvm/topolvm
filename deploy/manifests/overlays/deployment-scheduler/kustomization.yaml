@@ -5,4 +5,4 @@ resources:
   - scheduler.yaml
 imageTags:
   - name: quay.io/topolvm/topolvm
-    newTag: 0.5.1
+    newTag: 0.5.2
