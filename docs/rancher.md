@@ -180,9 +180,12 @@ exit
 
 ## 5. Deploy TopoLVM
 
+Before deploy TopoLVM, you should install kustomize follow the link below.
+https://kubernetes-sigs.github.io/kustomize/installation/
+
 ```console
 TOPOLVM_VERSION=0.5.2
-kubectl apply -k https://github.com/topolvm/topolvm/deploy/manifests?ref=v${TOPOLVM_VERSION}
+kustomize build https://github.com/topolvm/topolvm/deploy/manifests/overlays/daemonset-scheduler?ref=v${TOPOLVM_VERSION} | kubectl apply -f -
 kubectl apply -f https://raw.githubusercontent.com/topolvm/topolvm/v${TOPOLVM_VERSION}/deploy/manifests/base/certificates.yaml
 ```
 
