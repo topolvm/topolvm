@@ -74,9 +74,10 @@ Prometheus metrics
 `topolvm_volumegroup_available_bytes` is a Gauge that indicates the available
 free space in the LVM volume group in bytes.
 
-| Label  | Description            |
-| ------ | ---------------------- |
-| `node` | The node resource name |
+| Label          | Description            |
+| -------------- | ---------------------- |
+| `node`         | The node resource name |
+| `device_class` | The device class name. |
 
 Node resource
 -------------

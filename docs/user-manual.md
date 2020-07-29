@@ -12,7 +12,7 @@ For deployment, please read [../deploy/README.md](../deploy/README.md).
   - [Retiring nodes](#retiring-nodes)
   - [Rebooting nodes](#rebooting-nodes)
 - [Inline Ephemeral Volumes](#inline-ephemeral-volumes)
-- [Limitations](#limitations)
+- [Other documents](#other-documents)
 
 StorageClass
 ------------
@@ -161,7 +161,9 @@ Supported filesystems are: `ext4`, `xfs`, and `btrfs`.
 It is not possible to specify the device-class for inline ephemeral volumes.
 Inline ephemeral volumes are always created on the default device-class.
 
-Limitations
------------
+Other documents
+---------------
 
-See [limitations.md](limitations.md).
+- [Limitations](limitations.md).
+- [Frequently asked questions](faq.md).
+- [Monitoring with prometheus](prometheus.md).
