@@ -165,5 +165,5 @@ Other documents
 ---------------
 
 - [Limitations](limitations.md).
-- [Frequently asked questions](faq.md).
-- [Monitoring with prometheus](prometheus.md).
+- [Frequently Asked Questions](faq.md).
+- [Monitoring with Prometheus](prometheus.md).
