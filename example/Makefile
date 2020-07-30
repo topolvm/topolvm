@@ -34,7 +34,7 @@ setup: $(KUBECTL)
 	else \
 		$(SUDO) apt-get install -y btrfs-tools; \
 	fi
-	curl -sSLf https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}/kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz | tar zxf - -C /tmp
+	curl -sSLf https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv$(KUSTOMIZE_VERSION)/kustomize_v$(KUSTOMIZE_VERSION)_linux_amd64.tar.gz | tar zxf - -C /tmp
 	$(SUDO) mv /tmp/kustomize /usr/local/bin/kustomize
 	chmod +x /usr/local/bin/kustomize
 
