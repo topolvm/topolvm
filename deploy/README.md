@@ -196,13 +196,13 @@ Once you finish editing manifests, apply them as follows.
 If you want to apply `topolvm-scheduler` as a DaemonSet, run the following command: 
 
 ```console
-kustomize build ./deply/manifests/overlays/daemonset-scheduler | kubectl apply -f -
+kustomize build ./deploy/manifests/overlays/daemonset-scheduler | kubectl apply -f -
 ```
 
 Instead, if you want to apply `topolvm-scheduler` as a Deployment, run the following command: 
 
 ```console
-kustomize build ./deply/manifests/overlays/deployment-scheduler | kubectl apply -f -
+kustomize build ./deploy/manifests/overlays/deployment-scheduler | kubectl apply -f -
 ```
 
 If you use `cert-manager`, run the following command in addition:
