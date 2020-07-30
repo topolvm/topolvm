@@ -4,6 +4,7 @@ export GOFLAGS
 GINKGO=$(GOPATH)/bin/ginkgo
 KUBECTL=/usr/local/bin/kubectl
 KUBERNETES_VERSION=1.18.2
+KUSTOMIZE_VERSION= 3.6.1
 KIND_VERSION=0.8.1
 KIND_CLUSTER_NAME=topolvm-example
 
@@ -18,7 +19,7 @@ $(KUBECTL):
 run: $(SERVER_CERT_FILES)
 	$(MAKE) start-lvmd
 	$(MAKE) launch-kind
-	$(KUBECTL) apply -k .
+	kustomize build . | $(KUBECTL) apply -f -
 	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/controller
 	$(KUBECTL) apply -f podpvc.yaml
 
@@ -33,6 +34,9 @@ setup: $(KUBECTL)
 	else \
 		$(SUDO) apt-get install -y btrfs-tools; \
 	fi
+	curl -sSLf https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv$(KUSTOMIZE_VERSION)/kustomize_v$(KUSTOMIZE_VERSION)_linux_amd64.tar.gz | tar zxf - -C /tmp
+	$(SUDO) mv /tmp/kustomize /usr/local/bin/kustomize
+	chmod +x /usr/local/bin/kustomize
 
 clean: stop-lvmd
 	rm -rf build/
