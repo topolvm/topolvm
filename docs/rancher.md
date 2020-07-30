@@ -180,7 +180,7 @@ exit
 
 ## 5. Deploy TopoLVM
 
-Before deploy TopoLVM, you should install kustomize follow the link below.
+Before deploying TopoLVM, install `kustomize` by following the link below.
 https://kubernetes-sigs.github.io/kustomize/installation/
 
 ```console
