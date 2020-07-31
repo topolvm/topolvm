@@ -151,6 +151,7 @@ sudo mkdir -p /opt/sbin
 curl -sSLf https://github.com/topolvm/topolvm/releases/download/v${TOPOLVM_VERSION}/lvmd-${TOPOLVM_VERSION}.tar.gz | sudo tar xzf - -C /opt/sbin
 
 # Put configuration file
+sudo mkdir -p /etc/topolvm
 sudo curl -sSL -o /etc/topolvm/lvmd.yaml https://raw.githubusercontent.com/topolvm/topolvm/v${TOPOLVM_VERSION}/deploy/lvmd-config/lvmd.yaml
 
 # Register service
@@ -169,6 +170,7 @@ sudo mkdir -p /opt/sbin
 curl -sSLf https://github.com/topolvm/topolvm/releases/download/v${TOPOLVM_VERSION}/lvmd-${TOPOLVM_VERSION}.tar.gz | sudo tar xzf - -C /opt/sbin
 
 # Put configuration file
+sudo mkdir -p /etc/topolvm
 sudo curl -sSL -o /etc/topolvm/lvmd.yaml https://raw.githubusercontent.com/topolvm/topolvm/v${TOPOLVM_VERSION}/deploy/lvmd-config/lvmd.yaml
 
 # Register service
