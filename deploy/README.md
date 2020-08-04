@@ -1,18 +1,19 @@
 Deploying TopoLVM
 =================
 
-An overview of setup is as follows:
+Each of these steps are shown in depth in the following sections:
 
-1. Deploy [lvmd][] as a systemd service on Node OS.
-2. Prepare [cert-manager][] for your Kubernetes cluster.  This is for [topolvm-controller][].
-3. Determine how [topolvm-scheduler][] to be run:
-   - If your Kubernetes have control plane nodes, `topolvm-scheduler` should be deployed as DaemonSet.
-   - Otherwise, `topolvm-scheduler` should be deployed as Deployment and Service.
-4. Add `topolvm.cybozu.com/webhook: ignore` label to system namespaces such as `kube-system`.
-5. Apply manifests for TopoLVM.
-6. Configure `kube-scheduler` to use `topolvm-scheduler`.
-7. Adjust CSIDriver config for Kubernetes 1.15 and earlier
-8. Prepare StorageClasses for TopoLVM.
+1. Deploy [lvmd][] as a `systemd` service on a worker node with LVM installed.
+1. Prepare [cert-manager][] for [topolvm-controller][]. You may supplement an existing instance.
+1. Create the `topolvm-system` namespace using `deploy/manifests/base/namespace.yaml`.
+1. Determine how [topolvm-scheduler][] to be run:
+   - If you run with a managed control plane (such as GKE, AKS, etc), `topolvm-scheduler` should be deployed as Deployment and Service
+   - `topolvm-scheduler` should otherwise be deployed as DaemonSet in unmanaged (i.e. bare metal) deployments
+1. Add `topolvm.cybozu.com/webhook: ignore` label to system namespaces such as `kube-system`.
+1. Apply remaining manifests for TopoLVM from `deploy/manifests/base` plus overlays as appropriate to your installation.
+1. Configure `kube-scheduler` to use `topolvm-scheduler`. 
+1. Adjust CSIDriver config for Kubernetes 1.15 and earlier
+1. Prepare StorageClasses for TopoLVM.
 
 Example configuration files are included in the following sub directories:
 
@@ -51,7 +52,7 @@ cert-manager
 [cert-manager][] is used to issue self-signed TLS certificate for [topolvm-controller][].
 Follow the [documentation](https://docs.cert-manager.io/en/latest/getting-started/install/kubernetes.html) to install it into your Kubernetes cluster.
 
-### Prepare the certificate without cert-manager
+### OPTIONAL: Prepare the certificate without cert-manager
 
 You can prepare the certificate manually without `cert-manager`.
 When doing so, do not apply [certificates.yaml](./manifests/base/certificates.yaml).
@@ -86,6 +87,11 @@ When doing so, do not apply [certificates.yaml](./manifests/base/certificates.ya
           caBundle: |  # The same CA certificate as above
             ...
     ```
+
+Create namespace
+----------------
+
+Create the `topolvm-system` namespace using `deploy/manifests/base/namespace.yaml`. This manifest has labels that are required for proper operation. Do not apply the other manifests yet, these will be applied after editing the values for Kustomize in the following steps.
 
 topolvm-scheduler
 -----------------
@@ -135,7 +141,8 @@ This way, `topolvm-scheduler` is exposed by LoadBalancer service.
 
 Then edit `urlPrefix` in [scheduler-policy.cfg](./scheduler-config/scheduler-policy.cfg) to specify the LoadBalancer address.
 
-### How to tune the node scoring
+OPTIONAL: tune the node scoring
+-------------------------------
 
 The node scoring for Pod scheduling can be fine-tuned with the following two ways:
 1. Adjust `divisor` parameter in the scoring expression
@@ -182,30 +189,38 @@ Protect system namespaces from TopoLVM webhook
 TopoLVM installs a mutating webhook for Pods.  It may prevent Kubernetes from bootstrapping
 if the webhook pods and the system pods are both missing.
 
-To workaround the problem, add a label to system namespaces such as `kube-system` as follows.
+To workaround the problem, add a label to system namespaces such as `kube-system` as follows:
 
 ```console
 $ kubectl label ns kube-system topolvm.cybozu.com/webhook=ignore
 ```
 
-Apply manifests for TopoLVM
----------------------------
+This label was already applied to the `topolvm-system` namespace via the `deploy/manifests/base/namespace.yaml` manifest.
 
-Once you finish editing manifests, apply them as follows.
+Apply remaining manifests for TopoLVM
+-------------------------------------
 
-If you want to apply `topolvm-scheduler` as a DaemonSet, run the following command: 
+Previous sections describe how to tune the manifest configurations, apply them now using Kustomize as follows:
+
+### Running topolvm-scheduler using DaemonSet
+
+If using `topolvm-scheduler` as a DaemonSet, run the following command: 
 
 ```console
 kustomize build ./deploy/manifests/overlays/daemonset-scheduler | kubectl apply -f -
 ```
 
-Instead, if you want to apply `topolvm-scheduler` as a Deployment, run the following command: 
+### Running topolvm-scheduler using Deployment and Service
+
+If using `topolvm-scheduler` as a Deployment, run the following command: 
 
 ```console
 kustomize build ./deploy/manifests/overlays/deployment-scheduler | kubectl apply -f -
 ```
 
-If you use `cert-manager`, run the following command in addition:
+### Generate cert-manager manifests
+
+Unless you chose to generate and install certificates manually, run the following:
 
 ```console
 kubectl apply -f ./deploy/manifests/base/certificates.yaml
@@ -216,7 +231,9 @@ Configure kube-scheduler
 
 `kube-scheduler` need to be configured to use `topolvm-scheduler` extender.
 
-If your Kubernetes cluster was installed with `kubeadm`, then reconfigure it as follows:
+### For new clusters
+
+If you are installing your cluster from scratch with `kubeadm`, you can use the following configuration:
 
 ```yaml
 apiVersion: kubeadm.k8s.io/v1beta2
@@ -234,7 +251,26 @@ scheduler:
     config: /var/lib/scheduler/scheduler-config.yaml
 ```
 
-Otherwise, consult the manual of your Kubernetes cluster distribution.
+### For existing clusters
+
+The changes to `/etc/kubernetes/manifests/kube-scheduler.yaml` that are affected by this are as follows:
+
+1. Add a line to the `command` arguments array such as ```- --config=/var/lib/scheduler/scheduler-config.yaml```. Note that this is the location of the file **after** it is mapped to the `kube-scheduler` container, not where it exists on the node local filesystem.
+1. Add a volume mapping to the location of the configuration on your node:
+```yaml
+  spec.volumes:
+  - hostPath:
+      path: /etc/topolvm/scheduler
+      type: Directory
+    name: topolvm-config
+```
+1. Add a `volumeMount` for the scheduler container:
+```yaml
+  spec.containers.volumeMounts:
+  - mountPath: /var/lib/scheduler
+    name: topolvm-config
+    readOnly: true
+```
 
 Adjust CSIDriver config for Kubernetes 1.15 and earlier
 ----------------------
