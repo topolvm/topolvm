@@ -68,11 +68,11 @@ var _ = Describe("pvc mutation webhook", func() {
 
 	It("should not have topolvm.cybozu.com/pvc finalizer when the specified StorageClass does not exist", func() {
 		pvcName := "unexists-storageclass-pvc"
-		createPVC(unexistStorageClassName, pvcName)
+		createPVC(missingStorageClassName, pvcName)
 		pvc, err := getPVC(pvcName)
 		Expect(err).ShouldNot(HaveOccurred())
 		hasFinalizer := hasTopoLVMFinalizer(pvc)
-		Expect(hasFinalizer).Should(Equal(false), "finalizer should not be set for storageclass=%s", unexistStorageClassName)
+		Expect(hasFinalizer).Should(Equal(false), "finalizer should not be set for storageclass=%s", missingStorageClassName)
 	})
 
 	It("should not have topolvm.cybozu.com/pvc finalizer with storageclass host-local", func() {
