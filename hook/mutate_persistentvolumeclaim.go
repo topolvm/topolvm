@@ -49,8 +49,8 @@ func (m persistentVolumeClaimMutator) Handle(ctx context.Context, req admission.
 	switch {
 	case err == nil:
 	case apierrors.IsNotFound(err):
-		// StorageClass appeared in the manifest is not exists
-		return admission.Errored(http.StatusBadRequest, err)
+		// StorageClassName can be simple name linked PV
+		return admission.Allowed("no request for TopoLVM")
 	default:
 		return admission.Errored(http.StatusInternalServerError, err)
 	}

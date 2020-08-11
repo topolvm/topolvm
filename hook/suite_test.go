@@ -42,6 +42,7 @@ const (
 	topolvmProvisioner3StorageClassName         = "topolvm-provisioner3"
 	topolvmProvisionerImmediateStorageClassName = "topolvm-provisioner-immediate"
 	hostLocalStorageClassName                   = "host-local"
+	missingStorageClassName                     = "missing-storageclass"
 )
 
 var (
