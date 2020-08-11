@@ -32,3 +32,15 @@ To stop the demonstration environment, run:
 ```console
 $ make clean
 ```
+
+If you're not on a Linux machine, we ship a _Vagrantfile_ which sets up a Linux VM using [Vagrant](https://www.vagrantup.com/). Once Vagrant is setup, bring your VM up by running:
+```console
+$ vagrant up
+$ vagrant ssh
+$ cd /vagrant/example
+```
+Next, follow the steps previously highlighted. Once you're done with your demonstration environment, logout from your VM and run:
+```console
+$ vagrant destroy
+```
+to clean up your environment.

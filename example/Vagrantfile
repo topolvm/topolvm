@@ -1,0 +1,30 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+ config.vm.box = "ubuntu/xenial64"
+
+ config.vm.provider "virtualbox" do |vb|
+     vb.memory = (1024 * 5).to_s # make sure there's enough memory for all components
+     vb.cpus = 2
+ end
+
+  config.vm.provision "shell", inline: <<-SHELL
+    sudo apt-get update && sudo apt-get install -y apt-transport-https curl ca-certificates curl gnupg-agent software-properties-common make gcc
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+    sudo add-apt-repository \
+      "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+      $(lsb_release -cs) \
+      stable"
+    curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+    sudo echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list
+    sudo apt-get update
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+    systemctl daemon-reload
+    echo "Allowing docker as a non-root"
+    sudo usermod -aG docker vagrant && newgrp docker
+    wget -q https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz && \
+      sudo tar xzf go1.13.3.linux-amd64.tar.gz -C /usr/local
+    echo "export PATH=$PATH:/usr/local/go/bin:/home/vagrant/go/bin" > /etc/profile.d/gopath.sh
+  SHELL
+end
