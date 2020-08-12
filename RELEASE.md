@@ -18,6 +18,8 @@ It should look like:
 (snip)
 ## [Unreleased]
 
+## [0.5.3]
+
 ### Added
 - Implement ... (#35)
 
@@ -42,8 +44,10 @@ Bump version
 
 2. Checkout `master` branch.
 3. Make a branch to release, for example by `git neco dev bump-$VERSION`
-4. Update image versions in deploy/manifests/overlays/deployment-scheduler/kustomization.yaml,
-  deploy/manifests/overlays/daemonset-scheduler/kustomization.yaml and docs/rancher.md.
+4. Update image versions in files below:
+   - deploy/manifests/overlays/deployment-scheduler/kustomization.yaml
+   - deploy/manifests/overlays/daemonset-scheduler/kustomization.yaml 
+   - docs/rancher.md.
 5. Edit `CHANGELOG.md` for the new version ([example][]).
 6. Commit the change and create a pull request:
 

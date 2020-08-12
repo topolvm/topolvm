@@ -165,7 +165,7 @@ exit
 gcloud compute ssh --zone ${ZONE} worker2
 
 # Install lvmd
-TOPOLVM_VERSION=0.5.2
+TOPOLVM_VERSION=0.5.3
 sudo mkdir -p /opt/sbin
 curl -sSLf https://github.com/topolvm/topolvm/releases/download/v${TOPOLVM_VERSION}/lvmd-${TOPOLVM_VERSION}.tar.gz | sudo tar xzf - -C /opt/sbin
 
