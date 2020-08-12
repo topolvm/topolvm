@@ -14,6 +14,12 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 - Fix to accept implicit StorageClassName (#182)
 - Fix documents (#172, #173, #174, #175, #176, #179)
 
+### Contributors
+
+- @briantopping
+- @chez-shanpu
+- @sebgl
+
 ## [0.5.2] - 2020-07-28
 
 ### Changed
