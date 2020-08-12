@@ -18,8 +18,6 @@ It should look like:
 (snip)
 ## [Unreleased]
 
-## [0.5.3]
-
 ### Added
 - Implement ... (#35)
 
