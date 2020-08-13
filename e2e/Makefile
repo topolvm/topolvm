@@ -11,6 +11,7 @@ KIND_CLUSTER_NAME=topolvm-e2e
 # If you want to change the Kubernetes version for e2e test, specify this variable from command line.
 # e.g. $ make TEST_KUBERNETES_VERSION=1.17 setup test
 TEST_KUBERNETES_VERSION?=1.17
+export TEST_KUBERNETES_VERSION
 
 ifeq ($(TEST_KUBERNETES_VERSION),1.17)
 KUBERNETES_VERSION=1.17.2
