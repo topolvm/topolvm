@@ -1140,6 +1140,11 @@ func countLVMs() (int, error) {
 	if err != nil {
 		return -1, fmt.Errorf("failed to lvs. stdout %s, err %v", stdout, err)
 	}
+	/// XXX log for inline ephemeral volumes test
+	os.Stdout.WriteString("lvs command result:\n----\n")
+	os.Stdout.Write(stdout)
+	os.Stdout.WriteString("----\n")
+	///
 	return bytes.Count(stdout, []byte("\n")), nil
 }
 
