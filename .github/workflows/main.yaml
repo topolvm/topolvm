@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-18.04
     strategy:
       matrix:
-        test_kubernetes_version: [1.17, 1.16, 1.15]
+        test_kubernetes_version: [1.18, 1.17, 1.16]
     env:
       TEST_KUBERNETES_VERSION: ${{ matrix.test_kubernetes_version }}
     steps:

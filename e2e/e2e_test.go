@@ -722,13 +722,6 @@ spec:
     csi:
       driver: topolvm.cybozu.com
 `
-		currentK8sVersion := getCurrentK8sMinorVersion()
-		if currentK8sVersion < 16 {
-			Skip(fmt.Sprintf(
-				"inline ephemeral volumes not supported on Kubernetes version: 1.%d. Min supported version is 1.16",
-				currentK8sVersion,
-			))
-		}
 		By("reading current count of LVMs")
 		baseLvmCount, err := countLVMs()
 		Expect(err).ShouldNot(HaveOccurred())
@@ -791,13 +784,6 @@ spec:
 	})
 
 	It("should resize filesystem", func() {
-		currentK8sVersion := getCurrentK8sMinorVersion()
-		if currentK8sVersion < 16 {
-			Skip(fmt.Sprintf(
-				"resizing is not supported on Kubernetes version: 1.%d. Min supported version is 1.16",
-				currentK8sVersion,
-			))
-		}
 		By("deploying Pod with PVC")
 		podYAML := `apiVersion: v1
 kind: Pod
@@ -963,13 +949,6 @@ spec:
 	})
 
 	It("should resize a block device", func() {
-		currentK8sVersion := getCurrentK8sMinorVersion()
-		if currentK8sVersion < 16 {
-			Skip(fmt.Sprintf(
-				"resizing is not supported on Kubernetes version: 1.%d. Min supported version is 1.16",
-				currentK8sVersion,
-			))
-		}
 		By("deploying Pod with PVC")
 		deviceFile := "/dev/e2etest"
 		podYAML := fmt.Sprintf(`apiVersion: v1
