@@ -306,25 +306,35 @@ spec:
 			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s", stdout)
 
 			var maxCapNodes []string
-			var maxCapacity int
-			for _, node := range nodes.Items {
-				if node.Name == "topolvm-e2e-control-plane" {
-					continue
+			Eventually(func() error {
+				var maxCapacity int
+				maxCapNodes = []string{}
+				for _, node := range nodes.Items {
+					if node.Name == "topolvm-e2e-control-plane" {
+						continue
+					}
+					strCap, ok := node.Annotations[topolvm.CapacityKeyPrefix+"ssd"]
+					if !ok {
+						return fmt.Errorf("capacity is not annotated: %s", node.Name)
+					}
+					capacity, err := strconv.Atoi(strCap)
+					if err != nil {
+						return err
+					}
+					fmt.Printf("%s: %d bytes\n", node.Name, capacity)
+					switch {
+					case capacity > maxCapacity:
+						maxCapacity = capacity
+						maxCapNodes = []string{node.GetName()}
+					case capacity == maxCapacity:
+						maxCapNodes = append(maxCapNodes, node.GetName())
+					}
 				}
-				strCap, ok := node.Annotations[topolvm.CapacityKeyPrefix+"ssd"]
-				Expect(ok).To(Equal(true), "capacity is not annotated: "+node.Name)
-				capacity, err := strconv.Atoi(strCap)
-				Expect(err).ShouldNot(HaveOccurred())
-				fmt.Printf("%s: %d bytes\n", node.Name, capacity)
-				switch {
-				case capacity > maxCapacity:
-					maxCapacity = capacity
-					maxCapNodes = []string{node.GetName()}
-				case capacity == maxCapacity:
-					maxCapNodes = append(maxCapNodes, node.GetName())
+				if len(maxCapNodes) != 3-i {
+					return fmt.Errorf("unexpected number of maxCapNodes: expected: %d, actual: %d", 3-i, len(maxCapNodes))
 				}
-			}
-			Expect(len(maxCapNodes)).To(Equal(3 - i))
+				return nil
+			}).Should(Succeed())
 
 			By("creating pvc")
 			claimYAML := fmt.Sprintf(`kind: PersistentVolumeClaim
