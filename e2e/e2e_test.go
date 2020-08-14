@@ -299,16 +299,15 @@ spec:
 		// Repeat applying a PVC to make sure that the volume is created on the node with the largest capacity in each loop.
 		for i := 0; i < 3; i++ {
 			By("getting the node with max capacity (loop: " + strconv.Itoa(i) + ")")
-			stdout, stderr, err := kubectl("get", "nodes", "-o", "json")
-			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-			var nodes corev1.NodeList
-			err = json.Unmarshal(stdout, &nodes)
-			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s", stdout)
-
 			var maxCapNodes []string
 			Eventually(func() error {
 				var maxCapacity int
 				maxCapNodes = []string{}
+				stdout, stderr, err := kubectl("get", "nodes", "-o", "json")
+				Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+				var nodes corev1.NodeList
+				err = json.Unmarshal(stdout, &nodes)
+				Expect(err).ShouldNot(HaveOccurred(), "stdout=%s", stdout)
 				for _, node := range nodes.Items {
 					if node.Name == "topolvm-e2e-control-plane" {
 						continue
@@ -349,7 +348,7 @@ spec:
       storage: 1Gi
   storageClassName: topolvm-provisioner-immediate
 `, i)
-			stdout, stderr, err = kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
+			stdout, stderr, err := kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
 			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 			var volumeName string
