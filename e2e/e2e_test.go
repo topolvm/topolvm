@@ -304,10 +304,14 @@ spec:
 				var maxCapacity int
 				maxCapNodes = []string{}
 				stdout, stderr, err := kubectl("get", "nodes", "-o", "json")
-				Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+				if err != nil {
+					return fmt.Errorf("kubectl get nodes error: stdout=%s, stderr=%s", stdout, stderr)
+				}
 				var nodes corev1.NodeList
 				err = json.Unmarshal(stdout, &nodes)
-				Expect(err).ShouldNot(HaveOccurred(), "stdout=%s", stdout)
+				if err != nil {
+					return fmt.Errorf("unmarshal error: stdout=%s", stdout)
+				}
 				for _, node := range nodes.Items {
 					if node.Name == "topolvm-e2e-control-plane" {
 						continue
