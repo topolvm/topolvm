@@ -50,10 +50,14 @@ func testE2E() {
 				}
 
 				stdout, stderr, err := kubectl("get", "node", "-o", "json")
-				Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+				if err != nil {
+					return fmt.Errorf("stdout=%s, stderr=%s", stdout, stderr)
+				}
 
 				capacitiesAfter, err := getNodeAnnotationMapWithPrefix(topolvm.CapacityKeyPrefix)
-				Expect(err).ShouldNot(HaveOccurred())
+				if err != nil {
+					return err
+				}
 				if diff := cmp.Diff(capacitiesBefore, capacitiesAfter); diff != "" {
 					return fmt.Errorf("capacities on nodes should be same before and after the test: diff=%q", diff)
 				}
