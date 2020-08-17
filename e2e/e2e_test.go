@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/topolvm/topolvm"
@@ -22,15 +21,10 @@ import (
 func testE2E() {
 	testNamespacePrefix := "e2etest-"
 	var ns string
-	var lvmCountBefore int
-	var capacitiesBefore map[string]map[string]string
-	BeforeEach(func() {
-		var err error
-		lvmCountBefore, err = countLVMs()
-		Expect(err).ShouldNot(HaveOccurred())
+	var cc CleanupContext
 
-		capacitiesBefore, err = getNodeAnnotationMapWithPrefix(topolvm.CapacityKeyPrefix)
-		Expect(err).ShouldNot(HaveOccurred())
+	BeforeEach(func() {
+		cc = commonBeforeEach()
 
 		ns = testNamespacePrefix + randomString(10)
 		createNamespace(ns)
@@ -40,30 +34,9 @@ func testE2E() {
 		// When a test fails, I want to investigate the cause. So please don't remove the namespace!
 		if !CurrentGinkgoTestDescription().Failed {
 			kubectl("delete", "namespaces/"+ns)
-			Eventually(func() error {
-				lvmCountAfter, err := countLVMs()
-				if err != nil {
-					return err
-				}
-				if lvmCountBefore != lvmCountAfter {
-					return fmt.Errorf("lvm num mismatched. before: %d, after: %d", lvmCountBefore, lvmCountAfter)
-				}
-
-				stdout, stderr, err := kubectl("get", "node", "-o", "json")
-				if err != nil {
-					return fmt.Errorf("stdout=%s, stderr=%s", stdout, stderr)
-				}
-
-				capacitiesAfter, err := getNodeAnnotationMapWithPrefix(topolvm.CapacityKeyPrefix)
-				if err != nil {
-					return err
-				}
-				if diff := cmp.Diff(capacitiesBefore, capacitiesAfter); diff != "" {
-					return fmt.Errorf("capacities on nodes should be same before and after the test: diff=%q", diff)
-				}
-				return nil
-			}).Should(Succeed())
 		}
+
+		commonAfterEach(cc)
 	})
 
 	It("should be mounted in specified path", func() {

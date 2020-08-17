@@ -7,10 +7,8 @@ import (
 	"net"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/topolvm/topolvm"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	"google.golang.org/grpc"
 	"sigs.k8s.io/yaml"
@@ -59,10 +57,11 @@ func testPublishVolume() {
 	)
 	nodeSocket := "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/csi-topolvm.sock"
 
-	var lvmCountBefore int
-	var capacitiesBefore map[string]map[string]string
+	var cc CleanupContext
 
 	BeforeEach(func() {
+		cc = commonBeforeEach()
+
 		dialer := &net.Dialer{}
 		dialFunc := func(ctx context.Context, a string) (net.Conn, error) {
 			return dialer.DialContext(ctx, "unix", a)
@@ -72,12 +71,6 @@ func testPublishVolume() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		nc = csi.NewNodeClient(conn)
-
-		lvmCountBefore, err = countLVMs()
-		Expect(err).ShouldNot(HaveOccurred())
-
-		capacitiesBefore, err = getNodeAnnotationMapWithPrefix(topolvm.CapacityKeyPrefix)
-		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -87,31 +80,7 @@ func testPublishVolume() {
 			conn = nil
 		}
 
-		if !CurrentGinkgoTestDescription().Failed {
-			Eventually(func() error {
-				lvmCountAfter, err := countLVMs()
-				if err != nil {
-					return err
-				}
-				if lvmCountBefore != lvmCountAfter {
-					return fmt.Errorf("lvm num mismatched. before: %d, after: %d", lvmCountBefore, lvmCountAfter)
-				}
-
-				stdout, stderr, err := kubectl("get", "node", "-o", "json")
-				if err != nil {
-					return fmt.Errorf("stdout=%s, stderr=%s", stdout, stderr)
-				}
-
-				capacitiesAfter, err := getNodeAnnotationMapWithPrefix(topolvm.CapacityKeyPrefix)
-				if err != nil {
-					return err
-				}
-				if diff := cmp.Diff(capacitiesBefore, capacitiesAfter); diff != "" {
-					return fmt.Errorf("capacities on nodes should be same before and after the test: diff=%q", diff)
-				}
-				return nil
-			}).Should(Succeed())
-		}
+		commonAfterEach(cc)
 	})
 
 	It("should publish filesystem", func() {
