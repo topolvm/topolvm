@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/topolvm/topolvm"
@@ -21,7 +22,16 @@ import (
 func testE2E() {
 	testNamespacePrefix := "e2etest-"
 	var ns string
+	var lvmCountBefore int
+	var capacitiesBefore map[string]map[string]string
 	BeforeEach(func() {
+		var err error
+		lvmCountBefore, err = countLVMs()
+		Expect(err).ShouldNot(HaveOccurred())
+
+		capacitiesBefore, err = getNodeAnnotationMapWithPrefix(topolvm.CapacityKeyPrefix)
+		Expect(err).ShouldNot(HaveOccurred())
+
 		ns = testNamespacePrefix + randomString(10)
 		createNamespace(ns)
 	})
@@ -30,6 +40,25 @@ func testE2E() {
 		// When a test fails, I want to investigate the cause. So please don't remove the namespace!
 		if !CurrentGinkgoTestDescription().Failed {
 			kubectl("delete", "namespaces/"+ns)
+			Eventually(func() error {
+				lvmCountAfter, err := countLVMs()
+				if err != nil {
+					return err
+				}
+				if lvmCountBefore != lvmCountAfter {
+					return fmt.Errorf("lvm num mismatched. before: %d, after: %d", lvmCountBefore, lvmCountAfter)
+				}
+
+				stdout, stderr, err := kubectl("get", "node", "-o", "json")
+				Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+				capacitiesAfter, err := getNodeAnnotationMapWithPrefix(topolvm.CapacityKeyPrefix)
+				Expect(err).ShouldNot(HaveOccurred())
+				if diff := cmp.Diff(capacitiesBefore, capacitiesAfter); diff != "" {
+					return fmt.Errorf("capacities on nodes should be same before and after the test: diff=%q", diff)
+				}
+				return nil
+			}).Should(Succeed())
 		}
 	})
 
@@ -1164,4 +1193,32 @@ func getCurrentK8sMinorVersion() int64 {
 	Expect(err).ShouldNot(HaveOccurred())
 
 	return kubernetesMinorVersion
+}
+
+func getNodeAnnotationMapWithPrefix(prefix string) (map[string]map[string]string, error) {
+	stdout, stderr, err := kubectl("get", "node", "-o", "json")
+	if err != nil {
+		return nil, fmt.Errorf("stdout=%sr stderr=%s, err=%v", stdout, stderr, err)
+	}
+
+	var nodeList corev1.NodeList
+	err = json.Unmarshal(stdout, &nodeList)
+	if err != nil {
+		return nil, err
+	}
+
+	capacities := make(map[string]map[string]string)
+	for _, node := range nodeList.Items {
+		if node.Name == "topolvm-e2e-control-plane" {
+			continue
+		}
+
+		for k, v := range node.Annotations {
+			if !strings.HasPrefix(k, prefix) {
+				continue
+			}
+			capacities[node.Name][k] = v
+		}
+	}
+	return capacities, nil
 }
