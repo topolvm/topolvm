@@ -1217,6 +1217,7 @@ func getNodeAnnotationMapWithPrefix(prefix string) (map[string]map[string]string
 			continue
 		}
 
+		capacities[node.Name] = make(map[string]string)
 		for k, v := range node.Annotations {
 			if !strings.HasPrefix(k, prefix) {
 				continue
