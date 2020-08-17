@@ -7,8 +7,10 @@ import (
 	"net"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/topolvm/topolvm"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	"google.golang.org/grpc"
 	"sigs.k8s.io/yaml"
@@ -57,6 +59,9 @@ func testPublishVolume() {
 	)
 	nodeSocket := "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/csi-topolvm.sock"
 
+	var lvmCountBefore int
+	var capacitiesBefore map[string]map[string]string
+
 	BeforeEach(func() {
 		dialer := &net.Dialer{}
 		dialFunc := func(ctx context.Context, a string) (net.Conn, error) {
@@ -67,6 +72,12 @@ func testPublishVolume() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		nc = csi.NewNodeClient(conn)
+
+		lvmCountBefore, err = countLVMs()
+		Expect(err).ShouldNot(HaveOccurred())
+
+		capacitiesBefore, err = getNodeAnnotationMapWithPrefix(topolvm.CapacityKeyPrefix)
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -74,6 +85,32 @@ func testPublishVolume() {
 		if conn != nil {
 			conn.Close()
 			conn = nil
+		}
+
+		if !CurrentGinkgoTestDescription().Failed {
+			Eventually(func() error {
+				lvmCountAfter, err := countLVMs()
+				if err != nil {
+					return err
+				}
+				if lvmCountBefore != lvmCountAfter {
+					return fmt.Errorf("lvm num mismatched. before: %d, after: %d", lvmCountBefore, lvmCountAfter)
+				}
+
+				stdout, stderr, err := kubectl("get", "node", "-o", "json")
+				if err != nil {
+					return fmt.Errorf("stdout=%s, stderr=%s", stdout, stderr)
+				}
+
+				capacitiesAfter, err := getNodeAnnotationMapWithPrefix(topolvm.CapacityKeyPrefix)
+				if err != nil {
+					return err
+				}
+				if diff := cmp.Diff(capacitiesBefore, capacitiesAfter); diff != "" {
+					return fmt.Errorf("capacities on nodes should be same before and after the test: diff=%q", diff)
+				}
+				return nil
+			}).Should(Succeed())
 		}
 	})
 
@@ -94,8 +131,6 @@ spec:
 
 		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
-
-		defer kubectl("delete", "logicalvolume", "csi-node-test-fs")
 
 		var volumeID string
 		Eventually(func() error {
@@ -175,6 +210,10 @@ spec:
 		Expect(unpubResp).ShouldNot(BeNil())
 
 		cl.unregister(volumeID, mountTargetPath)
+
+		By("cleaning logicalvolume")
+		stdout, stderr, err := kubectl("delete", "logicalvolume", "csi-node-test-fs")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 	})
 
 	It("should be worked NodePublishVolume successfully to create a block device", func() {
@@ -194,7 +233,6 @@ spec:
 
 		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
-		defer kubectl("delete", "logicalvolume", "csi-node-test-block")
 
 		var volumeID string
 		Eventually(func() error {
@@ -267,5 +305,9 @@ spec:
 		Expect(unpubResp).ShouldNot(BeNil())
 
 		cl.unregister(volumeID, deviceTargetPath)
+
+		By("cleaning logicalvolume")
+		stdout, stderr, err := kubectl("delete", "logicalvolume", "csi-node-test-block")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 	})
 }
