@@ -21,7 +21,11 @@ import (
 func testE2E() {
 	testNamespacePrefix := "e2etest-"
 	var ns string
+	var cc CleanupContext
+
 	BeforeEach(func() {
+		cc = commonBeforeEach()
+
 		ns = testNamespacePrefix + randomString(10)
 		createNamespace(ns)
 	})
@@ -31,6 +35,8 @@ func testE2E() {
 		if !CurrentGinkgoTestDescription().Failed {
 			kubectl("delete", "namespaces/"+ns)
 		}
+
+		commonAfterEach(cc)
 	})
 
 	It("should be mounted in specified path", func() {
@@ -1164,4 +1170,33 @@ func getCurrentK8sMinorVersion() int64 {
 	Expect(err).ShouldNot(HaveOccurred())
 
 	return kubernetesMinorVersion
+}
+
+func getNodeAnnotationMapWithPrefix(prefix string) (map[string]map[string]string, error) {
+	stdout, stderr, err := kubectl("get", "node", "-o", "json")
+	if err != nil {
+		return nil, fmt.Errorf("stdout=%sr stderr=%s, err=%v", stdout, stderr, err)
+	}
+
+	var nodeList corev1.NodeList
+	err = json.Unmarshal(stdout, &nodeList)
+	if err != nil {
+		return nil, err
+	}
+
+	capacities := make(map[string]map[string]string)
+	for _, node := range nodeList.Items {
+		if node.Name == "topolvm-e2e-control-plane" {
+			continue
+		}
+
+		capacities[node.Name] = make(map[string]string)
+		for k, v := range node.Annotations {
+			if !strings.HasPrefix(k, prefix) {
+				continue
+			}
+			capacities[node.Name][k] = v
+		}
+	}
+	return capacities, nil
 }
