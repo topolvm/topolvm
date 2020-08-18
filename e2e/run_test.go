@@ -53,17 +53,17 @@ func commonBeforeEach() CleanupContext {
 	var err error
 
 	cc.LvmCount, err = countLVMs()
-	Expect(err).ShouldNot(HaveOccurred())
+	ExpectWithOffset(1, err).ShouldNot(HaveOccurred())
 
 	cc.CapacityAnnotations, err = getNodeAnnotationMapWithPrefix(topolvm.CapacityKeyPrefix)
-	Expect(err).ShouldNot(HaveOccurred())
+	ExpectWithOffset(1, err).ShouldNot(HaveOccurred())
 
 	return cc
 }
 
 func commonAfterEach(cc CleanupContext) {
 	if !CurrentGinkgoTestDescription().Failed {
-		Eventually(func() error {
+		EventuallyWithOffset(1, func() error {
 			lvmCountAfter, err := countLVMs()
 			if err != nil {
 				return err
