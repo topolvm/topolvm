@@ -33,7 +33,13 @@ To stop the demonstration environment, run:
 $ make clean
 ```
 
-If you're not on a Linux machine, we ship a _Vagrantfile_ which sets up a Linux VM using [Vagrant](https://www.vagrantup.com/). Once Vagrant is setup, bring your VM up by running:
+If you're not on a Linux machine, we ship a _Vagrantfile_ which sets up a Linux VM using [Vagrant](https://www.vagrantup.com/).
+It requires [VirtualBox](https://www.virtualbox.org/) and the [vagrant-disksize](https://github.com/sprotheroe/vagrant-disksize) plugin.
+Once Vagrant is setup, add the _vagrant-disksize_ plugin:
+```console
+$ vagrant plugin install vagrant-disksize
+```
+and bring your VM up
 ```console
 $ vagrant up
 $ vagrant ssh
