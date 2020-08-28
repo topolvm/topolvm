@@ -45,6 +45,12 @@ $ vagrant up
 $ vagrant ssh
 $ cd /vagrant/example
 ```
+Next, run the example as suggested. However, as Vagrant shares the host directory with the virtual machine, you need to specify where the
+your volume will be created. In order to do it, just override the `BACKING_STORE` variable. For example:
+```
+$ make setup
+$ make BACKING_STORE=/tmp run
+```
 Next, follow the steps previously highlighted. Once you're done with your demonstration environment, logout from your VM and run:
 ```console
 $ vagrant destroy
