@@ -14,6 +14,7 @@ require (
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/golang/protobuf v1.3.4
 	github.com/google/certificate-transparency-go v1.1.0 // indirect
+	github.com/google/go-cmp v0.3.0
 	github.com/jmhodges/clock v0.0.0-20160418191101-880ee4c33548 // indirect
 	github.com/jmoiron/sqlx v1.2.0 // indirect
 	github.com/kisielk/sqlstruct v0.0.0-20150923205031-648daed35d49 // indirect

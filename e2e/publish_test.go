@@ -57,7 +57,11 @@ func testPublishVolume() {
 	)
 	nodeSocket := "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/csi-topolvm.sock"
 
+	var cc CleanupContext
+
 	BeforeEach(func() {
+		cc = commonBeforeEach()
+
 		dialer := &net.Dialer{}
 		dialFunc := func(ctx context.Context, a string) (net.Conn, error) {
 			return dialer.DialContext(ctx, "unix", a)
@@ -75,6 +79,8 @@ func testPublishVolume() {
 			conn.Close()
 			conn = nil
 		}
+
+		commonAfterEach(cc)
 	})
 
 	It("should publish filesystem", func() {
@@ -94,8 +100,6 @@ spec:
 
 		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
-
-		defer kubectl("delete", "logicalvolume", "csi-node-test-fs")
 
 		var volumeID string
 		Eventually(func() error {
@@ -175,6 +179,10 @@ spec:
 		Expect(unpubResp).ShouldNot(BeNil())
 
 		cl.unregister(volumeID, mountTargetPath)
+
+		By("cleaning logicalvolume")
+		stdout, stderr, err := kubectl("delete", "logicalvolume", "csi-node-test-fs")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 	})
 
 	It("should be worked NodePublishVolume successfully to create a block device", func() {
@@ -194,7 +202,6 @@ spec:
 
 		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
-		defer kubectl("delete", "logicalvolume", "csi-node-test-block")
 
 		var volumeID string
 		Eventually(func() error {
@@ -267,5 +274,9 @@ spec:
 		Expect(unpubResp).ShouldNot(BeNil())
 
 		cl.unregister(volumeID, deviceTargetPath)
+
+		By("cleaning logicalvolume")
+		stdout, stderr, err := kubectl("delete", "logicalvolume", "csi-node-test-block")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 	})
 }

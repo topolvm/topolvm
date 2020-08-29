@@ -21,7 +21,11 @@ import (
 func testE2E() {
 	testNamespacePrefix := "e2etest-"
 	var ns string
+	var cc CleanupContext
+
 	BeforeEach(func() {
+		cc = commonBeforeEach()
+
 		ns = testNamespacePrefix + randomString(10)
 		createNamespace(ns)
 	})
@@ -31,6 +35,8 @@ func testE2E() {
 		if !CurrentGinkgoTestDescription().Failed {
 			kubectl("delete", "namespaces/"+ns)
 		}
+
+		commonAfterEach(cc)
 	})
 
 	It("should be mounted in specified path", func() {
@@ -299,32 +305,45 @@ spec:
 		// Repeat applying a PVC to make sure that the volume is created on the node with the largest capacity in each loop.
 		for i := 0; i < 3; i++ {
 			By("getting the node with max capacity (loop: " + strconv.Itoa(i) + ")")
-			stdout, stderr, err := kubectl("get", "nodes", "-o", "json")
-			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-			var nodes corev1.NodeList
-			err = json.Unmarshal(stdout, &nodes)
-			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s", stdout)
-
 			var maxCapNodes []string
-			var maxCapacity int
-			for _, node := range nodes.Items {
-				if node.Name == "topolvm-e2e-control-plane" {
-					continue
+			Eventually(func() error {
+				var maxCapacity int
+				maxCapNodes = []string{}
+				stdout, stderr, err := kubectl("get", "nodes", "-o", "json")
+				if err != nil {
+					return fmt.Errorf("kubectl get nodes error: stdout=%s, stderr=%s", stdout, stderr)
 				}
-				strCap, ok := node.Annotations[topolvm.CapacityKeyPrefix+"ssd"]
-				Expect(ok).To(Equal(true), "capacity is not annotated: "+node.Name)
-				capacity, err := strconv.Atoi(strCap)
-				Expect(err).ShouldNot(HaveOccurred())
-				fmt.Printf("%s: %d bytes\n", node.Name, capacity)
-				switch {
-				case capacity > maxCapacity:
-					maxCapacity = capacity
-					maxCapNodes = []string{node.GetName()}
-				case capacity == maxCapacity:
-					maxCapNodes = append(maxCapNodes, node.GetName())
+				var nodes corev1.NodeList
+				err = json.Unmarshal(stdout, &nodes)
+				if err != nil {
+					return fmt.Errorf("unmarshal error: stdout=%s", stdout)
 				}
-			}
-			Expect(len(maxCapNodes)).To(Equal(3 - i))
+				for _, node := range nodes.Items {
+					if node.Name == "topolvm-e2e-control-plane" {
+						continue
+					}
+					strCap, ok := node.Annotations[topolvm.CapacityKeyPrefix+"ssd"]
+					if !ok {
+						return fmt.Errorf("capacity is not annotated: %s", node.Name)
+					}
+					capacity, err := strconv.Atoi(strCap)
+					if err != nil {
+						return err
+					}
+					fmt.Printf("%s: %d bytes\n", node.Name, capacity)
+					switch {
+					case capacity > maxCapacity:
+						maxCapacity = capacity
+						maxCapNodes = []string{node.GetName()}
+					case capacity == maxCapacity:
+						maxCapNodes = append(maxCapNodes, node.GetName())
+					}
+				}
+				if len(maxCapNodes) != 3-i {
+					return fmt.Errorf("unexpected number of maxCapNodes: expected: %d, actual: %d", 3-i, len(maxCapNodes))
+				}
+				return nil
+			}).Should(Succeed())
 
 			By("creating pvc")
 			claimYAML := fmt.Sprintf(`kind: PersistentVolumeClaim
@@ -339,7 +358,7 @@ spec:
       storage: 1Gi
   storageClassName: topolvm-provisioner-immediate
 `, i)
-			stdout, stderr, err = kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
+			stdout, stderr, err := kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
 			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 			var volumeName string
@@ -1151,4 +1170,33 @@ func getCurrentK8sMinorVersion() int64 {
 	Expect(err).ShouldNot(HaveOccurred())
 
 	return kubernetesMinorVersion
+}
+
+func getNodeAnnotationMapWithPrefix(prefix string) (map[string]map[string]string, error) {
+	stdout, stderr, err := kubectl("get", "node", "-o", "json")
+	if err != nil {
+		return nil, fmt.Errorf("stdout=%sr stderr=%s, err=%v", stdout, stderr, err)
+	}
+
+	var nodeList corev1.NodeList
+	err = json.Unmarshal(stdout, &nodeList)
+	if err != nil {
+		return nil, err
+	}
+
+	capacities := make(map[string]map[string]string)
+	for _, node := range nodeList.Items {
+		if node.Name == "topolvm-e2e-control-plane" {
+			continue
+		}
+
+		capacities[node.Name] = make(map[string]string)
+		for k, v := range node.Annotations {
+			if !strings.HasPrefix(k, prefix) {
+				continue
+			}
+			capacities[node.Name][k] = v
+		}
+	}
+	return capacities, nil
 }

@@ -8,9 +8,19 @@ KUSTOMIZE_VERSION=3.5.4
 KUSTOMIZE=/usr/local/bin/kustomize
 KIND_CLUSTER_NAME=topolvm-e2e
 
+ifeq ($(TEST_KUBERNETES_TARGET),current)
+TEST_KUBERNETES_VERSION=1.17
+else ifeq ($(TEST_KUBERNETES_TARGET),prev)
+TEST_KUBERNETES_VERSION=1.16
+else ifeq ($(TEST_KUBERNETES_TARGET),prev2)
+TEST_KUBERNETES_VERSION=1.15
+else
 # If you want to change the Kubernetes version for e2e test, specify this variable from command line.
 # e.g. $ make TEST_KUBERNETES_VERSION=1.17 setup test
 TEST_KUBERNETES_VERSION?=1.17
+endif
+
+export TEST_KUBERNETES_VERSION
 
 ifeq ($(TEST_KUBERNETES_VERSION),1.17)
 KUBERNETES_VERSION=1.17.2
