@@ -1,0 +1,24 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "ubuntu/bionic64"
+  config.disksize.size = '50GB'
+
+  config.vm.provider "virtualbox" do |vb|
+     vb.memory = (1024 * 6).to_s # make sure there's enough memory for all components
+     vb.cpus = 2
+  end
+  
+  config.vm.synced_folder "../", "/vagrant"
+  config.vm.provision "shell", inline: <<-SHELL
+    apt-get update && apt-get install -y \
+       apt-transport-https curl ca-certificates \
+       curl gnupg-agent software-properties-common \
+       make gcc jq docker.io 
+    echo "Allowing docker as a non-root"
+    usermod -aG docker vagrant && newgrp docker
+    snap install --channel=1.13/stable --classic go
+    echo "export PATH=$PATH:/home/vagrant/go/bin" > /etc/profile.d/gopath.sh
+  SHELL
+end

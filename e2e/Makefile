@@ -39,6 +39,7 @@ endif
 GO_FILES := $(shell find .. -path ../vendor -prune -o -path ../e2e -prune -o -name '*.go' -print)
 CA_FILES=./certs/ca.csr ./certs/ca.pem ./certs/ca-key.pem
 SERVER_CERT_FILES=./certs/server.csr ./certs/server.pem ./certs/server-key.pem
+BACKING_STORE=./build
 
 $(KUBECTL):
 	$(SUDO) curl -sfL https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl -o $(KUBECTL)
@@ -79,30 +80,30 @@ shutdown-kind:
 	for d in $$(mount | grep /lib/kubelet | cut -d ' ' -f 3); do $(SUDO) umount $$d; done
 
 start-lvmd:
-	mkdir -p build
+	mkdir -p build $(BACKING_STORE)
 	go build -o build/lvmd ../pkg/lvmd
-	if [ -f build/backing_store* ]; then $(MAKE) stop-lvmd; fi
+	if [ -f $(BACKING_STORE)/backing_store* ]; then $(MAKE) stop-lvmd; fi
 
 	for i in $$(seq 3); do \
 		mkdir -p /tmp/topolvm/worker$$i; \
 		mkdir -p /tmp/topolvm/lvmd$$i; \
-		truncate --size=20G build/backing_store$${i}_1; \
-		$(SUDO) losetup -f build/backing_store$${i}_1; \
-		$(SUDO) vgcreate -y node$${i}-myvg1 $$($(SUDO) losetup -j build/backing_store$${i}_1 | cut -d: -f1); \
+		truncate --size=20G $(BACKING_STORE)/backing_store$${i}_1; \
+		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$${i}_1; \
+		$(SUDO) vgcreate -y node$${i}-myvg1 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_1 | cut -d: -f1); \
 		$(SUDO) lvcreate -y -n csi-node-test-block -L 1G node$${i}-myvg1; \
 		$(SUDO) lvcreate -y -n csi-node-test-fs -L 1G node$${i}-myvg1; \
 	done
 
 	# Create additional Volume Groups
-	truncate --size=10G build/backing_store1_2; \
-	$(SUDO) losetup -f build/backing_store1_2; \
-	$(SUDO) vgcreate -y node1-myvg2 $$($(SUDO) losetup -j build/backing_store1_2 | cut -d: -f1); \
-	truncate --size=10G build/backing_store2_2; \
-	$(SUDO) losetup -f build/backing_store2_2; \
-	$(SUDO) vgcreate -y node2-myvg2 $$($(SUDO) losetup -j build/backing_store2_2 | cut -d: -f1); \
-	truncate --size=10G build/backing_store3_3; \
-	$(SUDO) losetup -f build/backing_store3_3; \
-	$(SUDO) vgcreate -y node3-myvg3 $$($(SUDO) losetup -j build/backing_store3_3 | cut -d: -f1); \
+	truncate --size=10G $(BACKING_STORE)/backing_store1_2; \
+	$(SUDO) losetup -f $(BACKING_STORE)/backing_store1_2; \
+	$(SUDO) vgcreate -y node1-myvg2 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store1_2 | cut -d: -f1); \
+	truncate --size=10G $(BACKING_STORE)/backing_store2_2; \
+	$(SUDO) losetup -f $(BACKING_STORE)/backing_store2_2; \
+	$(SUDO) vgcreate -y node2-myvg2 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store2_2 | cut -d: -f1); \
+	truncate --size=10G $(BACKING_STORE)/backing_store3_3; \
+	$(SUDO) losetup -f $(BACKING_STORE)/backing_store3_3; \
+	$(SUDO) vgcreate -y node3-myvg3 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store3_3 | cut -d: -f1); \
 
 	for i in $$(seq 3); do \
 		$(SUDO) systemd-run --unit=lvmd$$i.service $(shell pwd)/build/lvmd --config=$(shell pwd)/lvmd$$i.yaml; \
@@ -113,11 +114,11 @@ stop-lvmd:
 	for i in $$(seq 3); do \
 		if systemctl is-active -q lvmd$$i.service; then $(SUDO) systemctl stop lvmd$$i.service; fi; \
 		for j in $$(seq 3); do \
-			if [ -f build/backing_store$${i}_$${j} ]; then \
+			if [ -f $(BACKING_STORE)/backing_store$${i}_$${j} ]; then \
 				$(SUDO) vgremove -ffy node$${i}-myvg$${j}; \
-				$(SUDO) pvremove -ffy $$($(SUDO) losetup -j build/backing_store$${i}_$${j} | cut -d: -f1); \
-				$(SUDO) losetup -d $$($(SUDO) losetup -j build/backing_store$${i}_$${j} | cut -d: -f1); \
-				rm -f build/backing_store$${i}_$${j}; \
+				$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_$${j} | cut -d: -f1); \
+				$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_$${j} | cut -d: -f1); \
+				rm -f $(BACKING_STORE)/backing_store$${i}_$${j}; \
 			fi; \
 		done; \
 	done
@@ -153,6 +154,6 @@ setup: $(KUBECTL)
 	fi
 
 clean: stop-lvmd
-	rm -rf $(CA_FILES) $(SERVER_CERT_FILES) topolvm.img build/
+	rm -rf $(CA_FILES) $(SERVER_CERT_FILES) topolvm.img build/ $(BACKING_STORE)/backing_store*
 
 .PHONY: launch-kind shutdown-kind start-lvmd stop-lvmd test setup clean

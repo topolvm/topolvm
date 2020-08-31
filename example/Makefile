@@ -11,6 +11,7 @@ KIND_CLUSTER_NAME=topolvm-example
 GO_FILES := $(shell find .. -path ../vendor -prune -o -path ../e2e -prune -o -name '*.go' -print)
 CA_FILES=./build/certs/ca.csr ./build/certs/ca.pem ./build/certs/ca-key.pem
 SERVER_CERT_FILES=./build/certs/server.csr ./build/certs/server.pem ./build/certs/server-key.pem
+BACKING_STORE=./build
 
 $(KUBECTL):
 	$(SUDO) curl -sfL https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl -o $(KUBECTL)
@@ -69,22 +70,22 @@ shutdown-kind:
 
 start-lvmd: /tmp/topolvm/lvmd/lvmd.yaml
 	go build -o build/lvmd ../pkg/lvmd
-	if [ -f build/backing_store ]; then $(MAKE) stop-lvmd; fi
+	if [ -f $(BACKING_STORE)/backing_store ]; then $(MAKE) stop-lvmd; fi; \
 	mkdir -p /tmp/topolvm/worker; \
 	mkdir -p /tmp/topolvm/lvmd; \
-	truncate --size=20G build/backing_store; \
-	$(SUDO) losetup -f build/backing_store; \
-	$(SUDO) vgcreate -y myvg1 $$($(SUDO) losetup -j build/backing_store | cut -d: -f1); \
+	truncate --size=20G $(BACKING_STORE)/backing_store; \
+	$(SUDO) losetup -f $(BACKING_STORE)/backing_store; \
+	$(SUDO) vgcreate -f -y myvg1 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store | cut -d: -f1); \
 	$(SUDO) systemd-run --unit=lvmd.service $(shell pwd)/build/lvmd --config=/tmp/topolvm/lvmd/lvmd.yaml; \
 
 stop-lvmd:
 	$(MAKE) shutdown-kind
 	if systemctl is-active -q lvmd.service; then $(SUDO) systemctl stop lvmd.service; fi; \
-	if [ -f build/backing_store ]; then \
+	if [ -f $(BACKING_STORE)/backing_store ]; then \
 		$(SUDO) vgremove -ffy myvg1; \
-		$(SUDO) pvremove -ffy $$($(SUDO) losetup -j build/backing_store | cut -d: -f1); \
-		$(SUDO) losetup -d $$($(SUDO) losetup -j build/backing_store | cut -d: -f1); \
-		rm -f build/backing_store; \
+		$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store | cut -d: -f1); \
+		$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store | cut -d: -f1); \
+		rm -f $(BACKING_STORE)/backing_store; \
 	fi; \
 
 $(CA_FILES): ./certs/csr.json
