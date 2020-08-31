@@ -80,7 +80,7 @@ shutdown-kind:
 	for d in $$(mount | grep /lib/kubelet | cut -d ' ' -f 3); do $(SUDO) umount $$d; done
 
 start-lvmd:
-	mkdir -p build /tmp/build
+	mkdir -p build $(BACKING_STORE)
 	go build -o build/lvmd ../pkg/lvmd
 	if [ -f $(BACKING_STORE)/backing_store* ]; then $(MAKE) stop-lvmd; fi
 
