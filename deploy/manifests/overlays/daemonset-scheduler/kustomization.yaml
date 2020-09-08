@@ -3,6 +3,6 @@ kind: Kustomization
 resources:
   - ../../base
   - scheduler.yaml
-imageTags:
+images:
   - name: quay.io/topolvm/topolvm
     newTag: 0.5.3
