@@ -141,5 +141,5 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(&cfgFilePath, "config", filepath.Join("etc", "topolvm", "lvmd.yaml"), "config file")
+	rootCmd.PersistentFlags().StringVar(&cfgFilePath, "config", filepath.Join("/etc", "topolvm", "lvmd.yaml"), "config file")
 }
