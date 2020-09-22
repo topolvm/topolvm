@@ -1,6 +1,8 @@
 package hook
 
 import (
+	"context"
+
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
@@ -30,7 +32,7 @@ func run(stopCh <-chan struct{}, cfg *rest.Config, scheme *runtime.Scheme, opts 
 	// +kubebuilder:scaffold:builder
 
 	// watch StorageClass objects
-	if _, err := mgr.GetCache().GetInformer(&storagev1.StorageClass{}); err != nil {
+	if _, err := mgr.GetCache().GetInformer(context.Background(), &storagev1.StorageClass{}); err != nil {
 		return err
 	}
 

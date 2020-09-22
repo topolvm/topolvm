@@ -42,7 +42,8 @@ var (
 
 // NewLogicalVolumeService returns LogicalVolumeService.
 func NewLogicalVolumeService(mgr manager.Manager) (*LogicalVolumeService, error) {
-	err := mgr.GetFieldIndexer().IndexField(&topolvmv1.LogicalVolume{}, indexFieldVolumeID,
+	ctx := context.Background()
+	err := mgr.GetFieldIndexer().IndexField(ctx, &topolvmv1.LogicalVolume{}, indexFieldVolumeID,
 		func(o runtime.Object) []string {
 			return []string{o.(*topolvmv1.LogicalVolume).Status.VolumeID}
 		})

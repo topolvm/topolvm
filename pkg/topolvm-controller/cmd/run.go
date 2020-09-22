@@ -135,19 +135,20 @@ func subMain() error {
 	// +kubebuilder:scaffold:builder
 
 	// pre-cache objects
-	if _, err := mgr.GetCache().GetInformer(&storagev1.StorageClass{}); err != nil {
+	ctx := context.Background()
+	if _, err := mgr.GetCache().GetInformer(ctx, &storagev1.StorageClass{}); err != nil {
 		return err
 	}
-	if _, err := mgr.GetCache().GetInformer(&corev1.Pod{}); err != nil {
+	if _, err := mgr.GetCache().GetInformer(ctx, &corev1.Pod{}); err != nil {
 		return err
 	}
-	if _, err := mgr.GetCache().GetInformer(&corev1.PersistentVolumeClaim{}); err != nil {
+	if _, err := mgr.GetCache().GetInformer(ctx, &corev1.PersistentVolumeClaim{}); err != nil {
 		return err
 	}
 
 	// Add health checker to manager
 	check := func() error {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
 
 		var drv storagev1beta1.CSIDriver
