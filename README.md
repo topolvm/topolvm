@@ -19,16 +19,9 @@ Join our community on Slack: [Invitation form](https://docs.google.com/forms/d/e
 Supported environments
 ----------------------
 
-- Kubernetes
-  - 1.15
-  - 1.16
-  - 1.17
-- Node OS
-  - Linux with LVM2
-- Filesystems
-  - ext4
-  - xfs
-  - btrfs
+- Kubernetes: 1.18, 1.17, 1.16
+- Node OS: Linux with LVM2
+- Filesystems: ext4, xfs, btrfs
 
 Features
 --------
@@ -75,11 +68,11 @@ Documentation
 
 [docs](docs/) directory contains documents about designs and specifications.
 
-[releases]: https://github.com/topolvm/topolvm/releases
-[CSI]: https://github.com/container-storage-interface/spec
-[kind]: https://github.com/kubernetes-sigs/kind
-
 Docker images
 -------------
 
 Docker images are available on [Quay.io](https://quay.io/repository/cybozu/topolvm)
+
+[releases]: https://github.com/topolvm/topolvm/releases
+[CSI]: https://github.com/container-storage-interface/spec
+[kind]: https://github.com/kubernetes-sigs/kind

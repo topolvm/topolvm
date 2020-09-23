@@ -7,6 +7,12 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+### Added
+- Support for Kubernetes 1.18
+
+### Removed
+- Support for Kubernetes 1.15
+
 ## [0.5.3] - 2020-08-12
 
 ### Changed
