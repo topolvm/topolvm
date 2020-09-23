@@ -14,7 +14,7 @@ BINDIR := $(PWD)/bin
 CONTROLLER_GEN := $(BINDIR)/controller-gen
 KUBEBUILDER_ASSETS := $(BINDIR)
 PROTOC := PATH=$(BINDIR):$(PATH) $(BINDIR)/protoc -I=$(PWD)/include:.
-PACKAGES := unzip
+PACKAGES := unzip lvm2 xfsprogs
 
 GO_FILES=$(shell find -name '*.go' -not -name '*_test.go')
 GOOS := $(shell go env GOOS)
@@ -130,6 +130,11 @@ tools:
 setup: tools
 	$(SUDO) apt-get update
 	$(SUDO) apt-get -y install --no-install-recommends $(PACKAGES)
+	if apt-cache show btrfs-progs; then \
+		$(SUDO) apt-get install -y btrfs-progs; \
+	else \
+		$(SUDO) apt-get install -y btrfs-tools; \
+	fi
 
 	mkdir -p bin
 	curl -sfL https://go.kubebuilder.io/dl/$(KUBEBUILDER_VERSION)/$(GOOS)/$(GOARCH) | tar -xz -C /tmp/

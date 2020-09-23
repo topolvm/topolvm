@@ -1,3 +1,4 @@
 *.img
 /build
 /tmpbin
+/certs

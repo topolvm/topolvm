@@ -17,9 +17,9 @@ secretGenerator:
 - name: mutatingwebhook
   namespace: topolvm-system
   files:
-  - ca.crt=../certs/ca.pem
-  - tls.crt=../certs/server.pem
-  - tls.key=../certs/server-key.pem
+  - ca.crt=../certs/cert.pem
+  - tls.crt=../certs/cert.pem
+  - tls.key=../certs/key.pem
   type: "Opaque"
 vars:
   - name: TLSCERT
