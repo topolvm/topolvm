@@ -1,7 +1,6 @@
 SUDO=sudo
 GOFLAGS=-mod=vendor
 export GOFLAGS
-GINKGO=$(GOPATH)/bin/ginkgo
 KUBECTL=/usr/local/bin/kubectl
 KUBERNETES_VERSION=1.18.9
 KUSTOMIZE_VERSION= 3.7.0

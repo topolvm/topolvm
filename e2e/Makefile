@@ -1,11 +1,11 @@
 SUDO=sudo
 GOFLAGS=-mod=vendor
 export GOFLAGS
-GINKGO=ginkgo
 KIND_CLUSTER_NAME=topolvm-e2e
-KIND := $(PWD)/../bin/kind
-KUBECTL := $(PWD)/../bin/kubectl
-KUSTOMIZE := $(PWD)/../bin/kustomize
+KIND := ../bin/kind
+KUBECTL := ../bin/kubectl
+KUSTOMIZE := ../bin/kustomize
+GINKGO := ../bin/ginkgo
 
 ifeq ($(TEST_KUBERNETES_TARGET),current)
 TEST_KUBERNETES_VERSION=1.18
@@ -24,13 +24,13 @@ export TEST_KUBERNETES_VERSION
 KUSTOMIZE_DIR=e2ebase
 
 ifeq ($(TEST_KUBERNETES_VERSION),1.18)
-KUBERNETES_VERSION=1.18.9
+KUBERNETES_VERSION=1.18.8
 KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
 else ifeq ($(TEST_KUBERNETES_VERSION),1.17)
-KUBERNETES_VERSION=1.17.2
+KUBERNETES_VERSION=1.17.11
 KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
 else ifeq ($(TEST_KUBERNETES_VERSION),1.16)
-KUBERNETES_VERSION=1.16.4
+KUBERNETES_VERSION=1.16.15
 KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
 endif
 
