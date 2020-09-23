@@ -12,25 +12,26 @@ import (
 
 // NewLVService creates a new LVServiceServer
 func NewLVService(mapper *DeviceClassManager, notifyFunc func()) proto.LVServiceServer {
-	return lvService{
+	return &lvService{
 		mapper:     mapper,
 		notifyFunc: notifyFunc,
 	}
 }
 
 type lvService struct {
+	proto.UnimplementedLVServiceServer
 	mapper     *DeviceClassManager
 	notifyFunc func()
 }
 
-func (s lvService) notify() {
+func (s *lvService) notify() {
 	if s.notifyFunc == nil {
 		return
 	}
 	s.notifyFunc()
 }
 
-func (s lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*proto.CreateLVResponse, error) {
+func (s *lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*proto.CreateLVResponse, error) {
 	dc, err := s.mapper.DeviceClass(req.DeviceClass)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
@@ -82,7 +83,7 @@ func (s lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*pro
 	}, nil
 }
 
-func (s lvService) RemoveLV(_ context.Context, req *proto.RemoveLVRequest) (*proto.Empty, error) {
+func (s *lvService) RemoveLV(_ context.Context, req *proto.RemoveLVRequest) (*proto.Empty, error) {
 	dc, err := s.mapper.DeviceClass(req.DeviceClass)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
@@ -123,7 +124,7 @@ func (s lvService) RemoveLV(_ context.Context, req *proto.RemoveLVRequest) (*pro
 	return &proto.Empty{}, nil
 }
 
-func (s lvService) ResizeLV(_ context.Context, req *proto.ResizeLVRequest) (*proto.Empty, error) {
+func (s *lvService) ResizeLV(_ context.Context, req *proto.ResizeLVRequest) (*proto.Empty, error) {
 	dc, err := s.mapper.DeviceClass(req.DeviceClass)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)

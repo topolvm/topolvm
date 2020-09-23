@@ -8,6 +8,8 @@
 syntax = "proto3";
 package proto;
 
+option go_package = "github.com/topolvm/topolvm/lvmd/proto";
+
 message Empty {}
 
 // Represents a logical volume.

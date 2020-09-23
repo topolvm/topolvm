@@ -6,7 +6,7 @@ import "google/protobuf/descriptor.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";
 
-option go_package = "csi";
+option go_package = "github.com/topolvm/topolvm/csi";
 
 extend google.protobuf.FieldOptions {
   // Indicates that a field MAY contain information that is sensitive
