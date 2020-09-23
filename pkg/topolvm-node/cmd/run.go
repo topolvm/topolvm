@@ -46,7 +46,7 @@ func init() {
 func subMain() error {
 	nodename := viper.GetString("nodename")
 	if len(nodename) == 0 {
-		return errors.New("Node name is not given")
+		return errors.New("node name is not given")
 	}
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(config.development)))

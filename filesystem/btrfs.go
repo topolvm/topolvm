@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 const (
@@ -13,7 +13,7 @@ const (
 	btrfsMountOpts = "ssd"
 )
 
-var btrfsLogger = logf.Log.WithName("filesystem").WithName("btrfs")
+var btrfsLogger = ctrl.Log.WithName("filesystem").WithName("btrfs")
 
 type btrfs struct {
 	device string

@@ -8,10 +8,10 @@ import (
 	"github.com/topolvm/topolvm/csi"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-var idLogger = logf.Log.WithName("driver").WithName("identity")
+var idLogger = ctrl.Log.WithName("driver").WithName("identity")
 
 // NewIdentityService returns a new IdentityServer.
 //
