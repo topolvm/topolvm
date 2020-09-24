@@ -122,7 +122,7 @@ func TestDeviceClassManager(t *testing.T) {
 		t.Error("hdd1's spare should be 50GB")
 	}
 
-	dc, err = manager.DeviceClass("unknown")
+	_, err = manager.DeviceClass("unknown")
 	if err != ErrNotFound {
 		t.Error("'unknown' should not be found")
 	}
@@ -135,7 +135,7 @@ func TestDeviceClassManager(t *testing.T) {
 		t.Error("hdd2's spare should be 100GB")
 	}
 
-	dc, err = manager.FindDeviceClassByVGName("unknown")
+	_, err = manager.FindDeviceClassByVGName("unknown")
 	if err != ErrNotFound {
 		t.Error("'unknown' should not be found")
 	}

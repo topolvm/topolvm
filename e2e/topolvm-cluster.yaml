@@ -1,11 +1,8 @@
+apiVersion:  kind.x-k8s.io/v1alpha4
 kind: Cluster
-apiVersion: kind.sigs.k8s.io/v1alpha3
 # patch the generated kubeadm config with some extra settings
 kubeadmConfigPatches:
 - |
-  # When update to Kubernetes 1.15, make sure to change the
-  # apiVersion to "kubeadm.k8s.io/v1beta2".  Also make sure
-  # to change the node image in Makefile (--image kindest/node)
   apiVersion: "@KUBEADM_APIVERSION@"
   kind: ClusterConfiguration
   metadata:

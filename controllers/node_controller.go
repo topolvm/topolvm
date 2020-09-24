@@ -130,7 +130,8 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 
 // SetupWithManager sets up Reconciler with Manager.
 func (r *NodeReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	err := mgr.GetFieldIndexer().IndexField(&corev1.PersistentVolumeClaim{}, KeySelectedNode, func(o runtime.Object) []string {
+	ctx := context.Background()
+	err := mgr.GetFieldIndexer().IndexField(ctx, &corev1.PersistentVolumeClaim{}, KeySelectedNode, func(o runtime.Object) []string {
 		return []string{o.(*corev1.PersistentVolumeClaim).Annotations[AnnSelectedNode]}
 	})
 	if err != nil {

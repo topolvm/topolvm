@@ -18,9 +18,7 @@
 /go.sum
 
 # ignore tools
-/bin/protoc
-/bin/protoc-gen-go
-/bin/protoc-gen-doc
+/bin
 /include
 /build
 /e2e/build

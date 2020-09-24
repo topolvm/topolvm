@@ -11,10 +11,10 @@ import (
 	"github.com/topolvm/topolvm/driver/k8s"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-var ctrlLogger = logf.Log.WithName("driver").WithName("controller")
+var ctrlLogger = ctrl.Log.WithName("driver").WithName("controller")
 
 // NewControllerService returns a new ControllerServer.
 func NewControllerService(lvService *k8s.LogicalVolumeService, nodeService *k8s.NodeService) csi.ControllerServer {

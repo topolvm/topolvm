@@ -1,16 +1,14 @@
 SUDO=sudo
 GOFLAGS=-mod=vendor
 export GOFLAGS
-GINKGO=$(GOPATH)/bin/ginkgo
 KUBECTL=/usr/local/bin/kubectl
-KUBERNETES_VERSION=1.18.2
-KUSTOMIZE_VERSION= 3.6.1
-KIND_VERSION=0.8.1
+KUBERNETES_VERSION=1.18.9
+KUSTOMIZE_VERSION= 3.7.0
+KIND_VERSION=0.9.0
 KIND_CLUSTER_NAME=topolvm-example
 
 GO_FILES := $(shell find .. -path ../vendor -prune -o -path ../e2e -prune -o -name '*.go' -print)
-CA_FILES=./build/certs/ca.csr ./build/certs/ca.pem ./build/certs/ca-key.pem
-SERVER_CERT_FILES=./build/certs/server.csr ./build/certs/server.pem ./build/certs/server-key.pem
+SERVER_CERT_FILES=./certs/cert.pem ./certs/key.pem
 BACKING_STORE=./build
 
 $(KUBECTL):
@@ -26,8 +24,6 @@ run: $(SERVER_CERT_FILES)
 
 setup: $(KUBECTL)
 	cd /tmp; env GOFLAGS= GO111MODULE=on go get sigs.k8s.io/kind@v$(KIND_VERSION)
-	go install github.com/cloudflare/cfssl/cmd/cfssl
-	go install github.com/cloudflare/cfssl/cmd/cfssljson
 	$(SUDO) apt-get update
 	$(SUDO) apt-get install -y lvm2 xfsprogs
 	if apt-cache show btrfs-progs; then \
@@ -86,13 +82,10 @@ stop-lvmd:
 		$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store | cut -d: -f1); \
 		$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store | cut -d: -f1); \
 		rm -f $(BACKING_STORE)/backing_store; \
-	fi; \
+	fi
 
-$(CA_FILES): ./certs/csr.json
-	mkdir -p build/certs
-	cfssl gencert -initca certs/csr.json | cfssljson -bare ./build/certs/ca
-
-$(SERVER_CERT_FILES): $(CA_FILES) ./certs/ca-config.json ./certs/server.json
-	cfssl gencert -ca=build/certs/ca.pem -ca-key=build/certs/ca-key.pem -config=certs/ca-config.json -profile=server certs/server.json | cfssljson -bare build/certs/server
+$(SERVER_CERT_FILES):
+	mkdir -p certs
+	go run ../pkg/gencert -outdir ./certs
 
 .PHONY: launch-kind shutdown-kind start-lvmd stop-lvmd run setup clean

@@ -13,15 +13,15 @@ import (
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 const metricsNamespace = "topolvm"
 
-var meLogger = logf.Log.WithName("runners").WithName("metrics_exporter")
+var meLogger = ctrl.Log.WithName("runners").WithName("metrics_exporter")
 
 // NodeMetrics is a set of metrics of a TopoLVM Node.
 type NodeMetrics struct {

@@ -41,12 +41,6 @@ func (c *readinessCheck) setError(e error) {
 	c.err = e
 }
 
-func (c *readinessCheck) getError() (bool, error) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	return c.ready, c.err
-}
-
 // Start implements controller-runtime's manager.Runnable.
 func (c *readinessCheck) Start(ch <-chan struct{}) error {
 	c.setError(c.check())

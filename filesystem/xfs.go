@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 const (
@@ -14,7 +14,7 @@ const (
 	xfsMountOpts = "wsync"
 )
 
-var xfsLogger = logf.Log.WithName("filesystem").WithName("xfs")
+var xfsLogger = ctrl.Log.WithName("filesystem").WithName("xfs")
 
 type xfs struct {
 	device string

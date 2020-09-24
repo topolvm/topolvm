@@ -1,14 +1,14 @@
 # CSI sidecar versions
-EXTERNAL_PROVISIONER_VERSION = 1.5.0
-NODE_DRIVER_REGISTRAR_VERSION = 1.2.0
-EXTERNAL_ATTACHER_VERSION = 2.1.1
-EXTERNAL_RESIZER_VERSION = 0.4.0
-LIVENESSPROBE_VERSION = 2.0.0
+EXTERNAL_PROVISIONER_VERSION = 1.6.0
+EXTERNAL_ATTACHER_VERSION = 2.2.0
+EXTERNAL_RESIZER_VERSION = 1.0.0
+NODE_DRIVER_REGISTRAR_VERSION = 2.0.1
+LIVENESSPROBE_VERSION = 2.1.0
 CSI_SIDECARS = \
 	external-provisioner \
-	node-driver-registrar \
 	external-attacher \
 	external-resizer \
+	node-driver-registrar \
 	livenessprobe
 
 GOPATH ?= $(shell go env GOPATH)
@@ -36,15 +36,6 @@ external-provisioner:
 	make -C $(EXTERNAL_PROVISIONER_SRC)
 	cp -f $(EXTERNAL_PROVISIONER_SRC)/bin/csi-provisioner $(OUTPUT_DIR)/
 
-node-driver-registrar:
-	rm -rf $(NODE_DRIVER_REGISTRAR_SRC)
-	mkdir -p $(NODE_DRIVER_REGISTRAR_SRC)
-	curl -sSLf https://github.com/kubernetes-csi/node-driver-registrar/archive/v$(NODE_DRIVER_REGISTRAR_VERSION).tar.gz | \
-        tar zxf - --strip-components 1 -C $(NODE_DRIVER_REGISTRAR_SRC)
-	# "Go modules" will be enabled node-driver-registrar v1.3.0 or later.
-	GO111MODULE=off make -C $(NODE_DRIVER_REGISTRAR_SRC)
-	cp -f $(NODE_DRIVER_REGISTRAR_SRC)/bin/csi-node-driver-registrar $(OUTPUT_DIR)/
-
 external-attacher:
 	rm -rf $(EXTERNAL_ATTACHER_SRC)
 	mkdir -p $(EXTERNAL_ATTACHER_SRC)
@@ -60,6 +51,14 @@ external-resizer:
         tar zxf - --strip-components 1 -C $(EXTERNAL_RESIZER_SRC)
 	make -C $(EXTERNAL_RESIZER_SRC)
 	cp -f $(EXTERNAL_RESIZER_SRC)/bin/csi-resizer $(OUTPUT_DIR)/
+
+node-driver-registrar:
+	rm -rf $(NODE_DRIVER_REGISTRAR_SRC)
+	mkdir -p $(NODE_DRIVER_REGISTRAR_SRC)
+	curl -sSLf https://github.com/kubernetes-csi/node-driver-registrar/archive/v$(NODE_DRIVER_REGISTRAR_VERSION).tar.gz | \
+        tar zxf - --strip-components 1 -C $(NODE_DRIVER_REGISTRAR_SRC)
+	make -C $(NODE_DRIVER_REGISTRAR_SRC)
+	cp -f $(NODE_DRIVER_REGISTRAR_SRC)/bin/csi-node-driver-registrar $(OUTPUT_DIR)/
 
 livenessprobe:
 	rm -rf $(LIVENESSPROBE_SRC)

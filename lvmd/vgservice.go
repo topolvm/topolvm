@@ -22,6 +22,7 @@ func NewVGService(manager *DeviceClassManager) (proto.VGServiceServer, func()) {
 }
 
 type vgService struct {
+	proto.UnimplementedVGServiceServer
 	dcManager *DeviceClassManager
 
 	mu             sync.Mutex

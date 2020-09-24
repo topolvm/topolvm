@@ -17,7 +17,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 const (
@@ -32,7 +32,7 @@ const (
 	ephVolConKey     = "csi.storage.k8s.io/ephemeral"
 )
 
-var nodeLogger = logf.Log.WithName("driver").WithName("node")
+var nodeLogger = ctrl.Log.WithName("driver").WithName("node")
 
 // NewNodeService returns a new NodeServer.
 func NewNodeService(nodeName string, conn *grpc.ClientConn, service *k8s.LogicalVolumeService) csi.NodeServer {

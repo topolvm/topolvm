@@ -34,11 +34,6 @@ var config = &Config{
 	SocketName: topolvm.DefaultLVMdSocket,
 }
 
-const (
-	maxDevNameLength = 127
-	k8sUIDLength     = 36
-)
-
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:     "lvmd",

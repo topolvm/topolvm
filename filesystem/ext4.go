@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 const (
@@ -14,7 +14,7 @@ const (
 	ext4MountOpts = ""
 )
 
-var ext4Logger = logf.Log.WithName("filesystem").WithName("ext4")
+var ext4Logger = ctrl.Log.WithName("filesystem").WithName("ext4")
 
 type ext4 struct {
 	device string
