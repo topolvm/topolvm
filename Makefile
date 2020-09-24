@@ -37,6 +37,7 @@ csi/csi.pb.go: csi.proto
 	$(PROTOC) --go_out=module=github.com/topolvm/topolvm:. $<
 
 csi/csi_grpc.pb.go: csi.proto
+	mkdir -p csi
 	$(PROTOC) --go-grpc_out=module=github.com/topolvm/topolvm:. $<
 
 lvmd/proto/lvmd.pb.go: lvmd/proto/lvmd.proto
