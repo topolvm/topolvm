@@ -7,11 +7,25 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.6.0] - 2020-09-25
+
+### Fixed
+
+- Fix default configuration file path (#202)
+
+### Changed
+- Replace base image (#199)
+
 ### Added
-- Support for Kubernetes 1.18
+- Support for Kubernetes 1.18 (#204)
+- Add Vagrant example (#183)
 
 ### Removed
-- Support for Kubernetes 1.15
+- Support for Kubernetes 1.15 (#204)
+
+### Contributors
+
+- @frederiko
 
 ## [0.5.3] - 2020-08-12
 
@@ -195,7 +209,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.5.3...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/topolvm/topolvm/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/topolvm/topolvm/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/topolvm/topolvm/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/topolvm/topolvm/compare/v0.5.0...v0.5.1
