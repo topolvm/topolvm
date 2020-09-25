@@ -12,7 +12,7 @@ Each of these steps are shown in depth in the following sections:
 1. Add `topolvm.cybozu.com/webhook: ignore` label to system namespaces such as `kube-system`.
 1. Apply remaining manifests for TopoLVM from `deploy/manifests/base` plus overlays as appropriate to your installation.
 1. Configure `kube-scheduler` to use `topolvm-scheduler`. 
-2. Prepare StorageClasses for TopoLVM.
+1. Prepare StorageClasses for TopoLVM.
 
 Example configuration files are included in the following sub directories:
 
@@ -255,21 +255,24 @@ scheduler:
 The changes to `/etc/kubernetes/manifests/kube-scheduler.yaml` that are affected by this are as follows:
 
 1. Add a line to the `command` arguments array such as ```- --config=/var/lib/scheduler/scheduler-config.yaml```. Note that this is the location of the file **after** it is mapped to the `kube-scheduler` container, not where it exists on the node local filesystem.
-1. Add a volume mapping to the location of the configuration on your node:
-```yaml
-  spec.volumes:
-  - hostPath:
-      path: /etc/topolvm/scheduler
-      type: Directory
-    name: topolvm-config
-```
-1. Add a `volumeMount` for the scheduler container:
-```yaml
-  spec.containers.volumeMounts:
-  - mountPath: /var/lib/scheduler
-    name: topolvm-config
-    readOnly: true
-```
+2. Add a volume mapping to the location of the configuration on your node:
+
+    ```yaml
+      spec.volumes:
+      - hostPath:
+          path: /etc/topolvm/scheduler
+          type: Directory
+        name: topolvm-config
+    ```
+
+3. Add a `volumeMount` for the scheduler container:
+
+    ```yaml
+      spec.containers.volumeMounts:
+      - mountPath: /var/lib/scheduler
+        name: topolvm-config
+        readOnly: true
+    ```
 
 Prepare StorageClasses
 ----------------------
