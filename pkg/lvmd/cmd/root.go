@@ -137,4 +137,5 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFilePath, "config", filepath.Join("/etc", "topolvm", "lvmd.yaml"), "config file")
+	rootCmd.PersistentFlags().BoolVar(&command.Containerized, "container", false, "Run within a container")
 }

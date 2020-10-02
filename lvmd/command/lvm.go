@@ -15,20 +15,34 @@ import (
 )
 
 const (
+	nsenter  = "/usr/bin/nsenter"
 	lvm      = "/sbin/lvm"
 	blockdev = "/sbin/blockdev"
 	cowMin   = 50
 	cowMax   = 300
 )
 
+var Containerized bool = false
+
 // ErrNotFound is returned when a VG or LV is not found.
 var ErrNotFound = errors.New("not found")
+
+// wrapExecCommand calls cmd with args but wrapped to run
+// on the host
+func wrapExecCommand(cmd string, args ...string) *exec.Cmd {
+	if Containerized {
+		args = append([]string{"-a", "-t", "1", cmd}, args...)
+		cmd = nsenter
+	}
+	c := exec.Command(cmd, args...)
+	return c
+}
 
 // CallLVM calls lvm sub-commands.
 // cmd is a name of sub-command.
 func CallLVM(cmd string, args ...string) error {
 	args = append([]string{cmd}, args...)
-	c := exec.Command(lvm, args...)
+	c := wrapExecCommand(lvm, args...)
 	log.Info("invoking LVM command", map[string]interface{}{
 		"args": args,
 	})
@@ -85,7 +99,7 @@ func parseOutput(cmd, fields string, args ...string) ([]LVInfo, error) {
 		"--unbuffered", "--nameprefixes",
 	}
 	arg = append(arg, args...)
-	c := exec.Command(lvm, arg...)
+	c := wrapExecCommand(lvm, arg...)
 	c.Stderr = os.Stderr
 	stdout, err := c.StdoutPipe()
 	if err != nil {
@@ -530,7 +544,7 @@ func (l *LogicalVolume) Snapshot(name string, cowSize uint64) (*LogicalVolume, e
 			return nil, err
 		}
 		// without this, wrong data may read from the snapshot.
-		if err := exec.Command(blockdev, "--flushbufs", snapLV.path).Run(); err != nil {
+		if err := wrapExecCommand(blockdev, "--flushbufs", snapLV.path).Run(); err != nil {
 			return nil, err
 		}
 		return snapLV, nil
