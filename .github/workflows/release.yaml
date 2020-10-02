@@ -23,7 +23,7 @@ jobs:
       - name: Export IMAGE_PREFIX
         run: |
           if [ "${{ secrets.IMAGE_PREFIX }}" != "" ]; then IMAGE_PREFIX=${{ secrets.IMAGE_PREFIX }}; else IMAGE_PREFIX=quay.io/topolvm/; fi
-          echo "::set-env name=IMAGE_PREFIX::${IMAGE_PREFIX}"
+          echo "IMAGE_PREFIX=${IMAGE_PREFIX}" >> $GITHUB_ENV
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
         with:
