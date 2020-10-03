@@ -36,3 +36,16 @@ jobs:
       - run: make -C e2e setup
       - run: make -C e2e start-lvmd
       - run: make -C e2e test
+  example:
+    name: example
+    runs-on: ubuntu-18.04
+    defaults:
+      run:
+        working-directory: example
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.13
+      - run: make setup
+      - run: make run
