@@ -11,7 +11,7 @@ import (
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
-const _ = grpc.SupportPackageIsVersion6
+const _ = grpc.SupportPackageIsVersion7
 
 // IdentityClient is the client API for Identity service.
 //
@@ -71,16 +71,23 @@ type IdentityServer interface {
 type UnimplementedIdentityServer struct {
 }
 
-func (*UnimplementedIdentityServer) GetPluginInfo(context.Context, *GetPluginInfoRequest) (*GetPluginInfoResponse, error) {
+func (UnimplementedIdentityServer) GetPluginInfo(context.Context, *GetPluginInfoRequest) (*GetPluginInfoResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPluginInfo not implemented")
 }
-func (*UnimplementedIdentityServer) GetPluginCapabilities(context.Context, *GetPluginCapabilitiesRequest) (*GetPluginCapabilitiesResponse, error) {
+func (UnimplementedIdentityServer) GetPluginCapabilities(context.Context, *GetPluginCapabilitiesRequest) (*GetPluginCapabilitiesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPluginCapabilities not implemented")
 }
-func (*UnimplementedIdentityServer) Probe(context.Context, *ProbeRequest) (*ProbeResponse, error) {
+func (UnimplementedIdentityServer) Probe(context.Context, *ProbeRequest) (*ProbeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Probe not implemented")
 }
-func (*UnimplementedIdentityServer) mustEmbedUnimplementedIdentityServer() {}
+func (UnimplementedIdentityServer) mustEmbedUnimplementedIdentityServer() {}
+
+// UnsafeIdentityServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to IdentityServer will
+// result in compilation errors.
+type UnsafeIdentityServer interface {
+	mustEmbedUnimplementedIdentityServer()
+}
 
 func RegisterIdentityServer(s *grpc.Server, srv IdentityServer) {
 	s.RegisterService(&_Identity_serviceDesc, srv)
@@ -318,43 +325,50 @@ type ControllerServer interface {
 type UnimplementedControllerServer struct {
 }
 
-func (*UnimplementedControllerServer) CreateVolume(context.Context, *CreateVolumeRequest) (*CreateVolumeResponse, error) {
+func (UnimplementedControllerServer) CreateVolume(context.Context, *CreateVolumeRequest) (*CreateVolumeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateVolume not implemented")
 }
-func (*UnimplementedControllerServer) DeleteVolume(context.Context, *DeleteVolumeRequest) (*DeleteVolumeResponse, error) {
+func (UnimplementedControllerServer) DeleteVolume(context.Context, *DeleteVolumeRequest) (*DeleteVolumeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteVolume not implemented")
 }
-func (*UnimplementedControllerServer) ControllerPublishVolume(context.Context, *ControllerPublishVolumeRequest) (*ControllerPublishVolumeResponse, error) {
+func (UnimplementedControllerServer) ControllerPublishVolume(context.Context, *ControllerPublishVolumeRequest) (*ControllerPublishVolumeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ControllerPublishVolume not implemented")
 }
-func (*UnimplementedControllerServer) ControllerUnpublishVolume(context.Context, *ControllerUnpublishVolumeRequest) (*ControllerUnpublishVolumeResponse, error) {
+func (UnimplementedControllerServer) ControllerUnpublishVolume(context.Context, *ControllerUnpublishVolumeRequest) (*ControllerUnpublishVolumeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ControllerUnpublishVolume not implemented")
 }
-func (*UnimplementedControllerServer) ValidateVolumeCapabilities(context.Context, *ValidateVolumeCapabilitiesRequest) (*ValidateVolumeCapabilitiesResponse, error) {
+func (UnimplementedControllerServer) ValidateVolumeCapabilities(context.Context, *ValidateVolumeCapabilitiesRequest) (*ValidateVolumeCapabilitiesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ValidateVolumeCapabilities not implemented")
 }
-func (*UnimplementedControllerServer) ListVolumes(context.Context, *ListVolumesRequest) (*ListVolumesResponse, error) {
+func (UnimplementedControllerServer) ListVolumes(context.Context, *ListVolumesRequest) (*ListVolumesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListVolumes not implemented")
 }
-func (*UnimplementedControllerServer) GetCapacity(context.Context, *GetCapacityRequest) (*GetCapacityResponse, error) {
+func (UnimplementedControllerServer) GetCapacity(context.Context, *GetCapacityRequest) (*GetCapacityResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetCapacity not implemented")
 }
-func (*UnimplementedControllerServer) ControllerGetCapabilities(context.Context, *ControllerGetCapabilitiesRequest) (*ControllerGetCapabilitiesResponse, error) {
+func (UnimplementedControllerServer) ControllerGetCapabilities(context.Context, *ControllerGetCapabilitiesRequest) (*ControllerGetCapabilitiesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ControllerGetCapabilities not implemented")
 }
-func (*UnimplementedControllerServer) CreateSnapshot(context.Context, *CreateSnapshotRequest) (*CreateSnapshotResponse, error) {
+func (UnimplementedControllerServer) CreateSnapshot(context.Context, *CreateSnapshotRequest) (*CreateSnapshotResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateSnapshot not implemented")
 }
-func (*UnimplementedControllerServer) DeleteSnapshot(context.Context, *DeleteSnapshotRequest) (*DeleteSnapshotResponse, error) {
+func (UnimplementedControllerServer) DeleteSnapshot(context.Context, *DeleteSnapshotRequest) (*DeleteSnapshotResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteSnapshot not implemented")
 }
-func (*UnimplementedControllerServer) ListSnapshots(context.Context, *ListSnapshotsRequest) (*ListSnapshotsResponse, error) {
+func (UnimplementedControllerServer) ListSnapshots(context.Context, *ListSnapshotsRequest) (*ListSnapshotsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListSnapshots not implemented")
 }
-func (*UnimplementedControllerServer) ControllerExpandVolume(context.Context, *ControllerExpandVolumeRequest) (*ControllerExpandVolumeResponse, error) {
+func (UnimplementedControllerServer) ControllerExpandVolume(context.Context, *ControllerExpandVolumeRequest) (*ControllerExpandVolumeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ControllerExpandVolume not implemented")
 }
-func (*UnimplementedControllerServer) mustEmbedUnimplementedControllerServer() {}
+func (UnimplementedControllerServer) mustEmbedUnimplementedControllerServer() {}
+
+// UnsafeControllerServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ControllerServer will
+// result in compilation errors.
+type UnsafeControllerServer interface {
+	mustEmbedUnimplementedControllerServer()
+}
 
 func RegisterControllerServer(s *grpc.Server, srv ControllerServer) {
 	s.RegisterService(&_Controller_serviceDesc, srv)
@@ -746,31 +760,38 @@ type NodeServer interface {
 type UnimplementedNodeServer struct {
 }
 
-func (*UnimplementedNodeServer) NodeStageVolume(context.Context, *NodeStageVolumeRequest) (*NodeStageVolumeResponse, error) {
+func (UnimplementedNodeServer) NodeStageVolume(context.Context, *NodeStageVolumeRequest) (*NodeStageVolumeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method NodeStageVolume not implemented")
 }
-func (*UnimplementedNodeServer) NodeUnstageVolume(context.Context, *NodeUnstageVolumeRequest) (*NodeUnstageVolumeResponse, error) {
+func (UnimplementedNodeServer) NodeUnstageVolume(context.Context, *NodeUnstageVolumeRequest) (*NodeUnstageVolumeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method NodeUnstageVolume not implemented")
 }
-func (*UnimplementedNodeServer) NodePublishVolume(context.Context, *NodePublishVolumeRequest) (*NodePublishVolumeResponse, error) {
+func (UnimplementedNodeServer) NodePublishVolume(context.Context, *NodePublishVolumeRequest) (*NodePublishVolumeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method NodePublishVolume not implemented")
 }
-func (*UnimplementedNodeServer) NodeUnpublishVolume(context.Context, *NodeUnpublishVolumeRequest) (*NodeUnpublishVolumeResponse, error) {
+func (UnimplementedNodeServer) NodeUnpublishVolume(context.Context, *NodeUnpublishVolumeRequest) (*NodeUnpublishVolumeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method NodeUnpublishVolume not implemented")
 }
-func (*UnimplementedNodeServer) NodeGetVolumeStats(context.Context, *NodeGetVolumeStatsRequest) (*NodeGetVolumeStatsResponse, error) {
+func (UnimplementedNodeServer) NodeGetVolumeStats(context.Context, *NodeGetVolumeStatsRequest) (*NodeGetVolumeStatsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method NodeGetVolumeStats not implemented")
 }
-func (*UnimplementedNodeServer) NodeExpandVolume(context.Context, *NodeExpandVolumeRequest) (*NodeExpandVolumeResponse, error) {
+func (UnimplementedNodeServer) NodeExpandVolume(context.Context, *NodeExpandVolumeRequest) (*NodeExpandVolumeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method NodeExpandVolume not implemented")
 }
-func (*UnimplementedNodeServer) NodeGetCapabilities(context.Context, *NodeGetCapabilitiesRequest) (*NodeGetCapabilitiesResponse, error) {
+func (UnimplementedNodeServer) NodeGetCapabilities(context.Context, *NodeGetCapabilitiesRequest) (*NodeGetCapabilitiesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method NodeGetCapabilities not implemented")
 }
-func (*UnimplementedNodeServer) NodeGetInfo(context.Context, *NodeGetInfoRequest) (*NodeGetInfoResponse, error) {
+func (UnimplementedNodeServer) NodeGetInfo(context.Context, *NodeGetInfoRequest) (*NodeGetInfoResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method NodeGetInfo not implemented")
 }
-func (*UnimplementedNodeServer) mustEmbedUnimplementedNodeServer() {}
+func (UnimplementedNodeServer) mustEmbedUnimplementedNodeServer() {}
+
+// UnsafeNodeServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to NodeServer will
+// result in compilation errors.
+type UnsafeNodeServer interface {
+	mustEmbedUnimplementedNodeServer()
+}
 
 func RegisterNodeServer(s *grpc.Server, srv NodeServer) {
 	s.RegisterService(&_Node_serviceDesc, srv)
