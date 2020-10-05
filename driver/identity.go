@@ -24,7 +24,7 @@ func NewIdentityService(ready func() (bool, error)) csi.IdentityServer {
 }
 
 type identityService struct {
-	*csi.UnimplementedIdentityServer
+	csi.UnimplementedIdentityServer
 
 	ready func() (bool, error)
 }

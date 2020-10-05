@@ -45,7 +45,7 @@ func NewNodeService(nodeName string, conn *grpc.ClientConn, service *k8s.Logical
 }
 
 type nodeService struct {
-	*csi.UnimplementedNodeServer
+	csi.UnimplementedNodeServer
 
 	nodeName     string
 	client       proto.VGServiceClient

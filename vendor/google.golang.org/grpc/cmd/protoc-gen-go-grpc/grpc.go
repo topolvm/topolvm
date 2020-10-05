@@ -58,7 +58,7 @@ func generateFileContent(gen *protogen.Plugin, file *protogen.File, g *protogen.
 
 	g.P("// This is a compile-time assertion to ensure that this generated file")
 	g.P("// is compatible with the grpc package it is being compiled against.")
-	g.P("const _ = ", grpcPackage.Ident("SupportPackageIsVersion6"))
+	g.P("const _ = ", grpcPackage.Ident("SupportPackageIsVersion7"))
 	g.P()
 	for _, service := range file.Services {
 		genService(gen, file, g, service)
@@ -159,14 +159,22 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 		if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
 			nilArg = "nil,"
 		}
-		g.P("func (*Unimplemented", serverType, ") ", serverSignature(g, method), "{")
+		g.P("func (Unimplemented", serverType, ") ", serverSignature(g, method), "{")
 		g.P("return ", nilArg, statusPackage.Ident("Errorf"), "(", codesPackage.Ident("Unimplemented"), `, "method `, method.GoName, ` not implemented")`)
 		g.P("}")
 	}
 	if *requireUnimplemented {
-		g.P("func (*Unimplemented", serverType, ") mustEmbedUnimplemented", serverType, "() {}")
+		g.P("func (Unimplemented", serverType, ") mustEmbedUnimplemented", serverType, "() {}")
 	}
 	g.P()
+
+	// Unsafe Server interface to opt-out of forward compatibility.
+	g.P("// Unsafe", serverType, " may be embedded to opt out of forward compatibility for this service.")
+	g.P("// Use of this interface is not recommended, as added methods to ", serverType, " will")
+	g.P("// result in compilation errors.")
+	g.P("type Unsafe", serverType, " interface {")
+	g.P("mustEmbedUnimplemented", serverType, "()")
+	g.P("}")
 
 	// Server registration.
 	if service.Desc.Options().(*descriptorpb.ServiceOptions).GetDeprecated() {

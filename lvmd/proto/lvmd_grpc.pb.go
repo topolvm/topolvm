@@ -11,7 +11,7 @@ import (
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
-const _ = grpc.SupportPackageIsVersion6
+const _ = grpc.SupportPackageIsVersion7
 
 // LVServiceClient is the client API for LVService service.
 //
@@ -77,16 +77,23 @@ type LVServiceServer interface {
 type UnimplementedLVServiceServer struct {
 }
 
-func (*UnimplementedLVServiceServer) CreateLV(context.Context, *CreateLVRequest) (*CreateLVResponse, error) {
+func (UnimplementedLVServiceServer) CreateLV(context.Context, *CreateLVRequest) (*CreateLVResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateLV not implemented")
 }
-func (*UnimplementedLVServiceServer) RemoveLV(context.Context, *RemoveLVRequest) (*Empty, error) {
+func (UnimplementedLVServiceServer) RemoveLV(context.Context, *RemoveLVRequest) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveLV not implemented")
 }
-func (*UnimplementedLVServiceServer) ResizeLV(context.Context, *ResizeLVRequest) (*Empty, error) {
+func (UnimplementedLVServiceServer) ResizeLV(context.Context, *ResizeLVRequest) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ResizeLV not implemented")
 }
-func (*UnimplementedLVServiceServer) mustEmbedUnimplementedLVServiceServer() {}
+func (UnimplementedLVServiceServer) mustEmbedUnimplementedLVServiceServer() {}
+
+// UnsafeLVServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to LVServiceServer will
+// result in compilation errors.
+type UnsafeLVServiceServer interface {
+	mustEmbedUnimplementedLVServiceServer()
+}
 
 func RegisterLVServiceServer(s *grpc.Server, srv LVServiceServer) {
 	s.RegisterService(&_LVService_serviceDesc, srv)
@@ -254,16 +261,23 @@ type VGServiceServer interface {
 type UnimplementedVGServiceServer struct {
 }
 
-func (*UnimplementedVGServiceServer) GetLVList(context.Context, *GetLVListRequest) (*GetLVListResponse, error) {
+func (UnimplementedVGServiceServer) GetLVList(context.Context, *GetLVListRequest) (*GetLVListResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetLVList not implemented")
 }
-func (*UnimplementedVGServiceServer) GetFreeBytes(context.Context, *GetFreeBytesRequest) (*GetFreeBytesResponse, error) {
+func (UnimplementedVGServiceServer) GetFreeBytes(context.Context, *GetFreeBytesRequest) (*GetFreeBytesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetFreeBytes not implemented")
 }
-func (*UnimplementedVGServiceServer) Watch(*Empty, VGService_WatchServer) error {
+func (UnimplementedVGServiceServer) Watch(*Empty, VGService_WatchServer) error {
 	return status.Errorf(codes.Unimplemented, "method Watch not implemented")
 }
-func (*UnimplementedVGServiceServer) mustEmbedUnimplementedVGServiceServer() {}
+func (UnimplementedVGServiceServer) mustEmbedUnimplementedVGServiceServer() {}
+
+// UnsafeVGServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to VGServiceServer will
+// result in compilation errors.
+type UnsafeVGServiceServer interface {
+	mustEmbedUnimplementedVGServiceServer()
+}
 
 func RegisterVGServiceServer(s *grpc.Server, srv VGServiceServer) {
 	s.RegisterService(&_VGService_serviceDesc, srv)

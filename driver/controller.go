@@ -22,7 +22,7 @@ func NewControllerService(lvService *k8s.LogicalVolumeService, nodeService *k8s.
 }
 
 type controllerService struct {
-	*csi.UnimplementedControllerServer
+	csi.UnimplementedControllerServer
 
 	lvService   *k8s.LogicalVolumeService
 	nodeService *k8s.NodeService
