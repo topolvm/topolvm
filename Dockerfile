@@ -1,3 +1,11 @@
+# Build Container
+FROM golang:buster AS build-env
+
+ADD . /workdir
+WORKDIR /workdir
+
+RUN make build
+
 # TopoLVM container
 FROM ubuntu:18.04
 
@@ -9,7 +17,8 @@ RUN apt-get update \
         xfsprogs \
     && rm -rf /var/lib/apt/lists/*
 
-COPY build/hypertopolvm /hypertopolvm
+COPY --from=build-env /workdir/build/hypertopolvm /hypertopolvm
+
 RUN ln -s hypertopolvm /lvmd \
     && ln -s hypertopolvm /topolvm-scheduler \
     && ln -s hypertopolvm /topolvm-node \
