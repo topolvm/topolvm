@@ -26,6 +26,7 @@ export GO111MODULE GOFLAGS KUBEBUILDER_ASSETS
 BUILD_TARGET=hypertopolvm
 TOPOLVM_VERSION ?= devel
 IMAGE_TAG ?= latest
+DOCKER_USER ?= PLEASE_SPECIFY_DOCKER_USER
 
 csi.proto:
 	$(CURL) -o $@ https://raw.githubusercontent.com/container-storage-interface/spec/v$(CSI_VERSION)/csi.proto
@@ -104,6 +105,11 @@ csi-sidecars:
 .PHONY: image
 image:
 	docker build -t $(IMAGE_PREFIX)topolvm:devel .
+
+.PHONY: image-multiarch
+image-multiarch:
+	# You have to --push flag to pushing build to registry because local dockerd can't store another architecture images and built image not stored to local dockerd.
+	docker buildx build -t $(DOCKER_USER)/topolvm:0.0.1 --platform linux/amd64,linux/arm64,linux/ppc64le,linux/s390x,linux/386,linux/arm/v7 --push .
 
 .PHONY: tag
 tag:
