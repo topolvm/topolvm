@@ -1,5 +1,5 @@
 # Build Container
-FROM golang:buster AS build-env
+FROM golang:1.13-buster AS build-env
 
 ADD . /workdir
 WORKDIR /workdir
