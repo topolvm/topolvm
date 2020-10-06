@@ -1,7 +1,7 @@
 # Build Container
 FROM golang:1.13-buster AS build-env
 
-ADD . /workdir
+COPY . /workdir
 WORKDIR /workdir
 
 RUN make build
