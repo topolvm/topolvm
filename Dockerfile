@@ -1,7 +1,7 @@
 # Build Container
 FROM golang:buster AS build-env
 
-ADD . /workdir
+COPY . /workdir
 WORKDIR /workdir
 
 RUN make build
@@ -25,11 +25,11 @@ RUN ln -s hypertopolvm /lvmd \
     && ln -s hypertopolvm /topolvm-controller
 
 # CSI sidecar
-COPY build/csi-provisioner /csi-provisioner
-COPY build/csi-node-driver-registrar /csi-node-driver-registrar
-COPY build/csi-attacher /csi-attacher
-COPY build/csi-resizer /csi-resizer
-COPY build/livenessprobe /livenessprobe
-COPY LICENSE /LICENSE
+COPY --from=build-env /workdir/build/csi-provisioner /csi-provisioner
+COPY --from=build-env /workdir/build/csi-node-driver-registrar /csi-node-driver-registrar
+COPY --from=build-env /workdir/build/csi-attacher /csi-attacher
+COPY --from=build-env /workdir/build/csi-resizer /csi-resizer
+COPY --from=build-env /workdir/build/livenessprobe /livenessprobe
+COPY --from=build-env /workdir/LICENSE /LICENSE
 
 ENTRYPOINT ["/hypertopolvm"]
