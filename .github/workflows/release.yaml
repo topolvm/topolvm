@@ -31,7 +31,7 @@ jobs:
       - run: make setup
       - run: make build TOPOLVM_VERSION=${{ steps.check_version.outputs.version }}
       - run: tar czf lvmd-${{ steps.check_version.outputs.version }}.tar.gz -C ./build lvmd
-      - run: make image
+      - run: make image TOPOLVM_VERSION=${{ steps.check_version.outputs.version }}
       - run: make tag push IMAGE_TAG=${{ steps.check_version.outputs.version }}
       - name: Push branch tag
         if: ${{ steps.check_version.outputs.prerelease == 'false' }}
