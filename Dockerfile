@@ -1,10 +1,13 @@
 # Build Container
 FROM golang:1.13-buster AS build-env
 
+# Get argment
+ARG TOPOLVM_VERSION
+
 COPY . /workdir
 WORKDIR /workdir
 
-RUN make build
+RUN make build TOPOLVM_VERSION=${TOPOLVM_VERSION}
 
 # TopoLVM container
 FROM ubuntu:18.04
