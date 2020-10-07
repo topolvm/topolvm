@@ -110,7 +110,7 @@ image-multiarch-push:
 	# We have to use `docker buildx` command with --push flag to
 	# pushing build result to registry.
 	#
-	# You can't use `docker tag` and `docker push` command to image release because 
+	# We can't use `docker tag` and `docker push` command to image release because 
 	# local dockerd can't store another architecture images and built image by `image-multiarch` not stored to local dockerd. Only build cache remains.
 	docker buildx build -t $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG) --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) --platform linux/amd64,linux/arm64,linux/ppc64le --push .
 
