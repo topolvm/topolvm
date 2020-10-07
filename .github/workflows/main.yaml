@@ -17,7 +17,7 @@ jobs:
       - run: make check-uncommitted
       - run: make test
       - run: sudo -E env PATH=${PATH} go test -mod=vendor -race -v ./lvmd ./driver ./filesystem
-      - run: make image
+      - run: make image-multiarch
   e2e-k8s:
     name: e2e-k8s
     runs-on: ubuntu-18.04
