@@ -17,7 +17,6 @@ jobs:
       - run: make check-uncommitted
       - run: make test
       - run: sudo -E env PATH=${PATH} go test -mod=vendor -race -v ./lvmd ./driver ./filesystem
-      - run: make build
       - run: make image
   e2e-k8s:
     name: e2e-k8s

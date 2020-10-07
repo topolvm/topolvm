@@ -1,3 +1,14 @@
+# Build Container
+FROM golang:1.13-buster AS build-env
+
+# Get argment
+ARG TOPOLVM_VERSION
+
+COPY . /workdir
+WORKDIR /workdir
+
+RUN make build TOPOLVM_VERSION=${TOPOLVM_VERSION}
+
 # TopoLVM container
 FROM ubuntu:18.04
 
@@ -9,18 +20,19 @@ RUN apt-get update \
         xfsprogs \
     && rm -rf /var/lib/apt/lists/*
 
-COPY build/hypertopolvm /hypertopolvm
+COPY --from=build-env /workdir/build/hypertopolvm /hypertopolvm
+
 RUN ln -s hypertopolvm /lvmd \
     && ln -s hypertopolvm /topolvm-scheduler \
     && ln -s hypertopolvm /topolvm-node \
     && ln -s hypertopolvm /topolvm-controller
 
 # CSI sidecar
-COPY build/csi-provisioner /csi-provisioner
-COPY build/csi-node-driver-registrar /csi-node-driver-registrar
-COPY build/csi-attacher /csi-attacher
-COPY build/csi-resizer /csi-resizer
-COPY build/livenessprobe /livenessprobe
-COPY LICENSE /LICENSE
+COPY --from=build-env /workdir/build/csi-provisioner /csi-provisioner
+COPY --from=build-env /workdir/build/csi-node-driver-registrar /csi-node-driver-registrar
+COPY --from=build-env /workdir/build/csi-attacher /csi-attacher
+COPY --from=build-env /workdir/build/csi-resizer /csi-resizer
+COPY --from=build-env /workdir/build/livenessprobe /livenessprobe
+COPY --from=build-env /workdir/LICENSE /LICENSE
 
 ENTRYPOINT ["/hypertopolvm"]
