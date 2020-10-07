@@ -105,6 +105,21 @@ csi-sidecars:
 image:
 	docker build -t $(IMAGE_PREFIX)topolvm:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) .
 
+.PHONY: image-multiarch-push
+image-multiarch-push:
+	# We have to use `docker buildx` command with --push flag to
+	# pushing build result to registry.
+	#
+	# You can't use `docker tag` and `docker push` command to image release because 
+	# local dockerd can't store another architecture images and built image by `image-multiarch` not stored to local dockerd. Only build cache remains.
+	docker buildx build -t $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG) --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) --platform linux/amd64,linux/arm64,linux/ppc64le --push .
+
+.PHONY: image-multiarch
+image-multiarch:
+	# Built result isn't stored to docker images. Built result only remain in the build cache.
+	# `push-image-multi` can use cache which made by `image-multiarch`.
+	docker buildx build -t $(IMAGE_PREFIX)topolvm:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) --platform linux/amd64,linux/arm64,linux/ppc64le .
+
 .PHONY: tag
 tag:
 	docker tag $(IMAGE_PREFIX)topolvm:devel $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG)
