@@ -38,7 +38,7 @@ jobs:
         if: ${{ steps.check_version.outputs.prerelease == 'false' }}
         run: |
           BRANCH=$(echo ${{ steps.check_version.outputs.version }} | cut -d "." -f 1-2)
-          make tag push IMAGE_TAG=$BRANCH
+          make image-multiarch-push TOPOLVM_VERSION=${{ steps.check_version.outputs.version }} IMAGE_TAG=$BRANCH
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
