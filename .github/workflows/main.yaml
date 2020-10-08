@@ -19,7 +19,7 @@ jobs:
       - run: sudo -E env PATH=${PATH} go test -mod=vendor -race -v ./lvmd ./driver ./filesystem
       - run: make image
   build-multiarch:
-    name: build mulch architecture images
+    name: build multi architecture images
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
