@@ -21,7 +21,16 @@ endif
 
 export TEST_KUBERNETES_VERSION
 
-KUSTOMIZE_DIR=e2ebase
+ifeq ($(TEST_SCHEDULER_MANIFEST),daemonset)
+SCHEDULER_POLICY=scheduler-policy-daemonset.cfg
+KUSTOMIZE_DIR=manifests/overlays/daemonset-scheduler
+else ifeq ($(TEST_SCHEDULER_MANIFEST),deployment)
+SCHEDULER_POLICY=scheduler-policy-deployment.cfg
+KUSTOMIZE_DIR=manifests/overlays/deployment-scheduler
+else
+SCHEDULER_POLICY?=scheduler-policy-daemonset.cfg
+KUSTOMIZE_DIR?=manifests/overlays/daemonset-scheduler
+endif
 
 ifeq ($(TEST_KUBERNETES_VERSION),1.18)
 KUBERNETES_VERSION=1.18.8
@@ -52,7 +61,7 @@ topolvm.img: $(GO_FILES)
 	mkdir -p /tmp/topolvm/scheduler
 	cp $< $@
 
-/tmp/topolvm/scheduler/scheduler-policy.cfg: scheduler-policy.cfg
+/tmp/topolvm/scheduler/scheduler-policy.cfg: $(SCHEDULER_POLICY)
 	mkdir -p /tmp/topolvm/scheduler
 	cp $< $@
 

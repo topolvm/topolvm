@@ -1,25 +1,25 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 patchesStrategicMerge:
-  - storageclass.yaml
-  - controller.yaml
-  - mutatingwebhooks.yaml
-  - node.yaml
+  - ../common/storageclass.yaml
+  - ../common/controller.yaml
+  - ../common/mutatingwebhooks.yaml
+  - ../common/node.yaml
   - scheduler.yaml
 resources:
-  - ../../deploy/manifests/overlays/daemonset-scheduler
-  - provisioner.yaml
+  - ../../../../deploy/manifests/overlays/daemonset-scheduler
+  - ../../base
 generatorOptions:
   disableNameSuffixHash: true
 configurations:
-  - kustomizeconfig.yaml
+  - ../common/kustomizeconfig.yaml
 secretGenerator:
 - name: mutatingwebhook
   namespace: topolvm-system
   files:
-  - ca.crt=../certs/cert.pem
-  - tls.crt=../certs/cert.pem
-  - tls.key=../certs/key.pem
+  - ca.crt=../../../certs/cert.pem
+  - tls.crt=../../../certs/cert.pem
+  - tls.key=../../../certs/key.pem
   type: "Opaque"
 vars:
   - name: TLSCERT
