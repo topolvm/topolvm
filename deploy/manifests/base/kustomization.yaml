@@ -9,8 +9,3 @@ resources:
   - provisioner.yaml
   - psp.yaml
   - scheduler.yaml
-configMapGenerator:
-  - name: scheduler-options
-    namespace: topolvm-system
-    files:
-      - scheduler-options.yaml

@@ -151,7 +151,7 @@ The scoring expression in `topolvm-scheduler` is as follows:
 ```
 min(10, max(0, log2(capacity >> 30 / divisor)))
 ```
-For example, the default of `divisor` is `1`, then if a node has the free disk capacity more than `1024GiB`, `topolvm-scheduler` scores the node as `10`. `divisor` should be adjusted to suit each environment. It can be specified the default value and values for each device-class in [scheduler-options.yaml](./manifests/base/scheduler-options.yaml) as follows:
+For example, the default of `divisor` is `1`, then if a node has the free disk capacity more than `1024GiB`, `topolvm-scheduler` scores the node as `10`. `divisor` should be adjusted to suit each environment. It can be specified the default value and values for each device-class in [scheduler-options.yaml](./manifests/overlays/daemonset-scheduler/scheduler-options.yaml) as follows:
 
 ```yaml
 default-divisor: 1
