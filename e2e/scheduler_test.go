@@ -33,7 +33,7 @@ func testScheduler() {
 			for _, pod := range podlist.Items {
 				podReady := false
 				for _, cond := range pod.Status.Conditions {
-					fmt.Println(cond)
+					fmt.Fprintln(GinkgoWriter, cond)
 					if cond.Type == corev1.PodReady && cond.Status == corev1.ConditionTrue {
 						podReady = true
 						break
