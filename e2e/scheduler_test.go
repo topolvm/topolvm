@@ -14,8 +14,6 @@ func testScheduler() {
 	testNamespacePrefix := "scheduler-test"
 
 	It("should be deployed topolvm-scheduler pod", func() {
-		ns := testNamespacePrefix + randomString(10)
-		createNamespace(ns)
 		Eventually(func() error {
 			result, stderr, err := kubectl("get", "-n=topolvm-system", "pods", "--selector=app.kubernetes.io/name=topolvm-scheduler", "-o=json")
 			if err != nil {
@@ -28,21 +26,26 @@ func testScheduler() {
 				return err
 			}
 
-			if len(podlist.Items) != 1 {
+			if len(podlist.Items) == 0 {
 				return errors.New("pod is not found")
 			}
 
-			pod := podlist.Items[0]
-			for _, cond := range pod.Status.Conditions {
-				fmt.Println(cond)
-				if cond.Type == corev1.PodReady && cond.Status == corev1.ConditionTrue {
-					return nil
+			for _, pod := range podlist.Items {
+				podReady := false
+				for _, cond := range pod.Status.Conditions {
+					fmt.Fprintln(GinkgoWriter, cond)
+					if cond.Type == corev1.PodReady && cond.Status == corev1.ConditionTrue {
+						podReady = true
+						break
+					}
+				}
+				if !podReady {
+					return errors.New("topolvm-scheduler is not yet ready")
 				}
 			}
 
-			return errors.New("topolvm-scheduler is not yet ready")
+			return nil
 		}).Should(Succeed())
-		kubectl("delete", "namespaces", ns)
 	})
 
 	It("should schedule pod if requested capacity is sufficient", func() {
