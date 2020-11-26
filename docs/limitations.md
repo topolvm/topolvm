@@ -35,3 +35,9 @@ Therefore, when multiple pods requesting TopoLVM volumes are created at once, th
 
 Note that pod scheduling is also affected by the amount of CPU and memory.
 Because of this, this problem may not be observable.
+
+CSI ephemeral volumes may leave orphaned logical volume
+-------------------------
+
+The logical volume created by CSI ephemeral volumes may be left behind by restarting the node.
+This problem is because the kubelet on the restarted node may fail to remove the logical volume through the CSI driver when pods are removed.
