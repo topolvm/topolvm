@@ -64,9 +64,6 @@ func scoreNode(item corev1.Node, deviceClasses []string, defaultDivisor float64,
 	for _, dc := range deviceClasses {
 		if val, ok := item.Annotations[topolvm.CapacityKeyPrefix+dc]; ok {
 			capacity, _ := strconv.ParseUint(val, 10, 64)
-			if _, ok := divisors[dc]; !ok {
-				continue
-			}
 			var divisor float64
 			if v, ok := divisors[dc]; ok {
 				divisor = v
