@@ -119,7 +119,7 @@ func testFilesystem(t *testing.T, fsType string) {
 
 	// resize test
 	var stfs unix.Statfs_t
-	if err := unix.Statfs(d, &stfs); err != nil {
+	if err := Statfs(d, &stfs); err != nil {
 		t.Fatal(err)
 	}
 	origSize := stfs.Blocks * uint64(stfs.Frsize)
@@ -129,7 +129,7 @@ func testFilesystem(t *testing.T, fsType string) {
 	if err := fs.Resize(d); err != nil {
 		t.Fatal(err)
 	}
-	if err := unix.Statfs(d, &stfs); err != nil {
+	if err := Statfs(d, &stfs); err != nil {
 		t.Fatal(err)
 	}
 	newSize := stfs.Blocks * uint64(stfs.Frsize)

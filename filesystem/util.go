@@ -16,16 +16,20 @@ const (
 	blkidCmd = "/sbin/blkid"
 )
 
+type temporaryer interface {
+	Temporary() bool
+}
+
 func isSameDevice(dev1, dev2 string) (bool, error) {
 	if dev1 == dev2 {
 		return true, nil
 	}
 
 	var st1, st2 unix.Stat_t
-	if err := unix.Stat(dev1, &st1); err != nil {
+	if err := Stat(dev1, &st1); err != nil {
 		return false, fmt.Errorf("stat failed for %s: %v", dev1, err)
 	}
-	if err := unix.Stat(dev2, &st2); err != nil {
+	if err := Stat(dev2, &st2); err != nil {
 		return false, fmt.Errorf("stat failed for %s: %v", dev2, err)
 	}
 
@@ -81,7 +85,17 @@ func Mount(device, target, fsType, opts string, readonly bool) error {
 	if readonly {
 		flg |= unix.MS_RDONLY
 	}
-	return unix.Mount(device, target, fsType, flg, opts)
+
+	for {
+		err := unix.Mount(device, target, fsType, flg, opts)
+		if err == nil {
+			return nil
+		}
+		if e, ok := err.(temporaryer); ok && e.Temporary() {
+			continue
+		}
+		return err
+	}
 }
 
 // Unmount unmounts the device if it is mounted.
@@ -94,7 +108,19 @@ func Unmount(device, target string) error {
 			return nil
 		}
 
-		switch err := unix.Unmount(target, unix.UMOUNT_NOFOLLOW); err {
+		var err error
+		for {
+			err = unix.Unmount(target, unix.UMOUNT_NOFOLLOW)
+			if err == nil {
+				break
+			}
+			if e, ok := err.(temporaryer); ok && e.Temporary() {
+				continue
+			}
+			return err
+		}
+
+		switch err {
 		case nil, unix.EBUSY:
 			// umount(2) can lie that it could have unmounted, so recheck.
 			time.Sleep(500 * time.Millisecond)
@@ -134,4 +160,44 @@ func DetectFilesystem(device string) (string, error) {
 	}
 
 	return "", nil
+}
+
+// Stat
+func Stat(path string, stat *unix.Stat_t) error {
+	for {
+		err := unix.Stat(path, stat)
+		if err == nil {
+			return nil
+		}
+		if e, ok := err.(temporaryer); ok && e.Temporary() {
+			continue
+		}
+		return err
+	}
+}
+
+func Mknod(path string, mode uint32, dev int) (err error) {
+	for {
+		err := unix.Mknod(path, mode, dev)
+		if err == nil {
+			return nil
+		}
+		if e, ok := err.(temporaryer); ok && e.Temporary() {
+			continue
+		}
+		return err
+	}
+}
+
+func Statfs(path string, buf *unix.Statfs_t) (err error) {
+	for {
+		err := unix.Statfs(path, buf)
+		if err == nil {
+			return nil
+		}
+		if e, ok := err.(temporaryer); ok && e.Temporary() {
+			continue
+		}
+		return err
+	}
 }
