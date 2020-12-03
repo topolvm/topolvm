@@ -86,6 +86,7 @@ func Mount(device, target, fsType, opts string, readonly bool) error {
 		flg |= unix.MS_RDONLY
 	}
 
+	// Handle EINTR signal for Go 1.14+
 	for {
 		err := unix.Mount(device, target, fsType, flg, opts)
 		if err == nil {
@@ -108,6 +109,7 @@ func Unmount(device, target string) error {
 			return nil
 		}
 
+		// Handle EINTR signal for Go 1.14+
 		var err error
 		for {
 			err = unix.Unmount(target, unix.UMOUNT_NOFOLLOW)
@@ -162,7 +164,7 @@ func DetectFilesystem(device string) (string, error) {
 	return "", nil
 }
 
-// Stat
+// Stat wrapped a golang.org/x/sys/unix.Stat function to handle EINTR signal for Go 1.14+
 func Stat(path string, stat *unix.Stat_t) error {
 	for {
 		err := unix.Stat(path, stat)
@@ -176,6 +178,7 @@ func Stat(path string, stat *unix.Stat_t) error {
 	}
 }
 
+// Mknod wrapped a golang.org/x/sys/unix.Mknod function to handle EINTR signal for Go 1.14+
 func Mknod(path string, mode uint32, dev int) (err error) {
 	for {
 		err := unix.Mknod(path, mode, dev)
@@ -189,6 +192,7 @@ func Mknod(path string, mode uint32, dev int) (err error) {
 	}
 }
 
+// Statfs wrapped a golang.org/x/sys/unix.Statfs function to handle EINTR signal for Go 1.14+
 func Statfs(path string, buf *unix.Statfs_t) (err error) {
 	for {
 		err := unix.Statfs(path, buf)
