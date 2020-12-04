@@ -119,7 +119,7 @@ func Unmount(device, target string) error {
 			if e, ok := err.(temporaryer); ok && e.Temporary() {
 				continue
 			}
-			return err
+			break
 		}
 
 		switch err {
