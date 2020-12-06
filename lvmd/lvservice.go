@@ -57,7 +57,12 @@ func (s *lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*pr
 		return nil, status.Errorf(codes.ResourceExhausted, "no enough space left on VG: free=%d, requested=%d", free, requested)
 	}
 
-	lv, err := vg.CreateVolume(req.GetName(), requested, req.GetTags())
+	var stripe uint
+	if dc.Stripe != nil {
+		stripe = *dc.Stripe
+	}
+
+	lv, err := vg.CreateVolume(req.GetName(), requested, req.GetTags(), stripe)
 	if err != nil {
 		log.Error("failed to create volume", map[string]interface{}{
 			"name":      req.GetName(),
