@@ -27,7 +27,7 @@ type DeviceClass struct {
 	Default bool `json:"default"`
 	// SpareGB is storage capacity in GiB to be spared
 	SpareGB *uint64 `json:"spare-gb"`
-	// Stripe is number of stripes in logical volume
+	// Stripe is the number of stripes in the logical volume
 	Stripe *uint `json:"stripe"`
 }
 
