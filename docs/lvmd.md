@@ -42,7 +42,7 @@ The device-class settings can be specified in the following fields:
 | `volume-group` | string | -       | The group where this device-class creates the logical volumes. |
 | `spare-gb`     | uint64 | `10`    | Storage capacity in GiB to be spared.                          |
 | `default`      | bool   | `false` | A flag to indicate that this device-class is used by default.  |
-| `stripe`       | uint   | -       | Number of stripes in logical volume.                           |
+| `stripe`       | uint   | -       | The number of stripes in the logical volume.                   |
 
 Spare capacity
 --------------
