@@ -62,7 +62,7 @@ func (s *lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*pr
 		stripe = *dc.Stripe
 	}
 
-	lv, err := vg.CreateVolume(req.GetName(), requested, req.GetTags(), stripe)
+	lv, err := vg.CreateVolume(req.GetName(), requested, req.GetTags(), stripe, dc.StripeSize)
 	if err != nil {
 		log.Error("failed to create volume", map[string]interface{}{
 			"name":      req.GetName(),

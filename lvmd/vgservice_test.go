@@ -124,7 +124,7 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 		t.Errorf("numVolumes must be 0: %d", numVols1)
 	}
 	testtag := "testtag"
-	_, err = vg.CreateVolume("test1", 1<<30, []string{testtag}, 0)
+	_, err = vg.CreateVolume("test1", 1<<30, []string{testtag}, 0, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,7 +152,7 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 		t.Errorf(`Volume.Tags[0] != %s: %v`, testtag, vol.GetTags())
 	}
 
-	_, err = vg.CreateVolume("test2", 1<<30, nil, 0)
+	_, err = vg.CreateVolume("test2", 1<<30, nil, 0, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -183,7 +183,12 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 		t.Errorf("Free bytes mismatch: %d, expected: %d, freeBytes: %d", res2.GetFreeBytes(), expected, freeBytes)
 	}
 
-	_, err = vg.CreateVolume("test3", 1<<30, nil, 2)
+	_, err = vg.CreateVolume("test3", 1<<30, nil, 2, "4k")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = vg.CreateVolume("test4", 1<<30, nil, 2, "4M")
 	if err != nil {
 		t.Fatal(err)
 	}

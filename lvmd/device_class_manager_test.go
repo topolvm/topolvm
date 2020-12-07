@@ -27,6 +27,33 @@ func TestValidateDeviceClasses(t *testing.T) {
 		{
 			deviceClasses: []*DeviceClass{
 				{
+					Name:        "stripe-size",
+					VolumeGroup: "node1-myvg1",
+					StripeSize:  "4",
+					Default:     true,
+				},
+			},
+			valid: true,
+		},
+		{
+			deviceClasses: []*DeviceClass{
+				{
+					Name:        "stripe-size-with-unit1",
+					VolumeGroup: "node1-myvg1",
+					StripeSize:  "4m",
+					Default:     true,
+				},
+				{
+					Name:        "stripe-size-with-unit2",
+					VolumeGroup: "node1-myvg2",
+					StripeSize:  "4G",
+				},
+			},
+			valid: true,
+		},
+		{
+			deviceClasses: []*DeviceClass{
+				{
 					Name:        "__invalid-device-class-name__",
 					VolumeGroup: "node1-myvg1",
 					Default:     true,
@@ -79,6 +106,17 @@ func TestValidateDeviceClasses(t *testing.T) {
 		{
 			deviceClasses: []*DeviceClass{},
 			valid:         false,
+		},
+		{
+			deviceClasses: []*DeviceClass{
+				{
+					Name:        "invalid-stripe-size",
+					VolumeGroup: "node1-myvg1",
+					StripeSize:  "4gib",
+					Default:     true,
+				},
+			},
+			valid: false,
 		},
 	}
 

@@ -36,13 +36,14 @@ device-classes:
 
 The device-class settings can be specified in the following fields:
 
-| Name           | Type   | Default | Description                                                    |
-| -------------- | ------ | ------- | -------------------------------------------------------------- |
-| `name`         | string | -       | The name of a device-class.                                    |
-| `volume-group` | string | -       | The group where this device-class creates the logical volumes. |
-| `spare-gb`     | uint64 | `10`    | Storage capacity in GiB to be spared.                          |
-| `default`      | bool   | `false` | A flag to indicate that this device-class is used by default.  |
-| `stripe`       | uint   | -       | The number of stripes in the logical volume.                   |
+| Name           | Type   | Default | Description                                                                        |
+| -------------- | ------ | ------- | ---------------------------------------------------------------------------------- |
+| `name`         | string | -       | The name of a device-class.                                                        |
+| `volume-group` | string | -       | The group where this device-class creates the logical volumes.                     |
+| `spare-gb`     | uint64 | `10`    | Storage capacity in GiB to be spared.                                              |
+| `default`      | bool   | `false` | A flag to indicate that this device-class is used by default.                      |
+| `stripe`       | uint   | -       | The number of stripes in the logical volume.                                       |
+| `stripe-size`  | uint   | -       | The amount of data that is written to one device before moving to the next device. |
 
 Spare capacity
 --------------
