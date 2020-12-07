@@ -203,7 +203,7 @@ func (s *nodeService) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequ
 
 func (s *nodeService) createDeviceIfNeeded(device string, lv *proto.LogicalVolume) error {
 	var stat unix.Stat_t
-	err := unix.Stat(device, &stat)
+	err := filesystem.Stat(device, &stat)
 	switch err {
 	case nil:
 		// a block device already exists, check its attributes
@@ -217,7 +217,7 @@ func (s *nodeService) createDeviceIfNeeded(device string, lv *proto.LogicalVolum
 		fallthrough
 	case unix.ENOENT:
 		devno := unix.Mkdev(lv.DevMajor, lv.DevMinor)
-		if err := unix.Mknod(device, devicePermission, int(devno)); err != nil {
+		if err := filesystem.Mknod(device, devicePermission, int(devno)); err != nil {
 			return status.Errorf(codes.Internal, "mknod failed for %s. major=%d, minor=%d, error=%v",
 				device, lv.DevMajor, lv.DevMinor, err)
 		}
@@ -231,7 +231,7 @@ func (s *nodeService) nodePublishBlockVolume(req *csi.NodePublishVolumeRequest, 
 	// Find lv and create a block device with it
 	var stat unix.Stat_t
 	target := req.GetTargetPath()
-	err := unix.Stat(target, &stat)
+	err := filesystem.Stat(target, &stat)
 	switch err {
 	case nil:
 		if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && stat.Mode&devicePermission == devicePermission {
@@ -246,7 +246,7 @@ func (s *nodeService) nodePublishBlockVolume(req *csi.NodePublishVolumeRequest, 
 	}
 
 	devno := unix.Mkdev(lv.DevMajor, lv.DevMinor)
-	if err := unix.Mknod(target, devicePermission, int(devno)); err != nil {
+	if err := filesystem.Mknod(target, devicePermission, int(devno)); err != nil {
 		return nil, status.Errorf(codes.Internal, "mknod failed for %s: error=%v", req.GetTargetPath(), err)
 	}
 
@@ -370,7 +370,7 @@ func (s *nodeService) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVo
 	}
 
 	var st unix.Stat_t
-	switch err := unix.Stat(p, &st); err {
+	switch err := filesystem.Stat(p, &st); err {
 	case unix.ENOENT:
 		return nil, status.Error(codes.NotFound, "Volume is not found at "+p)
 	case nil:
@@ -398,7 +398,7 @@ func (s *nodeService) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVo
 	}
 
 	var sfs unix.Statfs_t
-	if err := unix.Statfs(p, &sfs); err != nil {
+	if err := filesystem.Statfs(p, &sfs); err != nil {
 		return nil, status.Errorf(codes.Internal, "statvfs on %s was failed: %v", p, err)
 	}
 

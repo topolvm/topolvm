@@ -58,7 +58,7 @@ func New(fsType, device string) (Filesystem, error) {
 	}
 
 	var st unix.Stat_t
-	if err := unix.Stat(p, &st); err != nil {
+	if err := Stat(p, &st); err != nil {
 		return nil, err
 	}
 	if (st.Mode & unix.S_IFMT) != unix.S_IFBLK {
