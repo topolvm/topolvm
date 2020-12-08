@@ -102,17 +102,6 @@ func subMain() error {
 		}
 	}()
 
-	lvcontroller := &controllers.LogicalVolumeCleanupReconciler{
-		Client:      mgr.GetClient(),
-		Log:         ctrl.Log.WithName("controllers").WithName("LogicalVolumeCleanup"),
-		Events:      events,
-		StalePeriod: config.stalePeriod,
-	}
-	if err := lvcontroller.SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "LogicalVolumeCleanup")
-		return err
-	}
-
 	nodecontroller := &controllers.NodeReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("Node"),

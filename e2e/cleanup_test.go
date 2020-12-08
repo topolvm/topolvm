@@ -257,21 +257,6 @@ spec:
 		Expect(recreatedPVC.ObjectMeta.UID).ShouldNot(Equal(targetPVC.ObjectMeta.UID))
 	})
 
-	It("should clean up stale LogicalVolume", func() {
-		// The deletion timestamp of logicalvolume is checked and cleaned up periodically by topolvm-controller.
-		// Thus logicalvolume resources connected to the deleted node should be cleaned up after all.
-		By("confirming logicalvolumes are deleted")
-		Eventually(func() error {
-			for _, lv := range targetLVs {
-				_, _, err := kubectl("get", "logicalvolume", lv.Name)
-				if err == nil {
-					return fmt.Errorf("logicalvolume still exists: %s", lv.Name)
-				}
-			}
-			return nil
-		}).Should(Succeed())
-	})
-
 	It("should delete namespace", func() {
 		stdout, stderr, err := kubectl("delete", "ns", cleanupTest)
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
