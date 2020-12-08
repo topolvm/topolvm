@@ -27,6 +27,11 @@ device-classes:
   - name: hdd
     volume-group: hdd-vg
     spare-gb: 10
+  - name: striped
+    volume-group: multi-pv-vg
+    spare-gb: 10
+    stripe: 2
+    stripe-size: "64"
 ```
 
 | Name             | Type                     | Default                  | Description                         |
@@ -43,7 +48,7 @@ The device-class settings can be specified in the following fields:
 | `spare-gb`     | uint64 | `10`    | Storage capacity in GiB to be spared.                                              |
 | `default`      | bool   | `false` | A flag to indicate that this device-class is used by default.                      |
 | `stripe`       | uint   | -       | The number of stripes in the logical volume.                                       |
-| `stripe-size`  | uint   | -       | The amount of data that is written to one device before moving to the next device. |
+| `stripe-size`  | string | -       | The amount of data that is written to one device before moving to the next device. |
 
 Spare capacity
 --------------
