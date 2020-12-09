@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/topolvm/topolvm"
+	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -109,6 +110,7 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 		return ctrl.Result{}, err
 	}
 
+	var lv topolvmv1.LogicalVolume
 	for _, pvc := range pvcs.Items {
 		if pvc.Spec.StorageClassName == nil {
 			continue
@@ -123,9 +125,61 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 			return ctrl.Result{}, err
 		}
 		log.Info("deleted PVC", "name", pvc.Name, "namespace", pvc.Namespace)
+
+		r.Get(ctx, client.ObjectKey{Name: pvc.Spec.VolumeName}, &lv)
+		if err != nil {
+			log.Error(err, "failed to get LogicalVolume", "name", pvc.Spec.VolumeName)
+			return ctrl.Result{}, err
+		}
+
+		err = r.cleanupLogicalVolume(ctx, log, &lv)
+		if err != nil {
+			log.Error(err, "unable to cleanup LogicalVolume")
+			return ctrl.Result{}, err
+		}
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *NodeReconciler) cleanupLogicalVolume(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) error {
+	finExists := false
+	for _, fin := range lv.Finalizers {
+		if fin == topolvm.LogicalVolumeFinalizer {
+			finExists = true
+			break
+		}
+	}
+	if !finExists {
+		return nil
+	}
+
+	log.Info("deleting LogicalVolume", "name", lv.Name)
+
+	lv2 := lv.DeepCopy()
+	var finalizers []string
+	for _, fin := range lv2.Finalizers {
+		if fin == topolvm.LogicalVolumeFinalizer {
+			continue
+		}
+		finalizers = append(finalizers, fin)
+	}
+	lv2.Finalizers = finalizers
+
+	patch := client.MergeFrom(lv)
+	if err := r.Patch(ctx, lv2, patch); err != nil {
+		log.Error(err, "failed to patch LogicalVolume", "name", lv.Name)
+		return err
+	}
+
+	err := r.Delete(ctx, lv)
+	if err != nil {
+		log.Error(err, "failed to delete LogicalVolume", "name", lv.Name)
+		return err
+	}
+	log.Info("deleted LogicalVolume", "name", lv.Name)
+
+	return nil
 }
 
 // SetupWithManager sets up Reconciler with Manager.
