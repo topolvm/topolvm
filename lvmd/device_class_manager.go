@@ -18,7 +18,7 @@ const defaultSpareGB = 10
 var qualifiedNameRegexp = regexp.MustCompile("^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$")
 
 // This regexp is used to check StripeSize format
-var stripeSizeRegexp = regexp.MustCompile("(?i)^([0-9]*)(m|g|t|p|e|b|s)?$")
+var stripeSizeRegexp = regexp.MustCompile("(?i)^([0-9]*)(k|m|g|t|p|e|b|s)?$")
 
 // DeviceClass maps between device-classes and volume groups.
 type DeviceClass struct {
