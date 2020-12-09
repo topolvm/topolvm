@@ -6,6 +6,8 @@ import (
 )
 
 func TestValidateDeviceClasses(t *testing.T) {
+	stripe := uint(2)
+
 	cases := []struct {
 		deviceClasses []*DeviceClass
 		valid         bool
@@ -20,6 +22,36 @@ func TestValidateDeviceClasses(t *testing.T) {
 					Name:        "ssd",
 					VolumeGroup: "node1-myvg2",
 					Default:     true,
+				},
+			},
+			valid: true,
+		},
+		{
+			deviceClasses: []*DeviceClass{
+				{
+					Name:        "stripe-size",
+					VolumeGroup: "node1-myvg1",
+					Stripe:      &stripe,
+					StripeSize:  "4",
+					Default:     true,
+				},
+			},
+			valid: true,
+		},
+		{
+			deviceClasses: []*DeviceClass{
+				{
+					Name:        "stripe-size-with-unit1",
+					VolumeGroup: "node1-myvg1",
+					Stripe:      &stripe,
+					StripeSize:  "4m",
+					Default:     true,
+				},
+				{
+					Name:        "stripe-size-with-unit2",
+					VolumeGroup: "node1-myvg2",
+					Stripe:      &stripe,
+					StripeSize:  "4G",
 				},
 			},
 			valid: true,
@@ -79,6 +111,18 @@ func TestValidateDeviceClasses(t *testing.T) {
 		{
 			deviceClasses: []*DeviceClass{},
 			valid:         false,
+		},
+		{
+			deviceClasses: []*DeviceClass{
+				{
+					Name:        "invalid-stripe-size",
+					VolumeGroup: "node1-myvg1",
+					Stripe:      &stripe,
+					StripeSize:  "4gib",
+					Default:     true,
+				},
+			},
+			valid: false,
 		},
 	}
 

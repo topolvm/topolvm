@@ -279,13 +279,21 @@ func (g *VolumeGroup) ListVolumes() ([]*LogicalVolume, error) {
 // CreateVolume creates logical volume in this volume group.
 // name is a name of creating volume. size is volume size in bytes. volTags is a
 // list of tags to add to the volume.
-func (g *VolumeGroup) CreateVolume(name string, size uint64, tags []string) (*LogicalVolume, error) {
+func (g *VolumeGroup) CreateVolume(name string, size uint64, tags []string, stripe uint, stripeSize string) (*LogicalVolume, error) {
 	lvcreateArgs := []string{"-n", name, "-L", fmt.Sprintf("%vg", size>>30), "-W", "y", "-y"}
 	for _, tag := range tags {
 		lvcreateArgs = append(lvcreateArgs, "--addtag")
 		lvcreateArgs = append(lvcreateArgs, tag)
 	}
+	if stripe != 0 {
+		lvcreateArgs = append(lvcreateArgs, "-i", fmt.Sprintf("%d", stripe))
+
+		if stripeSize != "" {
+			lvcreateArgs = append(lvcreateArgs, "-I", stripeSize)
+		}
+	}
 	lvcreateArgs = append(lvcreateArgs, g.Name())
+
 	if err := CallLVM("lvcreate", lvcreateArgs...); err != nil {
 		return nil, err
 	}

@@ -124,7 +124,7 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 		t.Errorf("numVolumes must be 0: %d", numVols1)
 	}
 	testtag := "testtag"
-	_, err = vg.CreateVolume("test1", 1<<30, []string{testtag})
+	_, err = vg.CreateVolume("test1", 1<<30, []string{testtag}, 0, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,7 +152,7 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 		t.Errorf(`Volume.Tags[0] != %s: %v`, testtag, vol.GetTags())
 	}
 
-	_, err = vg.CreateVolume("test2", 1<<30, nil)
+	_, err = vg.CreateVolume("test2", 1<<30, nil, 0, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,6 +182,16 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	if res2.GetFreeBytes() != expected {
 		t.Errorf("Free bytes mismatch: %d, expected: %d, freeBytes: %d", res2.GetFreeBytes(), expected, freeBytes)
 	}
+
+	_, err = vg.CreateVolume("test3", 1<<30, nil, 2, "4k")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = vg.CreateVolume("test4", 1<<30, nil, 2, "4M")
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestVGService(t *testing.T) {
@@ -191,11 +201,20 @@ func TestVGService(t *testing.T) {
 	}
 
 	vgName := "test_vgservice"
-	loop, err := MakeLoopbackVG(vgName)
+	loop1, err := MakeLoopbackDevice(vgName + "1")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer CleanLoopbackVG(loop, vgName)
+	loop2, err := MakeLoopbackDevice(vgName + "2")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = MakeLoopbackVG(vgName, loop1, loop2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer CleanLoopbackVG(vgName, []string{loop1, loop2}, []string{vgName + "1", vgName + "2"})
 
 	vg, err := command.FindVolumeGroup(vgName)
 	if err != nil {

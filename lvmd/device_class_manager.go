@@ -17,6 +17,9 @@ const defaultSpareGB = 10
 //   https://github.com/kubernetes/apimachinery/blob/v0.18.3/pkg/util/validation/validation.go#L42
 var qualifiedNameRegexp = regexp.MustCompile("^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$")
 
+// This regexp is used to check StripeSize format
+var stripeSizeRegexp = regexp.MustCompile("(?i)^([0-9]*)(k|m|g|t|p|e|b|s)?$")
+
 // DeviceClass maps between device-classes and volume groups.
 type DeviceClass struct {
 	// Name for the device-class name
@@ -27,6 +30,10 @@ type DeviceClass struct {
 	Default bool `json:"default"`
 	// SpareGB is storage capacity in GiB to be spared
 	SpareGB *uint64 `json:"spare-gb"`
+	// Stripe is the number of stripes in the logical volume
+	Stripe *uint `json:"stripe"`
+	// StripeSize is the amount of data that is written to one device before moving to the next device
+	StripeSize string `json:"stripe-size"`
 }
 
 // GetSpare returns spare in bytes for the device-class
@@ -68,6 +75,9 @@ func ValidateDeviceClasses(deviceClasses []*DeviceClass) error {
 		}
 		dcNames[dc.Name] = true
 		vgNames[dc.VolumeGroup] = true
+		if dc.StripeSize != "" && !stripeSizeRegexp.MatchString(dc.StripeSize) {
+			return fmt.Errorf("stripe-size format is \"Size[k|UNIT]\": %s", dc.Name)
+		}
 	}
 	if countDefault != 1 {
 		return errors.New("should have only one default device-class")

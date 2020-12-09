@@ -19,11 +19,16 @@ func TestLVService(t *testing.T) {
 	}
 
 	vgName := "test_lvservice"
-	loop, err := MakeLoopbackVG(vgName)
+	loop, err := MakeLoopbackDevice(vgName)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer CleanLoopbackVG(loop, vgName)
+
+	err = MakeLoopbackVG(vgName, loop)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer CleanLoopbackVG(vgName, []string{loop}, []string{vgName})
 
 	vg, err := command.FindVolumeGroup(vgName)
 	if err != nil {
