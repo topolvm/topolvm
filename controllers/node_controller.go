@@ -150,26 +150,23 @@ func (r *NodeReconciler) cleanupLogicalVolume(ctx context.Context, log logr.Logg
 			break
 		}
 	}
-	if !finExists {
-		return nil
-	}
 
-	log.Info("deleting LogicalVolume", "name", lv.Name)
-
-	lv2 := lv.DeepCopy()
-	var finalizers []string
-	for _, fin := range lv2.Finalizers {
-		if fin == topolvm.LogicalVolumeFinalizer {
-			continue
+	if finExists {
+		lv2 := lv.DeepCopy()
+		var finalizers []string
+		for _, fin := range lv2.Finalizers {
+			if fin == topolvm.LogicalVolumeFinalizer {
+				continue
+			}
+			finalizers = append(finalizers, fin)
 		}
-		finalizers = append(finalizers, fin)
-	}
-	lv2.Finalizers = finalizers
+		lv2.Finalizers = finalizers
 
-	patch := client.MergeFrom(lv)
-	if err := r.Patch(ctx, lv2, patch); err != nil {
-		log.Error(err, "failed to patch LogicalVolume", "name", lv.Name)
-		return err
+		patch := client.MergeFrom(lv)
+		if err := r.Patch(ctx, lv2, patch); err != nil {
+			log.Error(err, "failed to patch LogicalVolume", "name", lv.Name)
+			return err
+		}
 	}
 
 	err := r.Delete(ctx, lv)
@@ -177,8 +174,8 @@ func (r *NodeReconciler) cleanupLogicalVolume(ctx context.Context, log logr.Logg
 		log.Error(err, "failed to delete LogicalVolume", "name", lv.Name)
 		return err
 	}
-	log.Info("deleted LogicalVolume", "name", lv.Name)
 
+	log.Info("deleted LogicalVolume", "name", lv.Name)
 	return nil
 }
 
