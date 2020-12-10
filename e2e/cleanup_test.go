@@ -274,4 +274,14 @@ spec:
 		stdout, stderr, err := kubectl("delete", "ns", cleanupTest)
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 	})
+
+	It("should delete unnecessary LVs", func() {
+		for _, lv := range targetLVs {
+			stdout, stderr, err := execAtLocal("sudo", nil, "umount", "/dev/topolvm/"+lv.Status.VolumeID)
+			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+			stdout, stderr, err = execAtLocal("sudo", nil, "lvremove", "-y", "--select", "lv_name="+lv.Status.VolumeID)
+			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		}
+	})
 }
