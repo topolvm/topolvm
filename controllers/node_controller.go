@@ -110,7 +110,6 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 		return ctrl.Result{}, err
 	}
 
-	var lv topolvmv1.LogicalVolume
 	for _, pvc := range pvcs.Items {
 		if pvc.Spec.StorageClassName == nil {
 			continue
@@ -126,12 +125,16 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 		}
 		log.Info("deleted PVC", "name", pvc.Name, "namespace", pvc.Namespace)
 
-		r.Get(ctx, client.ObjectKey{Name: pvc.Spec.VolumeName}, &lv)
-		if err != nil {
-			log.Error(err, "failed to get LogicalVolume", "name", pvc.Spec.VolumeName)
-			return ctrl.Result{}, err
-		}
+	}
 
+	lvList := new(topolvmv1.LogicalVolumeList)
+	err = r.List(ctx, lvList, client.MatchingFields{KeyLogicalVolumeNode: node.Name})
+	if err != nil {
+		log.Error(err, "failed to get LogicalVolumes")
+		return ctrl.Result{}, err
+	}
+
+	for _, lv := range lvList.Items {
 		err = r.cleanupLogicalVolume(ctx, log, &lv)
 		if err != nil {
 			log.Error(err, "unable to cleanup LogicalVolume")
@@ -184,6 +187,13 @@ func (r *NodeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	ctx := context.Background()
 	err := mgr.GetFieldIndexer().IndexField(ctx, &corev1.PersistentVolumeClaim{}, KeySelectedNode, func(o runtime.Object) []string {
 		return []string{o.(*corev1.PersistentVolumeClaim).Annotations[AnnSelectedNode]}
+	})
+	if err != nil {
+		return err
+	}
+
+	err = mgr.GetFieldIndexer().IndexField(ctx, &topolvmv1.LogicalVolume{}, KeyLogicalVolumeNode, func(o runtime.Object) []string {
+		return []string{o.(*topolvmv1.LogicalVolume).Spec.NodeName}
 	})
 	if err != nil {
 		return err

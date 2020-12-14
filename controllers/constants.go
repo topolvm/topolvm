@@ -1,8 +1,11 @@
 package controllers
 
 const (
-	// KeySelectedNode is an indexing key for the controller
+	// KeySelectedNode is a PVC resource indexing key for the controller
 	KeySelectedNode = "metadata.annotations.selected-node"
+
+	// KeyLogicalVolumeNode is a Logical Volume resource indexing key for the controller
+	KeyLogicalVolumeNode = "spec.nodeName"
 
 	// AnnSelectedNode annotation is added to a PVC that has been triggered by scheduler to
 	// be dynamically provisioned. Its value is the name of the selected node.
