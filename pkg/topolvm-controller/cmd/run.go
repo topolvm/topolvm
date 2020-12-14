@@ -134,6 +134,9 @@ func subMain() error {
 	if _, err := mgr.GetCache().GetInformer(ctx, &corev1.PersistentVolumeClaim{}); err != nil {
 		return err
 	}
+	if _, err := mgr.GetCache().GetInformer(ctx, &topolvmv1.LogicalVolume{}); err != nil {
+		return err
+	}
 
 	// Add health checker to manager
 	check := func() error {
