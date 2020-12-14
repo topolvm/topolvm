@@ -124,7 +124,6 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 			return ctrl.Result{}, err
 		}
 		log.Info("deleted PVC", "name", pvc.Name, "namespace", pvc.Namespace)
-
 	}
 
 	lvList := new(topolvmv1.LogicalVolumeList)
@@ -137,7 +136,6 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 	for _, lv := range lvList.Items {
 		err = r.cleanupLogicalVolume(ctx, log, &lv)
 		if err != nil {
-			log.Error(err, "unable to cleanup LogicalVolume")
 			return ctrl.Result{}, err
 		}
 	}

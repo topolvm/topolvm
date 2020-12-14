@@ -158,7 +158,7 @@ Controllers
 
 `topolvm-metrics` adds `topolvm.cybozu.com/node` finalizer.
 
-When a Node is being deleted, the controller deletes all PVCs and Logical Volumes for TopoLVM
+When a Node is being deleted, the controller deletes all PVCs and LogicalVolumes for TopoLVM
 on the deleting node.
 
 ### PVC finalizer
