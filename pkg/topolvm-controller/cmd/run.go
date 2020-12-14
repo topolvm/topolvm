@@ -22,7 +22,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 	// +kubebuilder:scaffold:imports
@@ -82,26 +81,6 @@ func subMain() error {
 	wh.Register("/pvc/mutate", hook.PVCMutator(mgr.GetClient(), dec))
 
 	// register controllers
-	events := make(chan event.GenericEvent, 1)
-	stopCh := ctrl.SetupSignalHandler()
-	go func() {
-		ticker := time.NewTicker(config.cleanupInterval)
-		for {
-			select {
-			case <-stopCh:
-				ticker.Stop()
-				return
-			case <-ticker.C:
-				select {
-				case events <- event.GenericEvent{
-					Meta: &topolvmv1.LogicalVolume{},
-				}:
-				default:
-				}
-			}
-		}
-	}()
-
 	nodecontroller := &controllers.NodeReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("Node"),
@@ -170,7 +149,7 @@ func subMain() error {
 	}
 
 	setupLog.Info("starting manager")
-	if err := mgr.Start(stopCh); err != nil {
+	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		return err
 	}

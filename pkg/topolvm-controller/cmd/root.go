@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/topolvm/topolvm"
@@ -17,7 +16,6 @@ var config struct {
 	webhookAddr      string
 	certDir          string
 	leaderElectionID string
-	cleanupInterval  time.Duration
 	development      bool
 }
 
@@ -50,7 +48,6 @@ func init() {
 	fs.StringVar(&config.webhookAddr, "webhook-addr", ":8443", "Listen address for the webhook endpoint")
 	fs.StringVar(&config.certDir, "cert-dir", "", "certificate directory")
 	fs.StringVar(&config.leaderElectionID, "leader-election-id", "topolvm", "ID for leader election by controller-runtime")
-	fs.DurationVar(&config.cleanupInterval, "cleanup-interval", 10*time.Minute, "Cleaning up interval for LogicalVolume")
 	fs.BoolVar(&config.development, "development", false, "Use development logger config")
 
 	goflags := flag.NewFlagSet("klog", flag.ExitOnError)

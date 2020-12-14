@@ -158,7 +158,7 @@ Controllers
 
 `topolvm-metrics` adds `topolvm.cybozu.com/node` finalizer.
 
-When a Node is being deleted, the controller deletes all PVCs for TopoLVM
+When a Node is being deleted, the controller deletes all PVCs and Logical Volumes for TopoLVM
 on the deleting node.
 
 ### PVC finalizer
@@ -168,24 +168,12 @@ finalizers to be completed.  Once it becomes the last finalizer, it removes
 the finalizer to immediately delete PVC then deletes pending pods referencing
 the deleted PVC, if any.
 
-### Delete stale LogicalVolumes
-
-[`LogicalVolume`](./crd-logical-volume.md) may be left without completing
-its finalization when the node dies.
-
-To delete such LogicalVolumes, the controller deletes them periodically by
-running finalization by on behalf of `topolvm-node`.
-
-By default, it deletes LogicalVolumes whose deletionTimestamp is behind `24h`
-from the current time every `cleanup-interval` which is `10m`.
-
 Command-line flags
 ------------------
 
 | Name                 | Type     | Default                                 | Description                                                   |
 | -------------------- | -------- | --------------------------------------- | ------------------------------------------------------------- |
 | `cert-dir`           | string   | `/tmp/k8s-webhook-server/serving-certs` | Directory for `tls.crt` and `tls.key` files.                  |
-| `cleanup-interval`   | Duration | `10m`                                   | Cleaning up interval for `LogicalVolume`.                     |
 | `csi-socket`         | string   | `/run/topolvm/csi-topolvm.sock`         | UNIX domain socket of `topolvm-controller`.                   |
 | `metrics-addr`       | string   | `:8080`                                 | Listen address for Prometheus metrics.                        |
 | `leader-election-id` | string   | `topolvm`                               | ID for leader election by controller-runtime.                 |
