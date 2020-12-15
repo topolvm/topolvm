@@ -104,7 +104,7 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 	}
 
 	var pvcs corev1.PersistentVolumeClaimList
-	err = r.List(ctx, &pvcs, client.MatchingFields{KeySelectedNode: node.Name})
+	err = r.List(ctx, &pvcs, client.MatchingFields{keySelectedNode: node.Name})
 	if err != nil {
 		log.Error(err, "unable to fetch PersistentVolumeClaimList")
 		return ctrl.Result{}, err
@@ -127,7 +127,7 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 	}
 
 	lvList := new(topolvmv1.LogicalVolumeList)
-	err = r.List(ctx, lvList, client.MatchingFields{KeyLogicalVolumeNode: node.Name})
+	err = r.List(ctx, lvList, client.MatchingFields{keyLogicalVolumeNode: node.Name})
 	if err != nil {
 		log.Error(err, "failed to get LogicalVolumes")
 		return ctrl.Result{}, err
@@ -183,14 +183,14 @@ func (r *NodeReconciler) cleanupLogicalVolume(ctx context.Context, log logr.Logg
 // SetupWithManager sets up Reconciler with Manager.
 func (r *NodeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	ctx := context.Background()
-	err := mgr.GetFieldIndexer().IndexField(ctx, &corev1.PersistentVolumeClaim{}, KeySelectedNode, func(o runtime.Object) []string {
+	err := mgr.GetFieldIndexer().IndexField(ctx, &corev1.PersistentVolumeClaim{}, keySelectedNode, func(o runtime.Object) []string {
 		return []string{o.(*corev1.PersistentVolumeClaim).Annotations[AnnSelectedNode]}
 	})
 	if err != nil {
 		return err
 	}
 
-	err = mgr.GetFieldIndexer().IndexField(ctx, &topolvmv1.LogicalVolume{}, KeyLogicalVolumeNode, func(o runtime.Object) []string {
+	err = mgr.GetFieldIndexer().IndexField(ctx, &topolvmv1.LogicalVolume{}, keyLogicalVolumeNode, func(o runtime.Object) []string {
 		return []string{o.(*topolvmv1.LogicalVolume).Spec.NodeName}
 	})
 	if err != nil {
