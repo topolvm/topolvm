@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/topolvm/topolvm"
+	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -103,7 +104,7 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 	}
 
 	var pvcs corev1.PersistentVolumeClaimList
-	err = r.List(ctx, &pvcs, client.MatchingFields{KeySelectedNode: node.Name})
+	err = r.List(ctx, &pvcs, client.MatchingFields{keySelectedNode: node.Name})
 	if err != nil {
 		log.Error(err, "unable to fetch PersistentVolumeClaimList")
 		return ctrl.Result{}, err
@@ -125,14 +126,72 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 		log.Info("deleted PVC", "name", pvc.Name, "namespace", pvc.Namespace)
 	}
 
+	lvList := new(topolvmv1.LogicalVolumeList)
+	err = r.List(ctx, lvList, client.MatchingFields{keyLogicalVolumeNode: node.Name})
+	if err != nil {
+		log.Error(err, "failed to get LogicalVolumes")
+		return ctrl.Result{}, err
+	}
+
+	for _, lv := range lvList.Items {
+		err = r.cleanupLogicalVolume(ctx, log, &lv)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	return ctrl.Result{}, nil
+}
+
+func (r *NodeReconciler) cleanupLogicalVolume(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) error {
+	finExists := false
+	for _, fin := range lv.Finalizers {
+		if fin == topolvm.LogicalVolumeFinalizer {
+			finExists = true
+			break
+		}
+	}
+
+	if finExists {
+		lv2 := lv.DeepCopy()
+		var finalizers []string
+		for _, fin := range lv2.Finalizers {
+			if fin == topolvm.LogicalVolumeFinalizer {
+				continue
+			}
+			finalizers = append(finalizers, fin)
+		}
+		lv2.Finalizers = finalizers
+
+		patch := client.MergeFrom(lv)
+		if err := r.Patch(ctx, lv2, patch); err != nil {
+			log.Error(err, "failed to patch LogicalVolume", "name", lv.Name)
+			return err
+		}
+	}
+
+	err := r.Delete(ctx, lv)
+	if err != nil {
+		log.Error(err, "failed to delete LogicalVolume", "name", lv.Name)
+		return err
+	}
+
+	log.Info("deleted LogicalVolume", "name", lv.Name)
+	return nil
 }
 
 // SetupWithManager sets up Reconciler with Manager.
 func (r *NodeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	ctx := context.Background()
-	err := mgr.GetFieldIndexer().IndexField(ctx, &corev1.PersistentVolumeClaim{}, KeySelectedNode, func(o runtime.Object) []string {
+	err := mgr.GetFieldIndexer().IndexField(ctx, &corev1.PersistentVolumeClaim{}, keySelectedNode, func(o runtime.Object) []string {
 		return []string{o.(*corev1.PersistentVolumeClaim).Annotations[AnnSelectedNode]}
+	})
+	if err != nil {
+		return err
+	}
+
+	err = mgr.GetFieldIndexer().IndexField(ctx, &topolvmv1.LogicalVolume{}, keyLogicalVolumeNode, func(o runtime.Object) []string {
+		return []string{o.(*topolvmv1.LogicalVolume).Spec.NodeName}
 	})
 	if err != nil {
 		return err
