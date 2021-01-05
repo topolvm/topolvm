@@ -1,9 +1,10 @@
 ## Dependency versions
 
 CSI_VERSION=1.1.0
-K8S_VERSION=1.18.9
+K8S_VERSION=1.19.6
 KUBEBUILDER_VERSION = 2.3.1
 KIND_VERSION=0.9.0
+KUSTOMIZE_VERSION= 3.8.9
 PROTOC_VERSION=3.12.4
 
 ## DON'T EDIT BELOW THIS LINE
@@ -146,6 +147,6 @@ setup: tools
 
 	curl -o $(BINDIR)/kind -sfL https://kind.sigs.k8s.io/dl/v$(KIND_VERSION)/kind-linux-amd64
 	curl -o $(BINDIR)/kubectl -sfL https://storage.googleapis.com/kubernetes-release/release/v$(K8S_VERSION)/bin/linux/amd64/kubectl
-	curl -sfL https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv3.7.0/kustomize_v3.7.0_linux_amd64.tar.gz | tar -xz -C $(BINDIR)
+	curl -sSLf https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv$(KUSTOMIZE_VERSION)/kustomize_v$(KUSTOMIZE_VERSION)_linux_amd64.tar.gz | tar -xz -C $(BINDIR)
 	chmod a+x $(BINDIR)/kubectl $(BINDIR)/kind
 	GOBIN=$(BINDIR) go install github.com/onsi/ginkgo/ginkgo

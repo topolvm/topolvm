@@ -8,15 +8,15 @@ KUSTOMIZE := ../bin/kustomize
 GINKGO := ../bin/ginkgo
 
 ifeq ($(TEST_KUBERNETES_TARGET),current)
-TEST_KUBERNETES_VERSION=1.18
+TEST_KUBERNETES_VERSION=1.19
 else ifeq ($(TEST_KUBERNETES_TARGET),prev)
-TEST_KUBERNETES_VERSION=1.17
+TEST_KUBERNETES_VERSION=1.18
 else ifeq ($(TEST_KUBERNETES_TARGET),prev2)
-TEST_KUBERNETES_VERSION=1.16
+TEST_KUBERNETES_VERSION=1.17
 else
 # If you want to change the Kubernetes version for e2e test, specify this variable from command line.
-# e.g. $ make TEST_KUBERNETES_VERSION=1.18 setup test
-TEST_KUBERNETES_VERSION?=1.18
+# e.g. $ make TEST_KUBERNETES_VERSION=1.19 setup test
+TEST_KUBERNETES_VERSION?=1.19
 endif
 
 export TEST_KUBERNETES_VERSION
@@ -32,15 +32,19 @@ SCHEDULER_POLICY?=scheduler-policy-daemonset.cfg
 KUSTOMIZE_DIR?=manifests/overlays/daemonset-scheduler
 endif
 
-ifeq ($(TEST_KUBERNETES_VERSION),1.18)
+
+ifeq ($(TEST_KUBERNETES_VERSION),1.19)
+KUBERNETES_VERSION=1.19.4
+KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
+SCHEDULER_CONFIG=scheduler-config-v1beta1.yaml
+else ifeq ($(TEST_KUBERNETES_VERSION),1.18)
 KUBERNETES_VERSION=1.18.8
 KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
+SCHEDULER_CONFIG=scheduler-config-v1alpha1.yaml
 else ifeq ($(TEST_KUBERNETES_VERSION),1.17)
 KUBERNETES_VERSION=1.17.11
 KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
-else ifeq ($(TEST_KUBERNETES_VERSION),1.16)
-KUBERNETES_VERSION=1.16.15
-KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
+SCHEDULER_CONFIG=scheduler-config-v1alpha1.yaml
 endif
 
 GO_FILES := $(shell find .. -path ../vendor -prune -o -path ../e2e -prune -o -name '*.go' -print)
@@ -57,10 +61,11 @@ topolvm.img: $(GO_FILES)
 	docker build --no-cache --rm=false -f Dockerfile -t topolvm:dev tmpbin
 	docker save -o $@ topolvm:dev
 
-/tmp/topolvm/scheduler/scheduler-config.yaml: scheduler-config.yaml
+/tmp/topolvm/scheduler/scheduler-config.yaml: $(SCHEDULER_CONFIG)
 	mkdir -p /tmp/topolvm/scheduler
 	cp $< $@
 
+# The policy file will be copied in all kubernetes version, but it isn't used in kubernetes v1.19 or later.
 /tmp/topolvm/scheduler/scheduler-policy.cfg: $(SCHEDULER_POLICY)
 	mkdir -p /tmp/topolvm/scheduler
 	cp $< $@
