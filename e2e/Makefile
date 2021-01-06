@@ -1,3 +1,7 @@
+# parameters
+TEST_KUBERNETES_TARGET ?= current
+TEST_SCHEDULER_MANIFEST ?= daemonset
+
 SUDO=sudo
 GOFLAGS=-mod=vendor
 export GOFLAGS
@@ -13,30 +17,21 @@ else ifeq ($(TEST_KUBERNETES_TARGET),prev)
 TEST_KUBERNETES_VERSION=1.18
 else ifeq ($(TEST_KUBERNETES_TARGET),prev2)
 TEST_KUBERNETES_VERSION=1.17
-else
-# If you want to change the Kubernetes version for e2e test, specify this variable from command line.
-# e.g. $ make TEST_KUBERNETES_VERSION=1.19 setup test
-TEST_KUBERNETES_VERSION?=1.19
 endif
 
 export TEST_KUBERNETES_VERSION
 
-ifeq ($(TEST_SCHEDULER_MANIFEST),daemonset)
-SCHEDULER_POLICY=scheduler-policy-daemonset.cfg
-KUSTOMIZE_DIR=manifests/overlays/daemonset-scheduler
-else ifeq ($(TEST_SCHEDULER_MANIFEST),deployment)
+SCHEDULER_POLICY := scheduler-policy-daemonset.cfg
+KUSTOMIZE_DIR := manifests/overlays/daemonset-scheduler
+ifeq ($(TEST_SCHEDULER_MANIFEST),deployment)
 SCHEDULER_POLICY=scheduler-policy-deployment.cfg
 KUSTOMIZE_DIR=manifests/overlays/deployment-scheduler
-else
-SCHEDULER_POLICY?=scheduler-policy-daemonset.cfg
-KUSTOMIZE_DIR?=manifests/overlays/daemonset-scheduler
 endif
-
 
 ifeq ($(TEST_KUBERNETES_VERSION),1.19)
 KUBERNETES_VERSION=1.19.4
 KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
-SCHEDULER_CONFIG=scheduler-config-v1beta1.yaml
+SCHEDULER_CONFIG=scheduler-config-v1beta1-$(TEST_SCHEDULER_MANIFEST).yaml
 else ifeq ($(TEST_KUBERNETES_VERSION),1.18)
 KUBERNETES_VERSION=1.18.8
 KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
