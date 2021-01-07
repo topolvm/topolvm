@@ -61,7 +61,8 @@ A demonstration of TopoLVM running on [kind (Kubernetes IN Docker)][kind] is ava
 For production deployments, see [deploy](deploy/) directory.
 
 User manual is at [docs/user-manual.md](docs/user-manual.md).
-If you want to use TopoLVM on [Rancher/RKE](https://rancher.com/docs/rke/latest/en/), see [docs/rancher.md](docs/rancher.md).
+
+_Deprecated: If you want to use TopoLVM on [Rancher/RKE](https://rancher.com/docs/rke/latest/en/), see [docs/deprecated/rancher.md](docs/deprecated/rancher.md)._
 
 Documentation
 -------------
