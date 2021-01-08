@@ -68,7 +68,7 @@ test:
 .PHONY: manifests
 manifests:
 	$(CONTROLLER_GEN) \
-		crd:trivialVersions=true \
+		crd:crdVersions=v1 \
 		rbac:roleName=topolvm-controller \
 		webhook \
 		paths="./api/...;./controllers;./hook;./driver/k8s" \
