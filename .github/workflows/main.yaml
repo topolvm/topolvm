@@ -7,7 +7,7 @@ on:
 jobs:
   build:
     name: build
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
@@ -20,7 +20,7 @@ jobs:
       - run: make image
   e2e-k8s:
     name: e2e-k8s
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         test_kubernetes_target: [current, prev, prev2]
@@ -39,7 +39,7 @@ jobs:
       - run: make -C e2e test
   example:
     name: example
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     defaults:
       run:
         working-directory: example
