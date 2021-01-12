@@ -26,11 +26,6 @@ setup: $(KUBECTL)
 	cd /tmp; env GOFLAGS= GO111MODULE=on go get sigs.k8s.io/kind@v$(KIND_VERSION)
 	$(SUDO) apt-get update
 	$(SUDO) apt-get install -y lvm2 xfsprogs
-	if apt-cache show btrfs-progs; then \
-		$(SUDO) apt-get install -y btrfs-progs; \
-	else \
-		$(SUDO) apt-get install -y btrfs-tools; \
-	fi
 	curl -sSLf https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv$(KUSTOMIZE_VERSION)/kustomize_v$(KUSTOMIZE_VERSION)_linux_amd64.tar.gz | tar zxf - -C /tmp
 	$(SUDO) mv /tmp/kustomize /usr/local/bin/kustomize
 	chmod +x /usr/local/bin/kustomize

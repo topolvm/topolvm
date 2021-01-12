@@ -4,7 +4,6 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
     && apt-get -y install --no-install-recommends \
         file \
-        btrfs-progs \
         xfsprogs \
     && rm -rf /var/lib/apt/lists/*
 

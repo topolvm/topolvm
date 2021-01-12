@@ -39,10 +39,9 @@ To specify a filesystem type, give `csi.storage.k8s.io/fstype` parameter.
 To specify a device-class name to be used, give `topolvm.cybozu.com/device-class` parameter. 
 If no `topolvm.cybozu.com/device-class` is specified, the default device-class is used.
 
-Supported filesystems are: `ext4`, `xfs`, and `btrfs`.
+Supported filesystems are: `ext4` and `xfs`.
 TopoLVM sets the following mount options regardless of `mountOptions`.
 - `lazytime` for all filesystems
-- `ssd` for `btrfs`
 - `wsync` for `xfs`
 
 `volumeBindingMode` can be either `WaitForFirstConsumer` or `Immediate`.
@@ -156,7 +155,7 @@ of ext4 will be used.
 `topolvm.cybozu.com/size` parameter. If no size is specified, the default of
 1 GiB will be used.
 
-Supported filesystems are: `ext4`, `xfs`, and `btrfs`.
+Supported filesystems are: `ext4` and `xfs`.
 
 It is not possible to specify the device-class for inline ephemeral volumes.
 Inline ephemeral volumes are always created on the default device-class.

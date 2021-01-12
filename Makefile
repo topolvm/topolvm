@@ -130,11 +130,6 @@ tools:
 setup: tools
 	$(SUDO) apt-get update
 	$(SUDO) apt-get -y install --no-install-recommends $(PACKAGES)
-	if apt-cache show btrfs-progs; then \
-		$(SUDO) apt-get install -y btrfs-progs; \
-	else \
-		$(SUDO) apt-get install -y btrfs-tools; \
-	fi
 
 	mkdir -p bin
 	curl -sfL https://go.kubebuilder.io/dl/$(KUBEBUILDER_VERSION)/$(GOOS)/$(GOARCH) | tar -xz -C /tmp/
