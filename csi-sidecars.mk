@@ -12,8 +12,6 @@ CSI_SIDECARS = \
 	livenessprobe
 
 GOPATH ?= $(shell go env GOPATH)
-GOFLAGS = -mod=vendor
-export GOFLAGS
 GO111MODULE = on
 export GO111MODULE
 

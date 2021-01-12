@@ -21,7 +21,7 @@ GO_FILES=$(shell find -name '*.go' -not -name '*_test.go')
 GOOS := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
 GO111MODULE = on
-GOFLAGS = -mod=vendor
+GOFLAGS =
 export GO111MODULE GOFLAGS KUBEBUILDER_ASSETS
 
 BUILD_TARGET=hypertopolvm
@@ -122,10 +122,10 @@ clean:
 
 .PHONY: tools
 tools:
-	cd /tmp; env GOFLAGS= GO111MODULE=on go get golang.org/x/tools/cmd/goimports	
-	cd /tmp; env GOFLAGS= GO111MODULE=on go get honnef.co/go/tools/cmd/staticcheck
-	cd /tmp; env GOFLAGS= GO111MODULE=on go get github.com/gordonklaus/ineffassign
-	cd /tmp; env GOFLAGS= GO111MODULE=on go get github.com/gostaticanalysis/nilerr/cmd/nilerr
+	cd /tmp; env GO111MODULE=on go get golang.org/x/tools/cmd/goimports	
+	cd /tmp; env GO111MODULE=on go get honnef.co/go/tools/cmd/staticcheck
+	cd /tmp; env GO111MODULE=on go get github.com/gordonklaus/ineffassign
+	cd /tmp; env GO111MODULE=on go get github.com/gostaticanalysis/nilerr/cmd/nilerr
 
 .PHONY: setup
 setup: tools

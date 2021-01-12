@@ -3,8 +3,6 @@ TEST_KUBERNETES_TARGET ?= current
 TEST_SCHEDULER_MANIFEST ?= daemonset
 
 SUDO=sudo
-GOFLAGS=-mod=vendor
-export GOFLAGS
 KIND_CLUSTER_NAME=topolvm-e2e
 KIND := ../bin/kind
 KUBECTL := ../bin/kubectl
@@ -42,7 +40,7 @@ KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
 SCHEDULER_CONFIG=scheduler-config-v1alpha1.yaml
 endif
 
-GO_FILES := $(shell find .. -path ../vendor -prune -o -path ../e2e -prune -o -name '*.go' -print)
+GO_FILES := $(shell find .. -prune -o -path ../e2e -prune -o -name '*.go' -print)
 SERVER_CERT_FILES=./certs/cert.pem ./certs/key.pem
 BACKING_STORE=./build
 

@@ -10,10 +10,7 @@ BINDIR=$(PWD)/bin
 KUSTOMIZE=$(BINDIR)/kustomize
 KUBECTL=$(BINDIR)/kubectl
 
-GOFLAGS=-mod=vendor
-export GOFLAGS
-
-GO_FILES := $(shell find .. -path ../vendor -prune -o -path ../e2e -prune -o -name '*.go' -print)
+GO_FILES := $(shell find .. -prune -o -path ../e2e -prune -o -name '*.go' -print)
 SERVER_CERT_FILES=./certs/cert.pem ./certs/key.pem
 BACKING_STORE=./build
 
@@ -30,7 +27,7 @@ run: $(SERVER_CERT_FILES)
 	$(KUBECTL) apply -f podpvc.yaml
 
 setup: $(KUBECTL)
-	cd /tmp; env GOFLAGS= GO111MODULE=on go get sigs.k8s.io/kind@v$(KIND_VERSION)
+	cd /tmp; env GO111MODULE=on go get sigs.k8s.io/kind@v$(KIND_VERSION)
 	$(SUDO) apt-get update
 	$(SUDO) apt-get install -y lvm2 xfsprogs
 	mkdir -p $(BINDIR)
