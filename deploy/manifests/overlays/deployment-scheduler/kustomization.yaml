@@ -4,7 +4,7 @@ resources:
   - ../../base
   - scheduler.yaml
 images:
-  - name: quay.io/topolvm/topolvm
+  - name: quay.io/topolvm/topolvm-with-sidecar
     newTag: 0.6.0
 configMapGenerator:
   - name: scheduler-options

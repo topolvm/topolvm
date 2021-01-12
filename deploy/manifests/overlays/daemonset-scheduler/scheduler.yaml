@@ -18,7 +18,7 @@ spec:
       serviceAccountName: topolvm-scheduler
       containers:
         - name: topolvm-scheduler
-          image: quay.io/topolvm/topolvm:latest
+          image: quay.io/topolvm/topolvm-with-sidecar:latest
           command:
             - /topolvm-scheduler
             - --config=/etc/topolvm/scheduler-options.yaml
