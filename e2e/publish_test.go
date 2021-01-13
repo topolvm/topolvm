@@ -126,7 +126,7 @@ spec:
 		By("creating Filesystem volume")
 		mountVolCap := &csi.VolumeCapability{
 			AccessType: &csi.VolumeCapability_Mount{
-				Mount: &csi.VolumeCapability_MountVolume{FsType: "btrfs"},
+				Mount: &csi.VolumeCapability_MountVolume{FsType: "xfs"},
 			},
 			AccessMode: &csi.VolumeCapability_AccessMode{
 				Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,

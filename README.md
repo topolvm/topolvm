@@ -21,7 +21,7 @@ Supported environments
 
 - Kubernetes: 1.18, 1.17, 1.16
 - Node OS: Linux with LVM2
-- Filesystems: ext4, xfs, btrfs
+- Filesystems: ext4, xfs
 
 Features
 --------
