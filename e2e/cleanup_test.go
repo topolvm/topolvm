@@ -277,7 +277,7 @@ spec:
 
 	It("should stop undeleted container in case that the container is undeleted", func() {
 		stdout, stderr, err := execAtLocal(
-			"docker", nil, "exec", "-it", "topolvm-e2e-worker3",
+			"docker", nil, "exec", "-i", "topolvm-e2e-worker3",
 			"/usr/local/bin/crictl", "ps", "-o=json",
 		)
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
@@ -298,7 +298,7 @@ spec:
 			if c.Metadata.Name == "ubuntu" {
 				stdout, stderr, err = execAtLocal(
 					"docker", nil,
-					"exec", "-it", "topolvm-e2e-worker3", "/usr/local/bin/crictl", "stop", c.ID,
+					"exec", "-i", "topolvm-e2e-worker3", "/usr/local/bin/crictl", "stop", c.ID,
 				)
 				Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 				fmt.Printf("stop ubuntu container with id=%s\n", c.ID)
