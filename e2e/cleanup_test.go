@@ -275,6 +275,37 @@ spec:
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 	})
 
+	It("should stop undeleted container in case that the container is undeleted", func() {
+		stdout, stderr, err := execAtLocal(
+			"docker", nil, "exec", "-i", "topolvm-e2e-worker3",
+			"/usr/local/bin/crictl", "ps", "-o=json",
+		)
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		type containerList struct {
+			Containers []struct {
+				ID       string `json:"id"`
+				Metadata struct {
+					Name string `json:"name"`
+				}
+			} `json:"containers"`
+		}
+		var l containerList
+		err = json.Unmarshal(stdout, &l)
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s", stdout)
+
+		for _, c := range l.Containers {
+			if c.Metadata.Name == "ubuntu" {
+				stdout, stderr, err = execAtLocal(
+					"docker", nil,
+					"exec", "-i", "topolvm-e2e-worker3", "/usr/local/bin/crictl", "stop", c.ID,
+				)
+				Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+				fmt.Printf("stop ubuntu container with id=%s\n", c.ID)
+			}
+		}
+	})
+
 	It("should cleanup volumes", func() {
 		for _, lv := range targetLVs {
 			stdout, stderr, err := execAtLocal("sudo", nil, "umount", "/dev/topolvm/"+lv.Status.VolumeID)
