@@ -16,6 +16,14 @@ import (
 )
 
 func testNode() {
+	var cc CleanupContext
+	BeforeEach(func() {
+		cc = commonBeforeEach()
+	})
+	AfterEach(func() {
+		commonAfterEach(cc)
+	})
+
 	It("should be deployed", func() {
 		Eventually(func() error {
 			result, stderr, err := kubectl("get", "-n=topolvm-system", "pods", "--selector=app.kubernetes.io/name=node", "-o=json")

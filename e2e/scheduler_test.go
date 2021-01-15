@@ -11,6 +11,14 @@ import (
 )
 
 func testScheduler() {
+	var cc CleanupContext
+	BeforeEach(func() {
+		cc = commonBeforeEach()
+	})
+	AfterEach(func() {
+		commonAfterEach(cc)
+	})
+
 	testNamespacePrefix := "scheduler-test"
 
 	It("should be deployed topolvm-scheduler pod", func() {

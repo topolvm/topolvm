@@ -26,11 +26,14 @@ func hasTopoLVMFinalizer(pvc *corev1.PersistentVolumeClaim) bool {
 }
 
 func testHook() {
+	var cc CleanupContext
 	BeforeEach(func() {
 		createNamespace(nsHookTest)
+		cc = commonBeforeEach()
 	})
 	AfterEach(func() {
 		kubectl("delete", "namespaces/"+nsHookTest)
+		commonAfterEach(cc)
 	})
 
 	It("should test hooks", func() {
