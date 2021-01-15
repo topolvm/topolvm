@@ -52,11 +52,14 @@ spec:
 `, nsMetricsTest, nsMetricsTest))
 
 func testMetrics() {
+	var cc CleanupContext
 	BeforeEach(func() {
 		createNamespace(nsMetricsTest)
+		cc = commonBeforeEach()
 	})
 	AfterEach(func() {
 		kubectl("delete", "namespaces/"+nsMetricsTest)
+		commonAfterEach(cc)
 	})
 
 	It("should export volume metrics", func() {
