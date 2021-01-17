@@ -27,7 +27,6 @@ RUN ln -s hypertopolvm /lvmd \
     && ln -s hypertopolvm /topolvm-node \
     && ln -s hypertopolvm /topolvm-controller
 
-# CSI sidecar
 COPY --from=build-env /workdir/LICENSE /LICENSE
 
 ENTRYPOINT ["/hypertopolvm"]
