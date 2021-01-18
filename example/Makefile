@@ -2,6 +2,7 @@
 KUBERNETES_VERSION=1.19.4
 KUSTOMIZE_VERSION= 3.8.9
 KIND_VERSION=0.9.0
+TOPOLVM_VERSION=0.6.0
 
 KIND_CLUSTER_NAME=topolvm-example
 
@@ -19,9 +20,15 @@ $(KUBECTL):
 	curl -sfL https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl -o $(KUBECTL)
 	chmod 755 $(KUBECTL)
 
-run: $(SERVER_CERT_FILES)
+build/topolvm.img: $(GO_FILES)
+	make -C .. image IMAGE_PREFIX=quay.io/topolvm/
+	make -C .. tag IMAGE_PREFIX=quay.io/topolvm/ IMAGE_TAG=$(TOPOLVM_VERSION)
+	docker save -o $@ quay.io/topolvm/topolvm:$(TOPOLVM_VERSION)
+
+run: $(SERVER_CERT_FILES) build/topolvm.img
 	$(MAKE) start-lvmd
 	$(MAKE) launch-kind
+	kind load image-archive --name=$(KIND_CLUSTER_NAME) build/topolvm.img
 	$(KUSTOMIZE) build --enable_kyaml=false . | $(KUBECTL) apply -f -
 	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/controller
 	$(KUBECTL) apply -f podpvc.yaml
@@ -31,6 +38,7 @@ setup: $(KUBECTL)
 	$(SUDO) apt-get update
 	$(SUDO) apt-get install -y lvm2 xfsprogs
 	mkdir -p $(BINDIR)
+	mkdir -p build
 	curl -sSLf https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv$(KUSTOMIZE_VERSION)/kustomize_v$(KUSTOMIZE_VERSION)_linux_amd64.tar.gz | tar -xz -C $(BINDIR)
 	chmod 755 $(KUSTOMIZE)
 
