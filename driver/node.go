@@ -17,10 +17,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	mountutil "k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/util/resizefs"
-	executil "k8s.io/utils/exec"
-	mountutil "k8s.io/utils/mount"
-
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -42,7 +40,7 @@ var nodeLogger = ctrl.Log.WithName("driver").WithName("node")
 func NewNodeService(nodeName string, conn *grpc.ClientConn, service *k8s.LogicalVolumeService) csi.NodeServer {
 	mounter := mountutil.SafeFormatAndMount{
 		Interface: mountutil.New(""),
-		Exec:      executil.New(),
+		Exec:      mountutil.NewOSExec(),
 	}
 
 	return &nodeService{

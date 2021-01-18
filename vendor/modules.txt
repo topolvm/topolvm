@@ -83,9 +83,6 @@ github.com/imdario/mergo
 github.com/inconshreveable/mousetrap
 # github.com/json-iterator/go v1.1.10
 github.com/json-iterator/go
-# github.com/kubernetes-csi/csi-test v2.2.0+incompatible
-github.com/kubernetes-csi/csi-test/pkg/sanity
-github.com/kubernetes-csi/csi-test/utils
 # github.com/magiconair/properties v1.8.1
 github.com/magiconair/properties
 # github.com/mattn/go-colorable v0.1.2
@@ -563,7 +560,6 @@ k8s.io/utils/exec
 k8s.io/utils/integer
 k8s.io/utils/io
 k8s.io/utils/keymutex
-k8s.io/utils/mount
 k8s.io/utils/path
 k8s.io/utils/pointer
 k8s.io/utils/trace

@@ -16,7 +16,7 @@ require (
 	github.com/golang/protobuf v1.4.2
 	github.com/google/cadvisor v0.35.0 // indirect
 	github.com/google/go-cmp v0.5.2
-	github.com/kubernetes-csi/csi-test v2.2.0+incompatible
+	github.com/kubernetes-csi/csi-test v2.2.0+incompatible // indirect
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
 	github.com/prometheus/client_golang v1.1.0
@@ -37,7 +37,6 @@ require (
 	k8s.io/kubernetes v1.17.0-beta.1
 	k8s.io/repo-infra v0.0.1-alpha.1 // indirect
 	k8s.io/system-validators v1.0.4 // indirect
-	k8s.io/utils v0.0.0-20200603063816-c1c6865ac451
 	sigs.k8s.io/controller-runtime v0.6.3
 	sigs.k8s.io/controller-tools v0.4.0
 	sigs.k8s.io/yaml v1.2.0
