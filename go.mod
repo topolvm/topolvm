@@ -16,7 +16,7 @@ require (
 	github.com/golang/protobuf v1.4.2
 	github.com/google/cadvisor v0.35.0 // indirect
 	github.com/google/go-cmp v0.5.2
-	github.com/kubernetes-csi/csi-test v2.2.0+incompatible // indirect
+	github.com/kubernetes-csi/csi-test v2.2.0+incompatible
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
 	github.com/prometheus/client_golang v1.1.0
