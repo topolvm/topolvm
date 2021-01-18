@@ -1,3 +1,5 @@
 build
 bin
 include
+example
+e2e
