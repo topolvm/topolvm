@@ -36,6 +36,10 @@ func isSameDevice(dev1, dev2 string) (bool, error) {
 	return st1.Rdev == st2.Rdev, nil
 }
 
+func IsMounted(device, target string) (bool, error) {
+	return isMounted(device, target)
+}
+
 // isMounted returns true if device is mounted on target.
 // The implementation uses /proc/mounts because some filesystem uses a virtual device.
 func isMounted(device, target string) (bool, error) {

@@ -17,6 +17,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"k8s.io/kubernetes/pkg/util/resizefs"
+	executil "k8s.io/utils/exec"
+	mountutil "k8s.io/utils/mount"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -36,11 +40,17 @@ var nodeLogger = ctrl.Log.WithName("driver").WithName("node")
 
 // NewNodeService returns a new NodeServer.
 func NewNodeService(nodeName string, conn *grpc.ClientConn, service *k8s.LogicalVolumeService) csi.NodeServer {
+	mounter := mountutil.SafeFormatAndMount{
+		Interface: mountutil.New(""),
+		Exec:      executil.New(),
+	}
+
 	return &nodeService{
 		nodeName:     nodeName,
 		client:       proto.NewVGServiceClient(conn),
 		lvService:    proto.NewLVServiceClient(conn),
 		k8sLVService: service,
+		mounter:      mounter,
 	}
 }
 
@@ -52,6 +62,7 @@ type nodeService struct {
 	lvService    proto.LVServiceClient
 	k8sLVService *k8s.LogicalVolumeService
 	mu           sync.Mutex
+	mounter      mountutil.SafeFormatAndMount
 }
 
 func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
@@ -155,9 +166,9 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 
 func (s *nodeService) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequest, lv *proto.LogicalVolume) (*csi.NodePublishVolumeResponse, error) {
 	// Check request
-	mountOption := req.GetVolumeCapability().GetMount()
-	if mountOption.FsType == "" {
-		mountOption.FsType = "ext4"
+	mount := req.GetVolumeCapability().GetMount()
+	if mount.FsType == "" {
+		mount.FsType = "ext4"
 	}
 	accessMode := req.GetVolumeCapability().GetAccessMode().GetMode()
 	if accessMode != csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER {
@@ -172,13 +183,18 @@ func (s *nodeService) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequ
 		return nil, err
 	}
 
-	fs, err := filesystem.New(mountOption.FsType, device)
-	if err != nil {
-		return nil, err
-	}
-	if !fs.Exists() {
-		if err := fs.Mkfs(); err != nil {
-			return nil, status.Errorf(codes.Internal, "failed to create filesystem: volume=%s, error=%v", req.GetVolumeId(), err)
+	var mountOptions []string
+	for _, f := range mount.MountFlags {
+		hasOption := false
+		for _, o := range mountOptions {
+			if o == f {
+				hasOption = true
+				break
+			}
+		}
+
+		if !hasOption {
+			mountOptions = append(mountOptions, f)
 		}
 	}
 
@@ -186,17 +202,25 @@ func (s *nodeService) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequ
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "mkdir failed: target=%s, error=%v", req.GetTargetPath(), err)
 	}
-	if err := fs.Mount(req.GetTargetPath(), req.GetReadonly()); err != nil {
-		return nil, status.Errorf(codes.Internal, "mount failed: volume=%s, error=%v", req.GetVolumeId(), err)
+
+	mounted, err := filesystem.IsMounted(device, req.GetTargetPath())
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "mount check failed: target=%s, error=%v", req.GetTargetPath(), err)
 	}
-	if err := os.Chmod(req.GetTargetPath(), 0777|os.ModeSetgid); err != nil {
-		return nil, status.Errorf(codes.Internal, "chmod 2777 failed: target=%s, error=%v", req.GetTargetPath(), err)
+
+	if !mounted {
+		if err := s.mounter.FormatAndMount(device, req.GetTargetPath(), mount.FsType, mountOptions); err != nil {
+			return nil, status.Errorf(codes.Internal, "mount failed: volume=%s, error=%v", req.GetVolumeId(), err)
+		}
+		if err := os.Chmod(req.GetTargetPath(), 0777|os.ModeSetgid); err != nil {
+			return nil, status.Errorf(codes.Internal, "chmod 2777 failed: target=%s, error=%v", req.GetTargetPath(), err)
+		}
 	}
 
 	nodeLogger.Info("NodePublishVolume(fs) succeeded",
 		"volume_id", req.GetVolumeId(),
 		"target_path", req.GetTargetPath(),
-		"fstype", mountOption.FsType)
+		"fstype", mount.FsType)
 
 	return &csi.NodePublishVolumeResponse{}, nil
 }
@@ -332,7 +356,7 @@ func (s *nodeService) isEphemeralVolume(volume *proto.LogicalVolume) bool {
 
 func (s *nodeService) nodeUnpublishFilesystemVolume(req *csi.NodeUnpublishVolumeRequest, device string) (*csi.NodeUnpublishVolumeResponse, error) {
 	target := req.GetTargetPath()
-	if err := filesystem.Unmount(device, target); err != nil {
+	if err := s.mounter.Unmount(target); err != nil {
 		return nil, status.Errorf(codes.Internal, "unmount failed for %s: error=%v", target, err)
 	}
 	if err := os.RemoveAll(target); err != nil {
@@ -482,24 +506,18 @@ func (s *nodeService) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 	if err != nil {
 		return nil, err
 	}
-	fsType, err := filesystem.DetectFilesystem(device)
-	if err != nil || fsType == "" {
-		return nil, status.Errorf(codes.Internal, "failed to detect filesystem of %s: %v", device, err)
-	}
 
-	fs, err := filesystem.New(fsType, device)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to create filesystem object with device path %s: %v", device, err)
-	}
-	if !fs.Exists() {
-		return nil, status.Errorf(codes.Internal, "filesystem %s is not mounted at %s", vid, vpath)
-	}
+	// TODO
+	// if !fs.Exists() {
+	// 	return nil, status.Errorf(codes.Internal, "filesystem %s is not mounted at %s", vid, vpath)
+	// }
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	err = fs.Resize(vpath)
-	if err != nil {
+	// TODO: lock per volume ID to have some idempotency
+	r := resizefs.NewResizeFs(&s.mounter)
+	if _, err := r.Resize(device, req.GetVolumePath()); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to resize filesystem %s (mounted at: %s): %v", vid, vpath, err)
 	}
 

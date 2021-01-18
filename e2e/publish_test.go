@@ -148,22 +148,6 @@ spec:
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(resp).ShouldNot(BeNil())
 
-		By("publishing volume on same target path, but requested volume and existing one are different")
-		_, err = nc.NodePublishVolume(context.Background(), &csi.NodePublishVolumeRequest{
-			PublishContext: map[string]string{},
-			TargetPath:     mountTargetPath,
-			VolumeCapability: &csi.VolumeCapability{
-				AccessType: &csi.VolumeCapability_Mount{
-					Mount: &csi.VolumeCapability_MountVolume{FsType: "ext4"},
-				},
-				AccessMode: &csi.VolumeCapability_AccessMode{
-					Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
-				},
-			},
-			VolumeId: volumeID,
-		})
-		Expect(err).Should(HaveOccurred())
-
 		By("unpublishing the volume")
 		unpubReq := csi.NodeUnpublishVolumeRequest{
 			VolumeId:   volumeID,
