@@ -100,7 +100,7 @@ metadata:
 spec:
   containers:
     - name: ubuntu
-      image: quay.io/cybozu/ubuntu:18.04
+      image: quay.io/cybozu/ubuntu:20.04
       command: ["/usr/local/bin/pause"]
       volumeMounts:
         - mountPath: /test1
@@ -231,7 +231,7 @@ metadata:
 spec:
   containers:
     - name: ubuntu
-      image: quay.io/cybozu/ubuntu:18.04
+      image: quay.io/cybozu/ubuntu:20.04
       command: ["/usr/local/bin/pause"]
       volumeMounts:
         - mountPath: /test1
