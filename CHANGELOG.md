@@ -7,6 +7,37 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.7.0] - 2021-01-18
+
+### Added
+- Support striped LV (#229)
+
+### Changed
+- Update protoc-gen-go-grpc and regenerate stubs (#213)
+- Build hypertopolvm inside docker (#215)
+- modify manifest for deployment-scheduler (#221)
+- Add CSI ephemeral volumes limitation (#224)
+- fix defaultDivisor not work (#225)
+- Improve stale LV deletion method (#230)
+- Use MayRunAs instead of MustRunAs to avoid recursive chown (#233)
+- Update cert-manager API ver to v1 (#234)
+- Add support for k8s 1.19. (#237)
+    - k8s 1.19 only supports `kubescheduler.config.k8s.io/v1beta1`
+- Go 1.15 and Ubuntu 20.04 (#239)
+
+### Removed
+- drop btrfs support (#240)
+- No longer use the vendor function (#237)
+
+### Experimental
+
+- Support running lvmd in a container (#208)
+
+### Contributors
+- @bells17
+- @onokatio
+- @UZER0
+
 ## [0.6.0] - 2020-09-25
 
 ### Fixed
@@ -209,7 +240,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/topolvm/topolvm/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/topolvm/topolvm/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/topolvm/topolvm/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/topolvm/topolvm/compare/v0.5.1...v0.5.2
