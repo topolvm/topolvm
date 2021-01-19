@@ -19,7 +19,7 @@ Join our community on Slack: [Invitation form](https://docs.google.com/forms/d/e
 Supported environments
 ----------------------
 
-- Kubernetes: 1.18, 1.17, 1.16
+- Kubernetes: 1.19, 1.18, 1.17
 - Node OS: Linux with LVM2
 - Filesystems: ext4, xfs
 
@@ -61,7 +61,8 @@ A demonstration of TopoLVM running on [kind (Kubernetes IN Docker)][kind] is ava
 For production deployments, see [deploy](deploy/) directory.
 
 User manual is at [docs/user-manual.md](docs/user-manual.md).
-If you want to use TopoLVM on [Rancher/RKE](https://rancher.com/docs/rke/latest/en/), see [docs/rancher.md](docs/rancher.md).
+
+_Deprecated: If you want to use TopoLVM on [Rancher/RKE](https://rancher.com/docs/rke/latest/en/), see [docs/deprecated/rancher.md](docs/deprecated/rancher.md)._
 
 Documentation
 -------------

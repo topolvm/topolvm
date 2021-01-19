@@ -5,7 +5,7 @@ resources:
   - scheduler.yaml
 images:
   - name: quay.io/topolvm/topolvm
-    newTag: 0.6.0
+    newTag: 0.7.0
 configMapGenerator:
   - name: scheduler-options
     namespace: topolvm-system

@@ -15,11 +15,11 @@ spec:
               mountPath: /dev
 
         - name: csi-registrar
-          image: quay.io/k8scsi/csi-node-driver-registrar:v2.0.1
+          image: quay.io/k8scsi/csi-node-driver-registrar:v2.1.0
           imagePullPolicy: "IfNotPresent"
 
         - name: liveness-probe
-          image: quay.io/k8scsi/livenessprobe:v2.1.0
+          image: quay.io/k8scsi/livenessprobe:v2.2.0
           imagePullPolicy: "IfNotPresent"
 
       volumes:
