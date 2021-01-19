@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/topolvm/topolvm"
@@ -505,15 +506,20 @@ func (s *nodeService) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 		return nil, err
 	}
 
-	// TODO
-	// if !fs.Exists() {
-	// 	return nil, status.Errorf(codes.Internal, "filesystem %s is not mounted at %s", vid, vpath)
-	// }
+	args := []string{"-o", "source", "--noheadings", "--target", req.GetVolumePath()}
+	output, err := s.mounter.Exec.Run("findmnt", args...)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "findmnt error occured: %v", err)
+	}
+
+	devicePath := strings.TrimSpace(string(output))
+	if len(devicePath) == 0 {
+		return nil, status.Errorf(codes.Internal, "filesystem %s is not mounted at %s", vid, vpath)
+	}
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// TODO: lock per volume ID to have some idempotency
 	r := resizefs.NewResizeFs(&s.mounter)
 	if _, err := r.Resize(device, req.GetVolumePath()); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to resize filesystem %s (mounted at: %s): %v", vid, vpath, err)
