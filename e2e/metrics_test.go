@@ -40,7 +40,7 @@ metadata:
 spec:
   containers:
     - name: ubuntu
-      image: quay.io/cybozu/ubuntu:18.04
+      image: quay.io/cybozu/ubuntu:20.04
       command: ["/usr/local/bin/pause"]
       volumeMounts:
         - mountPath: /test1
@@ -52,11 +52,14 @@ spec:
 `, nsMetricsTest, nsMetricsTest))
 
 func testMetrics() {
+	var cc CleanupContext
 	BeforeEach(func() {
 		createNamespace(nsMetricsTest)
+		cc = commonBeforeEach()
 	})
 	AfterEach(func() {
 		kubectl("delete", "namespaces/"+nsMetricsTest)
+		commonAfterEach(cc)
 	})
 
 	It("should export volume metrics", func() {

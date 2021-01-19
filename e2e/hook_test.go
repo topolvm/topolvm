@@ -26,11 +26,14 @@ func hasTopoLVMFinalizer(pvc *corev1.PersistentVolumeClaim) bool {
 }
 
 func testHook() {
+	var cc CleanupContext
 	BeforeEach(func() {
 		createNamespace(nsHookTest)
+		cc = commonBeforeEach()
 	})
 	AfterEach(func() {
 		kubectl("delete", "namespaces/"+nsHookTest)
+		commonAfterEach(cc)
 	})
 
 	It("should test hooks", func() {
@@ -97,7 +100,7 @@ metadata:
 spec:
   containers:
     - name: ubuntu
-      image: quay.io/cybozu/ubuntu:18.04
+      image: quay.io/cybozu/ubuntu:20.04
       command: ["/usr/local/bin/pause"]
       volumeMounts:
         - mountPath: /test1
@@ -228,7 +231,7 @@ metadata:
 spec:
   containers:
     - name: ubuntu
-      image: quay.io/cybozu/ubuntu:18.04
+      image: quay.io/cybozu/ubuntu:20.04
       command: ["/usr/local/bin/pause"]
       volumeMounts:
         - mountPath: /test1

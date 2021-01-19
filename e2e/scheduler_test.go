@@ -11,6 +11,14 @@ import (
 )
 
 func testScheduler() {
+	var cc CleanupContext
+	BeforeEach(func() {
+		cc = commonBeforeEach()
+	})
+	AfterEach(func() {
+		commonAfterEach(cc)
+	})
+
 	testNamespacePrefix := "scheduler-test"
 
 	It("should be deployed topolvm-scheduler pod", func() {
@@ -63,7 +71,7 @@ metadata:
 spec:
   containers:
   - name: ubuntu
-    image: quay.io/cybozu/ubuntu:18.04
+    image: quay.io/cybozu/ubuntu:20.04
     command: ["/usr/local/bin/pause"]
     resources:
       requests:
@@ -112,7 +120,7 @@ metadata:
 spec:
   containers:
   - name: ubuntu
-    image: quay.io/cybozu/ubuntu:18.04
+    image: quay.io/cybozu/ubuntu:20.04
     command: ["/usr/local/bin/pause"]
     resources:
       requests:

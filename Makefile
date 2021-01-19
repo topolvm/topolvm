@@ -1,9 +1,10 @@
 ## Dependency versions
 
 CSI_VERSION=1.1.0
-K8S_VERSION=1.18.9
+K8S_VERSION=1.19.6
 KUBEBUILDER_VERSION = 2.3.1
 KIND_VERSION=0.9.0
+KUSTOMIZE_VERSION= 3.8.9
 PROTOC_VERSION=3.12.4
 
 ## DON'T EDIT BELOW THIS LINE
@@ -20,7 +21,7 @@ GO_FILES=$(shell find -name '*.go' -not -name '*_test.go')
 GOOS := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
 GO111MODULE = on
-GOFLAGS = -mod=vendor
+GOFLAGS =
 export GO111MODULE GOFLAGS KUBEBUILDER_ASSETS
 
 BUILD_TARGET=hypertopolvm
@@ -67,7 +68,7 @@ test:
 .PHONY: manifests
 manifests:
 	$(CONTROLLER_GEN) \
-		crd:trivialVersions=true \
+		crd:crdVersions=v1 \
 		rbac:roleName=topolvm-controller \
 		webhook \
 		paths="./api/...;./controllers;./hook;./driver/k8s" \
@@ -124,20 +125,15 @@ clean:
 
 .PHONY: tools
 tools:
-	cd /tmp; env GOFLAGS= GO111MODULE=on go get golang.org/x/tools/cmd/goimports	
-	cd /tmp; env GOFLAGS= GO111MODULE=on go get honnef.co/go/tools/cmd/staticcheck
-	cd /tmp; env GOFLAGS= GO111MODULE=on go get github.com/gordonklaus/ineffassign
-	cd /tmp; env GOFLAGS= GO111MODULE=on go get github.com/gostaticanalysis/nilerr/cmd/nilerr
+	cd /tmp; env GO111MODULE=on go get golang.org/x/tools/cmd/goimports	
+	cd /tmp; env GO111MODULE=on go get honnef.co/go/tools/cmd/staticcheck
+	cd /tmp; env GO111MODULE=on go get github.com/gordonklaus/ineffassign
+	cd /tmp; env GO111MODULE=on go get github.com/gostaticanalysis/nilerr/cmd/nilerr
 
 .PHONY: setup
 setup: tools
 	$(SUDO) apt-get update
 	$(SUDO) apt-get -y install --no-install-recommends $(PACKAGES)
-	if apt-cache show btrfs-progs; then \
-		$(SUDO) apt-get install -y btrfs-progs; \
-	else \
-		$(SUDO) apt-get install -y btrfs-tools; \
-	fi
 
 	mkdir -p bin
 	curl -sfL https://go.kubebuilder.io/dl/$(KUBEBUILDER_VERSION)/$(GOOS)/$(GOARCH) | tar -xz -C /tmp/
@@ -154,6 +150,6 @@ setup: tools
 
 	curl -o $(BINDIR)/kind -sfL https://kind.sigs.k8s.io/dl/v$(KIND_VERSION)/kind-linux-amd64
 	curl -o $(BINDIR)/kubectl -sfL https://storage.googleapis.com/kubernetes-release/release/v$(K8S_VERSION)/bin/linux/amd64/kubectl
-	curl -sfL https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv3.7.0/kustomize_v3.7.0_linux_amd64.tar.gz | tar -xz -C $(BINDIR)
+	curl -sSLf https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv$(KUSTOMIZE_VERSION)/kustomize_v$(KUSTOMIZE_VERSION)_linux_amd64.tar.gz | tar -xz -C $(BINDIR)
 	chmod a+x $(BINDIR)/kubectl $(BINDIR)/kind
 	GOBIN=$(BINDIR) go install github.com/onsi/ginkgo/ginkgo

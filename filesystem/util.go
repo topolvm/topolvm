@@ -37,7 +37,7 @@ func isSameDevice(dev1, dev2 string) (bool, error) {
 }
 
 // isMounted returns true if device is mounted on target.
-// The implementation uses /proc/mounts because btrfs uses a virtual device.
+// The implementation uses /proc/mounts because some filesystem uses a virtual device.
 func isMounted(device, target string) (bool, error) {
 	abs, err := filepath.Abs(target)
 	if err != nil {

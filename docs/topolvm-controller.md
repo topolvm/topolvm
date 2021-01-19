@@ -118,7 +118,7 @@ metadata:
 spec:
   containers:
   - name: ubuntu
-    image: quay.io/cybozu/ubuntu:18.04
+    image: quay.io/cybozu/ubuntu:20.04
     command: ["/usr/local/bin/pause"]
     volumeMounts:
     - mountPath: /test1
@@ -171,10 +171,10 @@ the deleted PVC, if any.
 Command-line flags
 ------------------
 
-| Name                 | Type     | Default                                 | Description                                                   |
-| -------------------- | -------- | --------------------------------------- | ------------------------------------------------------------- |
-| `cert-dir`           | string   | `/tmp/k8s-webhook-server/serving-certs` | Directory for `tls.crt` and `tls.key` files.                  |
-| `csi-socket`         | string   | `/run/topolvm/csi-topolvm.sock`         | UNIX domain socket of `topolvm-controller`.                   |
-| `metrics-addr`       | string   | `:8080`                                 | Listen address for Prometheus metrics.                        |
-| `leader-election-id` | string   | `topolvm`                               | ID for leader election by controller-runtime.                 |
-| `webhook-addr`       | string   | `:8443`                                 | Listen address for the webhook endpoint.                      |
+| Name                 | Type   | Default                                 | Description                                   |
+| -------------------- | ------ | --------------------------------------- | --------------------------------------------- |
+| `cert-dir`           | string | `/tmp/k8s-webhook-server/serving-certs` | Directory for `tls.crt` and `tls.key` files.  |
+| `csi-socket`         | string | `/run/topolvm/csi-topolvm.sock`         | UNIX domain socket of `topolvm-controller`.   |
+| `metrics-addr`       | string | `:8080`                                 | Listen address for Prometheus metrics.        |
+| `leader-election-id` | string | `topolvm`                               | ID for leader election by controller-runtime. |
+| `webhook-addr`       | string | `:8443`                                 | Listen address for the webhook endpoint.      |
