@@ -44,14 +44,10 @@ GO_FILES := $(shell find .. -prune -o -path ../e2e -prune -o -name '*.go' -print
 SERVER_CERT_FILES=./certs/cert.pem ./certs/key.pem
 BACKING_STORE=./build
 
-topolvm.img: $(GO_FILES)
-	rm -rf tmpbin
-	mkdir -p tmpbin
-	CGO_ENABLED=0 go build -o tmpbin/hypertopolvm ../pkg/hypertopolvm
-	ln -s hypertopolvm ./tmpbin/topolvm-scheduler
-	ln -s hypertopolvm ./tmpbin/topolvm-node
-	ln -s hypertopolvm ./tmpbin/topolvm-controller
-	docker build --no-cache --rm=false -f Dockerfile -t topolvm:dev tmpbin
+image: build/topolvm.img
+
+build/topolvm.img: $(GO_FILES)
+	docker build --no-cache --rm=false -f ../Dockerfile -t topolvm:dev ..
 	docker save -o $@ topolvm:dev
 
 /tmp/topolvm/scheduler/scheduler-config.yaml: $(SCHEDULER_CONFIG)
@@ -125,7 +121,7 @@ stop-lvmd:
 
 # --load_restrictor='none' allows the certificates to be loaded from a path which
 # isn't a subdir of e2ebase
-test: topolvm.img $(SERVER_CERT_FILES)
+test: image $(SERVER_CERT_FILES)
 	$(MAKE) shutdown-kind
 	$(MAKE) launch-kind
 	$(KIND) load image-archive --name=$(KIND_CLUSTER_NAME) topolvm.img
@@ -137,9 +133,9 @@ $(SERVER_CERT_FILES):
 	go run ../pkg/gencert -outdir certs
 
 clean: stop-lvmd
-	rm -rf $(SERVER_CERT_FILES) topolvm.img build/ $(BACKING_STORE)/backing_store*
+	rm -rf $(SERVER_CERT_FILES) build/ $(BACKING_STORE)/backing_store*
 
 setup:
 	cd ..; $(MAKE) setup
 
-.PHONY: launch-kind shutdown-kind start-lvmd stop-lvmd test clean setup
+.PHONY: launch-kind shutdown-kind start-lvmd stop-lvmd test clean setup image
