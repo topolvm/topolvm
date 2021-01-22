@@ -105,14 +105,17 @@ csi-sidecars:
 .PHONY: image
 image:
 	docker build -t $(IMAGE_PREFIX)topolvm:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) .
+	docker build -t $(IMAGE_PREFIX)topolvm-with-sidecar:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) -f Dockerfile.with-sidecar .
 
 .PHONY: tag
 tag:
 	docker tag $(IMAGE_PREFIX)topolvm:devel $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG)
+	docker tag $(IMAGE_PREFIX)topolvm-with-sidecar:devel $(IMAGE_PREFIX)topolvm-with-sidecar:$(IMAGE_TAG)
 
 .PHONY: push
 push:
 	docker push $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG)
+	docker push $(IMAGE_PREFIX)topolvm-with-sidecar:$(IMAGE_TAG)
 
 .PHONY: clean
 clean:
