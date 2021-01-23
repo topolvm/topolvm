@@ -183,6 +183,10 @@ func (s *nodeService) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequ
 	}
 
 	var mountOptions []string
+	if req.GetReadonly() {
+		mountOptions = append(mountOptions, "ro")
+	}
+
 	for _, f := range mount.MountFlags {
 		hasOption := false
 		for _, o := range mountOptions {
