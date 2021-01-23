@@ -18,8 +18,9 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	mountutil "k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/util/resizefs"
+	mountutil "k8s.io/mount-utils"
+	utilexec "k8s.io/utils/exec"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -41,7 +42,7 @@ var nodeLogger = ctrl.Log.WithName("driver").WithName("node")
 func NewNodeService(nodeName string, conn *grpc.ClientConn, service *k8s.LogicalVolumeService) csi.NodeServer {
 	mounter := mountutil.SafeFormatAndMount{
 		Interface: mountutil.New(""),
-		Exec:      mountutil.NewOSExec(),
+		Exec:      utilexec.New(),
 	}
 
 	return &nodeService{
@@ -511,7 +512,7 @@ func (s *nodeService) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 	}
 
 	args := []string{"-o", "source", "--noheadings", "--target", req.GetVolumePath()}
-	output, err := s.mounter.Exec.Run("findmnt", args...)
+	output, err := s.mounter.Exec.Command("findmnt", args...).Output()
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "findmnt error occured: %v", err)
 	}
