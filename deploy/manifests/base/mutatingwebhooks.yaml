@@ -24,6 +24,7 @@ webhooks:
         apiGroups: [""]
         apiVersions: ["v1"]
         resources: ["pods"]
+    sideEffects: None
   - name: pvc-hook.topolvm.cybozu.com
     namespaceSelector:
       matchExpressions:
@@ -41,3 +42,4 @@ webhooks:
         apiGroups: [""]
         apiVersions: ["v1"]
         resources: ["persistentvolumeclaims"]
+    sideEffects: None
