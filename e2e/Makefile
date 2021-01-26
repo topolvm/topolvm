@@ -2,10 +2,14 @@
 TEST_KUBERNETES_TARGET ?= current
 TEST_SCHEDULER_MANIFEST ?= daemonset
 
+## Dependency versions
+KIND_VERSION=0.9.0
+
+BINDIR=$(PWD)/bin
 SUDO=sudo
 KIND_CLUSTER_NAME=topolvm-e2e
-KIND := ../bin/kind
-KUBECTL := ../bin/kubectl
+KIND := $(BINDIR)/kind
+KUBECTL := $(BINDIR)/kubectl
 KUSTOMIZE := ../bin/kustomize
 GINKGO := ../bin/ginkgo
 
@@ -141,5 +145,9 @@ clean: stop-lvmd
 
 setup:
 	cd ..; $(MAKE) setup
+	mkdir $(BINDIR)
+	curl -o $(BINDIR)/kind -sfL https://kind.sigs.k8s.io/dl/v$(KIND_VERSION)/kind-linux-amd64
+	curl -o $(BINDIR)/kubectl -sfL https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl
+	chmod a+x $(BINDIR)/kubectl $(BINDIR)/kind
 
 .PHONY: launch-kind shutdown-kind start-lvmd stop-lvmd test clean setup
