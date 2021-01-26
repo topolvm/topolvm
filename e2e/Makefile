@@ -145,7 +145,7 @@ clean: stop-lvmd
 
 setup:
 	cd ..; $(MAKE) setup
-	mkdir $(BINDIR)
+	mkdir -p $(BINDIR)
 	curl -o $(BINDIR)/kind -sfL https://kind.sigs.k8s.io/dl/v$(KIND_VERSION)/kind-linux-amd64
 	curl -o $(BINDIR)/kubectl -sfL https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl
 	chmod a+x $(BINDIR)/kubectl $(BINDIR)/kind
