@@ -21,9 +21,6 @@ kubeadmConfigPatches:
   controllerManager:
     extraArgs:
       "v": "5"
-  apiServer:
-    extraArgs:
-      "feature-gates": "EphemeralContainers=true"
 - |
   apiVersion: "@KUBEADM_APIVERSION@"
   kind: JoinConfiguration
@@ -32,7 +29,6 @@ kubeadmConfigPatches:
   nodeRegistration:
     kubeletExtraArgs:
       read-only-port: "10255"
-      "feature-gates": "EphemeralContainers=true"
 # 1 control plane node and 3 workers
 nodes:
 # the control plane node config
