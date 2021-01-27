@@ -134,9 +134,7 @@ test: topolvm.img $(SERVER_CERT_FILES)
 	$(MAKE) launch-kind
 	$(KIND) load image-archive --name=$(KIND_CLUSTER_NAME) topolvm.img
 	$(KUSTOMIZE) build --load_restrictor='none' $(KUSTOMIZE_DIR) | $(KUBECTL) apply -f -
-	-$(SUDO) -E env PATH=${PATH} E2ETEST=1 which kubectl
-	-$(SUDO) -E env PATH=${PATH} E2ETEST=1 type kubectl
-	$(SUDO) -E env PATH=${PATH} E2ETEST=1 $(GINKGO) --failFast -v .
+	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) $(GINKGO) --failFast -v .
 
 $(SERVER_CERT_FILES):
 	mkdir -p certs
