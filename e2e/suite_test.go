@@ -15,6 +15,8 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 )
 
+var binDir string
+
 func TestMtest(t *testing.T) {
 	if os.Getenv("E2ETEST") == "" {
 		t.Skip("Run under e2e/")
@@ -67,6 +69,11 @@ func waitKindnet() error {
 }
 
 var _ = BeforeSuite(func() {
+	By("Getting the directory path which contains some binaries")
+	binDir = os.Getenv("BINDIR")
+	Expect(binDir).ShouldNot(BeEmpty())
+	fmt.Println("This test uses the binaries under " + binDir)
+
 	By("Waiting for mutating webhook to get ready")
 	// Because kindnet will crash. we need to confirm its readiness twice.
 	Eventually(waitKindnet).Should(Succeed())

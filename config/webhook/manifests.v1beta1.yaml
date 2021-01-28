@@ -24,6 +24,7 @@ webhooks:
     - CREATE
     resources:
     - persistentvolumeclaims
+  sideEffects: None
 - clientConfig:
     caBundle: Cg==
     service:
@@ -42,3 +43,4 @@ webhooks:
     - CREATE
     resources:
     - pods
+  sideEffects: None

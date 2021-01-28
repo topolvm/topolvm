@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/ginkgo"
@@ -32,11 +33,11 @@ func execAtLocal(cmd string, input []byte, args ...string) ([]byte, []byte, erro
 }
 
 func kubectl(args ...string) ([]byte, []byte, error) {
-	return execAtLocal("kubectl", nil, args...)
+	return execAtLocal(filepath.Join(binDir, "kubectl"), nil, args...)
 }
 
 func kubectlWithInput(input []byte, args ...string) ([]byte, []byte, error) {
-	return execAtLocal("kubectl", input, args...)
+	return execAtLocal(filepath.Join(binDir, "kubectl"), input, args...)
 }
 
 func containString(s []string, target string) bool {

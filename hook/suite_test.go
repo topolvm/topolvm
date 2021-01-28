@@ -132,6 +132,7 @@ var _ = BeforeSuite(func() {
 
 	By("bootstrapping test environment")
 	failPolicy := admissionregistrationv1beta1.Fail
+	sideEffects := admissionregistrationv1beta1.SideEffectClassNone
 	webhookInstallOptions := envtest.WebhookInstallOptions{
 		MutatingWebhooks: []runtime.Object{
 			&admissionregistrationv1beta1.MutatingWebhookConfiguration{
@@ -163,6 +164,7 @@ var _ = BeforeSuite(func() {
 								},
 							},
 						},
+						SideEffects: &sideEffects,
 					},
 					{
 						Name:          "pvc-hook.topolvm.cybozu.com",
@@ -184,6 +186,7 @@ var _ = BeforeSuite(func() {
 								},
 							},
 						},
+						SideEffects: &sideEffects,
 					},
 				},
 			},
