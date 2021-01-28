@@ -51,6 +51,7 @@ topolvm.img: $(GO_FILES)
 	ln -s hypertopolvm ./tmpbin/topolvm-scheduler
 	ln -s hypertopolvm ./tmpbin/topolvm-node
 	ln -s hypertopolvm ./tmpbin/topolvm-controller
+	$(MAKE) -f ../csi-sidecars.mk OUTPUT_DIR=tmpbin
 	docker build --no-cache --rm=false -f Dockerfile -t topolvm:dev tmpbin
 	docker save -o $@ topolvm:dev
 
