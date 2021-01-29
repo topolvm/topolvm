@@ -26,7 +26,7 @@ type identityClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewIdentityClient(cc grpc.ClientConnInterface) IdentityClientIdentityClient {
+func NewIdentityClient(cc grpc.ClientConnInterface) IdentityClient {
 	return &identityClient{cc}
 }
 
