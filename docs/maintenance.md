@@ -4,17 +4,17 @@ How to upgrade supported Kubernetes version
 TopoLVM depends on some Kubernetes repositories like `k8s.io/client-go` and should support 3 consecutive Kubernets versions at a time.
 Here is the guide for how to upgrade the supported versions.
 Issues and PRs related to the last upgrade task also help you understand how to upgrade the supported versions,
-so checking them besides this guide is recommended when we do this task.
+so checking them together with this guide is recommended when you do this task.
 
 ## Check release notes
 
 First of all, we should have a look at the release notes in the order below.
 
-Please clarify on the issue on GitHub what kinds of changes we find in the release note and what we are going to do and NOT going to do address the changes.
-The format is up to you, but this is a very important step to keep track of what changes are made, so please do not forget to do it.
+Please clarify on the issue on GitHub what kinds of changes we find in the release note and what we are going to do and NOT going to do to address the changes.
+The format is up to you, but this is very important to keep track of what changes are made in this task, so please do not forget to do it.
 
 Basically, we should pay attention for breaking changes and security fixes first.
-If we find some interesting features added in new versions, please consider and make an GitHub issue to deal with it after the upgrading task is over.
+If we find some interesting features added in new versions, please consider if we actually use them and make an GitHub issue to incorporate them after the upgrading task is done.
 
 1. Kubernetes
   - Choose the next version and check the [release note](https://kubernetes.io/docs/setup/release/notes/). e.g. 1.17, 1.18, 1.19 -> 1.18, 1.19, 1.20
@@ -27,13 +27,14 @@ If we find some interesting features added in new versions, please consider and 
 4. CSI sidecars
   - TopoLVM does not use all the sidecars listed [here](https://kubernetes-csi.github.io/docs/sidecar-containers.html).
     Have a look at `csi-sidecars.mk` first and check what sidecars are actually used.
-  - Check the release pages of the sidecars under [kubernetes-csi](https://github.com/kubernetes-csi) one by one under and choose the latest versions which satisfy the minimal Kubernetes version.
-    DO NOT follow the version compatibility tables in this [page](https://kubernetes-csi.github.io/docs/sidecar-containers.html) and the README.md files of the sidecar repositories    because they are sometimes not updated properly.
+  - Check the release pages of the sidecars under [kubernetes-csi](https://github.com/kubernetes-csi) one by one and choose the latest version for each sidecar which satisfies both "Minimal Kubernetes version" and "Supported CSI spec versions".
+    DO NOT follow the version compatibility tables in this [page](https://kubernetes-csi.github.io/docs/sidecar-containers.html) and the README.md files of the sidecar repositories because they are sometimes not updated properly.
+  - Read the change logs which are linked from the release pages.
 
 ## Update written versions
 
-Once we decide the versions you are going to upgrade, we should update the versions written in the following files manually.
-`git grep 1.18`, `git grep image:`, and `git grep VERSION` might help you avoid overlooking the target versions.
+Once we decide the versions we are going to upgrade, we should update the versions written in the following files manually.
+`git grep 1.18`, `git grep image:`, and `git grep VERSION` might help us avoid overlooking necessary changes.
 Please update the versions in the code and docs with great care.
 
 - `README.md`: Documentation which indicates what versions are supported by TopoLVM
@@ -88,4 +89,4 @@ We should follow [RELEASE.md](../RELEASE.md) and upgrade the minor version.
 
 ## Prepare for the next upgrade
 
-We should create an issue for the next upgrade. Besides, Please update this document if you find something to be updated.
+We should create an issue for the next upgrade. Besides, Please update this document if we find something to be updated.
