@@ -18,7 +18,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"k8s.io/kubernetes/pkg/util/resizefs"
 	mountutil "k8s.io/mount-utils"
 	utilexec "k8s.io/utils/exec"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -525,7 +524,7 @@ func (s *nodeService) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	r := resizefs.NewResizeFs(&s.mounter)
+	r := filesystem.NewResizeFs(&s.mounter)
 	if _, err := r.Resize(device, req.GetVolumePath()); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to resize filesystem %s (mounted at: %s): %v", vid, vpath, err)
 	}
