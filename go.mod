@@ -6,7 +6,7 @@ replace launchpad.net/gocheck => github.com/go-check/check v0.0.0-20180628173108
 
 require (
 	cloud.google.com/go v0.63.0 // indirect
-	github.com/container-storage-interface/spec v1.3.0
+	github.com/container-storage-interface/spec v1.3.0 // indirect
 	github.com/cybozu-go/log v1.5.0
 	github.com/cybozu-go/well v1.10.0
 	github.com/go-logr/logr v0.1.0
