@@ -451,6 +451,9 @@ func (s *nodeService) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 	// because `volume_capability` field will be added in csi.NodeExpandVolumeRequest
 	info, err := os.Stat(vpath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, status.Errorf(codes.NotFound, "volume path is not exist: %s", vpath)
+		}
 		return nil, status.Errorf(codes.Internal, "stat failed for %s: %v", vpath, err)
 	}
 
