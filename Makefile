@@ -1,6 +1,6 @@
 ## Dependency versions
 
-CSI_VERSION=1.1.0
+CSI_VERSION=1.3.0
 KUBEBUILDER_VERSION = 2.3.1
 KUSTOMIZE_VERSION= 3.8.9
 PROTOC_VERSION=3.12.4
@@ -26,6 +26,7 @@ BUILD_TARGET=hypertopolvm
 TOPOLVM_VERSION ?= devel
 IMAGE_TAG ?= latest
 
+.PHONY: csi.proto
 csi.proto:
 	$(CURL) -o $@ https://raw.githubusercontent.com/container-storage-interface/spec/v$(CSI_VERSION)/csi.proto
 	sed -i 's,^option go_package.*$$,option go_package = "github.com/topolvm/topolvm/csi";,' csi.proto

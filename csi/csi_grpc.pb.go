@@ -184,6 +184,7 @@ type ControllerClient interface {
 	DeleteSnapshot(ctx context.Context, in *DeleteSnapshotRequest, opts ...grpc.CallOption) (*DeleteSnapshotResponse, error)
 	ListSnapshots(ctx context.Context, in *ListSnapshotsRequest, opts ...grpc.CallOption) (*ListSnapshotsResponse, error)
 	ControllerExpandVolume(ctx context.Context, in *ControllerExpandVolumeRequest, opts ...grpc.CallOption) (*ControllerExpandVolumeResponse, error)
+	ControllerGetVolume(ctx context.Context, in *ControllerGetVolumeRequest, opts ...grpc.CallOption) (*ControllerGetVolumeResponse, error)
 }
 
 type controllerClient struct {
@@ -302,6 +303,15 @@ func (c *controllerClient) ControllerExpandVolume(ctx context.Context, in *Contr
 	return out, nil
 }
 
+func (c *controllerClient) ControllerGetVolume(ctx context.Context, in *ControllerGetVolumeRequest, opts ...grpc.CallOption) (*ControllerGetVolumeResponse, error) {
+	out := new(ControllerGetVolumeResponse)
+	err := c.cc.Invoke(ctx, "/csi.v1.Controller/ControllerGetVolume", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ControllerServer is the server API for Controller service.
 // All implementations must embed UnimplementedControllerServer
 // for forward compatibility
@@ -318,6 +328,7 @@ type ControllerServer interface {
 	DeleteSnapshot(context.Context, *DeleteSnapshotRequest) (*DeleteSnapshotResponse, error)
 	ListSnapshots(context.Context, *ListSnapshotsRequest) (*ListSnapshotsResponse, error)
 	ControllerExpandVolume(context.Context, *ControllerExpandVolumeRequest) (*ControllerExpandVolumeResponse, error)
+	ControllerGetVolume(context.Context, *ControllerGetVolumeRequest) (*ControllerGetVolumeResponse, error)
 	mustEmbedUnimplementedControllerServer()
 }
 
@@ -360,6 +371,9 @@ func (UnimplementedControllerServer) ListSnapshots(context.Context, *ListSnapsho
 }
 func (UnimplementedControllerServer) ControllerExpandVolume(context.Context, *ControllerExpandVolumeRequest) (*ControllerExpandVolumeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ControllerExpandVolume not implemented")
+}
+func (UnimplementedControllerServer) ControllerGetVolume(context.Context, *ControllerGetVolumeRequest) (*ControllerGetVolumeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ControllerGetVolume not implemented")
 }
 func (UnimplementedControllerServer) mustEmbedUnimplementedControllerServer() {}
 
@@ -590,6 +604,24 @@ func _Controller_ControllerExpandVolume_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Controller_ControllerGetVolume_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ControllerGetVolumeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ControllerServer).ControllerGetVolume(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/csi.v1.Controller/ControllerGetVolume",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ControllerServer).ControllerGetVolume(ctx, req.(*ControllerGetVolumeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _Controller_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "csi.v1.Controller",
 	HandlerType: (*ControllerServer)(nil),
@@ -641,6 +673,10 @@ var _Controller_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ControllerExpandVolume",
 			Handler:    _Controller_ControllerExpandVolume_Handler,
+		},
+		{
+			MethodName: "ControllerGetVolume",
+			Handler:    _Controller_ControllerGetVolume_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
