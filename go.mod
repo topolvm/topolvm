@@ -14,7 +14,7 @@ require (
 	github.com/golang/protobuf v1.4.3
 	github.com/google/go-cmp v0.5.2
 	github.com/imdario/mergo v0.3.10 // indirect
-	github.com/kubernetes-csi/csi-test v2.2.0+incompatible
+	github.com/kubernetes-csi/csi-test/v4 v4.0.2
 	github.com/mattn/go-isatty v0.0.9 // indirect
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
