@@ -141,6 +141,7 @@ var _ = Describe("TopoLVM", func() {
 		tc.StagingPath = "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/stagingdir"
 		tc.TestVolumeSize = 1073741824
 		tc.IDGen = &sanity.DefaultIDGenerator{}
+		tc.IdempotentCount = 0
 		sanity.GinkgoTest(&tc)
 	})
 })
