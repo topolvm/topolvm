@@ -10,32 +10,30 @@ so checking them together with this guide is recommended when you do this task.
 
 First of all, we should have a look at the release notes in the order below.
 
-Please clarify on the issue on GitHub what kinds of changes we find in the release note and what we are going to do and NOT going to do to address the changes.
-The format is up to you, but this is very important to keep track of what changes are made in this task, so please do not forget to do it.
-
-Basically, we should pay attention for breaking changes and security fixes first.
-If we find some interesting features added in new versions, please consider if we actually use them and make an GitHub issue to incorporate them after the upgrading task is done.
-
 1. Kubernetes
   - Choose the next version and check the [release note](https://kubernetes.io/docs/setup/release/notes/). e.g. 1.17, 1.18, 1.19 -> 1.18, 1.19, 1.20
 2. controller-runtime
   - Read the [release note](https://github.com/kubernetes-sigs/controller-runtime/releases), and check which version is compatible with the Kubernetes versions.
 3. CSI spec
   - Read the [release note](https://github.com/container-storage-interface/spec/blob/master/spec.md) and check all the changes from the current version to the latest.
-  - Basically, CSI spec should NOT be upgraded progressively in this task.
-    Upgrade the CSI version only if new features we should cover are introduced in newer versions or we have to upgrade it because Kubernetes does not support the current CSI version.
+  - Basically, CSI spec should NOT be upgraded aggressively in this task.
+    Upgrade the CSI version only if new features we should cover are introduced in newer versions, or the Kubernetes versions TopoLVM is going to support does not support the current CSI version.
 4. CSI sidecars
   - TopoLVM does not use all the sidecars listed [here](https://kubernetes-csi.github.io/docs/sidecar-containers.html).
-    Have a look at `csi-sidecars.mk` first and check what sidecars are actually used.
+    Have a look at `csi-sidecars.mk` first and understand what sidecars are actually being used.
   - Check the release pages of the sidecars under [kubernetes-csi](https://github.com/kubernetes-csi) one by one and choose the latest version for each sidecar which satisfies both "Minimal Kubernetes version" and "Supported CSI spec versions".
-    DO NOT follow the version compatibility tables in this [page](https://kubernetes-csi.github.io/docs/sidecar-containers.html) and the README.md files of the sidecar repositories because they are sometimes not updated properly.
+    DO NOT follow the version compatibility tables in this [page](https://kubernetes-csi.github.io/docs/sidecar-containers.html) and the README.md files in the sidecar repositories because they are sometimes not updated properly.
   - Read the change logs which are linked from the release pages.
+
+Please write down to the Github issue of this task what kinds of changes we find in the release note and what we are going to do and NOT going to do to address the changes.
+The format is up to you, but this is very important to keep track of what changes are made in this task, so please do not forget to do it.
+
+Basically, we should pay attention to breaking changes and security fixes first.
+If we find some interesting features added in new versions, please consider if we are going to use them or not and make a GitHub issue to incorporate them after the upgrading task is done.
 
 ## Update written versions
 
 Once we decide the versions we are going to upgrade, we should update the versions written in the following files manually.
-`git grep 1.18`, `git grep image:`, and `git grep VERSION` might help us avoid overlooking necessary changes.
-Please update the versions in the code and docs with great care.
 
 - `README.md`: Documentation which indicates what versions are supported by TopoLVM
 - `deploy/README.md`: Documentation which instructs how to deploy TopoLVM on various versions of Kubernetes
@@ -45,6 +43,9 @@ Please update the versions in the code and docs with great care.
 - `example/Makefile`: Makefile for running example
 - `deploy/manifests/overlays/daemonset-scheduler/kustomization.yaml`: Kustomization for overwriting the TopoLVM image version
 - `deploy/manifests/overlays/deployment-scheduler/kustomization.yaml`: Kustomization for overwriting the TopoLVM image version
+
+`git grep 1.18`, `git grep image:`, and `git grep VERSION` might help us avoid overlooking necessary changes.
+Please update the versions in the code and docs with great care.
 
 ## Update CSI spec
 
@@ -62,9 +63,10 @@ make csi/csi_grpc.pb.go
 ## Update dependencies
 
 Next, we should update `go.mod` by the following commands.
+Please note that Kubernetes v1 corresponds with v0 for the release tags. For example, v1.17.2 corresponds with the `v0.17.2` tag.
 
 ```bash
-VERSION=<upgrading Kubernetes version>
+VERSION=<upgrading Kubernetes release version>
 go get k8s.io/api@v${VERSION} k8s.io/apimachinery@v${VERSION} k8s.io/client-go@v${VERSION}
 ```
 
