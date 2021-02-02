@@ -1,12 +1,17 @@
+Maintenance guide
+=================
+
+This is the maintenance guide for TopoLVM.
+
 How to upgrade supported Kubernetes version
-===========================================
+-------------------------------------------
 
 TopoLVM depends on some Kubernetes repositories like `k8s.io/client-go` and should support 3 consecutive Kubernets versions at a time.
 Here is the guide for how to upgrade the supported versions.
 Issues and PRs related to the last upgrade task also help you understand how to upgrade the supported versions,
 so checking them together with this guide is recommended when you do this task.
 
-## Check release notes
+### Check release notes
 
 First of all, we should have a look at the release notes in the order below.
 
@@ -31,7 +36,7 @@ The format is up to you, but this is very important to keep track of what change
 Basically, we should pay attention to breaking changes and security fixes first.
 If we find some interesting features added in new versions, please consider if we are going to use them or not and make a GitHub issue to incorporate them after the upgrading task is done.
 
-## Update written versions
+### Update written versions
 
 Once we decide the versions we are going to upgrade, we should update the versions written in the following files manually.
 
@@ -47,7 +52,7 @@ Once we decide the versions we are going to upgrade, we should update the versio
 `git grep 1.18`, `git grep image:`, and `git grep VERSION` might help us avoid overlooking necessary changes.
 Please update the versions in the code and docs with great care.
 
-## Update CSI spec
+### Update CSI spec
 
 In case we update the version of the CSI spec written in `Makefile`, we should regenerate the gRPC schema with the protobuf file corresponding to the CSI spec version.
 First, we might have to upgrade the `protoc` version defined in `Makefile` with checking the Go section in [release note](https://github.com/protocolbuffers/protobuf/releases).
@@ -60,7 +65,7 @@ make csi/csi.pb.go
 make csi/csi_grpc.pb.go
 ```
 
-## Update dependencies
+### Update dependencies
 
 Next, we should update `go.mod` by the following commands.
 Please note that Kubernetes v1 corresponds with v0 for the release tags. For example, v1.17.2 corresponds with the `v0.17.2` tag.
@@ -85,10 +90,10 @@ go mod tidy
 
 These are minimal changes for the Kubernetes upgrade, but if there are some breaking changes found in the release notes, you have to handle them as well in this step.
 
-## Release the changes
+### Release the changes
 
 We should follow [RELEASE.md](../RELEASE.md) and upgrade the minor version.
 
-## Prepare for the next upgrade
+### Prepare for the next upgrade
 
 We should create an issue for the next upgrade. Besides, Please update this document if we find something to be updated.
