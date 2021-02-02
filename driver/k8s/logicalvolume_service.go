@@ -140,7 +140,9 @@ func (s *LogicalVolumeService) DeleteVolume(ctx context.Context, volumeID string
 		return err
 	}
 
-	return s.Delete(ctx, lv)
+	err = s.Delete(ctx, lv)
+	time.Sleep(time.Second * 3)
+	return err
 }
 
 // ExpandVolume expands volume
