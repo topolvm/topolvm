@@ -54,15 +54,11 @@ Please update the versions in the code and docs with great care.
 
 ### Update CSI spec
 
-In case we update the version of the CSI spec written in `Makefile`, we should regenerate the gRPC schema with the protobuf file corresponding to the CSI spec version.
-First, we might have to upgrade the `protoc` version defined in `Makefile` with checking the Go section in [release note](https://github.com/protocolbuffers/protobuf/releases).
-Then, please execute the following commands to update the Go code.
+To update the CSI version, we need to update `CSI_VERSION` in `Makefile`, and run the following commands.
 
 ```bash
-cd ${GOPATH}/src/github.com/topolvm/topolvm
-make setup
-make csi/csi.pb.go
-make csi/csi_grpc.pb.go
+$ make csi.proto
+$ make generate
 ```
 
 ### Update dependencies
@@ -71,21 +67,21 @@ Next, we should update `go.mod` by the following commands.
 Please note that Kubernetes v1 corresponds with v0 for the release tags. For example, v1.17.2 corresponds with the `v0.17.2` tag.
 
 ```bash
-VERSION=<upgrading Kubernetes release version>
-go get k8s.io/api@v${VERSION} k8s.io/apimachinery@v${VERSION} k8s.io/client-go@v${VERSION}
+$ VERSION=<upgrading Kubernetes release version>
+$ go get k8s.io/api@v${VERSION} k8s.io/apimachinery@v${VERSION} k8s.io/client-go@v${VERSION}
 ```
 
 If we need to upgrade the `controller-runtime` version, do the following as well.
 
 ```bash
-VERSION=<upgrading controller-runtime version>
-go get sigs.k8s.io/controller-runtime@v${VERSION}
+$ VERSION=<upgrading controller-runtime version>
+$ go get sigs.k8s.io/controller-runtime@v${VERSION}
 ```
 
 Then, please tidy up the dependencies.
 
 ```bash
-go mod tidy
+$ go mod tidy
 ```
 
 These are minimal changes for the Kubernetes upgrade, but if there are some breaking changes found in the release notes, you have to handle them as well in this step.
