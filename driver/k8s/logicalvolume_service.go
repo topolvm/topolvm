@@ -156,13 +156,11 @@ func (s *LogicalVolumeService) DeleteVolume(ctx context.Context, volumeID string
 		deletingLV := new(topolvmv1.LogicalVolume)
 		err := s.Get(ctx, client.ObjectKey{Name: lv.Name}, deletingLV)
 		if err != nil {
-			if !apierrors.IsNotFound(err) {
+			if apierrors.IsNotFound(err) {
 				return deleteErr
 			}
 			logger.Error(err, "failed to get LogicalVolume", "name", lv.Name)
 		}
-
-		logger.Info("target volume is not deleted yet", "name", deletingLV.Name)
 	}
 }
 
