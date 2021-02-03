@@ -140,9 +140,30 @@ func (s *LogicalVolumeService) DeleteVolume(ctx context.Context, volumeID string
 		return err
 	}
 
-	err = s.Delete(ctx, lv)
-	time.Sleep(time.Second * 3)
-	return err
+	deleteErr := s.Delete(ctx, lv)
+
+	// wait until delete the target volume
+	for {
+		logger.Info("waiting for delete LogicalVolume", "name", lv.Name)
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(10 * time.Second):
+			return errors.New("DeleteVolume is not completed yet")
+		case <-time.After(100 * time.Millisecond):
+		}
+
+		deletingLV := new(topolvmv1.LogicalVolume)
+		err := s.Get(ctx, client.ObjectKey{Name: lv.Name}, deletingLV)
+		if err != nil {
+			if !apierrors.IsNotFound(err) {
+				return deleteErr
+			}
+			logger.Error(err, "failed to get LogicalVolume", "name", lv.Name)
+		}
+
+		logger.Info("target volume is not deleted yet", "name", deletingLV.Name)
+	}
 }
 
 // ExpandVolume expands volume
