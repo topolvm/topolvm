@@ -123,7 +123,7 @@ clean:
 
 .PHONY: tools
 tools:
-	cd /tmp; env GO111MODULE=on go get golang.org/x/tools/cmd/goimports	
+	cd /tmp; env GO111MODULE=on go get golang.org/x/tools/cmd/goimports
 	cd /tmp; env GO111MODULE=on go get honnef.co/go/tools/cmd/staticcheck
 	cd /tmp; env GO111MODULE=on go get github.com/gordonklaus/ineffassign
 	cd /tmp; env GO111MODULE=on go get github.com/gostaticanalysis/nilerr/cmd/nilerr
