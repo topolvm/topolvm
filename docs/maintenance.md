@@ -16,19 +16,19 @@ so checking them together with this guide is recommended when you do this task.
 First of all, we should have a look at the release notes in the order below.
 
 1. Kubernetes
-  - Choose the next version and check the [release note](https://kubernetes.io/docs/setup/release/notes/). e.g. 1.17, 1.18, 1.19 -> 1.18, 1.19, 1.20
+    - Choose the next version and check the [release note](https://kubernetes.io/docs/setup/release/notes/). e.g. 1.17, 1.18, 1.19 -> 1.18, 1.19, 1.20
 2. controller-runtime
-  - Read the [release note](https://github.com/kubernetes-sigs/controller-runtime/releases), and check which version is compatible with the Kubernetes versions.
+    - Read the [release note](https://github.com/kubernetes-sigs/controller-runtime/releases), and check which version is compatible with the Kubernetes versions.
 3. CSI spec
-  - Read the [release note](https://github.com/container-storage-interface/spec/blob/master/spec.md) and check all the changes from the current version to the latest.
-  - Basically, CSI spec should NOT be upgraded aggressively in this task.
+    - Read the [release note](https://github.com/container-storage-interface/spec/releases) and check all the changes from the current version to the latest.
+    - Basically, CSI spec should NOT be upgraded aggressively in this task.
     Upgrade the CSI version only if new features we should cover are introduced in newer versions, or the Kubernetes versions TopoLVM is going to support does not support the current CSI version.
 4. CSI sidecars
-  - TopoLVM does not use all the sidecars listed [here](https://kubernetes-csi.github.io/docs/sidecar-containers.html).
-    Have a look at `csi-sidecars.mk` first and understand what sidecars are actually being used.
-  - Check the release pages of the sidecars under [kubernetes-csi](https://github.com/kubernetes-csi) one by one and choose the latest version for each sidecar which satisfies both "Minimal Kubernetes version" and "Supported CSI spec versions".
-    DO NOT follow the version compatibility tables in this [page](https://kubernetes-csi.github.io/docs/sidecar-containers.html) and the README.md files in the sidecar repositories because they are sometimes not updated properly.
-  - Read the change logs which are linked from the release pages.
+    - TopoLVM does not use all the sidecars listed [here](https://kubernetes-csi.github.io/docs/sidecar-containers.html).
+      Have a look at `csi-sidecars.mk` first and understand what sidecars are actually being used.
+    - Check the release pages of the sidecars under [kubernetes-csi](https://github.com/kubernetes-csi) one by one and choose the latest version for each sidecar which satisfies both "Minimal Kubernetes version" and "Supported CSI spec versions".
+      DO NOT follow the "Status and Releases" tables in this [page](https://kubernetes-csi.github.io/docs/sidecar-containers.html) and the README.md files in the sidecar repositories because they are sometimes not updated properly.
+    - Read the change logs which are linked from the release pages.
 
 Please write down to the Github issue of this task what kinds of changes we find in the release note and what we are going to do and NOT going to do to address the changes.
 The format is up to you, but this is very important to keep track of what changes are made in this task, so please do not forget to do it.
