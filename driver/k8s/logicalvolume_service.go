@@ -103,7 +103,7 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, dc, name 
 		select {
 		case <-ctx.Done():
 			return "", ctx.Err()
-		case <-time.After(1 * time.Second):
+		case <-time.After(100 * time.Millisecond):
 		}
 
 		var newLV topolvmv1.LogicalVolume
@@ -140,7 +140,10 @@ func (s *LogicalVolumeService) DeleteVolume(ctx context.Context, volumeID string
 		return err
 	}
 
-	deleteErr := s.Delete(ctx, lv)
+	err = s.Delete(ctx, lv)
+	if err != nil {
+		return err
+	}
 
 	// wait until delete the target volume
 	for {
@@ -148,16 +151,13 @@ func (s *LogicalVolumeService) DeleteVolume(ctx context.Context, volumeID string
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-time.After(10 * time.Second):
-			return errors.New("DeleteVolume is not completed yet")
 		case <-time.After(100 * time.Millisecond):
 		}
 
-		deletingLV := new(topolvmv1.LogicalVolume)
-		err := s.Get(ctx, client.ObjectKey{Name: lv.Name}, deletingLV)
+		err := s.Get(ctx, client.ObjectKey{Name: lv.Name}, new(topolvmv1.LogicalVolume))
 		if err != nil {
 			if apierrors.IsNotFound(err) {
-				return deleteErr
+				return nil
 			}
 			logger.Error(err, "failed to get LogicalVolume", "name", lv.Name)
 		}
