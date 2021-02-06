@@ -142,6 +142,9 @@ func (s *LogicalVolumeService) DeleteVolume(ctx context.Context, volumeID string
 
 	err = s.Delete(ctx, lv)
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
 		return err
 	}
 
