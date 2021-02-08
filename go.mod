@@ -6,13 +6,12 @@ replace launchpad.net/gocheck => github.com/go-check/check v0.0.0-20180628173108
 
 require (
 	cloud.google.com/go v0.63.0 // indirect
-	github.com/container-storage-interface/spec v1.1.0
 	github.com/cybozu-go/log v1.5.0
 	github.com/cybozu-go/well v1.10.0
 	github.com/go-logr/logr v0.1.0
 	github.com/golang/protobuf v1.4.2
 	github.com/google/go-cmp v0.5.2
-	github.com/kubernetes-csi/csi-test v2.2.0+incompatible
+	github.com/kubernetes-csi/csi-test/v4 v4.0.2
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
 	github.com/prometheus/client_golang v1.1.0

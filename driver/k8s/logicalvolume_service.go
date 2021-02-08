@@ -103,7 +103,7 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, dc, name 
 		select {
 		case <-ctx.Done():
 			return "", ctx.Err()
-		case <-time.After(1 * time.Second):
+		case <-time.After(100 * time.Millisecond):
 		}
 
 		var newLV topolvmv1.LogicalVolume
@@ -140,7 +140,32 @@ func (s *LogicalVolumeService) DeleteVolume(ctx context.Context, volumeID string
 		return err
 	}
 
-	return s.Delete(ctx, lv)
+	err = s.Delete(ctx, lv)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
+	// wait until delete the target volume
+	for {
+		logger.Info("waiting for delete LogicalVolume", "name", lv.Name)
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(100 * time.Millisecond):
+		}
+
+		err := s.Get(ctx, client.ObjectKey{Name: lv.Name}, new(topolvmv1.LogicalVolume))
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil
+			}
+			logger.Error(err, "failed to get LogicalVolume", "name", lv.Name)
+			return err
+		}
+	}
 }
 
 // ExpandVolume expands volume

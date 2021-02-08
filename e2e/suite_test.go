@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kubernetes-csi/csi-test/pkg/sanity"
+	"github.com/kubernetes-csi/csi-test/v4/pkg/sanity"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
@@ -134,13 +134,13 @@ var _ = Describe("TopoLVM", func() {
 			}).Should(Succeed())
 		})
 
-		sanity.GinkgoTest(&sanity.Config{
-			Address:           "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/csi-topolvm.sock",
-			ControllerAddress: "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/controller/csi-topolvm.sock",
-			TargetPath:        "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/mountdir",
-			StagingPath:       "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/stagingdir",
-			TestVolumeSize:    1073741824,
-			IDGen:             &sanity.DefaultIDGenerator{},
-		})
+		tc := sanity.NewTestConfig()
+		tc.Address = "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/csi-topolvm.sock"
+		tc.ControllerAddress = "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/controller/csi-topolvm.sock"
+		tc.TargetPath = "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/mountdir"
+		tc.StagingPath = "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/stagingdir"
+		tc.TestVolumeSize = 1073741824
+		tc.IDGen = &sanity.DefaultIDGenerator{}
+		sanity.GinkgoTest(&tc)
 	})
 })
