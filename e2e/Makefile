@@ -52,6 +52,7 @@ topolvm.img: $(GO_FILES)
 	rm -rf tmpbin
 	mkdir -p tmpbin
 	CGO_ENABLED=0 go build -o tmpbin/hypertopolvm ../pkg/hypertopolvm
+	ln -s hypertopolvm ./tmpbin/lvmd
 	ln -s hypertopolvm ./tmpbin/topolvm-scheduler
 	ln -s hypertopolvm ./tmpbin/topolvm-node
 	ln -s hypertopolvm ./tmpbin/topolvm-controller
@@ -152,3 +153,39 @@ setup:
 	chmod a+x $(BINDIR)/kubectl $(BINDIR)/kind
 
 .PHONY: launch-kind shutdown-kind start-lvmd stop-lvmd test clean setup
+
+.PHONY: start-lvmd-for-lvmd-daemonset
+start-lvmd-for-lvmd-daemonset:
+	mkdir -p build $(BACKING_STORE)
+	go build -o build/lvmd ../pkg/lvmd
+	if [ -f $(BACKING_STORE)/backing_store_lvmd* ]; then $(MAKE) stop-lvmd-for-lvmd-daemonset; fi
+
+	mkdir -p /tmp/topolvm/worker_lvmd;
+	mkdir -p /tmp/topolvm/lvmd_lvmd;
+	truncate --size=20G $(BACKING_STORE)/backing_store_lvmd_1;
+	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_1;
+	$(SUDO) vgcreate -y node-lvmd-myvg1 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_1 | cut -d: -f1);
+	$(SUDO) lvcreate -y -n csi-node-test-block -L 1G node-lvmd-myvg1;
+	$(SUDO) lvcreate -y -n csi-node-test-fs -L 1G node-lvmd-myvg1;
+
+	# Create additional Volume Groups
+	truncate --size=10G $(BACKING_STORE)/backing_store_lvmd_2;
+	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_2;
+	$(SUDO) vgcreate -y node-lvmd-myvg2 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_2 | cut -d: -f1);
+
+.PHONY: stop-lvmd-for-lvmd-daemonset
+stop-lvmd-for-lvmd-daemonset:
+	$(SUDO) vgremove -ffy node-lvmd-myvg1;
+	$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_1 | cut -d: -f1);
+	$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_1 | cut -d: -f1);
+	rm -f $(BACKING_STORE)/backing_store_lvmd_1;
+
+	$(SUDO) vgremove -ffy node-lvmd-myvg2;
+	$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_2 | cut -d: -f1);
+	$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_2 | cut -d: -f1);
+	rm -f $(BACKING_STORE)/backing_store_lvmd_2;
+
+.PHONY: test-lvmd-daemonset
+test-lvmd-daemonset: topolvm.img $(SERVER_CERT_FILES)
+	$(KUSTOMIZE) build --load_restrictor='none' manifests/overlays/daemonset-lvmd | $(KUBECTL) apply -f -
+	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) LVMD=true $(GINKGO) --failFast -v .
