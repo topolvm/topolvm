@@ -138,7 +138,7 @@ In this case, you can use [deployment-scheduler/scheduler.yaml](./manifests/over
 
 This way, `topolvm-scheduler` is exposed by LoadBalancer service.
 
-Then edit `urlPrefix` in [scheduler-policy.cfg](./scheduler-config/scheduler-policy.cfg) for K8s 1.17 or 1.18, or in [scheduler-config-v1beta1.yaml](./scheduler-config/scheduler-config-v1beta1.yaml) for K8s 1.19 or later, to specify the LoadBalancer address.
+Then edit `urlPrefix` in [scheduler-policy.cfg](./scheduler-config/scheduler-policy.cfg) for K8s 1.18, or in [scheduler-config-v1beta1.yaml](./scheduler-config/scheduler-config-v1beta1.yaml) for K8s 1.19 or later, to specify the LoadBalancer address.
 
 OPTIONAL: tune the node scoring
 -------------------------------
@@ -160,7 +160,7 @@ divisors:
   hdd: 10
 ```
 
-Besides, the scoring weight can be passed to kube-scheduler via [scheduler-policy.cfg](./scheduler-config/scheduler-policy.cfg) for K8s 1.17 or 1.18, or via [scheduler-config-v1beta1.yaml](./scheduler-config/scheduler-config-v1beta1.yaml) for K8s 1.19 or later. Almost all scoring algorithms in kube-scheduler are weighted as `"weight": 1`. So if you want to give a priority to the scoring by `topolvm-scheduler`, you have to set the weight as a value larger than one like as follows:
+Besides, the scoring weight can be passed to kube-scheduler via [scheduler-policy.cfg](./scheduler-config/scheduler-policy.cfg) for K8s 1.18, or via [scheduler-config-v1beta1.yaml](./scheduler-config/scheduler-config-v1beta1.yaml) for K8s 1.19 or later. Almost all scoring algorithms in kube-scheduler are weighted as `"weight": 1`. So if you want to give a priority to the scoring by `topolvm-scheduler`, you have to set the weight as a value larger than one like as follows:
 ```json
 {
   "kind" : "Policy",
