@@ -1,6 +1,7 @@
 package runners
 
 import (
+	"context"
 	"net"
 	"os"
 
@@ -24,7 +25,7 @@ func NewGRPCRunner(srv *grpc.Server, sockFile string, leaderElection bool) manag
 }
 
 // Start implements controller-runtime's manager.Runnable.
-func (r gRPCServerRunner) Start(ch <-chan struct{}) error {
+func (r gRPCServerRunner) Start(ctx context.Context) error {
 	err := os.Remove(r.sockFile)
 	if err != nil && !os.IsNotExist(err) {
 		return err
@@ -35,7 +36,7 @@ func (r gRPCServerRunner) Start(ch <-chan struct{}) error {
 	}
 
 	go r.srv.Serve(lis)
-	<-ch
+	<-ctx.Done()
 	r.srv.GracefulStop()
 	return nil
 }

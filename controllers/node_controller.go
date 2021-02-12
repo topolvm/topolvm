@@ -9,7 +9,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -27,8 +26,7 @@ type NodeReconciler struct {
 // +kubebuilder:rbac:groups="storage.k8s.io",resources=storageclasses,verbs=get;list;watch
 
 // Reconcile finalize Node
-func (r *NodeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
+func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("node", req.NamespacedName)
 
 	// your logic here
@@ -183,14 +181,14 @@ func (r *NodeReconciler) cleanupLogicalVolume(ctx context.Context, log logr.Logg
 // SetupWithManager sets up Reconciler with Manager.
 func (r *NodeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	ctx := context.Background()
-	err := mgr.GetFieldIndexer().IndexField(ctx, &corev1.PersistentVolumeClaim{}, keySelectedNode, func(o runtime.Object) []string {
+	err := mgr.GetFieldIndexer().IndexField(ctx, &corev1.PersistentVolumeClaim{}, keySelectedNode, func(o client.Object) []string {
 		return []string{o.(*corev1.PersistentVolumeClaim).Annotations[AnnSelectedNode]}
 	})
 	if err != nil {
 		return err
 	}
 
-	err = mgr.GetFieldIndexer().IndexField(ctx, &topolvmv1.LogicalVolume{}, keyLogicalVolumeNode, func(o runtime.Object) []string {
+	err = mgr.GetFieldIndexer().IndexField(ctx, &topolvmv1.LogicalVolume{}, keyLogicalVolumeNode, func(o client.Object) []string {
 		return []string{o.(*topolvmv1.LogicalVolume).Spec.NodeName}
 	})
 	if err != nil {

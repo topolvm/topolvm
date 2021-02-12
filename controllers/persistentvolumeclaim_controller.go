@@ -25,8 +25,7 @@ type PersistentVolumeClaimReconciler struct {
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;delete
 
 // Reconcile finalize PVC
-func (r *PersistentVolumeClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
+func (r *PersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("persistentvolumeclaim", req.NamespacedName)
 	// your logic here
 	pvc := &corev1.PersistentVolumeClaim{}

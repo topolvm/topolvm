@@ -59,23 +59,17 @@ func NewMetricsExporter(conn *grpc.ClientConn, mgr manager.Manager, nodeName str
 }
 
 // Start implements controller-runtime's manager.Runnable.
-func (m *metricsExporter) Start(ch <-chan struct{}) error {
+func (m *metricsExporter) Start(ctx context.Context) error {
 	metricsCh := make(chan NodeMetrics)
 	go func() {
 		for {
 			select {
-			case <-ch:
+			case <-ctx.Done():
 				return
 			case met := <-metricsCh:
 				m.availableBytes.WithLabelValues(met.DeviceClass).Set(float64(met.FreeBytes))
 			}
 		}
-	}()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		<-ch
-		cancel()
 	}()
 
 	wc, err := m.vgService.Watch(ctx, &proto.Empty{})

@@ -276,7 +276,7 @@ spec:
   ports:
   - protocol: TCP
     port: 443
-    targetPort: 8443
+    targetPort: 9443
 ---
 apiVersion: apps/v1
 kind: Deployment
