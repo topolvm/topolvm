@@ -1,10 +1,40 @@
 package filesystem
 
 import (
+	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 )
+
+func createDevice() (string, error) {
+	f, err := ioutil.TempFile("", "test-filesystem-")
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		f.Close()
+		os.Remove(f.Name())
+	}()
+
+	if err := f.Truncate(1 << 30); err != nil {
+		return "", err
+	}
+
+	out, err := exec.Command("losetup", "-f", "--show", f.Name()).Output()
+	if err != nil {
+		return "", err
+	}
+
+	// for resize test
+	if err := f.Truncate(2 << 30); err != nil {
+		return "", err
+	}
+
+	loopDev := strings.TrimSpace(string(out))
+	return loopDev, nil
+}
 
 func TestDetectFilesystem(t *testing.T) {
 	if os.Getuid() != 0 {

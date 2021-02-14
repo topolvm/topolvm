@@ -36,9 +36,9 @@ func isSameDevice(dev1, dev2 string) (bool, error) {
 	return st1.Rdev == st2.Rdev, nil
 }
 
-// isMounted returns true if device is mounted on target.
+// IsMounted returns true if device is mounted on target.
 // The implementation uses /proc/mounts because some filesystem uses a virtual device.
-func isMounted(device, target string) (bool, error) {
+func IsMounted(device, target string) (bool, error) {
 	abs, err := filepath.Abs(target)
 	if err != nil {
 		return false, err
@@ -74,7 +74,7 @@ func isMounted(device, target string) (bool, error) {
 // Mount mounts a block device onto target with filesystem-specific opts.
 // target directory must exist.
 func Mount(device, target, fsType, opts string, readonly bool) error {
-	switch mounted, err := isMounted(device, target); {
+	switch mounted, err := IsMounted(device, target); {
 	case err != nil:
 		return err
 	case mounted:
@@ -102,7 +102,7 @@ func Mount(device, target, fsType, opts string, readonly bool) error {
 // Unmount unmounts the device if it is mounted.
 func Unmount(device, target string) error {
 	for i := 0; i < 10; i++ {
-		switch mounted, err := isMounted(device, target); {
+		switch mounted, err := IsMounted(device, target); {
 		case err != nil:
 			return err
 		case !mounted:
