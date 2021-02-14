@@ -3,7 +3,6 @@
 CSI_VERSION=1.3.0
 K8S_VERSION=1.19.6
 KUBEBUILDER_VERSION = 2.3.1
-KIND_VERSION=0.9.0
 KUSTOMIZE_VERSION= 3.8.9
 PROTOC_VERSION=3.12.4
 
@@ -105,14 +104,17 @@ csi-sidecars:
 .PHONY: image
 image:
 	docker build -t $(IMAGE_PREFIX)topolvm:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) .
+	docker build -t $(IMAGE_PREFIX)topolvm-with-sidecar:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) -f Dockerfile.with-sidecar .
 
 .PHONY: tag
 tag:
 	docker tag $(IMAGE_PREFIX)topolvm:devel $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG)
+	docker tag $(IMAGE_PREFIX)topolvm-with-sidecar:devel $(IMAGE_PREFIX)topolvm-with-sidecar:$(IMAGE_TAG)
 
 .PHONY: push
 push:
 	docker push $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG)
+	docker push $(IMAGE_PREFIX)topolvm-with-sidecar:$(IMAGE_TAG)
 
 .PHONY: clean
 clean:
@@ -145,8 +147,5 @@ setup: tools
 	GOBIN=$(BINDIR) go install google.golang.org/grpc/cmd/protoc-gen-go-grpc
 	GOBIN=$(BINDIR) go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc
 
-	curl -o $(BINDIR)/kind -sfL https://kind.sigs.k8s.io/dl/v$(KIND_VERSION)/kind-linux-amd64
-	curl -o $(BINDIR)/kubectl -sfL https://storage.googleapis.com/kubernetes-release/release/v$(K8S_VERSION)/bin/linux/amd64/kubectl
 	curl -sSLf https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv$(KUSTOMIZE_VERSION)/kustomize_v$(KUSTOMIZE_VERSION)_linux_amd64.tar.gz | tar -xz -C $(BINDIR)
-	chmod a+x $(BINDIR)/kubectl $(BINDIR)/kind
 	GOBIN=$(BINDIR) go install github.com/onsi/ginkgo/ginkgo

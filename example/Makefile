@@ -15,20 +15,25 @@ GO_FILES := $(shell find .. -prune -o -path ../e2e -prune -o -name '*.go' -print
 SERVER_CERT_FILES=./certs/cert.pem ./certs/key.pem
 BACKING_STORE=./build
 
+BUILD_IMAGE?=false
+
 $(KUBECTL):
 	mkdir -p $(BINDIR)
 	curl -sfL https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl -o $(KUBECTL)
 	chmod 755 $(KUBECTL)
 
 build/topolvm.img: $(GO_FILES)
-	make -C .. image IMAGE_PREFIX=quay.io/topolvm/
-	make -C .. tag IMAGE_PREFIX=quay.io/topolvm/ IMAGE_TAG=$(TOPOLVM_VERSION)
+	$(MAKE) -C .. image IMAGE_PREFIX=quay.io/topolvm/
+	$(MAKE) -C .. tag IMAGE_PREFIX=quay.io/topolvm/ IMAGE_TAG=$(TOPOLVM_VERSION)
 	docker save -o $@ quay.io/topolvm/topolvm:$(TOPOLVM_VERSION)
 
-run: $(SERVER_CERT_FILES) build/topolvm.img
+run: $(SERVER_CERT_FILES)
 	$(MAKE) start-lvmd
 	$(MAKE) launch-kind
-	kind load image-archive --name=$(KIND_CLUSTER_NAME) build/topolvm.img
+	if [ "$(BUILD_IMAGE)" = "true" ]; then \
+		$(MAKE) build/topolvm.img; \
+		kind load image-archive --name=$(KIND_CLUSTER_NAME) build/topolvm.img; \
+	fi
 	$(KUSTOMIZE) build --enable_kyaml=false . | $(KUBECTL) apply -f -
 	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/controller
 	$(KUBECTL) apply -f podpvc.yaml

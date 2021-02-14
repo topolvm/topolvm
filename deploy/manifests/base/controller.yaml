@@ -309,7 +309,7 @@ spec:
       serviceAccountName: controller
       containers:
         - name: topolvm-controller
-          image: quay.io/topolvm/topolvm:latest
+          image: quay.io/topolvm/topolvm-with-sidecar:latest
           command:
             - /topolvm-controller
             - --cert-dir=/certs
@@ -337,7 +337,7 @@ spec:
               mountPath: /certs
 
         - name: csi-provisioner
-          image: quay.io/topolvm/topolvm:latest
+          image: quay.io/topolvm/topolvm-with-sidecar:latest
           command:
             - /csi-provisioner
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
@@ -349,7 +349,7 @@ spec:
               mountPath: /run/topolvm
 
         - name: csi-attacher
-          image: quay.io/topolvm/topolvm:latest
+          image: quay.io/topolvm/topolvm-with-sidecar:latest
           command:
             - /csi-attacher
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
@@ -360,7 +360,7 @@ spec:
               mountPath: /run/topolvm
 
         - name: csi-resizer
-          image: quay.io/topolvm/topolvm:latest
+          image: quay.io/topolvm/topolvm-with-sidecar:latest
           command:
             - /csi-resizer
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
@@ -371,7 +371,7 @@ spec:
               mountPath: /run/topolvm
 
         - name: liveness-probe
-          image: quay.io/topolvm/topolvm:latest
+          image: quay.io/topolvm/topolvm-with-sidecar:latest
           command:
             - /livenessprobe
             - "--csi-address=/run/topolvm/csi-topolvm.sock"

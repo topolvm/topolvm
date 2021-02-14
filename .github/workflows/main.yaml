@@ -3,7 +3,7 @@ on:
   pull_request:
   push:
     branches:
-      - 'master'
+      - 'main'
 jobs:
   build:
     name: build
@@ -33,7 +33,6 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: 1.15
-      - run: make setup
       - run: make -C e2e setup
       - run: make -C e2e start-lvmd
       - run: make -C e2e test
@@ -49,4 +48,4 @@ jobs:
         with:
           go-version: 1.15
       - run: make setup
-      - run: make run
+      - run: make run BUILD_IMAGE=true

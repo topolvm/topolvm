@@ -16,26 +16,24 @@ spec:
         - name: topolvm-controller
           image: topolvm:dev
           imagePullPolicy: Never
-          command:
-            - /topolvm-controller
-            - --cert-dir=/certs
 
         - name: csi-provisioner
-          image: quay.io/k8scsi/csi-provisioner:v2.1.0
-          imagePullPolicy: "IfNotPresent"
+          image: topolvm:dev
+          imagePullPolicy: Never
 
         - name: csi-attacher
-          image: quay.io/k8scsi/csi-attacher:v3.1.0
-          imagePullPolicy: "IfNotPresent"
+          image: topolvm:dev
+          imagePullPolicy: Never
 
         - name: csi-resizer
-          image: quay.io/k8scsi/csi-resizer:v1.1.0
-          imagePullPolicy: "IfNotPresent"
+          image: topolvm:dev
+          imagePullPolicy: Never
 
         - name: liveness-probe
-          image: quay.io/k8scsi/livenessprobe:v2.2.0
-          imagePullPolicy: "IfNotPresent"
+          image: topolvm:dev
+          imagePullPolicy: Never
 
+      # sanity test requires that the controller mounts this hostPath to communicate with it
       volumes:
         - name: socket-dir
           emptyDir: null

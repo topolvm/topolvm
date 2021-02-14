@@ -44,7 +44,7 @@ Bump version
     $ export VERSION
     ```
 
-2. Checkout `master` branch.
+2. Checkout `main` branch.
 3. Make a branch to release, for example by `git neco dev bump-$VERSION`
 4. Update image versions in files below:
    - deploy/manifests/overlays/deployment-scheduler/kustomization.yaml
@@ -66,7 +66,7 @@ Bump version
 8. Add a new tag and push it as follows:
 
     ```console
-    $ git checkout master
+    $ git checkout main
     $ git pull
     $ git tag v$VERSION
     $ git push origin v$VERSION
