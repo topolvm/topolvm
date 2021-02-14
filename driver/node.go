@@ -195,6 +195,10 @@ func (s *nodeService) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequ
 			}
 		}
 
+		if f == "rw" && req.GetReadonly() {
+			return nil, status.Error(codes.InvalidArgument, "mount option \"rw\" is specified even though read only mode is specified")
+		}
+
 		if !hasOption {
 			mountOptions = append(mountOptions, f)
 		}

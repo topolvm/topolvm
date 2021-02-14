@@ -263,4 +263,72 @@ spec:
 		stdout, stderr, err := kubectl("delete", "logicalvolume", "csi-node-test-block")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 	})
+
+	It("validate mount options", func() {
+		mountTargetPath := "/mnt/csi-node-test"
+
+		By("creating a logical volume resource")
+		lvYaml := []byte(`apiVersion: topolvm.cybozu.com/v1
+kind: LogicalVolume
+metadata:
+  name: csi-node-test-fs
+spec:
+  deviceClass: ssd
+  name: csi-node-test-fs
+  nodeName: topolvm-e2e-worker
+  size: 1Gi
+`)
+
+		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+
+		var volumeID string
+		Eventually(func() error {
+			stdout, stderr, err := kubectl("get", "logicalvolume", "csi-node-test-fs", "-o", "yaml")
+			if err != nil {
+				return fmt.Errorf("failed to get logical volume. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+
+			var lv topolvmv1.LogicalVolume
+			err = yaml.Unmarshal(stdout, &lv)
+			if err != nil {
+				return err
+			}
+
+			if len(lv.Status.VolumeID) == 0 {
+				return errors.New("VolumeID is not set")
+			}
+			volumeID = lv.Status.VolumeID
+			return nil
+		}).Should(Succeed())
+
+		cl.register(volumeID, mountTargetPath)
+
+		By("mount option \"rw\" is specified even though read only mode is specified")
+		mountVolCap := &csi.VolumeCapability{
+			AccessType: &csi.VolumeCapability_Mount{
+				Mount: &csi.VolumeCapability_MountVolume{
+					FsType:     "xfs",
+					MountFlags: []string{"wr"},
+				},
+			},
+			AccessMode: &csi.VolumeCapability_AccessMode{
+				Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
+			},
+		}
+
+		req := &csi.NodePublishVolumeRequest{
+			PublishContext:   map[string]string{},
+			TargetPath:       mountTargetPath,
+			VolumeCapability: mountVolCap,
+			VolumeId:         volumeID,
+			Readonly:         true,
+		}
+		_, err = nc.NodePublishVolume(context.Background(), req)
+		Expect(err).Should(HaveOccurred())
+
+		By("cleaning logicalvolume")
+		stdout, stderr, err := kubectl("delete", "logicalvolume", "csi-node-test-fs")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+	})
 }
