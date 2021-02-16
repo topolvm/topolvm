@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"golang.org/x/sys/unix"
 )
@@ -69,68 +68,6 @@ func IsMounted(device, target string) (bool, error) {
 	}
 
 	return false, nil
-}
-
-// Mount mounts a block device onto target with filesystem-specific opts.
-// target directory must exist.
-func Mount(device, target, fsType, opts string, readonly bool) error {
-	switch mounted, err := IsMounted(device, target); {
-	case err != nil:
-		return err
-	case mounted:
-		return nil
-	}
-
-	var flg uintptr = unix.MS_LAZYTIME
-	if readonly {
-		flg |= unix.MS_RDONLY
-	}
-
-	// Handle EINTR signal for Go 1.14+
-	for {
-		err := unix.Mount(device, target, fsType, flg, opts)
-		if err == nil {
-			return nil
-		}
-		if e, ok := err.(temporaryer); ok && e.Temporary() {
-			continue
-		}
-		return err
-	}
-}
-
-// Unmount unmounts the device if it is mounted.
-func Unmount(device, target string) error {
-	for i := 0; i < 10; i++ {
-		switch mounted, err := IsMounted(device, target); {
-		case err != nil:
-			return err
-		case !mounted:
-			return nil
-		}
-
-		// Handle EINTR signal for Go 1.14+
-		var err error
-		for {
-			err = unix.Unmount(target, unix.UMOUNT_NOFOLLOW)
-			if err == nil {
-				break
-			}
-			if e, ok := err.(temporaryer); ok && e.Temporary() {
-				continue
-			}
-			break
-		}
-
-		switch err {
-		case nil, unix.EBUSY:
-			// umount(2) can lie that it could have unmounted, so recheck.
-			time.Sleep(500 * time.Millisecond)
-		default:
-			return err
-		}
-	}
-	return unix.EBUSY
 }
 
 // DetectFilesystem returns filesystem type if device has a filesystem.
