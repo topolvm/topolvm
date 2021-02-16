@@ -1,9 +1,9 @@
-package filesystem
-
 /*
 This code from here:
 https://github.com/kubernetes/kubernetes/blob/v1.19.7/pkg/util/resizefs/resizefs_linux.go
 */
+
+package filesystem
 
 import (
 	"fmt"
