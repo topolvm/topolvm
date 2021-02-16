@@ -32,6 +32,7 @@ const (
 	mountCmd         = "/bin/mount"
 	mountpointCmd    = "/bin/mountpoint"
 	umountCmd        = "/bin/umount"
+	findmntCmd       = "/usr/bin/findmnt"
 	devicePermission = 0600 | unix.S_IFBLK
 	ephVolConKey     = "csi.storage.k8s.io/ephemeral"
 )
@@ -207,6 +208,15 @@ func (s *nodeService) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequ
 	err = os.MkdirAll(req.GetTargetPath(), 0755)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "mkdir failed: target=%s, error=%v", req.GetTargetPath(), err)
+	}
+
+	fsType, err := filesystem.DetectFilesystem(device)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "filesystem check failed: volume=%s, error=%v", req.GetVolumeId(), err)
+	}
+
+	if fsType != "" && fsType != mountOption.FsType {
+		return nil, status.Errorf(codes.Internal, "target device is already formatted with different filesystem: volume=%s, current=%s, new:%s", req.GetVolumeId(), fsType, mountOption.FsType)
 	}
 
 	mounted, err := filesystem.IsMounted(device, req.GetTargetPath())
@@ -522,7 +532,7 @@ func (s *nodeService) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 	}
 
 	args := []string{"-o", "source", "--noheadings", "--target", req.GetVolumePath()}
-	output, err := s.mounter.Exec.Command("findmnt", args...).Output()
+	output, err := s.mounter.Exec.Command(findmntCmd, args...).Output()
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "findmnt error occured: %v", err)
 	}
