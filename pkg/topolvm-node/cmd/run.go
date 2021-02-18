@@ -70,7 +70,6 @@ func subMain() error {
 
 	lvcontroller := controllers.NewLogicalVolumeReconciler(
 		mgr.GetClient(),
-		ctrl.Log.WithName("controllers").WithName("LogicalVolume"),
 		nodename,
 		conn,
 	)

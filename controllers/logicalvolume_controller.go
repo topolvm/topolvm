@@ -15,12 +15,12 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+	crlog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // LogicalVolumeReconciler reconciles a LogicalVolume object on each node.
 type LogicalVolumeReconciler struct {
 	client.Client
-	log       logr.Logger
 	nodeName  string
 	vgService proto.VGServiceClient
 	lvService proto.LVServiceClient
@@ -30,10 +30,9 @@ type LogicalVolumeReconciler struct {
 // +kubebuilder:rbac:groups=topolvm.cybozu.com,resources=logicalvolumes/status,verbs=get;update;patch
 
 // NewLogicalVolumeReconciler returns LogicalVolumeReconciler with creating lvService and vgService.
-func NewLogicalVolumeReconciler(client client.Client, log logr.Logger, nodeName string, conn *grpc.ClientConn) *LogicalVolumeReconciler {
+func NewLogicalVolumeReconciler(client client.Client, nodeName string, conn *grpc.ClientConn) *LogicalVolumeReconciler {
 	return &LogicalVolumeReconciler{
 		Client:    client,
-		log:       log,
 		nodeName:  nodeName,
 		vgService: proto.NewVGServiceClient(conn),
 		lvService: proto.NewLVServiceClient(conn),
@@ -42,7 +41,7 @@ func NewLogicalVolumeReconciler(client client.Client, log logr.Logger, nodeName 
 
 // Reconcile creates/deletes LVM logical volume for a LogicalVolume.
 func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := r.log.WithValues("logicalvolume", req.NamespacedName)
+	log := crlog.FromContext(ctx)
 
 	lv := new(topolvmv1.LogicalVolume)
 	if err := r.Get(ctx, req.NamespacedName, lv); err != nil {

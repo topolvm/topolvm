@@ -12,13 +12,13 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+	crlog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // NodeReconciler reconciles a Node object
 type NodeReconciler struct {
 	client.Client
-	Log logr.Logger
 }
 
 // +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch;update;patch
@@ -27,7 +27,7 @@ type NodeReconciler struct {
 
 // Reconcile finalize Node
 func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.WithValues("node", req.NamespacedName)
+	log := crlog.FromContext(ctx)
 
 	// your logic here
 	node := &corev1.Node{}

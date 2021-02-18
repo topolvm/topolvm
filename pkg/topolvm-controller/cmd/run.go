@@ -78,7 +78,6 @@ func subMain() error {
 	// register controllers
 	nodecontroller := &controllers.NodeReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Node"),
 	}
 	if err := nodecontroller.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Node")
@@ -88,7 +87,6 @@ func subMain() error {
 	pvccontroller := &controllers.PersistentVolumeClaimReconciler{
 		Client:    mgr.GetClient(),
 		APIReader: mgr.GetAPIReader(),
-		Log:       ctrl.Log.WithName("controllers").WithName("PersistentVolumeClaim"),
 	}
 	if err := pvccontroller.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PersistentVolumeClaim")
