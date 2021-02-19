@@ -140,7 +140,7 @@ var _ = BeforeSuite(func() {
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "MutatingWebhookConfiguration",
-					APIVersion: "admissionregistration.k8s.io/v1beta1",
+					APIVersion: "admissionregistration.k8s.io/v1",
 				},
 				Webhooks: []admissionregistrationv1beta1.MutatingWebhook{
 					{

@@ -3,7 +3,7 @@ TEST_KUBERNETES_TARGET ?= current
 TEST_SCHEDULER_MANIFEST ?= daemonset
 
 ## Dependency versions
-KIND_VERSION=0.9.0
+KIND_VERSION=0.10.0
 
 BINDIR=$(PWD)/bin
 SUDO=sudo
