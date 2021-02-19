@@ -188,21 +188,10 @@ func (s *nodeService) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequ
 	}
 
 	for _, f := range mountOption.MountFlags {
-		hasOption := false
-		for _, o := range mountOptions {
-			if o == f {
-				hasOption = true
-				break
-			}
-		}
-
 		if f == "rw" && req.GetReadonly() {
 			return nil, status.Error(codes.InvalidArgument, "mount option \"rw\" is specified even though read only mode is specified")
 		}
-
-		if !hasOption {
-			mountOptions = append(mountOptions, f)
-		}
+		mountOptions = append(mountOptions, f)
 	}
 
 	err = os.MkdirAll(req.GetTargetPath(), 0755)
