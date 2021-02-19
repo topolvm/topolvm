@@ -8,6 +8,9 @@ metadata:
     app.kubernetes.io/name: topolvm-hook
 webhooks:
   - name: pod-hook.topolvm.cybozu.com
+    admissionReviewVersions:
+      - "v1"
+      - "v1beta1"
     namespaceSelector:
       matchExpressions:
       - key: topolvm.cybozu.com/webhook
@@ -26,6 +29,9 @@ webhooks:
         resources: ["pods"]
     sideEffects: None
   - name: pvc-hook.topolvm.cybozu.com
+    admissionReviewVersions:
+      - "v1"
+      - "v1beta1"
     namespaceSelector:
       matchExpressions:
       - key: topolvm.cybozu.com/webhook
