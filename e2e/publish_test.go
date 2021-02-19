@@ -325,7 +325,7 @@ spec:
 			AccessType: &csi.VolumeCapability_Mount{
 				Mount: &csi.VolumeCapability_MountVolume{
 					FsType:     "xfs",
-					MountFlags: []string{"wr"},
+					MountFlags: []string{"rw"},
 				},
 			},
 			AccessMode: &csi.VolumeCapability_AccessMode{
