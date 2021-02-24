@@ -5,12 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	"github.com/topolvm/topolvm/csi"
 	"google.golang.org/grpc"
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -277,6 +279,94 @@ spec:
 
 		By("cleaning logicalvolume")
 		stdout, stderr, err := kubectl("delete", "logicalvolume", "csi-node-test-block")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+	})
+
+	It("should publish filesystem with mount option", func() {
+		By("creating a PVC and Pod")
+		lvYaml := []byte(`kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: topo-pvc-mount-option
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: topolvm-provisioner-mount-option
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ubuntu-mount-option
+  labels:
+    app.kubernetes.io/name: ubuntu
+spec:
+  containers:
+    - name: ubuntu
+      image: quay.io/cybozu/ubuntu:20.04
+      command: ["/usr/local/bin/pause"]
+      volumeMounts:
+        - mountPath: /test1
+          name: my-volume
+  volumes:
+    - name: my-volume
+      persistentVolumeClaim:
+        claimName: topo-pvc-mount-option
+`)
+
+		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+
+		Eventually(func() error {
+			stdout, stderr, err := kubectl("get", "pod", "ubuntu-mount-option", "-o", "yaml")
+			if err != nil {
+				return fmt.Errorf("failed to get pod. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+
+			var pod corev1.Pod
+			err = yaml.Unmarshal(stdout, &pod)
+			if err != nil {
+				return err
+			}
+
+			if pod.Status.Phase != corev1.PodRunning {
+				return errors.New("Pod is not running")
+			}
+
+			return nil
+		}).Should(Succeed())
+
+		By("check mount option")
+		stdout, stderr, err := kubectl("get", "pvc", "topo-pvc-mount-option", "-o", "yaml")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		var pvc corev1.PersistentVolumeClaim
+		err = yaml.Unmarshal(stdout, &pvc)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		stdout, stderr, err = execAtLocal("cat", nil, "/proc/mounts")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		var isExistingOption bool
+		lines := strings.Split(string(stdout), "\n")
+		for _, line := range lines {
+			if strings.Contains(line, pvc.Spec.VolumeName) {
+				fields := strings.Split(line, " ")
+				Expect(len(fields)).To(Equal(6))
+				options := strings.Split(fields[3], ",")
+				for _, option := range options {
+					if option == "debug" {
+						isExistingOption = true
+					}
+				}
+			}
+		}
+		Expect(isExistingOption).Should(BeTrue())
+
+		By("cleaning pvc/pod")
+		stdout, stderr, err = kubectlWithInput(lvYaml, "delete", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 	})
 
