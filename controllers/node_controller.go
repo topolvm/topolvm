@@ -9,17 +9,16 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+	crlog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // NodeReconciler reconciles a Node object
 type NodeReconciler struct {
 	client.Client
-	Log logr.Logger
 }
 
 // +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch;update;patch
@@ -27,9 +26,8 @@ type NodeReconciler struct {
 // +kubebuilder:rbac:groups="storage.k8s.io",resources=storageclasses,verbs=get;list;watch
 
 // Reconcile finalize Node
-func (r *NodeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
-	log := r.Log.WithValues("node", req.NamespacedName)
+func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	log := crlog.FromContext(ctx)
 
 	// your logic here
 	node := &corev1.Node{}
@@ -183,14 +181,14 @@ func (r *NodeReconciler) cleanupLogicalVolume(ctx context.Context, log logr.Logg
 // SetupWithManager sets up Reconciler with Manager.
 func (r *NodeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	ctx := context.Background()
-	err := mgr.GetFieldIndexer().IndexField(ctx, &corev1.PersistentVolumeClaim{}, keySelectedNode, func(o runtime.Object) []string {
+	err := mgr.GetFieldIndexer().IndexField(ctx, &corev1.PersistentVolumeClaim{}, keySelectedNode, func(o client.Object) []string {
 		return []string{o.(*corev1.PersistentVolumeClaim).Annotations[AnnSelectedNode]}
 	})
 	if err != nil {
 		return err
 	}
 
-	err = mgr.GetFieldIndexer().IndexField(ctx, &topolvmv1.LogicalVolume{}, keyLogicalVolumeNode, func(o runtime.Object) []string {
+	err = mgr.GetFieldIndexer().IndexField(ctx, &topolvmv1.LogicalVolume{}, keyLogicalVolumeNode, func(o client.Object) []string {
 		return []string{o.(*topolvmv1.LogicalVolume).Spec.NodeName}
 	})
 	if err != nil {

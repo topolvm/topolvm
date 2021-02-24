@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"sync"
@@ -245,14 +246,19 @@ func (s *nodeService) nodePublishBlockVolume(req *csi.NodePublishVolumeRequest, 
 		return nil, status.Errorf(codes.Internal, "failed to stat: %v", err)
 	}
 
+	err = os.MkdirAll(path.Dir(target), 0755)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "mkdir failed: target=%s, error=%v", path.Dir(target), err)
+	}
+
 	devno := unix.Mkdev(lv.DevMajor, lv.DevMinor)
 	if err := filesystem.Mknod(target, devicePermission, int(devno)); err != nil {
-		return nil, status.Errorf(codes.Internal, "mknod failed for %s: error=%v", req.GetTargetPath(), err)
+		return nil, status.Errorf(codes.Internal, "mknod failed for %s: error=%v", target, err)
 	}
 
 	nodeLogger.Info("NodePublishVolume(block) succeeded",
 		"volume_id", req.GetVolumeId(),
-		"target_path", req.GetTargetPath())
+		"target_path", target)
 	return &csi.NodePublishVolumeResponse{}, nil
 }
 

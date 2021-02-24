@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/topolvm/topolvm"
 
-	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -33,8 +33,7 @@ import (
 var cfg *rest.Config
 var k8sClient client.Client
 var testEnv *envtest.Environment
-var testCtx = context.Background()
-var stopCh = make(chan struct{})
+var testCtx, testCancel = context.WithCancel(context.Background())
 
 const (
 	topolvmProvisionerStorageClassName          = "topolvm-provisioner"
@@ -131,33 +130,34 @@ var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.UseDevMode(true), zap.WriteTo(GinkgoWriter)))
 
 	By("bootstrapping test environment")
-	failPolicy := admissionregistrationv1beta1.Fail
-	sideEffects := admissionregistrationv1beta1.SideEffectClassNone
+	failPolicy := admissionregistrationv1.Fail
+	sideEffects := admissionregistrationv1.SideEffectClassNone
 	webhookInstallOptions := envtest.WebhookInstallOptions{
-		MutatingWebhooks: []runtime.Object{
-			&admissionregistrationv1beta1.MutatingWebhookConfiguration{
+		MutatingWebhooks: []client.Object{
+			&admissionregistrationv1.MutatingWebhookConfiguration{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "topolvm-hook",
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "MutatingWebhookConfiguration",
-					APIVersion: "admissionregistration.k8s.io/v1beta1",
+					APIVersion: "admissionregistration.k8s.io/v1",
 				},
-				Webhooks: []admissionregistrationv1beta1.MutatingWebhook{
+				Webhooks: []admissionregistrationv1.MutatingWebhook{
 					{
-						Name:          "pod-hook.topolvm.cybozu.com",
-						FailurePolicy: &failPolicy,
-						ClientConfig: admissionregistrationv1beta1.WebhookClientConfig{
-							Service: &admissionregistrationv1beta1.ServiceReference{
+						Name:                    "pod-hook.topolvm.cybozu.com",
+						AdmissionReviewVersions: []string{"v1", "v1beta1"},
+						FailurePolicy:           &failPolicy,
+						ClientConfig: admissionregistrationv1.WebhookClientConfig{
+							Service: &admissionregistrationv1.ServiceReference{
 								Path: &podMutatingWebhookPath,
 							},
 						},
-						Rules: []admissionregistrationv1beta1.RuleWithOperations{
+						Rules: []admissionregistrationv1.RuleWithOperations{
 							{
-								Operations: []admissionregistrationv1beta1.OperationType{
-									admissionregistrationv1beta1.Create,
+								Operations: []admissionregistrationv1.OperationType{
+									admissionregistrationv1.Create,
 								},
-								Rule: admissionregistrationv1beta1.Rule{
+								Rule: admissionregistrationv1.Rule{
 									APIGroups:   []string{""},
 									APIVersions: []string{"v1"},
 									Resources:   []string{"pods"},
@@ -167,19 +167,20 @@ var _ = BeforeSuite(func() {
 						SideEffects: &sideEffects,
 					},
 					{
-						Name:          "pvc-hook.topolvm.cybozu.com",
-						FailurePolicy: &failPolicy,
-						ClientConfig: admissionregistrationv1beta1.WebhookClientConfig{
-							Service: &admissionregistrationv1beta1.ServiceReference{
+						Name:                    "pvc-hook.topolvm.cybozu.com",
+						AdmissionReviewVersions: []string{"v1", "v1beta1"},
+						FailurePolicy:           &failPolicy,
+						ClientConfig: admissionregistrationv1.WebhookClientConfig{
+							Service: &admissionregistrationv1.ServiceReference{
 								Path: &pvcMutatingWebhookPath,
 							},
 						},
-						Rules: []admissionregistrationv1beta1.RuleWithOperations{
+						Rules: []admissionregistrationv1.RuleWithOperations{
 							{
-								Operations: []admissionregistrationv1beta1.OperationType{
-									admissionregistrationv1beta1.Create,
+								Operations: []admissionregistrationv1.OperationType{
+									admissionregistrationv1.Create,
 								},
-								Rule: admissionregistrationv1beta1.Rule{
+								Rule: admissionregistrationv1.Rule{
 									APIGroups:   []string{""},
 									APIVersions: []string{"v1"},
 									Resources:   []string{"persistentvolumeclaims"},
@@ -212,7 +213,7 @@ var _ = BeforeSuite(func() {
 	Expect(k8sClient).ToNot(BeNil())
 
 	By("running webhook server")
-	go run(stopCh, cfg, scheme, &testEnv.WebhookInstallOptions)
+	go run(testCtx, cfg, scheme, &testEnv.WebhookInstallOptions)
 	d := &net.Dialer{Timeout: time.Second}
 	Eventually(func() error {
 		serverURL := fmt.Sprintf("%s:%d", testEnv.WebhookInstallOptions.LocalServingHost, testEnv.WebhookInstallOptions.LocalServingPort)
@@ -234,7 +235,7 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
-	close(stopCh)
+	testCancel()
 	err := testEnv.Stop()
 	Expect(err).ToNot(HaveOccurred())
 })

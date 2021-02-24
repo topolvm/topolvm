@@ -4,13 +4,13 @@ import (
 	"context"
 	"time"
 
-	"github.com/go-logr/logr"
 	"github.com/topolvm/topolvm"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+	crlog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
@@ -18,16 +18,14 @@ import (
 type PersistentVolumeClaimReconciler struct {
 	client.Client
 	APIReader client.Reader
-	Log       logr.Logger
 }
 
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;update
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;delete
 
 // Reconcile finalize PVC
-func (r *PersistentVolumeClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
-	log := r.Log.WithValues("persistentvolumeclaim", req.NamespacedName)
+func (r *PersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	log := crlog.FromContext(ctx)
 	// your logic here
 	pvc := &corev1.PersistentVolumeClaim{}
 	err := r.Get(ctx, req.NamespacedName, pvc)
