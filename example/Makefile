@@ -25,7 +25,7 @@ $(KUBECTL):
 build/topolvm.img: $(GO_FILES)
 	$(MAKE) -C .. image IMAGE_PREFIX=quay.io/topolvm/
 	$(MAKE) -C .. tag IMAGE_PREFIX=quay.io/topolvm/ IMAGE_TAG=$(TOPOLVM_VERSION)
-	docker save -o $@ quay.io/topolvm/topolvm:$(TOPOLVM_VERSION)
+	docker save -o $@ quay.io/topolvm/topolvm-with-sidecar:$(TOPOLVM_VERSION)
 
 run: $(SERVER_CERT_FILES)
 	$(MAKE) start-lvmd
