@@ -173,6 +173,10 @@ start-lvmd-for-lvmd-daemonset:
 	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_2;
 	$(SUDO) vgcreate -y node-lvmd-myvg2 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_2 | cut -d: -f1);
 
+	truncate --size=10G $(BACKING_STORE)/backing_store_lvmd_3;
+	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_3;
+	$(SUDO) vgcreate -y node-lvmd-myvg3 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_3 | cut -d: -f1);
+
 .PHONY: stop-lvmd-for-lvmd-daemonset
 stop-lvmd-for-lvmd-daemonset:
 	$(SUDO) vgremove -ffy node-lvmd-myvg1;
@@ -184,6 +188,11 @@ stop-lvmd-for-lvmd-daemonset:
 	$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_2 | cut -d: -f1);
 	$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_2 | cut -d: -f1);
 	rm -f $(BACKING_STORE)/backing_store_lvmd_2;
+
+	$(SUDO) vgremove -ffy node-lvmd-myvg3;
+	$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_3 | cut -d: -f1);
+	$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_3 | cut -d: -f1);
+	rm -f $(BACKING_STORE)/backing_store_lvmd_3;
 
 .PHONY: test-lvmd-daemonset
 test-lvmd-daemonset: topolvm.img $(SERVER_CERT_FILES)
