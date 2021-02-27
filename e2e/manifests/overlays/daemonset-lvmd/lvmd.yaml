@@ -46,6 +46,9 @@ data:
       - name: "hdd1"
         volume-group: "node-lvmd-myvg2"
         spare-gb: 1
+      - name: "hdd2"
+        volume-group: "node-lvmd-myvg3"
+        spare-gb: 1
 ---
 apiVersion: apps/v1
 kind: DaemonSet

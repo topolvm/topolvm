@@ -2,9 +2,11 @@ package e2e
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
+	"os"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
@@ -57,7 +59,11 @@ func testPublishVolume() {
 		nc   csi.NodeClient
 		conn *grpc.ClientConn
 	)
+
 	nodeSocket := "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/csi-topolvm.sock"
+	if os.Getenv("LVMD") != "" {
+		nodeSocket = "/var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock"
+	}
 
 	var cc CleanupContext
 
@@ -88,17 +94,28 @@ func testPublishVolume() {
 	It("should publish filesystem", func() {
 		mountTargetPath := "/mnt/csi-node-test"
 
+		nodeName := "topolvm-e2e-worker"
+		if os.Getenv("LVMD") != "" {
+			stdout, stderr, err := kubectl("get", "nodes", "-o=json")
+			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+			var nodes corev1.NodeList
+			err = json.Unmarshal(stdout, &nodes)
+			Expect(err).ShouldNot(HaveOccurred())
+			nodeName = nodes.Items[0].Name
+		}
+
 		By("creating a logical volume resource")
-		lvYaml := []byte(`apiVersion: topolvm.cybozu.com/v1
-kind: LogicalVolume
-metadata:
-  name: csi-node-test-fs
-spec:
-  deviceClass: ssd
-  name: csi-node-test-fs
-  nodeName: topolvm-e2e-worker
-  size: 1Gi
-`)
+		lvString := "apiVersion: topolvm.cybozu.com/v1\n" +
+			"kind: LogicalVolume\n" +
+			"metadata:\n" +
+			"  name: csi-node-test-fs\n" +
+			"spec:\n" +
+			"  deviceClass: ssd\n" +
+			"  name: csi-node-test-fs\n" +
+			"  nodeName: " + nodeName + "\n" +
+			"  size: 1Gi"
+		lvYaml := []byte(lvString)
 
 		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -191,16 +208,26 @@ spec:
 		deviceTargetPath := "/dev/csi-node-test"
 
 		By("creating a logical volume resource")
-		lvYaml := []byte(`apiVersion: topolvm.cybozu.com/v1
-kind: LogicalVolume
-metadata:
-  name: csi-node-test-block
-spec:
-  deviceClass: ssd
-  name: csi-node-test-block
-  nodeName: topolvm-e2e-worker
-  size: 1Gi
-`)
+		nodeName := "topolvm-e2e-worker"
+		if os.Getenv("LVMD") != "" {
+			stdout, stderr, err := kubectl("get", "nodes", "-o=json")
+			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+			var nodes corev1.NodeList
+			err = json.Unmarshal(stdout, &nodes)
+			Expect(err).ShouldNot(HaveOccurred())
+			nodeName = nodes.Items[0].Name
+		}
+		lvString := "apiVersion: topolvm.cybozu.com/v1\n" +
+			"kind: LogicalVolume\n" +
+			"metadata:\n" +
+			"  name: csi-node-test-block\n" +
+			"spec:\n" +
+			"  deviceClass: ssd\n" +
+			"  name: csi-node-test-block\n" +
+			"  nodeName: " + nodeName + "\n" +
+			"  size: 1Gi"
+		lvYaml := []byte(lvString)
 
 		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())

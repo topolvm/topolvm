@@ -1,0 +1,27 @@
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterConfiguration
+metadata:
+  name: config
+kubernetesVersion: "v1.19.8"
+networking:
+  podSubnet: 10.217.0.0/16
+scheduler:
+  extraVolumes:
+    - name: "config"
+      hostPath: /var/lib/scheduler
+      mountPath: /var/lib/scheduler
+      readOnly: true
+  extraArgs:
+    config: /var/lib/scheduler/scheduler-config.yaml
+controllerManager:
+  extraArgs:
+    "v": "5"
+
+---
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: InitConfiguration
+metadata:
+  name: config
+nodeRegistration:
+  kubeletExtraArgs:
+    read-only-port: "10255"
