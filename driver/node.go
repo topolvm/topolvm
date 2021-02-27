@@ -366,14 +366,22 @@ func (s *nodeService) isEphemeralVolume(volume *proto.LogicalVolume) bool {
 
 func (s *nodeService) nodeUnpublishFilesystemVolume(req *csi.NodeUnpublishVolumeRequest, device string) (*csi.NodeUnpublishVolumeResponse, error) {
 	target := req.GetTargetPath()
-	if err := s.mounter.Unmount(target); err != nil {
-		return nil, status.Errorf(codes.Internal, "unmount failed for %s: error=%v", target, err)
+
+	mounted, err := filesystem.IsMounted(device, target)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "mount check failed: target=%s, error=%v", target, err)
 	}
-	if err := os.RemoveAll(target); err != nil {
-		return nil, status.Errorf(codes.Internal, "remove dir failed for %s: error=%v", target, err)
-	}
-	if err := os.Remove(device); err != nil {
-		return nil, status.Errorf(codes.Internal, "remove device failed for %s: error=%v", device, err)
+
+	if mounted {
+		if err := s.mounter.Unmount(target); err != nil {
+			return nil, status.Errorf(codes.Internal, "unmount failed for %s: error=%v", target, err)
+		}
+		if err := os.RemoveAll(target); err != nil {
+			return nil, status.Errorf(codes.Internal, "remove dir failed for %s: error=%v", target, err)
+		}
+		if err := os.Remove(device); err != nil {
+			return nil, status.Errorf(codes.Internal, "remove device failed for %s: error=%v", device, err)
+		}
 	}
 
 	nodeLogger.Info("NodeUnpublishVolume(fs) is succeeded",
