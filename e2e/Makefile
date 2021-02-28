@@ -156,25 +156,25 @@ setup:
 
 .PHONY: lvmd-daemonset/install-kubeadm
 lvmd-daemonset/install-kubeadm:
-	modprobe br_netfilter
-	cat <<EOF > /etc/sysctl.d/k8s.conf
+	$(SUDO) modprobe br_netfilter
+	$(SUDO) cat <<EOF > /etc/sysctl.d/k8s.conf
 	net.bridge.bridge-nf-call-ip6tables = 1
 	net.bridge.bridge-nf-call-iptables = 1
 	EOF
-	sysctl --system
-	sudo apt-get install -y iptables arptables ebtables
-	apt-get update && apt-get install -y \
+	$(SUDO) sysctl --system
+	$(SUDO) apt-get install -y iptables arptables ebtables
+	$(SUDO) apt-get update && apt-get install -y \
 		apt-transport-https ca-certificates curl software-properties-common gnupg2
-	curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-	add-apt-repository \
+	$(SUDO) curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+	$(SUDO) add-apt-repository \
 		"deb [arch=amd64] https://download.docker.com/linux/ubuntu \
 		$$(lsb_release -cs) \
 		stable"
-	apt-get update && apt-get install -y \
+	$(SUDO)apt-get update && apt-get install -y \
 	containerd.io=1.2.13-2 \
 	docker-ce=5:19.03.11~3-0~ubuntu-$$(lsb_release -cs) \
 	docker-ce-cli=5:19.03.11~3-0~ubuntu-$(lsb_release -cs)
-	cat > /etc/docker/daemon.json <<EOF
+	$(SUDO) cat > /etc/docker/daemon.json <<EOF
 	{
 		"exec-opts": ["native.cgroupdriver=systemd"],
 		"log-driver": "json-file",
@@ -184,18 +184,18 @@ lvmd-daemonset/install-kubeadm:
 		"storage-driver": "overlay2"
 	}
 	EOF
-	mkdir -p /etc/systemd/system/docker.service.d
-	systemctl daemon-reload
-	systemctl restart docker
-	sudo systemctl enable docker
-	sudo apt-get update && sudo apt-get install -y apt-transport-https curl
-	curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
-	cat <<EOF | sudo tee /etc/apt/sources.list.d/kubernetes.list
+	$(SUDO) mkdir -p /etc/systemd/system/docker.service.d
+	$(SUDO) systemctl daemon-reload
+	$(SUDO) systemctl restart docker
+	$(SUDO) systemctl enable docker
+	$(SUDO) apt-get update && $(SUDO) apt-get install -y apt-transport-https curl
+	curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | $(SUDO) apt-key add -
+	cat <<EOF | $(SUDO) tee /etc/apt/sources.list.d/kubernetes.list
 	deb https://apt.kubernetes.io/ kubernetes-xenial main
 	EOF
-	sudo apt-get update
-	sudo apt-get install -y kubelet=1.19.7-00 kubeadm=1.19.7-00 kubectl=1.19.7-00
-	sudo apt-mark hold kubelet kubeadm kubectl
+	$(SUDO) apt-get update
+	$(SUDO) apt-get install -y kubelet=1.19.7-00 kubeadm=1.19.7-00 kubectl=1.19.7-00
+	$(SUDO) apt-mark hold kubelet kubeadm kubectl
 
 
 .PHONY: daemonset-lvmd/setup-kubeadm
