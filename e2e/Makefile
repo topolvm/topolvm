@@ -154,11 +154,23 @@ setup:
 
 .PHONY: launch-kind shutdown-kind start-lvmd stop-lvmd test clean setup
 
-.PHONY: start-lvmd-for-lvmd-daemonset
-start-lvmd-for-lvmd-daemonset:
+.PHONY: daemonset-lvmd/setup-kubeadm
+lvmd-daemonset/setup-kubeadm: lvmd-daemonset/create-vg
+	kubeadm init --config $(PWD)/kubeadm/kubeadm-config.yaml
+	cp /etc/kubernetes/admin.conf $(HOME)/.kube/config
+	kubectl taint nodes $$(hostname) node-role.kubernetes.io/master:NoSchedule-
+	kubectl create -f https://raw.githubusercontent.com/cilium/cilium/v1.6/install/kubernetes/quick-install.yaml
+
+.PHONY: daemonset-lvmd/reset-kubeadm
+daemonset-lvmd/reset-kubeadm:
+	kubeadm reset -f
+	$(MAKE) daemonset-lvmd/remove-vg
+
+.PHONY: daemonset-lvmd/create-vg
+daemonset-lvmd/create-vg:
 	mkdir -p build $(BACKING_STORE)
 	go build -o build/lvmd ../pkg/lvmd
-	if [ -f $(BACKING_STORE)/backing_store_lvmd* ]; then $(MAKE) stop-lvmd-for-lvmd-daemonset; fi
+	if [ -f $(BACKING_STORE)/backing_store_lvmd* ]; then $(MAKE) sdaemonset-lvmd/remove-vg; fi
 
 	mkdir -p /tmp/topolvm/worker_lvmd;
 	mkdir -p /tmp/topolvm/lvmd_lvmd;
@@ -177,8 +189,8 @@ start-lvmd-for-lvmd-daemonset:
 	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_3;
 	$(SUDO) vgcreate -y node-lvmd-myvg3 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_3 | cut -d: -f1);
 
-.PHONY: stop-lvmd-for-lvmd-daemonset
-stop-lvmd-for-lvmd-daemonset:
+.PHONY: daemonset-lvmd/remove-vg
+daemonset-lvmd/remove-vg:
 	$(SUDO) vgremove -ffy node-lvmd-myvg1;
 	$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_1 | cut -d: -f1);
 	$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_1 | cut -d: -f1);
@@ -194,7 +206,7 @@ stop-lvmd-for-lvmd-daemonset:
 	$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_3 | cut -d: -f1);
 	rm -f $(BACKING_STORE)/backing_store_lvmd_3;
 
-.PHONY: test-lvmd-daemonset
-test-lvmd-daemonset: topolvm.img $(SERVER_CERT_FILES)
+.PHONY: daemonset-lvmd/test
+daemonset-lvmd/test: topolvm.img $(SERVER_CERT_FILES)
 	$(KUSTOMIZE) build --load_restrictor='none' manifests/overlays/daemonset-lvmd | $(KUBECTL) apply -f -
 	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) LVMD=true $(GINKGO) --failFast -v .
