@@ -157,7 +157,6 @@ setup:
 .PHONY: lvmd-daemonset/install-kubeadm
 lvmd-daemonset/install-kubeadm:
 	$(SUDO) modprobe br_netfilter
-	$(SUDO) mkdir /etc/sysctl.d
 	$(SUDO) cat <<EOF > /etc/sysctl.d/k8s.conf
 	net.bridge.bridge-nf-call-ip6tables = 1
 	net.bridge.bridge-nf-call-iptables = 1
@@ -171,7 +170,7 @@ lvmd-daemonset/install-kubeadm:
 		"deb [arch=amd64] https://download.docker.com/linux/ubuntu \
 		$$(lsb_release -cs) \
 		stable"
-	$(SUDO)apt-get update && apt-get install -y \
+	$(SUDO) apt-get update && apt-get install -y \
 	containerd.io=1.2.13-2 \
 	docker-ce=5:19.03.11~3-0~ubuntu-$$(lsb_release -cs) \
 	docker-ce-cli=5:19.03.11~3-0~ubuntu-$(lsb_release -cs)
