@@ -157,6 +157,7 @@ setup:
 .PHONY: lvmd-daemonset/install-kubeadm
 lvmd-daemonset/install-kubeadm:
 	$(SUDO) modprobe br_netfilter
+	$(SUDO) mkdir /etc/sysctl.d
 	$(SUDO) cat <<EOF > /etc/sysctl.d/k8s.conf
 	net.bridge.bridge-nf-call-ip6tables = 1
 	net.bridge.bridge-nf-call-iptables = 1
@@ -202,8 +203,8 @@ lvmd-daemonset/install-kubeadm:
 lvmd-daemonset/setup-kubeadm: lvmd-daemonset/create-vg
 	kubeadm init --config $(PWD)/kubeadm/kubeadm-config.yaml
 	cp /etc/kubernetes/admin.conf $(HOME)/.kube/config
-	kubectl taint nodes $$(hostname) node-role.kubernetes.io/master:NoSchedule-
-	kubectl create -f https://raw.githubusercontent.com/cilium/cilium/v1.6/install/kubernetes/quick-install.yaml
+	$(KUBECTL) taint nodes $$(hostname) node-role.kubernetes.io/master:NoSchedule-
+	$(KUBECTL) create -f https://raw.githubusercontent.com/cilium/cilium/v1.6/install/kubernetes/quick-install.yaml
 
 .PHONY: daemonset-lvmd/reset-kubeadm
 daemonset-lvmd/reset-kubeadm:
