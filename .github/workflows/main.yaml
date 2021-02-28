@@ -36,6 +36,17 @@ jobs:
       - run: make -C e2e setup
       - run: make -C e2e start-lvmd
       - run: make -C e2e test
+  e2e-k8s-daemonset-lvmd:
+    name: e2e-k8s-daemonset-lvmd
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.15
+      - run: make -C e2e lvmd-daemonset/install-kubeadm
+      - run: make -C e2e lvmd-daemonset/setup-kubeadm
+      - run: make -C e2e daemonset-lvmd/test
   example:
     name: example
     runs-on: ubuntu-20.04
@@ -49,3 +60,4 @@ jobs:
           go-version: 1.15
       - run: make setup
       - run: make run BUILD_IMAGE=true
+  
