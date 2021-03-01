@@ -5,6 +5,12 @@ This directory contains scripts to run TopoLVM in a demonstration environment.
 It uses [kind](https://github.com/kubernetes-sigs/kind) to run Kubernetes
 and loopback block devices to run `lvmd`.
 
+You can try TopoLVM using the example with tag like following command. The main branch is being edited, so it may not work.
+
+```
+$ git checkout v0.7.0
+```
+
 To start the demonstration environment, run the following commands:
 
 ```console
