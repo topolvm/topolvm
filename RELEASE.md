@@ -50,9 +50,11 @@ Bump version
    - deploy/manifests/overlays/deployment-scheduler/kustomization.yaml
    - deploy/manifests/overlays/daemonset-scheduler/kustomization.yaml
    - example/Makefile
+   - example/README.md
     ```console
     $ sed -r -i "s/newTag: [[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/newTag: ${VERSION}/g" deploy/manifests/overlays/deployment-scheduler/kustomization.yaml deploy/manifests/overlays/daemonset-scheduler/kustomization.yaml
     $ sed -r -i "s/TOPOLVM_VERSION=[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/TOPOLVM_VERSION=${VERSION}/g" example/Makefile
+    $ sed -r -i "s/checkout v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/checkout v${VERSION}/g" example/README.md
     ```
 5. Edit `CHANGELOG.md` for the new version ([example][]).
 6. Commit the change and create a pull request:
