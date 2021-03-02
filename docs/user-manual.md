@@ -40,9 +40,6 @@ To specify a device-class name to be used, give `topolvm.cybozu.com/device-class
 If no `topolvm.cybozu.com/device-class` is specified, the default device-class is used.
 
 Supported filesystems are: `ext4` and `xfs`.
-TopoLVM sets the following mount options regardless of `mountOptions`.
-- `lazytime` for all filesystems
-- `wsync` for `xfs`
 
 `volumeBindingMode` can be either `WaitForFirstConsumer` or `Immediate`.
 `WaitForFirstConsumer` is recommended because TopoLVM cannot schedule pods
