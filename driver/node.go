@@ -371,7 +371,6 @@ func (s *nodeService) nodeUnpublishFilesystemVolume(req *csi.NodeUnpublishVolume
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "mount check failed: target=%s, error=%v", target, err)
 	}
-
 	if mounted {
 		if err := s.mounter.Unmount(target); err != nil {
 			return nil, status.Errorf(codes.Internal, "unmount failed for %s: error=%v", target, err)
@@ -381,7 +380,9 @@ func (s *nodeService) nodeUnpublishFilesystemVolume(req *csi.NodeUnpublishVolume
 	if err := os.RemoveAll(target); err != nil {
 		return nil, status.Errorf(codes.Internal, "remove dir failed for %s: error=%v", target, err)
 	}
-	if err := os.Remove(device); err != nil {
+
+	err = os.Remove(device)
+	if !os.IsNotExist(err) {
 		return nil, status.Errorf(codes.Internal, "remove device failed for %s: error=%v", device, err)
 	}
 
