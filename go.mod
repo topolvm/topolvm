@@ -9,7 +9,6 @@ require (
 	github.com/cybozu-go/log v1.6.0
 	github.com/cybozu-go/well v1.10.0
 	github.com/go-logr/logr v0.3.0
-	github.com/go-logr/zapr v0.2.0
 	github.com/golang/protobuf v1.4.3
 	github.com/google/go-cmp v0.5.4
 	github.com/kubernetes-csi/csi-test/v4 v4.0.2
