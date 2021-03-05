@@ -39,6 +39,19 @@ metadata:
 provisioner: topolvm.cybozu.com
 volumeBindingMode: WaitForFirstConsumer
 ---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: topolvm-provisioner-mount-option
+provisioner: topolvm.cybozu.com
+parameters:
+  "csi.storage.k8s.io/fstype": "ext4"
+  "topolvm.cybozu.com/device-class": "ssd"
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+mountOptions:
+  - debug
+---
 apiVersion: v1
 kind: PersistentVolume
 metadata:

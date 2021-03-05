@@ -22,11 +22,6 @@ For such Pods, TopoLVM's extended scheduler will not work.
 
 The typical usage of TopoLVM is using StatefulSet with volumeClaimTemplate.
 
-StorageClass mountOptions
--------------------------
-
-TopoLVM does not recognize `mountOptions` of `StorageClass` currently.
-
 Capacity-aware scheduling may go wrong
 -------------------------
 

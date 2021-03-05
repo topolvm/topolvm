@@ -5,12 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	"github.com/topolvm/topolvm/csi"
 	"google.golang.org/grpc"
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -277,6 +279,162 @@ spec:
 
 		By("cleaning logicalvolume")
 		stdout, stderr, err := kubectl("delete", "logicalvolume", "csi-node-test-block")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+	})
+
+	It("should publish filesystem with mount option", func() {
+		By("creating a PVC and Pod")
+		lvYaml := []byte(`kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: topo-pvc-mount-option
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: topolvm-provisioner-mount-option
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ubuntu-mount-option
+  labels:
+    app.kubernetes.io/name: ubuntu
+spec:
+  containers:
+    - name: ubuntu
+      image: quay.io/cybozu/ubuntu:20.04
+      command: ["/usr/local/bin/pause"]
+      volumeMounts:
+        - mountPath: /test1
+          name: my-volume
+  volumes:
+    - name: my-volume
+      persistentVolumeClaim:
+        claimName: topo-pvc-mount-option
+`)
+
+		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+
+		Eventually(func() error {
+			stdout, stderr, err := kubectl("get", "pod", "ubuntu-mount-option", "-o", "yaml")
+			if err != nil {
+				return fmt.Errorf("failed to get pod. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+
+			var pod corev1.Pod
+			err = yaml.Unmarshal(stdout, &pod)
+			if err != nil {
+				return err
+			}
+
+			if pod.Status.Phase != corev1.PodRunning {
+				return errors.New("Pod is not running")
+			}
+
+			return nil
+		}).Should(Succeed())
+
+		By("check mount option")
+		stdout, stderr, err := kubectl("get", "pvc", "topo-pvc-mount-option", "-o", "yaml")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		var pvc corev1.PersistentVolumeClaim
+		err = yaml.Unmarshal(stdout, &pvc)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		stdout, stderr, err = execAtLocal("cat", nil, "/proc/mounts")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		var isExistingOption bool
+		lines := strings.Split(string(stdout), "\n")
+		for _, line := range lines {
+			if strings.Contains(line, pvc.Spec.VolumeName) {
+				fields := strings.Split(line, " ")
+				Expect(len(fields)).To(Equal(6))
+				options := strings.Split(fields[3], ",")
+				for _, option := range options {
+					if option == "debug" {
+						isExistingOption = true
+					}
+				}
+			}
+		}
+		Expect(isExistingOption).Should(BeTrue())
+
+		By("cleaning pvc/pod")
+		stdout, stderr, err = kubectlWithInput(lvYaml, "delete", "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+	})
+
+	It("validate mount options", func() {
+		mountTargetPath := "/mnt/csi-node-test"
+
+		By("creating a logical volume resource")
+		lvYaml := []byte(`apiVersion: topolvm.cybozu.com/v1
+kind: LogicalVolume
+metadata:
+  name: csi-node-test-fs
+spec:
+  deviceClass: ssd
+  name: csi-node-test-fs
+  nodeName: topolvm-e2e-worker
+  size: 1Gi
+`)
+
+		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+
+		var volumeID string
+		Eventually(func() error {
+			stdout, stderr, err := kubectl("get", "logicalvolume", "csi-node-test-fs", "-o", "yaml")
+			if err != nil {
+				return fmt.Errorf("failed to get logical volume. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+
+			var lv topolvmv1.LogicalVolume
+			err = yaml.Unmarshal(stdout, &lv)
+			if err != nil {
+				return err
+			}
+
+			if len(lv.Status.VolumeID) == 0 {
+				return errors.New("VolumeID is not set")
+			}
+			volumeID = lv.Status.VolumeID
+			return nil
+		}).Should(Succeed())
+
+		cl.register(volumeID, mountTargetPath)
+
+		By("mount option \"rw\" is specified even though read only mode is specified")
+		mountVolCap := &csi.VolumeCapability{
+			AccessType: &csi.VolumeCapability_Mount{
+				Mount: &csi.VolumeCapability_MountVolume{
+					FsType:     "xfs",
+					MountFlags: []string{"rw"},
+				},
+			},
+			AccessMode: &csi.VolumeCapability_AccessMode{
+				Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
+			},
+		}
+
+		req := &csi.NodePublishVolumeRequest{
+			PublishContext:   map[string]string{},
+			TargetPath:       mountTargetPath,
+			VolumeCapability: mountVolCap,
+			VolumeId:         volumeID,
+			Readonly:         true,
+		}
+		_, err = nc.NodePublishVolume(context.Background(), req)
+		Expect(err).Should(HaveOccurred())
+
+		By("cleaning logicalvolume")
+		stdout, stderr, err := kubectl("delete", "logicalvolume", "csi-node-test-fs")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 	})
 }

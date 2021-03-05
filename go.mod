@@ -9,6 +9,7 @@ require (
 	github.com/cybozu-go/log v1.6.0
 	github.com/cybozu-go/well v1.10.0
 	github.com/go-logr/logr v0.3.0
+	github.com/go-logr/zapr v0.2.0
 	github.com/golang/protobuf v1.4.3
 	github.com/google/go-cmp v0.5.4
 	github.com/kubernetes-csi/csi-test/v4 v4.0.2
@@ -28,6 +29,8 @@ require (
 	k8s.io/apimachinery v0.20.2
 	k8s.io/client-go v0.20.2
 	k8s.io/klog v1.0.0
+	k8s.io/mount-utils v0.20.2
+	k8s.io/utils v0.0.0-20210111153108-fddb29f9d009
 	sigs.k8s.io/controller-runtime v0.8.2
 	sigs.k8s.io/controller-tools v0.5.0
 	sigs.k8s.io/yaml v1.2.0
