@@ -236,7 +236,7 @@ func (s *nodeService) createDeviceIfNeeded(device string, lv *proto.LogicalVolum
 	switch err {
 	case nil:
 		// a block device already exists, check its attributes
-		if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && (stat.Mode&devicePermission) == devicePermission {
+		if stat.Rdev == int32(unix.Mkdev(lv.DevMajor, lv.DevMinor)) && (stat.Mode&devicePermission) == devicePermission {
 			return nil
 		}
 		err := os.Remove(device)
@@ -263,7 +263,7 @@ func (s *nodeService) nodePublishBlockVolume(req *csi.NodePublishVolumeRequest, 
 	err := filesystem.Stat(target, &stat)
 	switch err {
 	case nil:
-		if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && stat.Mode&devicePermission == devicePermission {
+		if stat.Rdev == int32(unix.Mkdev(lv.DevMajor, lv.DevMinor)) && stat.Mode&devicePermission == devicePermission {
 			return &csi.NodePublishVolumeResponse{}, nil
 		}
 		if err := os.Remove(target); err != nil {
@@ -450,9 +450,9 @@ func (s *nodeService) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVo
 	if sfs.Blocks > 0 {
 		usage = append(usage, &csi.VolumeUsage{
 			Unit:      csi.VolumeUsage_BYTES,
-			Total:     int64(sfs.Blocks) * sfs.Frsize,
-			Used:      int64(sfs.Blocks-sfs.Bfree) * sfs.Frsize,
-			Available: int64(sfs.Bavail) * sfs.Frsize,
+			Total:     int64(sfs.Blocks) * int64(sfs.Ffree),
+			Used:      int64(sfs.Blocks-sfs.Bfree) * int64(sfs.Ffree),
+			Available: int64(sfs.Bavail) * int64(sfs.Ffree),
 		})
 	}
 	if sfs.Files > 0 {

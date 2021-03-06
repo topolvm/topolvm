@@ -24,11 +24,18 @@ func NewResizeFs(mounter *mount.SafeFormatAndMount) *ResizeFs {
 
 // Resize perform resize of file system
 func (resizefs *ResizeFs) Resize(devicePath string, deviceMountPath string) (bool, error) {
-	format, err := resizefs.mounter.GetDiskFormat(devicePath)
+	mountPoints, err := resizefs.mounter.List()
 
 	if err != nil {
-		formatErr := fmt.Errorf("ResizeFS.Resize - error checking format for device %s: %v", devicePath, err)
+		formatErr := fmt.Errorf("ResizeFS.Resize - error list mount point for device %s: %v", devicePath, err)
 		return false, formatErr
+	}
+
+	var format string
+	for _, dev := range mountPoints {
+		if dev.Device == devicePath {
+			format = dev.Type
+		}
 	}
 
 	// If disk has no format, there is no need to resize the disk because mkfs.*
