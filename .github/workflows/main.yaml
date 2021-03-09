@@ -65,4 +65,3 @@ jobs:
           go-version: 1.15
       - run: make setup
       - run: make run BUILD_IMAGE=true
-  
