@@ -17,9 +17,10 @@ import (
 	"github.com/topolvm/topolvm/lvmd/proto"
 	"github.com/topolvm/topolvm/runners"
 	"google.golang.org/grpc"
-	storagev1beta1 "k8s.io/api/storage/v1beta1"
+	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -33,12 +34,8 @@ var (
 )
 
 func init() {
-	if err := topolvmv1.AddToScheme(scheme); err != nil {
-		panic(err)
-	}
-	if err := clientgoscheme.AddToScheme(scheme); err != nil {
-		panic(err)
-	}
+	utilruntime.Must(topolvmv1.AddToScheme(scheme))
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	// +kubebuilder:scaffold:scheme
 }
@@ -49,7 +46,7 @@ func subMain() error {
 		return errors.New("node name is not given")
 	}
 
-	ctrl.SetLogger(zap.New(zap.UseDevMode(config.development)))
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&config.zapOpts)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
@@ -73,7 +70,6 @@ func subMain() error {
 
 	lvcontroller := controllers.NewLogicalVolumeReconciler(
 		mgr.GetClient(),
-		ctrl.Log.WithName("controllers").WithName("LogicalVolume"),
 		nodename,
 		conn,
 	)
@@ -132,7 +128,7 @@ func checkFunc(conn *grpc.ClientConn, r client.Reader) func() error {
 			return err
 		}
 
-		var drv storagev1beta1.CSIDriver
+		var drv storagev1.CSIDriver
 		return r.Get(ctx, types.NamespacedName{Name: topolvm.PluginName}, &drv)
 	}
 }

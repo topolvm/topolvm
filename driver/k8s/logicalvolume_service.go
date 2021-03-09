@@ -14,7 +14,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -44,7 +43,7 @@ var (
 func NewLogicalVolumeService(mgr manager.Manager) (*LogicalVolumeService, error) {
 	ctx := context.Background()
 	err := mgr.GetFieldIndexer().IndexField(ctx, &topolvmv1.LogicalVolume{}, indexFieldVolumeID,
-		func(o runtime.Object) []string {
+		func(o client.Object) []string {
 			return []string{o.(*topolvmv1.LogicalVolume).Status.VolumeID}
 		})
 	if err != nil {

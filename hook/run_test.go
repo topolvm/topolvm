@@ -3,7 +3,6 @@ package hook
 import (
 	"context"
 
-	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -14,7 +13,7 @@ import (
 	// +kubebuilder:scaffold:imports
 )
 
-func run(stopCh <-chan struct{}, cfg *rest.Config, scheme *runtime.Scheme, opts *envtest.WebhookInstallOptions) error {
+func run(ctx context.Context, cfg *rest.Config, scheme *runtime.Scheme, opts *envtest.WebhookInstallOptions) error {
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
@@ -31,17 +30,12 @@ func run(stopCh <-chan struct{}, cfg *rest.Config, scheme *runtime.Scheme, opts 
 
 	// +kubebuilder:scaffold:builder
 
-	// watch StorageClass objects
-	if _, err := mgr.GetCache().GetInformer(context.Background(), &storagev1.StorageClass{}); err != nil {
-		return err
-	}
-
 	dec, _ := admission.NewDecoder(scheme)
 	wh := mgr.GetWebhookServer()
 	wh.Register(podMutatingWebhookPath, &webhook.Admission{Handler: podMutator{mgr.GetClient(), dec}})
 	wh.Register(pvcMutatingWebhookPath, &webhook.Admission{Handler: persistentVolumeClaimMutator{mgr.GetClient(), dec}})
 
-	if err := mgr.Start(stopCh); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		return err
 	}
 	return nil

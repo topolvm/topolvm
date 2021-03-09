@@ -1,8 +1,8 @@
 
-KUBERNETES_VERSION=1.19.4
+KUBERNETES_VERSION=1.20.2
 KUSTOMIZE_VERSION= 3.8.9
-KIND_VERSION=0.9.0
-TOPOLVM_VERSION=0.7.0
+KIND_VERSION=0.10.0
+TOPOLVM_VERSION=0.8.0
 
 KIND_CLUSTER_NAME=topolvm-example
 
@@ -25,7 +25,7 @@ $(KUBECTL):
 build/topolvm.img: $(GO_FILES)
 	$(MAKE) -C .. image IMAGE_PREFIX=quay.io/topolvm/
 	$(MAKE) -C .. tag IMAGE_PREFIX=quay.io/topolvm/ IMAGE_TAG=$(TOPOLVM_VERSION)
-	docker save -o $@ quay.io/topolvm/topolvm:$(TOPOLVM_VERSION)
+	docker save -o $@ quay.io/topolvm/topolvm-with-sidecar:$(TOPOLVM_VERSION)
 
 run: $(SERVER_CERT_FILES)
 	$(MAKE) start-lvmd

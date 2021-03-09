@@ -7,6 +7,32 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.8.0] - 2021-03-05
+
+### Fixed
+- update kubebuilder options to accept dry-run (#251)
+
+### Added
+- Support mount option (#260)
+
+### Changed
+- Support k8s 1.20 (#259)
+  - **BREAKING**: Drop support for `admissionregistration.k8s.io/v1beta1`
+  - The default port for the webhook was changed to 9443.
+  - The options for logger were changed according to use zap.
+- Update the CSI spec to v1.3.0 (#256)
+- Rename master branch to main (#255)
+- Purge official sidecar images from e2e (#249)
+- Add a minimum image (#236)
+  - **BREAKING**: As of v0.7.0, `topolvm/topolvm` image does not contain sidecar binaries. if you wish to use images containing sidecar binaries, use `topolvm/topolvm-with-sidecar` instead.
+- force stopping kubelet to unmount lv volumes (#245)
+- add a note for example to suggest tagged version (#266)
+- add a note about host's kernel to supported environments (#262)
+- fix to use topolvm-with-sidecar for example test (#263)
+
+### Contributors
+- @bells17
+
 ## [0.7.0] - 2021-01-18
 
 ### Added
@@ -240,7 +266,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/topolvm/topolvm/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/topolvm/topolvm/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/topolvm/topolvm/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/topolvm/topolvm/compare/v0.5.2...v0.5.3

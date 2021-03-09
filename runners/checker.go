@@ -1,6 +1,7 @@
 package runners
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -42,7 +43,7 @@ func (c *readinessCheck) setError(e error) {
 }
 
 // Start implements controller-runtime's manager.Runnable.
-func (c *readinessCheck) Start(ch <-chan struct{}) error {
+func (c *readinessCheck) Start(ctx context.Context) error {
 	c.setError(c.check())
 
 	tick := time.NewTicker(c.interval)
@@ -52,7 +53,7 @@ func (c *readinessCheck) Start(ch <-chan struct{}) error {
 		select {
 		case <-tick.C:
 			c.setError(c.check())
-		case <-ch:
+		case <-ctx.Done():
 			return nil
 		}
 	}
