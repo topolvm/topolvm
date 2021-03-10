@@ -252,10 +252,11 @@ daemonset-lvmd/remove-vg:
 
 .PHONY: daemonset-lvmd/test
 daemonset-lvmd/test: topolvm.img $(SERVER_CERT_FILES)
-	ps aux | grep scheduler;
-	docker ps | grep scheduler;
-	cat /etc/kubernetes/manifests/kube-scheduler.yaml;
-	ps aux | grep kubelet;
-	cat /etc/systemd/system/kubelet.service.d/10-kubeadm.conf;
+	$(SUDO) ps aux | grep scheduler;
+	$(SUDO) docker ps | grep scheduler;
+	$(SUDO) cat /etc/kubernetes/manifests/kube-scheduler.yaml;
+	$(SUDO) ps aux | grep kubelet;
+	$(SUDO) systemctl status kubelet.service | cat
+	$(SUDO) cat /etc/systemd/system/kubelet.service.d/10-kubeadm.conf;
 	$(KUSTOMIZE) build --load_restrictor='none' manifests/overlays/daemonset-lvmd | $(KUBECTL) apply -f -
 	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) LVMD=true $(GINKGO) --failFast -v .
