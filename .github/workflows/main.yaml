@@ -46,6 +46,7 @@ jobs:
           go-version: 1.15
       - run: make -C e2e setup
       - run: make -C e2e daemonset-lvmd/create-vg
+      - run: make -C e2e daemonset-lvmd/setup-minikube
       - run: make -C e2e daemonset-lvmd/update-minikube-setting
       - run: make -C e2e daemonset-lvmd/test
   example:
