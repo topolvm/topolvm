@@ -258,5 +258,11 @@ daemonset-lvmd/test: topolvm.img $(SERVER_CERT_FILES)
 	$(SUDO) ps aux | grep kubelet;
 	$(SUDO) systemctl status kubelet.service | cat
 	$(SUDO) cat /etc/systemd/system/kubelet.service.d/10-kubeadm.conf;
+	$(SUDO) mkdir -p /var/lib/scheduler
+	$(SUDO) cp -f kubeadm/scheduler-config.yaml /var/lib/scheduler/scheduler-config.yaml
+	$(SUDO) cp -f kubeadm/kube-scheduler.yaml /etc/kubernetes/manifests/kube-scheduler.yaml
+	$(SUDO) sed -i -e '/ExecStart=\//s/$$/ --read-only-port="10255"/' /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+	$(SUDO) systemctl daemon-reload
+	$(SUDO) systemctl restart kubelet.system
 	$(KUSTOMIZE) build --load_restrictor='none' manifests/overlays/daemonset-lvmd | $(KUBECTL) apply -f -
 	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) LVMD=true $(GINKGO) --failFast -v .
