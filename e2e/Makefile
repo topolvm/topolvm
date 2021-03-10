@@ -197,6 +197,8 @@ daemonset-lvmd/remove-vg:
 
 .PHONY: daemonset-lvmd/setup-minikube
 daemonset-lvmd/setup-minikube:
+	$(SUDO) update
+	$(SUDO) apt-get install -y conntrack
 	curl -LO https://github.com/kubernetes/minikube/releases/download/$(MINKKUUBE_VERSION)/minikube-linux-amd64
 	chmod a+x minikube-linux-amd64
 	mv minikube-linux-amd64 $(BINDIR)/minikube
