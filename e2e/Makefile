@@ -4,6 +4,7 @@ TEST_SCHEDULER_MANIFEST ?= daemonset
 
 ## Dependency versions
 KIND_VERSION=0.10.0
+MINKKUUBE_VERSION=v1.18.1
 
 BINDIR=$(PWD)/bin
 SUDO=sudo
@@ -250,19 +251,30 @@ daemonset-lvmd/remove-vg:
 	$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_3 | cut -d: -f1);
 	rm -f $(BACKING_STORE)/backing_store_lvmd_3;
 
-.PHONY: daemonset-lvmd/test
-daemonset-lvmd/test: topolvm.img $(SERVER_CERT_FILES)
-	$(SUDO) ps aux | grep scheduler;
-	$(SUDO) docker ps | grep scheduler;
-	$(SUDO) cat /etc/kubernetes/manifests/kube-scheduler.yaml;
-	$(SUDO) ps aux | grep kubelet;
-	$(SUDO) systemctl status kubelet.service | cat
-	$(SUDO) cat /etc/systemd/system/kubelet.service.d/10-kubeadm.conf;
+.PHONY: daemonset-lvmd/setup-minikube
+daemonset-lvmd/setup-minikube:
+	curl -LO https://github.com/kubernetes/minikube/releases/download/$(MINKKUUBE_VERSION)/minikube-linux-amd64
+	chmod a+x minikube-linux-amd64
+	mv minikube-linux-amd64 $(BINDIR)/minikube
+
+.PHONY: daemonset-lvmd/launch-minikube
+daemonset-lvmd/launch-minikube:
+	$(BINDIR)/minikube start --driver=none --kubernetes-version=v1.19.8
+
+.PHONY: daemonset-lvmd/stop-minikube
+daemonset-lvmd/stop-minikube:
+	$(BINDIR)/minikube delete
+
+.PHONY: daemonset-lvmd/update-minikube-setting
+daemonset-lvmd/update-minikube-setting: daemonset-lvmd/stop-minikube daemonset-lvmd/launch-minikube
 	$(SUDO) mkdir -p /var/lib/scheduler
 	$(SUDO) cp -f kubeadm/scheduler-config.yaml /var/lib/scheduler/scheduler-config.yaml
 	$(SUDO) cp -f kubeadm/kube-scheduler.yaml /etc/kubernetes/manifests/kube-scheduler.yaml
 	$(SUDO) sed -i -e '/ExecStart=\//s/$$/ --read-only-port="10255"/' /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
 	$(SUDO) systemctl daemon-reload
 	$(SUDO) systemctl restart kubelet.service
+
+.PHONY: daemonset-lvmd/test
+daemonset-lvmd/test: topolvm.img $(SERVER_CERT_FILES)
 	$(KUSTOMIZE) build --load_restrictor='none' manifests/overlays/daemonset-lvmd | $(KUBECTL) apply -f -
 	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) LVMD=true $(GINKGO) --failFast -v .

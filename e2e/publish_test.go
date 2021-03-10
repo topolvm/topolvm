@@ -401,16 +401,27 @@ spec:
 		mountTargetPath := "/mnt/csi-node-test"
 
 		By("creating a logical volume resource")
-		lvYaml := []byte(`apiVersion: topolvm.cybozu.com/v1
-kind: LogicalVolume
-metadata:
-  name: csi-node-test-fs
-spec:
-  deviceClass: ssd
-  name: csi-node-test-fs
-  nodeName: topolvm-e2e-worker
-  size: 1Gi
-`)
+		nodeName := "topolvm-e2e-worker"
+		if os.Getenv("LVMD") != "" {
+			stdout, stderr, err := kubectl("get", "nodes", "-o=json")
+			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+			var nodes corev1.NodeList
+			err = json.Unmarshal(stdout, &nodes)
+			Expect(err).ShouldNot(HaveOccurred())
+			nodeName = nodes.Items[0].Name
+		}
+
+		lvString := "apiVersion: topolvm.cybozu.com/v1\n" +
+			"kind: LogicalVolume\n" +
+			"metadata:\n" +
+			"  name: csi-node-test-fs\n" +
+			"spec:\n" +
+			"  deviceClass: ssd\n" +
+			"  name: csi-node-test-fs\n" +
+			"  nodeName: " + nodeName + "\n" +
+			"  size: 1Gi"
+		lvYaml := []byte(lvString)
 
 		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
