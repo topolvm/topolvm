@@ -155,62 +155,6 @@ setup:
 
 .PHONY: launch-kind shutdown-kind start-lvmd stop-lvmd test clean setup
 
-.PHONY: lvmd-daemonset/install-kubeadm
-lvmd-daemonset/install-kubeadm:
-	$(SUDO) modprobe br_netfilter
-	$(SUDO) cat <<EOF > /etc/sysctl.d/k8s.conf
-	net.bridge.bridge-nf-call-ip6tables = 1
-	net.bridge.bridge-nf-call-iptables = 1
-	EOF
-	$(SUDO) sysctl --system
-	$(SUDO) apt-get install -y iptables arptables ebtables
-	$(SUDO) apt-get update && apt-get install -y \
-		apt-transport-https ca-certificates curl software-properties-common gnupg2
-	$(SUDO) curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-	$(SUDO) add-apt-repository \
-		"deb [arch=amd64] https://download.docker.com/linux/ubuntu \
-		$$(lsb_release -cs) \
-		stable"
-	$(SUDO) apt-get update && apt-get install -y \
-	containerd.io=1.2.13-2 \
-	docker-ce=5:19.03.11~3-0~ubuntu-$$(lsb_release -cs) \
-	docker-ce-cli=5:19.03.11~3-0~ubuntu-$(lsb_release -cs)
-	$(SUDO) cat > /etc/docker/daemon.json <<EOF
-	{
-		"exec-opts": ["native.cgroupdriver=systemd"],
-		"log-driver": "json-file",
-		"log-opts": {
-			"max-size": "100m"
-		},
-		"storage-driver": "overlay2"
-	}
-	EOF
-	$(SUDO) mkdir -p /etc/systemd/system/docker.service.d
-	$(SUDO) systemctl daemon-reload
-	$(SUDO) systemctl restart docker
-	$(SUDO) systemctl enable docker
-	$(SUDO) apt-get update && $(SUDO) apt-get install -y apt-transport-https curl
-	curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | $(SUDO) apt-key add -
-	cat <<EOF | $(SUDO) tee /etc/apt/sources.list.d/kubernetes.list
-	deb https://apt.kubernetes.io/ kubernetes-xenial main
-	EOF
-	$(SUDO) apt-get update
-	$(SUDO) apt-get install -y kubelet=1.19.7-00 kubeadm=1.19.7-00 kubectl=1.19.7-00
-	$(SUDO) apt-mark hold kubelet kubeadm kubectl
-
-
-.PHONY: daemonset-lvmd/setup-kubeadm
-lvmd-daemonset/setup-kubeadm: lvmd-daemonset/create-vg
-	kubeadm init --config $(PWD)/kubeadm/kubeadm-config.yaml
-	cp /etc/kubernetes/admin.conf $(HOME)/.kube/config
-	$(KUBECTL) taint nodes $$(hostname) node-role.kubernetes.io/master:NoSchedule-
-	$(KUBECTL) create -f https://raw.githubusercontent.com/cilium/cilium/v1.6/install/kubernetes/quick-install.yaml
-
-.PHONY: daemonset-lvmd/reset-kubeadm
-daemonset-lvmd/reset-kubeadm:
-	kubeadm reset -f
-	$(MAKE) daemonset-lvmd/remove-vg
-
 .PHONY: daemonset-lvmd/create-vg
 daemonset-lvmd/create-vg:
 	mkdir -p build $(BACKING_STORE)

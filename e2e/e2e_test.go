@@ -348,17 +348,17 @@ spec:
 
 				By("creating pvc")
 				claimYAML := fmt.Sprintf(`kind: PersistentVolumeClaim
-	apiVersion: v1
-	metadata:
-		name: topo-pvc-%d
-	spec:
-		accessModes:
-		- ReadWriteOnce
-		resources:
-			requests:
-				storage: 1Gi
-		storageClassName: topolvm-provisioner-immediate
-	`, i)
+apiVersion: v1
+metadata:
+  name: topo-pvc-%d
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: topolvm-provisioner-immediate
+`, i)
 				stdout, stderr, err := kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
 				Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
@@ -664,24 +664,24 @@ spec:
 			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 			podYAMLTmpl := `apiVersion: v1
-	kind: Pod
-	metadata:
-		name: ubuntu%d
-		labels:
-			app.kubernetes.io/name: ubuntu
-	spec:
-		containers:
-			- name: ubuntu
-				image: quay.io/cybozu/ubuntu:20.04
-				command: ["/usr/local/bin/pause"]
-				volumeMounts:
-					- mountPath: /test1
-						name: my-volume
-		volumes:
-			- name: my-volume
-				persistentVolumeClaim:
-					claimName: topo-pvc%d
-	`
+kind: Pod
+metadata:
+  name: ubuntu%d
+  labels:
+    app.kubernetes.io/name: ubuntu
+spec:
+  containers:
+    - name: ubuntu
+      image: quay.io/cybozu/ubuntu:20.04
+      command: ["/usr/local/bin/pause"]
+      volumeMounts:
+        - mountPath: /test1
+          name: my-volume
+  volumes:
+    - name: my-volume
+      persistentVolumeClaim:
+        claimName: topo-pvc%d
+`
 			var boundNode string
 
 			By("confirming that claiming 8GB pv to the targetNode is successful")
