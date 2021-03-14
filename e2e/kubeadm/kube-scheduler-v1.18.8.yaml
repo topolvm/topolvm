@@ -18,7 +18,7 @@ spec:
     - --leader-elect=false
     - --port=0
     - --config=/var/lib/scheduler/scheduler-config.yaml
-    image: k8s.gcr.io/kube-scheduler:v1.19.8
+    image: k8s.gcr.io/kube-scheduler:v1.18.8
     imagePullPolicy: IfNotPresent
     livenessProbe:
       failureThreshold: 8
@@ -27,23 +27,12 @@ spec:
         path: /healthz
         port: 10259
         scheme: HTTPS
-      initialDelaySeconds: 10
-      periodSeconds: 10
+      initialDelaySeconds: 15
       timeoutSeconds: 15
     name: kube-scheduler
     resources:
       requests:
         cpu: 100m
-    startupProbe:
-      failureThreshold: 24
-      httpGet:
-        host: 127.0.0.1
-        path: /healthz
-        port: 10259
-        scheme: HTTPS
-      initialDelaySeconds: 10
-      periodSeconds: 10
-      timeoutSeconds: 15
     volumeMounts:
     - mountPath: /etc/kubernetes/scheduler.conf
       name: kubeconfig
@@ -52,7 +41,7 @@ spec:
       mountPath: /var/lib/scheduler
       readOnly: true
   hostNetwork: true
-  priorityClassName: system-node-critical
+  priorityClassName: system-cluster-critical
   volumes:
   - hostPath:
       path: /etc/kubernetes/scheduler.conf
