@@ -16,10 +16,19 @@ GINKGO := ../bin/ginkgo
 
 ifeq ($(TEST_KUBERNETES_TARGET),current)
 TEST_KUBERNETES_VERSION=1.20
+TEST_MINIKUBE_KUBERNETES_VERSION=v1.20.3
+TEST_KUBERNETES_SCHEDULER_VERSION=v1beta1
+MINIKUUBE_EXTRA_ARGS="--extra-config=kubelet.cgroup-driver=systemd --extra-config=kubelet.cgroups-per-qos=false --extra-config=kubelet.enforce-node-allocatable=""
 else ifeq ($(TEST_KUBERNETES_TARGET),prev)
 TEST_KUBERNETES_VERSION=1.19
+TEST_MINIKUBE_KUBERNETES_VERSION=v1.19.8
+TEST_KUBERNETES_SCHEDULER_VERSION=v1beta1
+MINIKUUBE_EXTRA_ARGS=""
 else ifeq ($(TEST_KUBERNETES_TARGET),prev2)
 TEST_KUBERNETES_VERSION=1.18
+TEST_MINIKUBE_KUBERNETES_VERSION=v1.18.16
+TEST_KUBERNETES_SCHEDULER_VERSION=v1alpha1
+MINIKUUBE_EXTRA_ARGS=""
 endif
 
 export TEST_KUBERNETES_VERSION
@@ -205,20 +214,23 @@ daemonset-lvmd/setup-minikube:
 
 .PHONY: daemonset-lvmd/launch-minikube
 daemonset-lvmd/launch-minikube:
-	$(BINDIR)/minikube start --driver=none --kubernetes-version=v1.19.8
+	$(BINDIR)/minikube start \
+		--vm-driver=none \
+		--kubernetes-version=$(TEST_MINIKUBE_KUBERNETES_VERSION) \
+		--extra-config=kubelet.read-only-port=10255 \
+		$(MINIKUBE_EXTRA_ARGS)
 
-.PHONY: daemonset-lvmd/stop-minikube
-daemonset-lvmd/stop-minikube:
+.PHONY: daemonset-lvmd/delete-minikube
+daemonset-lvmd/delete-minikube:
 	$(BINDIR)/minikube delete
 
 .PHONY: daemonset-lvmd/update-minikube-setting
-daemonset-lvmd/update-minikube-setting: daemonset-lvmd/stop-minikube daemonset-lvmd/launch-minikube
+# daemonset-lvmd/update-minikube-setting: daemonset-lvmd/delete-minikube daemonset-lvmd/launch-minikube
+daemonset-lvmd/update-minikube-setting:
 	$(SUDO) mkdir -p /var/lib/scheduler
-	$(SUDO) cp -f kubeadm/scheduler-config.yaml /var/lib/scheduler/scheduler-config.yaml
-	$(SUDO) cp -f kubeadm/kube-scheduler.yaml /etc/kubernetes/manifests/kube-scheduler.yaml
-	$(SUDO) sed -i -e '/ExecStart=\//s/$$/ --read-only-port="10255"/' /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
-	$(SUDO) systemctl daemon-reload
-	$(SUDO) systemctl restart kubelet.service
+	$(SUDO) cp -f kubeadm/scheduler-policy.cfg /var/lib/scheduler/scheduler-policy.cfg
+	$(SUDO) cp -f kubeadm/scheduler-config-$(TEST_KUBERNETES_SCHEDULER_VERSION).yaml /var/lib/scheduler/scheduler-config.yaml
+	$(SUDO) cp -f kubeadm/kube-scheduler-$(TEST_MINIKUBE_KUBERNETES_VERSION).yaml /etc/kubernetes/manifests/kube-scheduler.yaml
 
 .PHONY: daemonset-lvmd/test
 daemonset-lvmd/test: topolvm.img $(SERVER_CERT_FILES)
