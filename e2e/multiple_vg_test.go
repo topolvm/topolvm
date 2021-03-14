@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"os/exec"
 	"strings"
 
@@ -86,13 +85,13 @@ spec:
 		}).Should(Succeed())
 
 		vgName := "node3-myvg3"
-		if os.Getenv("LVMD") != "" {
+		if isLvmdEnv() {
 			vgName = "node-lvmd-myvg3"
 		}
 		Expect(vgName).Should(Equal(lv.vgName))
 	})
 
-	if os.Getenv("LVMD") == "" {
+	if !isLvmdEnv() {
 		It("should not schedule pod because there are no nodes that have specified device-classes", func() {
 			By("deploying Pod with PVC")
 			podYAML := `apiVersion: v1

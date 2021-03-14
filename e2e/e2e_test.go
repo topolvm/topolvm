@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -300,7 +299,7 @@ spec:
 		}).Should(Succeed())
 	})
 
-	if os.Getenv("LVMD") == "" {
+	if !isLvmdEnv() {
 		It("should choose a node with the largest capacity when volumeBindingMode == Immediate is specified", func() {
 
 			// Repeat applying a PVC to make sure that the volume is created on the node with the largest capacity in each loop.
@@ -516,7 +515,7 @@ spec:
 		}).Should(Succeed())
 	})
 
-	if os.Getenv("LVMD") == "" {
+	if !isLvmdEnv() {
 		It("should schedule pods and volumes according to topolvm-scheduler", func() {
 			/*
 				Check the operation of topolvm-scheduler in multi-node(3-node) environment.

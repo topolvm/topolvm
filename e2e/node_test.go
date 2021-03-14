@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
@@ -39,7 +38,7 @@ func testNode() {
 			}
 
 			count := 1
-			if os.Getenv("LVMD") == "" {
+			if !isLvmdEnv() {
 				count = 3
 			}
 
@@ -68,7 +67,7 @@ func testNode() {
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		count := 1
-		if os.Getenv("LVMD") == "" {
+		if !isLvmdEnv() {
 			count = 4
 		}
 
@@ -79,7 +78,7 @@ func testNode() {
 
 		vgNameMap := map[string]string{}
 
-		if os.Getenv("LVMD") == "" {
+		if !isLvmdEnv() {
 			vgNameMap = map[string]string{
 				"topolvm-e2e-worker":        "node1-myvg1",
 				"topolvm-e2e-worker2":       "node2-myvg1",
@@ -140,7 +139,7 @@ func testNode() {
 			found = true
 
 			length := 2
-			if os.Getenv("LVMD") != "" {
+			if isLvmdEnv() {
 				length = 3
 			}
 			Expect(family.Metric).Should(HaveLen(length))
