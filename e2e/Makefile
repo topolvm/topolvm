@@ -18,18 +18,14 @@ ifeq ($(TEST_KUBERNETES_TARGET),current)
 TEST_KUBERNETES_VERSION=1.20
 TEST_MINIKUBE_KUBERNETES_VERSION=v1.20.3
 TEST_KUBERNETES_SCHEDULER_VERSION=v1beta1
-# MINIKUUBE_EXTRA_ARGS="--extra-config=kubelet.cgroup-driver=systemd --extra-config=kubelet.cgroups-per-qos=false --extra-config=kubelet.enforce-node-allocatable=""
-MINIKUUBE_EXTRA_ARGS=""
 else ifeq ($(TEST_KUBERNETES_TARGET),prev)
 TEST_KUBERNETES_VERSION=1.19
 TEST_MINIKUBE_KUBERNETES_VERSION=v1.19.8
 TEST_KUBERNETES_SCHEDULER_VERSION=v1beta1
-MINIKUUBE_EXTRA_ARGS=""
 else ifeq ($(TEST_KUBERNETES_TARGET),prev2)
 TEST_KUBERNETES_VERSION=1.18
 TEST_MINIKUBE_KUBERNETES_VERSION=v1.18.16
 TEST_KUBERNETES_SCHEDULER_VERSION=v1alpha1
-MINIKUUBE_EXTRA_ARGS=""
 endif
 
 export TEST_KUBERNETES_VERSION
@@ -218,8 +214,7 @@ daemonset-lvmd/launch-minikube:
 	$(BINDIR)/minikube start \
 		--vm-driver=none \
 		--kubernetes-version=$(TEST_MINIKUBE_KUBERNETES_VERSION) \
-		--extra-config=kubelet.read-only-port=10255 \
-		$(MINIKUBE_EXTRA_ARGS)
+		--extra-config=kubelet.read-only-port=10255
 
 .PHONY: daemonset-lvmd/delete-minikube
 daemonset-lvmd/delete-minikube:
