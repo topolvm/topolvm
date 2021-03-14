@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"os"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
@@ -61,7 +60,7 @@ func testPublishVolume() {
 	)
 
 	nodeSocket := "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/csi-topolvm.sock"
-	if os.Getenv("LVMD") != "" {
+	if isLvmdEnv() {
 		nodeSocket = "/var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock"
 	}
 
@@ -95,7 +94,7 @@ func testPublishVolume() {
 		mountTargetPath := "/mnt/csi-node-test"
 
 		nodeName := "topolvm-e2e-worker"
-		if os.Getenv("LVMD") != "" {
+		if isLvmdEnv() {
 			stdout, stderr, err := kubectl("get", "nodes", "-o=json")
 			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
@@ -209,7 +208,7 @@ func testPublishVolume() {
 
 		By("creating a logical volume resource")
 		nodeName := "topolvm-e2e-worker"
-		if os.Getenv("LVMD") != "" {
+		if isLvmdEnv() {
 			stdout, stderr, err := kubectl("get", "nodes", "-o=json")
 			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
@@ -402,7 +401,7 @@ spec:
 
 		By("creating a logical volume resource")
 		nodeName := "topolvm-e2e-worker"
-		if os.Getenv("LVMD") != "" {
+		if isLvmdEnv() {
 			stdout, stderr, err := kubectl("get", "nodes", "-o=json")
 			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 

@@ -68,13 +68,17 @@ func waitKindnet() error {
 	return nil
 }
 
+func isLvmdEnv() bool {
+	return os.Getenv("LVMD") != ""
+}
+
 var _ = BeforeSuite(func() {
 	By("Getting the directory path which contains some binaries")
 	binDir = os.Getenv("BINDIR")
 	Expect(binDir).ShouldNot(BeEmpty())
 	fmt.Println("This test uses the binaries under " + binDir)
 
-	if os.Getenv("LVMD") == "" {
+	if !isLvmdEnv() {
 		By("Waiting for kindnet to get ready")
 		// Because kindnet will crash. we need to confirm its readiness twice.
 		Eventually(waitKindnet).Should(Succeed())
@@ -116,12 +120,12 @@ var _ = Describe("TopoLVM", func() {
 	Context("publish", testPublishVolume)
 	Context("e2e", testE2E)
 	Context("multiple-vg", testMultipleVolumeGroups)
-	if os.Getenv("LVMD") == "" {
+	if !isLvmdEnv() {
 		Context("cleanup", testCleanup)
 	}
 	Context("CSI sanity", func() {
 		baseDir := "/var/lib/kubelet/plugins/topolvm.cybozu.com/"
-		if os.Getenv("LVMD") == "" {
+		if !isLvmdEnv() {
 			baseDir = "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/"
 			It("should add node selector to node DaemonSet for CSI test", func() {
 				_, _, err := kubectl("delete", "nodes", "topolvm-e2e-worker2")
