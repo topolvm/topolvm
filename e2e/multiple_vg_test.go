@@ -91,10 +91,9 @@ spec:
 		Expect(vgName).Should(Equal(lv.vgName))
 	})
 
-	if !isLvmdEnv() {
-		It("should not schedule pod because there are no nodes that have specified device-classes", func() {
-			By("deploying Pod with PVC")
-			podYAML := `apiVersion: v1
+	It("should not schedule pod because there are no nodes that have specified device-classes", func() {
+		By("deploying Pod with PVC")
+		podYAML := `apiVersion: v1
 kind: Pod
 metadata:
   name: ubuntu
@@ -118,7 +117,7 @@ spec:
       persistentVolumeClaim:
         claimName: topo-pvc3
 `
-			claimYAML := `kind: PersistentVolumeClaim
+		claimYAML := `kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: topo-pvc2
@@ -128,7 +127,7 @@ spec:
   resources:
     requests:
       storage: 5Gi
-  storageClassName: topolvm-provisioner2
+  storageClassName: topolvm-provisioner-not-found-device
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
@@ -140,31 +139,30 @@ spec:
   resources:
     requests:
       storage: 5Gi
-  storageClassName: topolvm-provisioner3
+  storageClassName: topolvm-provisioner-not-found-device
 `
-			stdout, stderr, err := kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
+		stdout, stderr, err := kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("confirming that the pod wasn't scheduled")
+		Eventually(func() error {
+			stdout, stderr, err = kubectl("get", "-n", ns, "pod", "ubuntu", "-o", "json")
 			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-			stdout, stderr, err = kubectlWithInput([]byte(podYAML), "apply", "-n", ns, "-f", "-")
+
+			var pod corev1.Pod
+			err = json.Unmarshal(stdout, &pod)
 			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
-			By("confirming that the pod wasn't scheduled")
-			Eventually(func() error {
-				stdout, stderr, err = kubectl("get", "-n", ns, "pod", "ubuntu", "-o", "json")
-				Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-
-				var pod corev1.Pod
-				err = json.Unmarshal(stdout, &pod)
-				Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-
-				for _, c := range pod.Status.Conditions {
-					if c.Type == corev1.PodScheduled && c.Status == corev1.ConditionFalse && strings.Contains(c.Message, "3 no capacity annotation") {
-						return nil
-					}
+			for _, c := range pod.Status.Conditions {
+				if c.Type == corev1.PodScheduled && c.Status == corev1.ConditionFalse && strings.Contains(c.Message, "no capacity annotation") {
+					return nil
 				}
-				return errors.New("pod doesn't have PodScheduled status")
-			}).Should(Succeed())
-		})
-	}
+			}
+			return errors.New("pod doesn't have PodScheduled status")
+		}).Should(Succeed())
+	})
 }
 
 type lvinfo struct {
