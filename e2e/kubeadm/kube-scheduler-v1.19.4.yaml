@@ -18,7 +18,7 @@ spec:
     - --leader-elect=false
     - --port=0
     - --config=/var/lib/scheduler/scheduler-config.yaml
-    image: k8s.gcr.io/kube-scheduler:v1.20.3
+    image: k8s.gcr.io/kube-scheduler:v1.19.4
     imagePullPolicy: IfNotPresent
     livenessProbe:
       failureThreshold: 8
