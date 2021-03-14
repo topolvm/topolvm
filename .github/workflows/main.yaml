@@ -39,6 +39,11 @@ jobs:
   e2e-k8s-daemonset-lvmd:
     name: e2e-k8s-daemonset-lvmd
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        test_kubernetes_target: [current, prev, prev2]
+    env:
+      TEST_KUBERNETES_TARGET: ${{ matrix.test_kubernetes_target }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
