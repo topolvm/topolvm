@@ -26,9 +26,9 @@ func isSameDevice(dev1, dev2 string) (bool, error) {
 
 	var st1, st2 unix.Stat_t
 	if err := Stat(dev1, &st1); err != nil {
-		// Some filesystem such as tmpfs, nfs or etc. does not use block device.
+		// Some filesystems like tmpfs and nfs aren't backed by block device files.
 		// In such case, given device path does not exist,
-		// we regard it is not an error but devices are not same always.
+		// we regard it is not an error but is false.
 		if os.IsNotExist(err) {
 			return false, nil
 		}
