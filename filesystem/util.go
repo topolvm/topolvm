@@ -26,9 +26,18 @@ func isSameDevice(dev1, dev2 string) (bool, error) {
 
 	var st1, st2 unix.Stat_t
 	if err := Stat(dev1, &st1); err != nil {
+		// Some filesystems like tmpfs and nfs aren't backed by block device files.
+		// In such case, given device path does not exist,
+		// we regard it is not an error but is false.
+		if os.IsNotExist(err) {
+			return false, nil
+		}
 		return false, fmt.Errorf("stat failed for %s: %v", dev1, err)
 	}
 	if err := Stat(dev2, &st2); err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
 		return false, fmt.Errorf("stat failed for %s: %v", dev2, err)
 	}
 
@@ -58,12 +67,21 @@ func IsMounted(device, target string) (bool, error) {
 			continue
 		}
 
+		// If the filesystem is nfs and its connection is broken, EvalSymlinks will be stuck.
+		// So it should be in before calling EvalSymlinks.
+		ok, err := isSameDevice(device, fields[0])
+		if err != nil {
+			return false, err
+		}
+		if !ok {
+			continue
+		}
 		d, err := filepath.EvalSymlinks(fields[1])
 		if err != nil {
 			return false, err
 		}
 		if d == target {
-			return isSameDevice(device, fields[0])
+			return true, nil
 		}
 	}
 
