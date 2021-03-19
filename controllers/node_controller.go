@@ -196,7 +196,7 @@ func (r *NodeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	pred := predicate.Funcs{
-		CreateFunc:  func(event.CreateEvent) bool { return false },
+		CreateFunc:  func(event.CreateEvent) bool { return true },
 		DeleteFunc:  func(event.DeleteEvent) bool { return false },
 		UpdateFunc:  func(event.UpdateEvent) bool { return true },
 		GenericFunc: func(event.GenericEvent) bool { return false },
