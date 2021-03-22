@@ -48,8 +48,7 @@ spec:
       hostPID: true
       containers:
         - name: lvmd
-          # TODO -> quay.io/topolvm/topolvm-with-sidecar:latest
-          image: topolvm:dev
+          image: quay.io/topolvm/topolvm-with-sidecar:latest
           imagePullPolicy: Never
           securityContext:
             privileged: true
