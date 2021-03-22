@@ -24,6 +24,10 @@ endif
 
 export TEST_KUBERNETES_VERSION
 
+ifeq ($(@D),daemonset-lvmd)
+TEST_SCHEDULER_MANIFEST=deployment
+endif
+
 SCHEDULER_POLICY := scheduler-policy-daemonset.cfg
 KUSTOMIZE_DIR := manifests/overlays/daemonset-scheduler
 ifeq ($(TEST_SCHEDULER_MANIFEST),deployment)
@@ -200,7 +204,7 @@ daemonset-lvmd/delete-minikube:
 .PHONY: daemonset-lvmd/update-minikube-setting
 daemonset-lvmd/update-minikube-setting: daemonset-lvmd/delete-minikube daemonset-lvmd/launch-minikube
 	$(SUDO) mkdir -p /var/lib/scheduler
-	$(SUDO) cp -f scheduler-policy-daemonset.cfg /var/lib/scheduler/scheduler-policy.cfg
+	$(SUDO) cp -f $(SCHEDULER_POLICY) /var/lib/scheduler/scheduler-policy.cfg
 	$(SUDO) cp -f $(SCHEDULER_CONFIG) /var/lib/scheduler/scheduler-config.yaml
 	sed -e "s|@KUBERNETES_VERSION@|$(KUBERNETES_VERSION)|" kube-scheduler.yaml > /tmp/kube-scheduler.yaml
 	$(SUDO) cp -f /tmp/kube-scheduler.yaml /etc/kubernetes/manifests/kube-scheduler.yaml
