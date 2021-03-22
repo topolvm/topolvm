@@ -161,42 +161,24 @@ setup:
 .PHONY: daemonset-lvmd/create-vg
 daemonset-lvmd/create-vg:
 	mkdir -p build $(BACKING_STORE)
-	go build -o build/lvmd ../pkg/lvmd
-	if [ -f $(BACKING_STORE)/backing_store_lvmd* ]; then $(MAKE) sdaemonset-lvmd/remove-vg; fi
+	if [ -f $(BACKING_STORE)/backing_store_lvmd* ]; then $(MAKE) daemonset-lvmd/remove-vg; fi
 
-	mkdir -p /tmp/topolvm/worker_lvmd;
-	mkdir -p /tmp/topolvm/lvmd_lvmd;
-	truncate --size=20G $(BACKING_STORE)/backing_store_lvmd_1;
-	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_1;
-	$(SUDO) vgcreate -y node-lvmd-myvg1 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_1 | cut -d: -f1);
-	$(SUDO) lvcreate -y -n csi-node-test-block -L 1G node-lvmd-myvg1;
-	$(SUDO) lvcreate -y -n csi-node-test-fs -L 1G node-lvmd-myvg1;
-
-	# Create additional Volume Groups
-	truncate --size=10G $(BACKING_STORE)/backing_store_lvmd_2;
-	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_2;
-	$(SUDO) vgcreate -y node-lvmd-myvg2 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_2 | cut -d: -f1);
-
-	truncate --size=10G $(BACKING_STORE)/backing_store_lvmd_3;
-	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_3;
-	$(SUDO) vgcreate -y node-lvmd-myvg3 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_3 | cut -d: -f1);
+	for i in $$(seq 3); do \
+		truncate --size=20G $(BACKING_STORE)/backing_store_lvmd_$${i}; \
+		$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_$${i}; \
+		$(SUDO) vgcreate -y node-myvg$${i} $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_$${i} | cut -d: -f1); \
+		$(SUDO) lvcreate -y -n csi-node-test-block -L 1G node-myvg$${i}; \
+		$(SUDO) lvcreate -y -n csi-node-test-fs -L 1G node-myvg$${i}; \
+	done
 
 .PHONY: daemonset-lvmd/remove-vg
 daemonset-lvmd/remove-vg:
-	$(SUDO) vgremove -ffy node-lvmd-myvg1;
-	$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_1 | cut -d: -f1);
-	$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_1 | cut -d: -f1);
-	rm -f $(BACKING_STORE)/backing_store_lvmd_1;
-
-	$(SUDO) vgremove -ffy node-lvmd-myvg2;
-	$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_2 | cut -d: -f1);
-	$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_2 | cut -d: -f1);
-	rm -f $(BACKING_STORE)/backing_store_lvmd_2;
-
-	$(SUDO) vgremove -ffy node-lvmd-myvg3;
-	$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_3 | cut -d: -f1);
-	$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_3 | cut -d: -f1);
-	rm -f $(BACKING_STORE)/backing_store_lvmd_3;
+	for i in $$(seq 3); do \
+		$(SUDO) vgremove -ffy node-myvg$${i}; \
+		$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_$${i} | cut -d: -f1); \
+		$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_$${i} | cut -d: -f1); \
+		rm -f $(BACKING_STORE)/backing_store_lvmd_$${i}; \
+	done
 
 .PHONY: daemonset-lvmd/setup-minikube
 daemonset-lvmd/setup-minikube:

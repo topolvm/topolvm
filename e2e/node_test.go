@@ -86,7 +86,7 @@ func testNode() {
 				"topolvm-e2e-control-plane": "",
 			}
 		} else {
-			vgNameMap[nodes.Items[0].Name] = "node-lvmd-myvg1"
+			vgNameMap[nodes.Items[0].Name] = "node-myvg1"
 		}
 
 		fmt.Printf("The vgNameMap:%+v\n", vgNameMap)
