@@ -301,7 +301,7 @@ spec:
 
 	It("should choose a node with the largest capacity when volumeBindingMode == Immediate is specified", func() {
 		num := 0
-		if !isLvmdEnv() {
+		if !isDaemonsetLvmdEnvSet() {
 			num = 3
 		}
 
