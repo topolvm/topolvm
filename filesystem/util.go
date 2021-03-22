@@ -2,7 +2,6 @@ package filesystem
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -56,7 +55,7 @@ func IsMounted(device, target string) (bool, error) {
 		return false, err
 	}
 
-	data, err := ioutil.ReadFile("/proc/mounts")
+	data, err := os.ReadFile("/proc/mounts")
 	if err != nil {
 		return false, fmt.Errorf("could not read /proc/mounts: %v", err)
 	}

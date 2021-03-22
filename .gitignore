@@ -14,9 +14,6 @@
 \#*#
 /.vscode
 
-# ignore go.sum
-/go.sum
-
 # ignore tools
 /bin
 /include

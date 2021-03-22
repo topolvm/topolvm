@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
         with:
-          go-version: 1.15
+          go-version: 1.16
       - run: make setup
       - run: make check-uncommitted
       - run: make test
@@ -32,7 +32,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
         with:
-          go-version: 1.15
+          go-version: 1.16
       - run: make -C e2e setup
       - run: make -C e2e start-lvmd
       - run: make -C e2e test
@@ -46,6 +46,6 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
         with:
-          go-version: 1.15
+          go-version: 1.16
       - run: make setup
       - run: make run BUILD_IMAGE=true

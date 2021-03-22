@@ -18,7 +18,7 @@ Vagrant.configure("2") do |config|
        make gcc jq docker.io 
     echo "Allowing docker as a non-root"
     usermod -aG docker vagrant && newgrp docker
-    snap install --channel=1.15/stable --classic go
+    snap install --channel=1.16/stable --classic go
     echo "export PATH=$PATH:/home/vagrant/go/bin" > /etc/profile.d/gopath.sh
   SHELL
 end

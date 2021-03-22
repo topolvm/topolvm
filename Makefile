@@ -94,11 +94,11 @@ build: build/hypertopolvm build/lvmd csi-sidecars
 
 build/hypertopolvm: $(GO_FILES)
 	mkdir -p build
-	go build -o $@ -ldflags "-X github.com/topolvm/topolvm.Version=$(TOPOLVM_VERSION)" ./pkg/hypertopolvm
+	go build -o $@ -ldflags "-w -s -X github.com/topolvm/topolvm.Version=$(TOPOLVM_VERSION)" ./pkg/hypertopolvm
 
 build/lvmd:
 	mkdir -p build
-	CGO_ENABLED=0 go build -o $@ -ldflags "-X github.com/topolvm/topolvm.Version=$(TOPOLVM_VERSION)" ./pkg/lvmd
+	CGO_ENABLED=0 go build -o $@ -ldflags "-w -s -X github.com/topolvm/topolvm.Version=$(TOPOLVM_VERSION)" ./pkg/lvmd
 
 .PHONY: csi-sidecars
 csi-sidecars:
@@ -128,10 +128,10 @@ clean:
 
 .PHONY: tools
 tools:
-	$(call go-get-tool,$(BINDIR)/goimports,golang.org/x/tools/cmd/goimports)
-	$(call go-get-tool,$(BINDIR)/staticcheck,honnef.co/go/tools/cmd/staticcheck)
-	$(call go-get-tool,$(BINDIR)/ineffassign,github.com/gordonklaus/ineffassign)
-	$(call go-get-tool,$(BINDIR)/nilerr,github.com/gostaticanalysis/nilerr/cmd/nilerr)
+	GOBIN=$(BINDIR) go install golang.org/x/tools/cmd/goimports@latest
+	GOBIN=$(BINDIR) go install honnef.co/go/tools/cmd/staticcheck@latest
+	GOBIN=$(BINDIR) go install github.com/gordonklaus/ineffassign@latest
+	GOBIN=$(BINDIR) go install github.com/gostaticanalysis/nilerr/cmd/nilerr@latest
 
 .PHONY: setup
 setup: tools
@@ -142,17 +142,19 @@ setup: tools
 	curl -sfL https://go.kubebuilder.io/dl/$(KUBEBUILDER_VERSION)/$(GOOS)/$(GOARCH) | tar -xz -C /tmp/
 	mv /tmp/kubebuilder_$(KUBEBUILDER_VERSION)_$(GOOS)_$(GOARCH)/bin/* bin/
 	rm -rf /tmp/kubebuilder_*
-	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v$(CONTROLLER_TOOLS_VERSION))
+	GOBIN=$(BINDIR) go install sigs.k8s.io/controller-tools/cmd/controller-gen@v$(CONTROLLER_TOOLS_VERSION)
 
 	curl -sfL -o protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-linux-x86_64.zip
 	unzip -o protoc.zip bin/protoc 'include/*'
 	rm -f protoc.zip
-	GOBIN=$(BINDIR) go install google.golang.org/protobuf/cmd/protoc-gen-go
-	GOBIN=$(BINDIR) go install google.golang.org/grpc/cmd/protoc-gen-go-grpc
-	GOBIN=$(BINDIR) go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc
+	GOBIN=$(BINDIR) go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+	GOBIN=$(BINDIR) go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+	GOBIN=$(BINDIR) go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@latest
 
-	GOBIN=$(BINDIR) go install github.com/onsi/ginkgo/ginkgo
+	GOBIN=$(BINDIR) go install github.com/onsi/ginkgo/ginkgo@latest
 
+	# check if kustomize suports `go install` command.
+	# known issue https://github.com/kubernetes-sigs/kustomize/issues/3618
 	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v$(KUSTOMIZE_VERSION))
 
 # go-get-tool will 'go get' any package $2 and install it to $1.

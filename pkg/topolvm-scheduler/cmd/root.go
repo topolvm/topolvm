@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 
@@ -66,7 +65,7 @@ func subMain() error {
 	}
 
 	if len(cfgFilePath) != 0 {
-		b, err := ioutil.ReadFile(cfgFilePath)
+		b, err := os.ReadFile(cfgFilePath)
 		if err != nil {
 			return err
 		}

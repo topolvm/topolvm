@@ -1,7 +1,6 @@
 package filesystem
 
 import (
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -9,7 +8,7 @@ import (
 )
 
 func createDevice() (string, error) {
-	f, err := ioutil.TempFile("", "test-filesystem-")
+	f, err := os.CreateTemp("", "test-filesystem-")
 	if err != nil {
 		return "", err
 	}
