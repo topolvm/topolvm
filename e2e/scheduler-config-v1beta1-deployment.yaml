@@ -5,7 +5,7 @@ leaderElection:
 clientConnection:
   kubeconfig: /etc/kubernetes/scheduler.conf
 extenders:
-- urlPrefix: "http://topolvm-e2e-worker:30251"
+- urlPrefix: "http://127.0.0.1:30251"
   filterVerb: "predicate"
   prioritizeVerb: "prioritize"
   nodeCacheCapable: false
