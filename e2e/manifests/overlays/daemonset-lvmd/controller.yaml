@@ -5,36 +5,7 @@ metadata:
   name: controller
   namespace: topolvm-system
 spec:
-  replicas: 1
   template:
     spec:
-      securityContext: null
-
-      containers:
-        - name: topolvm-controller
-          image: topolvm:dev
-          imagePullPolicy: Never
-
-        - name: csi-provisioner
-          image: topolvm:dev
-          imagePullPolicy: Never
-
-        - name: csi-attacher
-          image: topolvm:dev
-          imagePullPolicy: Never
-
-        - name: csi-resizer
-          image: topolvm:dev
-          imagePullPolicy: Never
-
-        - name: liveness-probe
-          image: topolvm:dev
-          imagePullPolicy: Never
-
-      # sanity test requires that the controller mounts this hostPath to communicate with it
-      volumes:
-        - name: socket-dir
-          emptyDir: null
-          hostPath:
-            path: /var/lib/kubelet/plugins/topolvm.cybozu.com/controller
-            type: DirectoryOrCreate
+      nodeSelector:
+        $patch: delete
