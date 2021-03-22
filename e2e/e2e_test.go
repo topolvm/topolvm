@@ -300,9 +300,9 @@ spec:
 	})
 
 	It("should choose a node with the largest capacity when volumeBindingMode == Immediate is specified", func() {
-		num := 0
-		if !isDaemonsetLvmdEnvSet() {
-			num = 3
+		num := 3
+		if isDaemonsetLvmdEnvSet() {
+			num = 0
 		}
 
 		// Repeat applying a PVC to make sure that the volume is created on the node with the largest capacity in each loop.

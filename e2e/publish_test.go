@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -95,13 +94,7 @@ func testPublishVolume() {
 
 		nodeName := "topolvm-e2e-worker"
 		if isDaemonsetLvmdEnvSet() {
-			stdout, stderr, err := kubectl("get", "nodes", "-o=json")
-			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-
-			var nodes corev1.NodeList
-			err = json.Unmarshal(stdout, &nodes)
-			Expect(err).ShouldNot(HaveOccurred())
-			nodeName = nodes.Items[0].Name
+			nodeName = getDaemonsetLvmdNodeName()
 		}
 
 		By("creating a logical volume resource")
@@ -209,13 +202,7 @@ func testPublishVolume() {
 		By("creating a logical volume resource")
 		nodeName := "topolvm-e2e-worker"
 		if isDaemonsetLvmdEnvSet() {
-			stdout, stderr, err := kubectl("get", "nodes", "-o=json")
-			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-
-			var nodes corev1.NodeList
-			err = json.Unmarshal(stdout, &nodes)
-			Expect(err).ShouldNot(HaveOccurred())
-			nodeName = nodes.Items[0].Name
+			nodeName = getDaemonsetLvmdNodeName()
 		}
 		lvString := "apiVersion: topolvm.cybozu.com/v1\n" +
 			"kind: LogicalVolume\n" +
@@ -402,13 +389,7 @@ spec:
 		By("creating a logical volume resource")
 		nodeName := "topolvm-e2e-worker"
 		if isDaemonsetLvmdEnvSet() {
-			stdout, stderr, err := kubectl("get", "nodes", "-o=json")
-			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-
-			var nodes corev1.NodeList
-			err = json.Unmarshal(stdout, &nodes)
-			Expect(err).ShouldNot(HaveOccurred())
-			nodeName = nodes.Items[0].Name
+			nodeName = getDaemonsetLvmdNodeName()
 		}
 
 		lvString := "apiVersion: topolvm.cybozu.com/v1\n" +

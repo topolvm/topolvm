@@ -37,9 +37,9 @@ func testNode() {
 				return err
 			}
 
-			count := 1
-			if !isDaemonsetLvmdEnvSet() {
-				count = 3
+			count := 3
+			if isDaemonsetLvmdEnvSet() {
+				count = 1
 			}
 
 			if len(podlist.Items) != count {
@@ -66,9 +66,9 @@ func testNode() {
 		stdout, stderr, err := kubectl("get", "nodes", "-o=json")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
-		count := 1
-		if !isDaemonsetLvmdEnvSet() {
-			count = 4
+		count := 4
+		if isDaemonsetLvmdEnvSet() {
+			count = 1
 		}
 
 		var nodes corev1.NodeList
@@ -76,16 +76,14 @@ func testNode() {
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(nodes.Items)).To(Equal(count))
 
-		vgNameMap := map[string]string{}
-
-		if !isDaemonsetLvmdEnvSet() {
-			vgNameMap = map[string]string{
-				"topolvm-e2e-worker":        "node1-myvg1",
-				"topolvm-e2e-worker2":       "node2-myvg1",
-				"topolvm-e2e-worker3":       "node3-myvg1",
-				"topolvm-e2e-control-plane": "",
-			}
-		} else {
+		vgNameMap := map[string]string{
+			"topolvm-e2e-worker":        "node1-myvg1",
+			"topolvm-e2e-worker2":       "node2-myvg1",
+			"topolvm-e2e-worker3":       "node3-myvg1",
+			"topolvm-e2e-control-plane": "",
+		}
+		if isDaemonsetLvmdEnvSet() {
+			vgNameMap = map[string]string{}
 			vgNameMap[nodes.Items[0].Name] = "node-myvg1"
 		}
 

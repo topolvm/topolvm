@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
 var binDir string
@@ -75,6 +76,16 @@ func skipTestIfNeeded() {
 	if isDaemonsetLvmdEnvSet() {
 		Skip("skip because current environment is daemonset lvmd")
 	}
+}
+
+func getDaemonsetLvmdNodeName() string {
+	stdout, stderr, err := kubectl("get", "nodes", "-o=json")
+	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+	var nodes corev1.NodeList
+	err = json.Unmarshal(stdout, &nodes)
+	Expect(err).ShouldNot(HaveOccurred())
+	return nodes.Items[0].Name
 }
 
 var _ = BeforeSuite(func() {
