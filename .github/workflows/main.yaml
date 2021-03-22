@@ -36,8 +36,8 @@ jobs:
       - run: make -C e2e setup
       - run: make -C e2e start-lvmd
       - run: make -C e2e test
-  e2e-k8s-daemonset-lvmd:
-    name: e2e-k8s-daemonset-lvmd
+  e2e-k8s-daemonset-lvmd-test:
+    name: e2e-k8s-daemonset-lvmd-test
     runs-on: ubuntu-20.04
     strategy:
       matrix:
