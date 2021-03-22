@@ -209,4 +209,4 @@ daemonset-lvmd/update-minikube-setting: daemonset-lvmd/delete-minikube daemonset
 .PHONY: daemonset-lvmd/test
 daemonset-lvmd/test: topolvm.img $(SERVER_CERT_FILES)
 	$(KUSTOMIZE) build --load_restrictor='none' manifests/overlays/daemonset-lvmd | $(KUBECTL) apply -f -
-	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) LVMD=true $(GINKGO) --failFast -v .
+	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) DAEMONSET_LVMD=true $(GINKGO) --failFast -v .

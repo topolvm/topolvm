@@ -67,13 +67,13 @@ func waitKindnet() error {
 	return nil
 }
 
-func isLvmdEnv() bool {
-	return os.Getenv("LVMD") != ""
+func isDaemonsetLvmdEnvSet() bool {
+	return os.Getenv("DAEMONSET_LVMD") != ""
 }
 
 func skipTestIfNeeded() {
-	if isLvmdEnv() {
-		Skip("skip because current environment is lvmd daemonset")
+	if isDaemonsetLvmdEnvSet() {
+		Skip("skip because current environment is daemonset lvmd")
 	}
 }
 
@@ -83,7 +83,7 @@ var _ = BeforeSuite(func() {
 	Expect(binDir).ShouldNot(BeEmpty())
 	fmt.Println("This test uses the binaries under " + binDir)
 
-	if !isLvmdEnv() {
+	if !isDaemonsetLvmdEnvSet() {
 		By("Waiting for kindnet to get ready")
 		// Because kindnet will crash. we need to confirm its readiness twice.
 		Eventually(waitKindnet).Should(Succeed())

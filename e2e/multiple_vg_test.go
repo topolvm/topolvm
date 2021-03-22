@@ -85,7 +85,7 @@ spec:
 		}).Should(Succeed())
 
 		vgName := "node3-myvg3"
-		if isLvmdEnv() {
+		if isDaemonsetLvmdEnvSet() {
 			vgName = "node-myvg3"
 		}
 		Expect(vgName).Should(Equal(lv.vgName))
