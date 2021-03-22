@@ -35,17 +35,14 @@ ifeq ($(TEST_KUBERNETES_VERSION),1.20)
 KUBERNETES_VERSION=1.20.2
 KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
 SCHEDULER_CONFIG=scheduler-config-v1beta1-$(TEST_SCHEDULER_MANIFEST).yaml
-TEST_KUBERNETES_SCHEDULER_VERSION=v1beta1
 else ifeq ($(TEST_KUBERNETES_VERSION),1.19)
 KUBERNETES_VERSION=1.19.4
 KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
 SCHEDULER_CONFIG=scheduler-config-v1beta1-$(TEST_SCHEDULER_MANIFEST).yaml
-TEST_KUBERNETES_SCHEDULER_VERSION=v1beta1
 else ifeq ($(TEST_KUBERNETES_VERSION),1.18)
 KUBERNETES_VERSION=1.18.8
 KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
 SCHEDULER_CONFIG=scheduler-config-v1alpha1.yaml
-TEST_KUBERNETES_SCHEDULER_VERSION=v1alpha1
 endif
 
 GO_FILES := $(shell find .. -prune -o -path ../e2e -prune -o -name '*.go' -print)
@@ -199,12 +196,14 @@ daemonset-lvmd/launch-minikube:
 daemonset-lvmd/delete-minikube:
 	$(BINDIR)/minikube delete
 
+# Set scheduler configs manually because minikube can't edit scheduler configs
 .PHONY: daemonset-lvmd/update-minikube-setting
 daemonset-lvmd/update-minikube-setting: daemonset-lvmd/delete-minikube daemonset-lvmd/launch-minikube
 	$(SUDO) mkdir -p /var/lib/scheduler
-	$(SUDO) cp -f kubeadm/scheduler-policy.cfg /var/lib/scheduler/scheduler-policy.cfg
-	$(SUDO) cp -f kubeadm/scheduler-config-$(TEST_KUBERNETES_SCHEDULER_VERSION).yaml /var/lib/scheduler/scheduler-config.yaml
-	$(SUDO) cp -f kubeadm/kube-scheduler-v$(KUBERNETES_VERSION).yaml /etc/kubernetes/manifests/kube-scheduler.yaml
+	$(SUDO) cp -f scheduler-policy-daemonset.cfg /var/lib/scheduler/scheduler-policy.cfg
+	$(SUDO) cp -f $(SCHEDULER_CONFIG) /var/lib/scheduler/scheduler-config.yaml
+	sed -e "s|@KUBERNETES_VERSION@|$(KUBERNETES_VERSION)|" kube-scheduler.yaml > /tmp/kube-scheduler.yaml
+	$(SUDO) cp -f /tmp/kube-scheduler.yaml /etc/kubernetes/manifests/kube-scheduler.yaml
 
 .PHONY: daemonset-lvmd/test
 daemonset-lvmd/test: topolvm.img $(SERVER_CERT_FILES)
