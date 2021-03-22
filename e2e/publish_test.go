@@ -98,16 +98,16 @@ func testPublishVolume() {
 		}
 
 		By("creating a logical volume resource")
-		lvString := "apiVersion: topolvm.cybozu.com/v1\n" +
-			"kind: LogicalVolume\n" +
-			"metadata:\n" +
-			"  name: csi-node-test-fs\n" +
-			"spec:\n" +
-			"  deviceClass: ssd\n" +
-			"  name: csi-node-test-fs\n" +
-			"  nodeName: " + nodeName + "\n" +
-			"  size: 1Gi"
-		lvYaml := []byte(lvString)
+		lvYaml := []byte(fmt.Sprintf(`apiVersion: topolvm.cybozu.com/v1
+kind: LogicalVolume
+metadata:
+  name: csi-node-test-fs
+spec:
+  deviceClass: ssd
+  name: csi-node-test-fs
+  nodeName: %s
+  size: 1Gi
+`, nodeName))
 
 		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -204,16 +204,16 @@ func testPublishVolume() {
 		if isDaemonsetLvmdEnvSet() {
 			nodeName = getDaemonsetLvmdNodeName()
 		}
-		lvString := "apiVersion: topolvm.cybozu.com/v1\n" +
-			"kind: LogicalVolume\n" +
-			"metadata:\n" +
-			"  name: csi-node-test-block\n" +
-			"spec:\n" +
-			"  deviceClass: ssd\n" +
-			"  name: csi-node-test-block\n" +
-			"  nodeName: " + nodeName + "\n" +
-			"  size: 1Gi"
-		lvYaml := []byte(lvString)
+		lvYaml := []byte(fmt.Sprintf(`apiVersion: topolvm.cybozu.com/v1
+kind: LogicalVolume
+metadata:
+  name: csi-node-test-block
+spec:
+  deviceClass: ssd
+  name: csi-node-test-block
+  nodeName: %s
+  size: 1Gi
+`, nodeName))
 
 		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -392,16 +392,16 @@ spec:
 			nodeName = getDaemonsetLvmdNodeName()
 		}
 
-		lvString := "apiVersion: topolvm.cybozu.com/v1\n" +
-			"kind: LogicalVolume\n" +
-			"metadata:\n" +
-			"  name: csi-node-test-fs\n" +
-			"spec:\n" +
-			"  deviceClass: ssd\n" +
-			"  name: csi-node-test-fs\n" +
-			"  nodeName: " + nodeName + "\n" +
-			"  size: 1Gi"
-		lvYaml := []byte(lvString)
+		lvYaml := []byte(fmt.Sprintf(`apiVersion: topolvm.cybozu.com/v1
+kind: LogicalVolume
+metadata:
+  name: csi-node-test-fs
+spec:
+  deviceClass: ssd
+  name: csi-node-test-fs
+  nodeName: %s
+  size: 1Gi
+`, nodeName))
 
 		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
