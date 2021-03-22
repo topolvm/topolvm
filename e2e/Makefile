@@ -4,7 +4,7 @@ TEST_SCHEDULER_MANIFEST ?= daemonset
 
 ## Dependency versions
 KIND_VERSION=0.10.0
-MINKKUUBE_VERSION=v1.18.1
+MINIKUUBE_VERSION=v1.18.1
 
 BINDIR=$(PWD)/bin
 SUDO=sudo
@@ -185,7 +185,7 @@ daemonset-lvmd/remove-vg:
 daemonset-lvmd/setup-minikube:
 	$(SUDO) apt-get update
 	$(SUDO) apt-get install -y conntrack
-	curl -LO https://github.com/kubernetes/minikube/releases/download/$(MINKKUUBE_VERSION)/minikube-linux-amd64
+	curl -LO https://github.com/kubernetes/minikube/releases/download/$(MINIKUUBE_VERSION)/minikube-linux-amd64
 	chmod a+x minikube-linux-amd64
 	mv minikube-linux-amd64 $(BINDIR)/minikube
 
