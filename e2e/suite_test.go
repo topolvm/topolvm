@@ -72,6 +72,12 @@ func isLvmdEnv() bool {
 	return os.Getenv("LVMD") != ""
 }
 
+func skipTestIfNeeded() {
+	if isLvmdEnv() {
+		Skip("skip because current environment is lvmd daemonset")
+	}
+}
+
 var _ = BeforeSuite(func() {
 	By("Getting the directory path which contains some binaries")
 	binDir = os.Getenv("BINDIR")
@@ -86,7 +92,7 @@ var _ = BeforeSuite(func() {
 		Eventually(waitKindnet).Should(Succeed())
 	}
 
-	SetDefaultEventuallyTimeout(5 * time.Minute)
+	SetDefaultEventuallyTimeout(1 * time.Minute)
 
 	By("Waiting for mutating webhook to get ready")
 	podYAML := `apiVersion: v1
@@ -120,9 +126,7 @@ var _ = Describe("TopoLVM", func() {
 	Context("publish", testPublishVolume)
 	Context("e2e", testE2E)
 	Context("multiple-vg", testMultipleVolumeGroups)
-	if !isLvmdEnv() {
-		Context("cleanup", testCleanup)
-	}
+	Context("cleanup", testCleanup)
 	Context("CSI sanity", func() {
 		baseDir := "/var/lib/kubelet/plugins/topolvm.cybozu.com/"
 		if !isLvmdEnv() {
