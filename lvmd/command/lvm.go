@@ -3,7 +3,7 @@ package command
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"os/exec"
 	"path"
@@ -108,7 +108,7 @@ func parseOutput(cmd, fields string, args ...string) ([]LVInfo, error) {
 	if err := c.Start(); err != nil {
 		return nil, err
 	}
-	out, err := ioutil.ReadAll(stdout)
+	out, err := io.ReadAll(stdout)
 	if err != nil {
 		return nil, err
 	}

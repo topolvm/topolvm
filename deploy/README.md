@@ -28,7 +28,7 @@ lvmd
 ----
 
 [lvmd][] is a gRPC service to manage an LVM volume group.  The pre-built binary can be downloaded from [releases page](https://github.com/topolvm/topolvm/releases).
-It can be built from source code by `GO111MODULE=on go build ./pkg/lvmd`.
+It can be built from source code by `mkdir build; go build -o build/lvmd ./pkg/lvmd`.
 
 To setup `lvmd`:
 

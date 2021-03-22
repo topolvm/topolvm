@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -60,7 +59,7 @@ func subMain() error {
 		return err
 	}
 
-	b, err := ioutil.ReadFile(cfgFilePath)
+	b, err := os.ReadFile(cfgFilePath)
 	if err != nil {
 		return err
 	}
