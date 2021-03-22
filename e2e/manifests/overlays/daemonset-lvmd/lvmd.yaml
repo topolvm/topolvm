@@ -40,14 +40,14 @@ data:
     socket-name: /tmp/topolvm/lvmd_lvmd/lvmd.sock
     device-classes:
       - name: "ssd"
-        volume-group: "node-lvmd-myvg1"
+        volume-group: "node-myvg1"
         default: true
         spare-gb: 1
       - name: "hdd1"
-        volume-group: "node-lvmd-myvg2"
+        volume-group: "node-myvg2"
         spare-gb: 1
       - name: "hdd2"
-        volume-group: "node-lvmd-myvg3"
+        volume-group: "node-myvg3"
         spare-gb: 1
 ---
 apiVersion: apps/v1

@@ -86,7 +86,7 @@ spec:
 
 		vgName := "node3-myvg3"
 		if isLvmdEnv() {
-			vgName = "node-lvmd-myvg3"
+			vgName = "node-myvg3"
 		}
 		Expect(vgName).Should(Equal(lv.vgName))
 	})
