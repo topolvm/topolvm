@@ -198,8 +198,7 @@ daemonset-lvmd/delete-minikube:
 
 # Set scheduler configs manually because minikube can't edit scheduler configs
 .PHONY: daemonset-lvmd/update-minikube-setting
-# daemonset-lvmd/update-minikube-setting: daemonset-lvmd/delete-minikube daemonset-lvmd/launch-minikube
-daemonset-lvmd/update-minikube-setting:
+daemonset-lvmd/update-minikube-setting: daemonset-lvmd/delete-minikube daemonset-lvmd/launch-minikube
 	$(SUDO) mkdir -p /var/lib/scheduler
 	$(SUDO) sh -c 'sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|127.0.0.1|" $(SCHEDULER_POLICY) > /var/lib/scheduler/scheduler-policy.cfg'
 	$(SUDO) sh -c 'sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|127.0.0.1|" $(SCHEDULER_CONFIG) > /var/lib/scheduler/scheduler-config.yaml'
