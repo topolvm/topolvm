@@ -24,10 +24,6 @@ endif
 
 export TEST_KUBERNETES_VERSION
 
-ifeq ($(@D),daemonset-lvmd)
-TEST_SCHEDULER_MANIFEST=deployment
-endif
-
 SCHEDULER_POLICY := scheduler-policy-daemonset.cfg
 KUSTOMIZE_DIR := manifests/overlays/daemonset-scheduler
 ifeq ($(TEST_SCHEDULER_MANIFEST),deployment)
@@ -67,12 +63,12 @@ topolvm.img: $(GO_FILES)
 
 /tmp/topolvm/scheduler/scheduler-config.yaml: $(SCHEDULER_CONFIG)
 	mkdir -p /tmp/topolvm/scheduler
-	cp $< $@
+	sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|topolvm-e2e-worker|" $< > $@
 
 # The policy file will be copied in all kubernetes version, but it isn't used in kubernetes v1.19 or later.
 /tmp/topolvm/scheduler/scheduler-policy.cfg: $(SCHEDULER_POLICY)
 	mkdir -p /tmp/topolvm/scheduler
-	cp $< $@
+	sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|topolvm-e2e-worker|" $< > $@
 
 launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml /tmp/topolvm/scheduler/scheduler-policy.cfg
 	$(SUDO) rm -rf /tmp/topolvm/controller /tmp/topolvm/worker*
@@ -204,8 +200,8 @@ daemonset-lvmd/delete-minikube:
 .PHONY: daemonset-lvmd/update-minikube-setting
 daemonset-lvmd/update-minikube-setting: daemonset-lvmd/delete-minikube daemonset-lvmd/launch-minikube
 	$(SUDO) mkdir -p /var/lib/scheduler
-	$(SUDO) cp -f $(SCHEDULER_POLICY) /var/lib/scheduler/scheduler-policy.cfg
-	$(SUDO) cp -f $(SCHEDULER_CONFIG) /var/lib/scheduler/scheduler-config.yaml
+	$(SUDO) sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|127.0.0.1|" $(SCHEDULER_POLICY) > /var/lib/scheduler/scheduler-policy.cfg
+	$(SUDO) sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|127.0.0.1|" $(SCHEDULER_CONFIG) > /var/lib/scheduler/scheduler-config.yaml
 	sed -e "s|@KUBERNETES_VERSION@|$(KUBERNETES_VERSION)|" kube-scheduler.yaml > /tmp/kube-scheduler.yaml
 	$(SUDO) cp -f /tmp/kube-scheduler.yaml /etc/kubernetes/manifests/kube-scheduler.yaml
 

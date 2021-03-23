@@ -6,4 +6,4 @@ patchesStrategicMerge:
   - lvmd.yaml
 resources:
   - ../../../../deploy/manifests/lvmd
-  - ../daemonset-scheduler
+  - ../deployment-scheduler

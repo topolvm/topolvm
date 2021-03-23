@@ -44,6 +44,7 @@ jobs:
         test_kubernetes_target: [current, prev, prev2]
     env:
       TEST_KUBERNETES_TARGET: ${{ matrix.test_kubernetes_target }}
+      TEST_SCHEDULER_MANIFEST: deployment
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
