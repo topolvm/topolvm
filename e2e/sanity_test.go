@@ -11,10 +11,13 @@ import (
 )
 
 func testSanity() {
-	baseDir := "/var/lib/kubelet/plugins/topolvm.cybozu.com/"
+	baseDir := "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/"
+	if isDaemonsetLvmdEnvSet() {
+		baseDir = "/var/lib/kubelet/plugins/topolvm.cybozu.com/"
+	}
+
 	It("should add node selector to node DaemonSet for CSI test", func() {
 		skipTestIfNeeded()
-		baseDir = "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/"
 		_, _, err := kubectl("delete", "nodes", "topolvm-e2e-worker2")
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() error {
