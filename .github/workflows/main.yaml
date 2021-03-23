@@ -44,12 +44,11 @@ jobs:
         test_kubernetes_target: [current, prev, prev2]
     env:
       TEST_KUBERNETES_TARGET: ${{ matrix.test_kubernetes_target }}
-      GOROOT: /opt/hostedtoolcache/go/1.15.8/x64
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
         with:
-          go-version: 1.15.8
+          go-version: 1.15
       - run: make -C e2e setup
       - run: make -C e2e daemonset-lvmd/create-vg
       - run: make -C e2e daemonset-lvmd/setup-minikube
