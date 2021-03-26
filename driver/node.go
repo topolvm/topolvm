@@ -208,6 +208,14 @@ func (s *nodeService) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequ
 		return nil, status.Errorf(codes.Internal, "target device is already formatted with different filesystem: volume=%s, current=%s, new:%s", req.GetVolumeId(), fsType, mountOption.FsType)
 	}
 
+	if fsType == "" && mountOption.FsType == "xfs" {
+		args := []string{"-m", "reflink=0", device}
+		_, err = s.mounter.Exec.Command("mkfs."+mountOption.FsType, args...).CombinedOutput()
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "format device path failed: volume=%s, error=%v", req.GetVolumeId(), err)
+		}
+	}
+
 	mounted, err := filesystem.IsMounted(device, req.GetTargetPath())
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "mount check failed: target=%s, error=%v", req.GetTargetPath(), err)
