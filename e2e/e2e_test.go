@@ -300,9 +300,13 @@ spec:
 	})
 
 	It("should choose a node with the largest capacity when volumeBindingMode == Immediate is specified", func() {
+		num := 3
+		if isDaemonsetLvmdEnvSet() {
+			num = 0
+		}
 
 		// Repeat applying a PVC to make sure that the volume is created on the node with the largest capacity in each loop.
-		for i := 0; i < 3; i++ {
+		for i := 0; i < num; i++ {
 			By("getting the node with max capacity (loop: " + strconv.Itoa(i) + ")")
 			var maxCapNodes []string
 			Eventually(func() error {
@@ -539,6 +543,7 @@ spec:
 			- node2:  4 / 18 GiB -> filtered (insufficient capacity)
 			- node3:  4 / 18 GiB -> filtered (insufficient capacity)
 		*/
+		skipTestIfNeeded()
 		By("initializing node capacity")
 		claimYAML := `kind: PersistentVolumeClaim
 apiVersion: v1

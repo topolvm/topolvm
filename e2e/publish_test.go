@@ -57,7 +57,11 @@ func testPublishVolume() {
 		nc   csi.NodeClient
 		conn *grpc.ClientConn
 	)
+
 	nodeSocket := "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/csi-topolvm.sock"
+	if isDaemonsetLvmdEnvSet() {
+		nodeSocket = "/var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock"
+	}
 
 	var cc CleanupContext
 
@@ -88,17 +92,22 @@ func testPublishVolume() {
 	It("should publish filesystem", func() {
 		mountTargetPath := "/mnt/csi-node-test"
 
+		nodeName := "topolvm-e2e-worker"
+		if isDaemonsetLvmdEnvSet() {
+			nodeName = getDaemonsetLvmdNodeName()
+		}
+
 		By("creating a logical volume resource")
-		lvYaml := []byte(`apiVersion: topolvm.cybozu.com/v1
+		lvYaml := []byte(fmt.Sprintf(`apiVersion: topolvm.cybozu.com/v1
 kind: LogicalVolume
 metadata:
   name: csi-node-test-fs
 spec:
   deviceClass: ssd
   name: csi-node-test-fs
-  nodeName: topolvm-e2e-worker
+  nodeName: %s
   size: 1Gi
-`)
+`, nodeName))
 
 		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -191,16 +200,21 @@ spec:
 		deviceTargetPath := "/dev/csi-node-test"
 
 		By("creating a logical volume resource")
-		lvYaml := []byte(`apiVersion: topolvm.cybozu.com/v1
+		nodeName := "topolvm-e2e-worker"
+		if isDaemonsetLvmdEnvSet() {
+			nodeName = getDaemonsetLvmdNodeName()
+		}
+
+		lvYaml := []byte(fmt.Sprintf(`apiVersion: topolvm.cybozu.com/v1
 kind: LogicalVolume
 metadata:
   name: csi-node-test-block
 spec:
   deviceClass: ssd
   name: csi-node-test-block
-  nodeName: topolvm-e2e-worker
+  nodeName: %s
   size: 1Gi
-`)
+`, nodeName))
 
 		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -374,16 +388,21 @@ spec:
 		mountTargetPath := "/mnt/csi-node-test"
 
 		By("creating a logical volume resource")
-		lvYaml := []byte(`apiVersion: topolvm.cybozu.com/v1
+		nodeName := "topolvm-e2e-worker"
+		if isDaemonsetLvmdEnvSet() {
+			nodeName = getDaemonsetLvmdNodeName()
+		}
+
+		lvYaml := []byte(fmt.Sprintf(`apiVersion: topolvm.cybozu.com/v1
 kind: LogicalVolume
 metadata:
   name: csi-node-test-fs
 spec:
   deviceClass: ssd
   name: csi-node-test-fs
-  nodeName: topolvm-e2e-worker
+  nodeName: %s
   size: 1Gi
-`)
+`, nodeName))
 
 		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())

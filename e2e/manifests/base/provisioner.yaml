@@ -52,6 +52,16 @@ allowVolumeExpansion: true
 mountOptions:
   - debug
 ---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: topolvm-provisioner-not-found-device
+provisioner: topolvm.cybozu.com
+parameters:
+  "topolvm.cybozu.com/device-class": "not-found-device"
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+---
 apiVersion: v1
 kind: PersistentVolume
 metadata:
