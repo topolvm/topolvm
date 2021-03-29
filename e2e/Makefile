@@ -4,6 +4,7 @@ TEST_SCHEDULER_MANIFEST ?= daemonset
 
 ## Dependency versions
 KIND_VERSION=0.10.0
+MINIKUBE_VERSION=v1.18.1
 
 BINDIR=$(PWD)/bin
 SUDO=sudo
@@ -52,6 +53,7 @@ topolvm.img: $(GO_FILES)
 	rm -rf tmpbin
 	mkdir -p tmpbin
 	CGO_ENABLED=0 go build -o tmpbin/hypertopolvm ../pkg/hypertopolvm
+	ln -s hypertopolvm ./tmpbin/lvmd
 	ln -s hypertopolvm ./tmpbin/topolvm-scheduler
 	ln -s hypertopolvm ./tmpbin/topolvm-node
 	ln -s hypertopolvm ./tmpbin/topolvm-controller
@@ -61,12 +63,12 @@ topolvm.img: $(GO_FILES)
 
 /tmp/topolvm/scheduler/scheduler-config.yaml: $(SCHEDULER_CONFIG)
 	mkdir -p /tmp/topolvm/scheduler
-	cp $< $@
+	sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|topolvm-e2e-worker|" $< > $@
 
 # The policy file will be copied in all kubernetes version, but it isn't used in kubernetes v1.19 or later.
 /tmp/topolvm/scheduler/scheduler-policy.cfg: $(SCHEDULER_POLICY)
 	mkdir -p /tmp/topolvm/scheduler
-	cp $< $@
+	sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|topolvm-e2e-worker|" $< > $@
 
 launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml /tmp/topolvm/scheduler/scheduler-policy.cfg
 	$(SUDO) rm -rf /tmp/topolvm/controller /tmp/topolvm/worker*
@@ -142,7 +144,13 @@ $(SERVER_CERT_FILES):
 	go run ../pkg/gencert -outdir certs
 
 clean: stop-lvmd
-	rm -rf $(SERVER_CERT_FILES) topolvm.img build/ $(BACKING_STORE)/backing_store*
+	rm -rf \
+		$(SERVER_CERT_FILES) \
+		topolvm.img \
+		build/ \
+		$(BACKING_STORE)/backing_store* \
+		/tmp/topolvm/scheduler/scheduler-config.yaml \
+		/tmp/topolvm/scheduler/scheduler-policy.cfg
 
 setup:
 	cd ..; $(MAKE) setup
@@ -151,4 +159,69 @@ setup:
 	curl -o $(BINDIR)/kubectl -sfL https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl
 	chmod a+x $(BINDIR)/kubectl $(BINDIR)/kind
 
-.PHONY: launch-kind shutdown-kind start-lvmd stop-lvmd test clean setup
+daemonset-lvmd/create-vg:
+	mkdir -p build $(BACKING_STORE)
+	if [ -f $(BACKING_STORE)/backing_store_lvmd* ]; then $(MAKE) $(@D)/remove-vg; fi
+
+	for i in $$(seq 3); do \
+		truncate --size=20G $(BACKING_STORE)/backing_store_lvmd_$${i}; \
+		$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_$${i}; \
+		$(SUDO) vgcreate -y node-myvg$${i} $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_$${i} | cut -d: -f1); \
+		$(SUDO) lvcreate -y -n csi-node-test-block -L 1G node-myvg$${i}; \
+		$(SUDO) lvcreate -y -n csi-node-test-fs -L 1G node-myvg$${i}; \
+	done
+
+daemonset-lvmd/remove-vg:
+	for i in $$(seq 3); do \
+		$(SUDO) vgremove -ffy node-myvg$${i}; \
+		$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_$${i} | cut -d: -f1); \
+		$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_$${i} | cut -d: -f1); \
+		rm -f $(BACKING_STORE)/backing_store_lvmd_$${i}; \
+	done
+
+daemonset-lvmd/setup-minikube:
+	mkdir -p $(BINDIR)
+	$(SUDO) apt-get update
+	$(SUDO) apt-get install -y conntrack
+	curl -LO https://github.com/kubernetes/minikube/releases/download/$(MINIKUBE_VERSION)/minikube-linux-amd64
+	chmod a+x minikube-linux-amd64
+	mv minikube-linux-amd64 $(BINDIR)/minikube
+
+daemonset-lvmd/launch-minikube:
+	$(BINDIR)/minikube start \
+		--vm-driver=none \
+		--kubernetes-version=v$(KUBERNETES_VERSION) \
+		--extra-config=kubelet.read-only-port=10255
+
+daemonset-lvmd/delete-minikube:
+	$(BINDIR)/minikube delete || true
+
+# Set scheduler configs manually because minikube can't edit scheduler configs
+daemonset-lvmd/update-minikube-setting: daemonset-lvmd/delete-minikube daemonset-lvmd/launch-minikube
+	$(SUDO) mkdir -p /var/lib/scheduler
+	$(SUDO) sh -c 'sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|127.0.0.1|" $(SCHEDULER_POLICY) > /var/lib/scheduler/scheduler-policy.cfg'
+	$(SUDO) sh -c 'sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|127.0.0.1|" $(SCHEDULER_CONFIG) > /var/lib/scheduler/scheduler-config.yaml'
+	$(SUDO) sh -c 'sed -e "s|@KUBERNETES_VERSION@|$(KUBERNETES_VERSION)|" kube-scheduler.yaml > /etc/kubernetes/manifests/kube-scheduler.yaml'
+
+daemonset-lvmd/test: topolvm.img $(SERVER_CERT_FILES)
+	$(KUSTOMIZE) build --load_restrictor='none' manifests/overlays/daemonset-lvmd | $(KUBECTL) apply -f -
+	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) DAEMONSET_LVMD=true $(GINKGO) --failFast -v .
+
+daemonset-lvmd/clean: daemonset-lvmd/delete-minikube daemonset-lvmd/remove-vg
+
+.PHONY: \
+	launch-kind \
+	shutdown-kind \
+	start-lvmd \
+	stop-lvmd \
+	test \
+	clean \
+	setup \
+	daemonset-lvmd/create-vg \
+	daemonset-lvmd/remove-vg \
+	daemonset-lvmd/setup-minikube \
+	daemonset-lvmd/launch-minikube \
+	daemonset-lvmd/delete-minikube \
+	daemonset-lvmd/update-minikube-setting \
+	daemonset-lvmd/test \
+	daemonset-lvmd/clean

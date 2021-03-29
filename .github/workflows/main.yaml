@@ -36,6 +36,25 @@ jobs:
       - run: make -C e2e setup
       - run: make -C e2e start-lvmd
       - run: make -C e2e test
+  e2e-k8s-daemonset-lvmd:
+    name: e2e-k8s-daemonset-lvmd
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        test_kubernetes_target: [current, prev, prev2]
+    env:
+      TEST_KUBERNETES_TARGET: ${{ matrix.test_kubernetes_target }}
+      TEST_SCHEDULER_MANIFEST: deployment
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+      - run: make -C e2e setup
+      - run: make -C e2e daemonset-lvmd/create-vg
+      - run: make -C e2e daemonset-lvmd/setup-minikube
+      - run: make -C e2e daemonset-lvmd/update-minikube-setting
+      - run: make -C e2e daemonset-lvmd/test
   example:
     name: example
     runs-on: ubuntu-20.04

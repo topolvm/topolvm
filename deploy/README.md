@@ -45,6 +45,50 @@ To setup `lvmd`:
 
 3. Install `lvmd` and `lvmd.service`, then start the service.
 
+### OPTIONAL: Launch lvmd with DaemonSet
+
+Also, you can launch [lvmd][] with DaemonSet.
+
+Notice: The lvmd container uses nsenter to running some lvm commands(like `lvcreate`) as a host process, so you can't launch lvmd with DaemonSet when you're using [kind](https://kind.sigs.k8s.io/).
+
+To setup `lvmd` with Daemonset:
+
+1. Prepare LVM volume groups.  A non-empty volume group can be used because LV names wouldn't conflict.
+2. Edit `ConfigMap` in [lvmd-configmap.yaml](./manifests/lvmd/lvmd-configmap.yaml) as follows:
+
+    ```yaml
+    ---
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      namespace: topolvm-system
+      name: topolvm-lvmd
+    data:
+      lvmd.yaml: |
+        socket-name: /run/topolvm/lvmd.sock
+        device-classes:
+          - name: ssd
+            volume-group: myvg1 # Change this value to your LV name.
+            default: true
+            spare-gb: 10
+    ```
+
+3. Apply `lvmd` manifests.
+
+    ```console
+    kustomize build ./manifests/lvmd | kubectl apply -f -
+    ```
+
+4. Check DaemonSet `lvmd` is ready
+
+    ```console
+    # If DaemonSet lvmd is ready, launching lvmd is a success
+    $ kubectl -n topolvm-system get daemonset topolvm-lvmd
+    NAME           DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+    topolvm-lvmd   1         1         1       1            1           <none>          45m
+    ```
+
+
 cert-manager
 ------------
 
