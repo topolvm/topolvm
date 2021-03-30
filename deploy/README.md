@@ -49,7 +49,7 @@ To setup `lvmd`:
 
 Also, you can launch [lvmd][] with DaemonSet.
 
-Notice: The lvmd container uses nsenter to running some lvm commands(like `lvcreate`) as a host process, so you can't launch lvmd with DaemonSet when you're using [kind](https://kind.sigs.k8s.io/).
+Notice: The lvmd container uses `nsenter` to run some lvm commands(like `lvcreate`) as a host process, so you can't launch lvmd with DaemonSet when you're using [kind](https://kind.sigs.k8s.io/).
 
 To setup `lvmd` with Daemonset:
 
