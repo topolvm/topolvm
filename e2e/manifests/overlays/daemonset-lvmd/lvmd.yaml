@@ -3,7 +3,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   namespace: topolvm-system
-  name: topolvm-lvmd
+  name: lvmd
 data:
   lvmd.yaml: |
     socket-name: /tmp/topolvm/daemonset_lvmd/lvmd.sock
@@ -23,7 +23,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   namespace: topolvm-system
-  name: topolvm-lvmd
+  name: lvmd
 spec:
   template:
     spec:

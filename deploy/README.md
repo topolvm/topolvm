@@ -62,7 +62,7 @@ To setup `lvmd` with Daemonset:
     kind: ConfigMap
     metadata:
       namespace: topolvm-system
-      name: topolvm-lvmd
+      name: lvmd
     data:
       lvmd.yaml: |
         socket-name: /run/topolvm/lvmd.sock
