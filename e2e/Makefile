@@ -92,7 +92,7 @@ shutdown-kind:
 start-lvmd:
 	mkdir -p build $(BACKING_STORE)
 	go build -o build/lvmd ../pkg/lvmd
-	if [ -f $(BACKING_STORE)/backing_store* ]; then $(MAKE) stop-lvmd; fi
+	if [ $$(ls -1 $(BACKING_STORE)/backing_store* 2>/dev/null | wc -l) -ne 0 ]; then $(MAKE) stop-lvmd; fi
 
 	for i in $$(seq 3); do \
 		mkdir -p /tmp/topolvm/worker$$i; \
@@ -169,7 +169,7 @@ setup:
 .PHONY: daemonset-lvmd/create-vg
 daemonset-lvmd/create-vg:
 	mkdir -p build $(BACKING_STORE)
-	if [ -f $(BACKING_STORE)/backing_store_lvmd* ]; then $(MAKE) $(@D)/remove-vg; fi
+	if [ $$(ls -1 $(BACKING_STORE)/backing_store_lvmd* 2>/dev/null | wc -l) -ne 0 ]; then $(MAKE) $(@D)/remove-vg; fi
 
 	for i in $$(seq 3); do \
 		truncate --size=20G $(BACKING_STORE)/backing_store_lvmd_$${i}; \
