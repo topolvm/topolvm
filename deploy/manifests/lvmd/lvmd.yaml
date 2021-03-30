@@ -5,6 +5,28 @@ metadata:
   namespace: topolvm-system
   name: lvmd
 ---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: lvmd
+spec:
+  privileged: true
+  hostPID: true
+  volumes:
+    - 'configMap'
+    - 'hostPath'
+  allowedHostPaths:
+  - pathPrefix: "/run/topolvm"
+    readOnly: false
+  runAsUser:
+    rule: 'RunAsAny'
+  seLinux:
+    rule: 'RunAsAny'
+  supplementalGroups:
+    rule: 'RunAsAny'
+  fsGroup:
+    rule: 'RunAsAny'
+---
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:

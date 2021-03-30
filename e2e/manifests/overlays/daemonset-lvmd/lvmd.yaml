@@ -1,4 +1,13 @@
 ---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: lvmd
+spec:
+  allowedHostPaths:
+  - pathPrefix: "/tmp/topolvm/daemonset_lvmd"
+    readOnly: false
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
