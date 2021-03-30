@@ -182,7 +182,7 @@ daemonset-lvmd/remove-vg:
 daemonset-lvmd/setup-minikube:
 	mkdir -p $(BINDIR)
 	$(SUDO) apt-get update
-	$(SUDO) apt-get install -y conntrack
+	DEBIAN_FRONTEND=noninteractive $(SUDO) apt-get install -y --no-install-recommends conntrack
 	curl -LO https://github.com/kubernetes/minikube/releases/download/$(MINIKUBE_VERSION)/minikube-linux-amd64
 	chmod a+x minikube-linux-amd64
 	mv minikube-linux-amd64 $(BINDIR)/minikube
