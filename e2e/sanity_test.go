@@ -17,6 +17,7 @@ func testSanity() {
 	}
 
 	It("should add node selector to node DaemonSet for CSI test", func() {
+		// skip test when using minikube because it doesn't need to delete a worker.
 		skipIfDaemonsetLvmd()
 		_, _, err := kubectl("delete", "nodes", "topolvm-e2e-worker2")
 		Expect(err).ShouldNot(HaveOccurred())

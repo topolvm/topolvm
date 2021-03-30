@@ -19,6 +19,7 @@ const cleanupTest = "cleanup-test"
 
 func testCleanup() {
 	It("should create cleanup-test namespace", func() {
+		// skip test when using minikube because cleanup tests expect multi nodes
 		skipIfDaemonsetLvmd()
 		createNamespace(cleanupTest)
 	})
@@ -26,6 +27,7 @@ func testCleanup() {
 	var targetLVs []topolvmv1.LogicalVolume
 
 	It("should finalize the delete node", func() {
+		// skip test when using minikube because cleanup tests expect multi nodes
 		skipIfDaemonsetLvmd()
 		By("checking Node finalizer")
 		Eventually(func() error {
@@ -260,6 +262,7 @@ spec:
 	})
 
 	It("should clean up LogicalVolume resources connected to the deleted node", func() {
+		// skip test when using minikube because cleanup tests expect multi nodes
 		skipIfDaemonsetLvmd()
 		By("confirming logicalvolumes are deleted")
 		Eventually(func() error {
@@ -274,12 +277,14 @@ spec:
 	})
 
 	It("should delete namespace", func() {
+		// skip test when using minikube because cleanup tests expect multi nodes
 		skipIfDaemonsetLvmd()
 		stdout, stderr, err := kubectl("delete", "ns", cleanupTest)
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 	})
 
 	It("should stop undeleted container in case that the container is undeleted", func() {
+		// skip test when using minikube because cleanup tests expect multi nodes
 		skipIfDaemonsetLvmd()
 		stdout, stderr, err := execAtLocal(
 			"docker", nil, "exec", "topolvm-e2e-worker3",
@@ -316,6 +321,7 @@ spec:
 	})
 
 	It("should cleanup volumes", func() {
+		// skip test when using minikube because cleanup tests expect multi nodes
 		skipIfDaemonsetLvmd()
 		for _, lv := range targetLVs {
 			stdout, stderr, err := execAtLocal("sudo", nil, "umount", "/dev/topolvm/"+lv.Status.VolumeID)
