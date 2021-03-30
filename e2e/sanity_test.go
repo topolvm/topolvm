@@ -17,7 +17,7 @@ func testSanity() {
 	}
 
 	It("should add node selector to node DaemonSet for CSI test", func() {
-		skipTestIfNeeded()
+		skipIfDaemonsetLvmd()
 		_, _, err := kubectl("delete", "nodes", "topolvm-e2e-worker2")
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() error {

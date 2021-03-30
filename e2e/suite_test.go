@@ -72,7 +72,7 @@ func isDaemonsetLvmdEnvSet() bool {
 	return os.Getenv("DAEMONSET_LVMD") != ""
 }
 
-func skipTestIfNeeded() {
+func skipIfDaemonsetLvmd() {
 	if isDaemonsetLvmdEnvSet() {
 		Skip("skip because current environment is daemonset lvmd")
 	}

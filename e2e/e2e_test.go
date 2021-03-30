@@ -543,7 +543,7 @@ spec:
 			- node2:  4 / 18 GiB -> filtered (insufficient capacity)
 			- node3:  4 / 18 GiB -> filtered (insufficient capacity)
 		*/
-		skipTestIfNeeded()
+		skipIfDaemonsetLvmd()
 		By("initializing node capacity")
 		claimYAML := `kind: PersistentVolumeClaim
 apiVersion: v1
