@@ -53,7 +53,7 @@ Notice: The lvmd container uses `nsenter` to run some lvm commands(like `lvcreat
 
 To setup `lvmd` with Daemonset:
 
-1. Prepare LVM volume groups.  A non-empty volume group can be used because LV names wouldn't conflict.
+1. Prepare LVM volume groups in the host. A non-empty volume group can be used because LV names wouldn't conflict.
 2. Edit `ConfigMap` in [lvmd-configmap.yaml](./manifests/lvmd/lvmd-configmap.yaml) as follows:
 
     ```yaml
