@@ -543,7 +543,7 @@ spec:
 			- node2:  4 / 18 GiB -> filtered (insufficient capacity)
 			- node3:  4 / 18 GiB -> filtered (insufficient capacity)
 		*/
-		// skip test when using minikube because this test expect multi nodes.
+		// Skip because this test requires multiple nodes but there is just one node in daemonset lvmd test environment.
 		skipIfDaemonsetLvmd()
 		By("initializing node capacity")
 		claimYAML := `kind: PersistentVolumeClaim
