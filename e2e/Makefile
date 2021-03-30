@@ -70,12 +70,14 @@ topolvm.img: $(GO_FILES)
 	mkdir -p /tmp/topolvm/scheduler
 	sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|topolvm-e2e-worker|" $< > $@
 
+.PHONY: launch-kind
 launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml /tmp/topolvm/scheduler/scheduler-policy.cfg
 	$(SUDO) rm -rf /tmp/topolvm/controller /tmp/topolvm/worker*
 	sed -e "s|@KUBERNETES_VERSION@|$(KUBERNETES_VERSION)|" \
 		-e "s|@KUBEADM_APIVERSION@|$(KUBEADM_APIVERSION)|" topolvm-cluster.yaml > /tmp/topolvm-cluster.yaml
 	$(KIND) create cluster --name=$(KIND_CLUSTER_NAME) --config /tmp/topolvm-cluster.yaml --image kindest/node:v$(KUBERNETES_VERSION)
 
+.PHONY: shutdown-kind
 shutdown-kind:
 	$(KIND) delete cluster --name=$(KIND_CLUSTER_NAME) || true
 	sleep 2
@@ -86,6 +88,7 @@ shutdown-kind:
 	done
 	for d in $$(mount | grep /lib/kubelet | cut -d ' ' -f 3); do $(SUDO) umount $$d; done
 
+.PHONY: start-lvmd
 start-lvmd:
 	mkdir -p build $(BACKING_STORE)
 	go build -o build/lvmd ../pkg/lvmd
@@ -116,6 +119,7 @@ start-lvmd:
 		$(SUDO) systemd-run --unit=lvmd$$i.service $(shell pwd)/build/lvmd --config=$(shell pwd)/lvmd$$i.yaml; \
 	done
 
+.PHONY: stop-lvmd
 stop-lvmd:
 	$(MAKE) shutdown-kind
 	for i in $$(seq 3); do \
@@ -132,6 +136,7 @@ stop-lvmd:
 
 # --load_restrictor='none' allows the certificates to be loaded from a path which
 # isn't a subdir of e2ebase
+.PHONY: test
 test: topolvm.img $(SERVER_CERT_FILES)
 	$(MAKE) shutdown-kind
 	$(MAKE) launch-kind
@@ -143,6 +148,7 @@ $(SERVER_CERT_FILES):
 	mkdir -p certs
 	go run ../pkg/gencert -outdir certs
 
+.PHONY: clean
 clean: stop-lvmd
 	rm -rf \
 		$(SERVER_CERT_FILES) \
@@ -152,6 +158,7 @@ clean: stop-lvmd
 		/tmp/topolvm/scheduler/scheduler-config.yaml \
 		/tmp/topolvm/scheduler/scheduler-policy.cfg
 
+.PHONY: setup
 setup:
 	cd ..; $(MAKE) setup
 	mkdir -p $(BINDIR)
@@ -159,6 +166,7 @@ setup:
 	curl -o $(BINDIR)/kubectl -sfL https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl
 	chmod a+x $(BINDIR)/kubectl $(BINDIR)/kind
 
+.PHONY: daemonset-lvmd/create-vg
 daemonset-lvmd/create-vg:
 	mkdir -p build $(BACKING_STORE)
 	if [ -f $(BACKING_STORE)/backing_store_lvmd* ]; then $(MAKE) $(@D)/remove-vg; fi
@@ -171,6 +179,7 @@ daemonset-lvmd/create-vg:
 		$(SUDO) lvcreate -y -n csi-node-test-fs -L 1G node-myvg$${i}; \
 	done
 
+.PHONY: daemonset-lvmd/remove-vg
 daemonset-lvmd/remove-vg:
 	for i in $$(seq 3); do \
 		$(SUDO) vgremove -ffy node-myvg$${i}; \
@@ -179,6 +188,7 @@ daemonset-lvmd/remove-vg:
 		rm -f $(BACKING_STORE)/backing_store_lvmd_$${i}; \
 	done
 
+.PHONY: daemonset-lvmd/setup-minikube
 daemonset-lvmd/setup-minikube:
 	mkdir -p $(BINDIR)
 	$(SUDO) apt-get update
@@ -187,41 +197,29 @@ daemonset-lvmd/setup-minikube:
 	chmod a+x minikube-linux-amd64
 	mv minikube-linux-amd64 $(BINDIR)/minikube
 
+.PHONY: daemonset-lvmd/launch-minikube
 daemonset-lvmd/launch-minikube:
 	$(BINDIR)/minikube start \
 		--vm-driver=none \
 		--kubernetes-version=v$(KUBERNETES_VERSION) \
 		--extra-config=kubelet.read-only-port=10255
 
+.PHONY: daemonset-lvmd/delete-minikube
 daemonset-lvmd/delete-minikube:
 	$(BINDIR)/minikube delete || true
 
 # Set scheduler configs manually because minikube can't edit scheduler configs.
+.PHONY: daemonset-lvmd/update-minikube-setting
 daemonset-lvmd/update-minikube-setting: daemonset-lvmd/delete-minikube daemonset-lvmd/launch-minikube
 	$(SUDO) mkdir -p /var/lib/scheduler
 	$(SUDO) sh -c 'sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|127.0.0.1|" $(SCHEDULER_POLICY) > /var/lib/scheduler/scheduler-policy.cfg'
 	$(SUDO) sh -c 'sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|127.0.0.1|" $(SCHEDULER_CONFIG) > /var/lib/scheduler/scheduler-config.yaml'
 	$(SUDO) sh -c 'sed -e "s|@KUBERNETES_VERSION@|$(KUBERNETES_VERSION)|" kube-scheduler.yaml > /etc/kubernetes/manifests/kube-scheduler.yaml'
 
+.PHONY: daemonset-lvmd/test
 daemonset-lvmd/test: topolvm.img $(SERVER_CERT_FILES)
 	$(KUSTOMIZE) build --load_restrictor='none' manifests/overlays/daemonset-lvmd | $(KUBECTL) apply -f -
 	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) DAEMONSET_LVMD=true $(GINKGO) --failFast -v .
 
+.PHONY: daemonset-lvmd/clean
 daemonset-lvmd/clean: daemonset-lvmd/delete-minikube daemonset-lvmd/remove-vg
-
-.PHONY: \
-	launch-kind \
-	shutdown-kind \
-	start-lvmd \
-	stop-lvmd \
-	test \
-	clean \
-	setup \
-	daemonset-lvmd/create-vg \
-	daemonset-lvmd/remove-vg \
-	daemonset-lvmd/setup-minikube \
-	daemonset-lvmd/launch-minikube \
-	daemonset-lvmd/delete-minikube \
-	daemonset-lvmd/update-minikube-setting \
-	daemonset-lvmd/test \
-	daemonset-lvmd/clean
