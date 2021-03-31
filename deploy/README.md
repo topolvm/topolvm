@@ -70,7 +70,7 @@ To setup `lvmd` with Daemonset:
         socket-name: /run/topolvm/lvmd.sock
         device-classes:
           - name: ssd
-            volume-group: myvg1 # Change this value to your LV name.
+            volume-group: myvg1 # Change this value to your VG name.
             default: true
             spare-gb: 10
     ```
