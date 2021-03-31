@@ -18,17 +18,19 @@ import (
 const cleanupTest = "cleanup-test"
 
 func testCleanup() {
-	It("should create cleanup-test namespace", func() {
-		// Skip because this test requires multiple nodes but there is just one node in daemonset lvmd test environment.
+
+	BeforeEach(func() {
+		// Skip because cleanup tests require multiple nodes but there is just one node in daemonset lvmd test environment.
 		skipIfDaemonsetLvmd()
+	})
+
+	It("should create cleanup-test namespace", func() {
 		createNamespace(cleanupTest)
 	})
 
 	var targetLVs []topolvmv1.LogicalVolume
 
 	It("should finalize the delete node", func() {
-		// Skip because this test requires multiple nodes but there is just one node in daemonset lvmd test environment.
-		skipIfDaemonsetLvmd()
 		By("checking Node finalizer")
 		Eventually(func() error {
 			stdout, stderr, err := kubectl("get", "nodes", "-l=node-role.kubernetes.io/master!=", "-o=json")
@@ -262,8 +264,6 @@ spec:
 	})
 
 	It("should clean up LogicalVolume resources connected to the deleted node", func() {
-		// Skip because this test requires multiple nodes but there is just one node in daemonset lvmd test environment.
-		skipIfDaemonsetLvmd()
 		By("confirming logicalvolumes are deleted")
 		Eventually(func() error {
 			for _, lv := range targetLVs {
@@ -277,15 +277,11 @@ spec:
 	})
 
 	It("should delete namespace", func() {
-		// Skip because this test requires multiple nodes but there is just one node in daemonset lvmd test environment.
-		skipIfDaemonsetLvmd()
 		stdout, stderr, err := kubectl("delete", "ns", cleanupTest)
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 	})
 
 	It("should stop undeleted container in case that the container is undeleted", func() {
-		// Skip because this test requires multiple nodes but there is just one node in daemonset lvmd test environment.
-		skipIfDaemonsetLvmd()
 		stdout, stderr, err := execAtLocal(
 			"docker", nil, "exec", "topolvm-e2e-worker3",
 			"systemctl", "stop", "kubelet.service",
@@ -321,8 +317,6 @@ spec:
 	})
 
 	It("should cleanup volumes", func() {
-		// Skip because this test requires multiple nodes but there is just one node in daemonset lvmd test environment.
-		skipIfDaemonsetLvmd()
 		for _, lv := range targetLVs {
 			stdout, stderr, err := execAtLocal("sudo", nil, "umount", "/dev/topolvm/"+lv.Status.VolumeID)
 			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
