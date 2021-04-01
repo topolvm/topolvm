@@ -83,7 +83,12 @@ spec:
 			lv, err = getLVInfo(volName)
 			return err
 		}).Should(Succeed())
-		Expect("node3-myvg3").Should(Equal(lv.vgName))
+
+		vgName := "node3-myvg3"
+		if isDaemonsetLvmdEnvSet() {
+			vgName = "node-myvg3"
+		}
+		Expect(vgName).Should(Equal(lv.vgName))
 	})
 
 	It("should not schedule pod because there are no nodes that have specified device-classes", func() {
@@ -122,7 +127,7 @@ spec:
   resources:
     requests:
       storage: 5Gi
-  storageClassName: topolvm-provisioner2
+  storageClassName: topolvm-provisioner-not-found-device
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
@@ -134,7 +139,7 @@ spec:
   resources:
     requests:
       storage: 5Gi
-  storageClassName: topolvm-provisioner3
+  storageClassName: topolvm-provisioner-not-found-device
 `
 		stdout, stderr, err := kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
@@ -151,7 +156,7 @@ spec:
 			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 			for _, c := range pod.Status.Conditions {
-				if c.Type == corev1.PodScheduled && c.Status == corev1.ConditionFalse && strings.Contains(c.Message, "3 no capacity annotation") {
+				if c.Type == corev1.PodScheduled && c.Status == corev1.ConditionFalse && strings.Contains(c.Message, "no capacity annotation") {
 					return nil
 				}
 			}

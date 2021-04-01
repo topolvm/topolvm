@@ -1,0 +1,13 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  namespace: topolvm-system
+  name: node
+spec:
+  template:
+    spec:
+      volumes:
+        - name: lvmd-socket-dir
+          hostPath:
+            path: /tmp/topolvm/daemonset_lvmd
+            type: Directory

@@ -37,7 +37,12 @@ func testNode() {
 				return err
 			}
 
-			if len(podlist.Items) != 3 {
+			count := 3
+			if isDaemonsetLvmdEnvSet() {
+				count = 1
+			}
+
+			if len(podlist.Items) != count {
 				return fmt.Errorf("the number of pods is not equal to 3: %d", len(podlist.Items))
 			}
 
@@ -61,16 +66,25 @@ func testNode() {
 		stdout, stderr, err := kubectl("get", "nodes", "-o=json")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
+		count := 4
+		if isDaemonsetLvmdEnvSet() {
+			count = 1
+		}
+
 		var nodes corev1.NodeList
 		err = json.Unmarshal(stdout, &nodes)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(len(nodes.Items)).To(Equal(4))
+		Expect(len(nodes.Items)).To(Equal(count))
 
 		vgNameMap := map[string]string{
 			"topolvm-e2e-worker":        "node1-myvg1",
 			"topolvm-e2e-worker2":       "node2-myvg1",
 			"topolvm-e2e-worker3":       "node3-myvg1",
 			"topolvm-e2e-control-plane": "",
+		}
+		if isDaemonsetLvmdEnvSet() {
+			vgNameMap = map[string]string{}
+			vgNameMap[nodes.Items[0].Name] = "node-myvg1"
 		}
 
 		for _, node := range nodes.Items {
@@ -118,7 +132,12 @@ func testNode() {
 				continue
 			}
 			found = true
-			Expect(family.Metric).Should(HaveLen(2))
+
+			length := 2
+			if isDaemonsetLvmdEnvSet() {
+				length = 3
+			}
+			Expect(family.Metric).Should(HaveLen(length))
 
 			stdout, stderr, err := kubectl("get", "node", pod.Spec.NodeName, "-o=json")
 			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)

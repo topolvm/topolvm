@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kubernetes-csi/csi-test/v4/pkg/sanity"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
 var binDir string
@@ -68,19 +68,43 @@ func waitKindnet() error {
 	return nil
 }
 
+func isDaemonsetLvmdEnvSet() bool {
+	return os.Getenv("DAEMONSET_LVMD") != ""
+}
+
+func skipIfDaemonsetLvmd() {
+	if isDaemonsetLvmdEnvSet() {
+		Skip("skip because current environment is daemonset lvmd")
+	}
+}
+
+func getDaemonsetLvmdNodeName() string {
+	stdout, stderr, err := kubectl("get", "nodes", "-o=json")
+	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+	var nodes corev1.NodeList
+	err = json.Unmarshal(stdout, &nodes)
+	Expect(err).ShouldNot(HaveOccurred())
+	Expect(nodes.Items).Should(HaveLen(1))
+	return nodes.Items[0].Name
+}
+
 var _ = BeforeSuite(func() {
 	By("Getting the directory path which contains some binaries")
 	binDir = os.Getenv("BINDIR")
 	Expect(binDir).ShouldNot(BeEmpty())
 	fmt.Println("This test uses the binaries under " + binDir)
 
-	By("Waiting for mutating webhook to get ready")
-	// Because kindnet will crash. we need to confirm its readiness twice.
-	Eventually(waitKindnet).Should(Succeed())
-	time.Sleep(5 * time.Second)
-	Eventually(waitKindnet).Should(Succeed())
+	if !isDaemonsetLvmdEnvSet() {
+		By("Waiting for kindnet to get ready")
+		// Because kindnet will crash. we need to confirm its readiness twice.
+		Eventually(waitKindnet).Should(Succeed())
+		time.Sleep(5 * time.Second)
+		Eventually(waitKindnet).Should(Succeed())
+	}
 	SetDefaultEventuallyTimeout(5 * time.Minute)
 
+	By("Waiting for mutating webhook to get ready")
 	podYAML := `apiVersion: v1
 kind: Pod
 metadata:
@@ -113,34 +137,5 @@ var _ = Describe("TopoLVM", func() {
 	Context("e2e", testE2E)
 	Context("multiple-vg", testMultipleVolumeGroups)
 	Context("cleanup", testCleanup)
-	Context("CSI sanity", func() {
-		It("should add node selector to node DaemonSet for CSI test", func() {
-			_, _, err := kubectl("delete", "nodes", "topolvm-e2e-worker2")
-			Expect(err).ShouldNot(HaveOccurred())
-			Eventually(func() error {
-				var ds appsv1.DaemonSet
-				stdout, _, err := kubectl("get", "-n", "topolvm-system", "ds", "node", "-o", "json")
-				if err != nil {
-					return err
-				}
-				err = json.Unmarshal(stdout, &ds)
-				if err != nil {
-					return err
-				}
-				if ds.Status.NumberAvailable != 1 {
-					return errors.New("node daemonset is not ready")
-				}
-				return nil
-			}).Should(Succeed())
-		})
-
-		tc := sanity.NewTestConfig()
-		tc.Address = "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/csi-topolvm.sock"
-		tc.ControllerAddress = "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/controller/csi-topolvm.sock"
-		tc.TargetPath = "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/mountdir"
-		tc.StagingPath = "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/stagingdir"
-		tc.TestVolumeSize = 1073741824
-		tc.IDGen = &sanity.DefaultIDGenerator{}
-		sanity.GinkgoTest(&tc)
-	})
+	Context("CSI sanity", testSanity)
 })

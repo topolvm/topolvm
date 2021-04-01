@@ -1,0 +1,49 @@
+---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: lvmd
+spec:
+  allowedHostPaths:
+  - pathPrefix: "/tmp/topolvm/daemonset_lvmd"
+    readOnly: false
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: topolvm-system
+  name: lvmd
+data:
+  lvmd.yaml: |
+    socket-name: /tmp/topolvm/daemonset_lvmd/lvmd.sock
+    device-classes:
+      - name: "ssd"
+        volume-group: "node-myvg1"
+        default: true
+        spare-gb: 1
+      - name: "hdd1"
+        volume-group: "node-myvg2"
+        spare-gb: 1
+      - name: "hdd2"
+        volume-group: "node-myvg3"
+        spare-gb: 1
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  namespace: topolvm-system
+  name: lvmd
+spec:
+  template:
+    spec:
+      containers:
+        - name: lvmd
+          image: topolvm:dev
+          volumeMounts:
+            - name: lvmd-socket-dir
+              mountPath: /tmp/topolvm/daemonset_lvmd
+      volumes:
+        - name: lvmd-socket-dir
+          hostPath:
+            path: /tmp/topolvm/daemonset_lvmd
+            type: DirectoryOrCreate

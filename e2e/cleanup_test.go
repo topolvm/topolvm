@@ -18,6 +18,12 @@ import (
 const cleanupTest = "cleanup-test"
 
 func testCleanup() {
+
+	BeforeEach(func() {
+		// Skip because cleanup tests require multiple nodes but there is just one node in daemonset lvmd test environment.
+		skipIfDaemonsetLvmd()
+	})
+
 	It("should create cleanup-test namespace", func() {
 		createNamespace(cleanupTest)
 	})

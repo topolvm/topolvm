@@ -1,0 +1,92 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: topolvm-system
+  name: lvmd
+---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: lvmd
+spec:
+  privileged: true
+  hostPID: true
+  volumes:
+    - 'configMap'
+    - 'hostPath'
+  allowedHostPaths:
+  - pathPrefix: "/run/topolvm"
+    readOnly: false
+  runAsUser:
+    rule: 'RunAsAny'
+  seLinux:
+    rule: 'RunAsAny'
+  supplementalGroups:
+    rule: 'RunAsAny'
+  fsGroup:
+    rule: 'RunAsAny'
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: topolvm-system
+  name: psp:lvmd
+rules:
+  - apiGroups: ["policy"]
+    resources: ["podsecuritypolicies"]
+    verbs: ["use"]
+    resourceNames: ["lvmd"]
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: topolvm-system
+  name: lvmd:psp:lvmd
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: psp:lvmd
+subjects:
+- kind: ServiceAccount
+  namespace: topolvm-system
+  name: lvmd
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  namespace: topolvm-system
+  name: lvmd
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: lvmd
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: lvmd
+    spec:
+      serviceAccountName: lvmd
+      hostPID: true
+      containers:
+        - name: lvmd
+          image: quay.io/topolvm/topolvm-with-sidecar:latest
+          imagePullPolicy: Never
+          securityContext:
+            privileged: true
+          command:
+            - /lvmd
+            - --container
+          volumeMounts:
+            - name: lvmd-socket-dir
+              mountPath: /run/topolvm
+            - name: config
+              mountPath: /etc/topolvm
+      volumes:
+        - name: config
+          configMap:
+            name: lvmd
+        - name: lvmd-socket-dir
+          hostPath:
+            path: /run/topolvm
+            type: DirectoryOrCreate
