@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: testhttpd
+  namespace: %s
+  labels:
+    app.kubernetes.io/name: testhttpd
+  annotations:
+    capacity.topolvm.cybozu.com/ssd: %q
+spec:
+  containers:
+  - name: ubuntu
+    image: quay.io/cybozu/ubuntu:20.04
+    command: ["/usr/local/bin/pause"]
+    resources:
+      requests:
+        topolvm.cybozu.com/capacity: 1
+      limits:
+        topolvm.cybozu.com/capacity: 1

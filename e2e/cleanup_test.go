@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -16,6 +17,9 @@ import (
 )
 
 const cleanupTest = "cleanup-test"
+
+//go:embed testdata/cleanup/statefulset-template.yaml
+var statefulSetTemplateYAML string
 
 func testCleanup() {
 
@@ -58,50 +62,8 @@ func testCleanup() {
 
 		statefulsetName := "test-sts"
 		By("applying statefulset")
-		statefulsetYAML := `apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: ` + statefulsetName + `
-  labels:
-    app.kubernetes.io/name: test-sts-container
-spec:
-  serviceName: "` + statefulsetName + `"
-  replicas: 3
-  podManagementPolicy: Parallel
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: test-sts-container
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/name: test-sts-container
-    spec:
-      containers:
-        - name: ubuntu
-          image: quay.io/cybozu/ubuntu:20.04
-          command: ["/usr/local/bin/pause"]
-          volumeMounts:
-          - mountPath: /test1
-            name: test-sts-pvc
-      affinity:
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - podAffinityTerm:
-              labelSelector:
-                matchLabels:
-                  app.kubernetes.io/name: test-sts-container
-              topologyKey: kubernetes.io/hostname
-            weight: 100
-  volumeClaimTemplates:
-  - metadata:
-      name: test-sts-pvc
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      storageClassName: topolvm-provisioner
-      resources:
-        requests:
-          storage: 1Gi`
-		stdout, stderr, err := kubectlWithInput([]byte(statefulsetYAML), "-n", cleanupTest, "apply", "-f", "-")
+		statefulsetYAML := []byte(fmt.Sprintf(statefulSetTemplateYAML, statefulsetName, statefulsetName))
+		stdout, stderr, err := kubectlWithInput(statefulsetYAML, "-n", cleanupTest, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		Eventually(func() error {

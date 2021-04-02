@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +12,18 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 )
+
+//go:embed testdata/multiple_vg/device-class-pod.yaml
+var deviceClassPodYAML []byte
+
+//go:embed testdata/multiple_vg/device-class-pvc.yaml
+var deviceClassPVCYAML []byte
+
+//go:embed testdata/multiple_vg/no-nodes-device-class-pod.yaml
+var noNodesDeviceClassPodYAML []byte
+
+//go:embed testdata/multiple_vg/no-nodes-device-class-pvc.yaml
+var noNodesDeviceClassPVCYAML []byte
 
 func testMultipleVolumeGroups() {
 	testNamespacePrefix := "multivgtest-"
@@ -29,40 +42,9 @@ func testMultipleVolumeGroups() {
 
 	It("should use specified device-class", func() {
 		By("deploying Pod with PVC")
-		podYAML := `apiVersion: v1
-kind: Pod
-metadata:
-  name: ubuntu
-  labels:
-    app.kubernetes.io/name: ubuntu
-spec:
-  containers:
-    - name: ubuntu
-      image: quay.io/cybozu/ubuntu:20.04
-      command: ["/usr/local/bin/pause"]
-      volumeMounts:
-        - mountPath: /test1
-          name: my-volume
-  volumes:
-    - name: my-volume
-      persistentVolumeClaim:
-        claimName: topo-pvc
-`
-		claimYAML := `kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: topo-pvc
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi
-  storageClassName: topolvm-provisioner3
-`
-		stdout, stderr, err := kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
+		stdout, stderr, err := kubectlWithInput(deviceClassPVCYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "apply", "-n", ns, "-f", "-")
+		stdout, stderr, err = kubectlWithInput(deviceClassPodYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		By("confirming that the lv was created on specified volume group")
@@ -93,57 +75,9 @@ spec:
 
 	It("should not schedule pod because there are no nodes that have specified device-classes", func() {
 		By("deploying Pod with PVC")
-		podYAML := `apiVersion: v1
-kind: Pod
-metadata:
-  name: ubuntu
-  labels:
-    app.kubernetes.io/name: ubuntu
-spec:
-  containers:
-    - name: ubuntu
-      image: quay.io/cybozu/ubuntu:20.04
-      command: ["/usr/local/bin/pause"]
-      volumeMounts:
-        - mountPath: /test2
-          name: my-volume2
-        - mountPath: /test3
-          name: my-volume3
-  volumes:
-    - name: my-volume2
-      persistentVolumeClaim:
-        claimName: topo-pvc2
-    - name: my-volume3
-      persistentVolumeClaim:
-        claimName: topo-pvc3
-`
-		claimYAML := `kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: topo-pvc2
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi
-  storageClassName: topolvm-provisioner-not-found-device
----
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: topo-pvc3
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi
-  storageClassName: topolvm-provisioner-not-found-device
-`
-		stdout, stderr, err := kubectlWithInput([]byte(claimYAML), "apply", "-n", ns, "-f", "-")
+		stdout, stderr, err := kubectlWithInput(noNodesDeviceClassPVCYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		stdout, stderr, err = kubectlWithInput([]byte(podYAML), "apply", "-n", ns, "-f", "-")
+		stdout, stderr, err = kubectlWithInput(noNodesDeviceClassPodYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		By("confirming that the pod wasn't scheduled")

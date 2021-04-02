@@ -1,0 +1,35 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: topo-pvc1
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+  storageClassName: topolvm-provisioner
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: topo-pvc2
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 6Gi
+  storageClassName: topolvm-provisioner
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: topo-pvc3
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+  storageClassName: topolvm-provisioner
