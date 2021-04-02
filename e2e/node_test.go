@@ -126,6 +126,15 @@ func testNode() {
 		var parser expfmt.TextParser
 		metricFamilies, err := parser.TextToMetricFamilies(bytes.NewReader(stdout))
 		Expect(err).ShouldNot(HaveOccurred())
+
+		foundSize := false
+		for _, family := range metricFamilies {
+			if family.GetName() == "topolvm_volumegroup_size_bytes" {
+				foundSize = true
+			}
+		}
+		Expect(foundSize).Should(BeTrue())
+
 		found := false
 		for _, family := range metricFamilies {
 			if family.GetName() != "topolvm_volumegroup_available_bytes" {

@@ -26,6 +26,7 @@ var meLogger = ctrl.Log.WithName("runners").WithName("metrics_exporter")
 // NodeMetrics is a set of metrics of a TopoLVM Node.
 type NodeMetrics struct {
 	FreeBytes   uint64
+	SizeBytes   uint64
 	DeviceClass string
 }
 
@@ -34,6 +35,7 @@ type metricsExporter struct {
 	nodeName       string
 	vgService      proto.VGServiceClient
 	availableBytes *prometheus.GaugeVec
+	sizeBytes      *prometheus.GaugeVec
 }
 
 var _ manager.LeaderElectionRunnable = &metricsExporter{}
@@ -50,11 +52,21 @@ func NewMetricsExporter(conn *grpc.ClientConn, mgr manager.Manager, nodeName str
 	}, []string{"device_class"})
 	metrics.Registry.MustRegister(availableBytes)
 
+	sizeBytes := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace:   metricsNamespace,
+		Subsystem:   "volumegroup",
+		Name:        "size_bytes",
+		Help:        "LVM VG size bytes under lvmd management",
+		ConstLabels: prometheus.Labels{"node": nodeName},
+	}, []string{"device_class"})
+	metrics.Registry.MustRegister(sizeBytes)
+
 	return &metricsExporter{
 		Client:         mgr.GetClient(),
 		nodeName:       nodeName,
 		vgService:      proto.NewVGServiceClient(conn),
 		availableBytes: availableBytes,
+		sizeBytes:      sizeBytes,
 	}
 }
 
@@ -68,6 +80,7 @@ func (m *metricsExporter) Start(ctx context.Context) error {
 				return
 			case met := <-metricsCh:
 				m.availableBytes.WithLabelValues(met.DeviceClass).Set(float64(met.FreeBytes))
+				m.sizeBytes.WithLabelValues(met.DeviceClass).Set(float64(met.SizeBytes))
 			}
 		}
 	}()
@@ -101,6 +114,7 @@ func (m *metricsExporter) updateNode(ctx context.Context, wc proto.VGService_Wat
 			ch <- NodeMetrics{
 				DeviceClass: item.DeviceClass,
 				FreeBytes:   item.FreeBytes,
+				SizeBytes:   item.SizeBytes,
 			}
 		}
 

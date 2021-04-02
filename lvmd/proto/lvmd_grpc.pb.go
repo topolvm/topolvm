@@ -11,6 +11,7 @@ import (
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
+// Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
 // LVServiceClient is the client API for LVService service.
@@ -95,8 +96,8 @@ type UnsafeLVServiceServer interface {
 	mustEmbedUnimplementedLVServiceServer()
 }
 
-func RegisterLVServiceServer(s *grpc.Server, srv LVServiceServer) {
-	s.RegisterService(&_LVService_serviceDesc, srv)
+func RegisterLVServiceServer(s grpc.ServiceRegistrar, srv LVServiceServer) {
+	s.RegisterService(&LVService_ServiceDesc, srv)
 }
 
 func _LVService_CreateLV_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -153,7 +154,10 @@ func _LVService_ResizeLV_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
-var _LVService_serviceDesc = grpc.ServiceDesc{
+// LVService_ServiceDesc is the grpc.ServiceDesc for LVService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var LVService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "proto.LVService",
 	HandlerType: (*LVServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
@@ -213,7 +217,7 @@ func (c *vGServiceClient) GetFreeBytes(ctx context.Context, in *GetFreeBytesRequ
 }
 
 func (c *vGServiceClient) Watch(ctx context.Context, in *Empty, opts ...grpc.CallOption) (VGService_WatchClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_VGService_serviceDesc.Streams[0], "/proto.VGService/Watch", opts...)
+	stream, err := c.cc.NewStream(ctx, &VGService_ServiceDesc.Streams[0], "/proto.VGService/Watch", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -279,8 +283,8 @@ type UnsafeVGServiceServer interface {
 	mustEmbedUnimplementedVGServiceServer()
 }
 
-func RegisterVGServiceServer(s *grpc.Server, srv VGServiceServer) {
-	s.RegisterService(&_VGService_serviceDesc, srv)
+func RegisterVGServiceServer(s grpc.ServiceRegistrar, srv VGServiceServer) {
+	s.RegisterService(&VGService_ServiceDesc, srv)
 }
 
 func _VGService_GetLVList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -340,7 +344,10 @@ func (x *vGServiceWatchServer) Send(m *WatchResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-var _VGService_serviceDesc = grpc.ServiceDesc{
+// VGService_ServiceDesc is the grpc.ServiceDesc for VGService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var VGService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "proto.VGService",
 	HandlerType: (*VGServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
