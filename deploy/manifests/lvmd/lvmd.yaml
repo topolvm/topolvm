@@ -14,7 +14,9 @@ spec:
   hostPID: true
   volumes:
     - 'configMap'
+    - 'emptyDir'
     - 'hostPath'
+    - 'secret'
   allowedHostPaths:
   - pathPrefix: "/run/topolvm"
     readOnly: false
