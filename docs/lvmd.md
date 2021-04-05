@@ -11,9 +11,10 @@
 
 Command-line options are:
 
-| Option         | Type   | Default value            | Description                                |
-| -------------- | ------ | ------------------------ | ------------------------------------------ |
-| `config`       | string | `/etc/topolvm/lvmd.yaml` | Config file path for device-class settings |
+| Option      | Type   | Default value            | Description                                |
+| ----------- | ------ | ------------------------ | ------------------------------------------ |
+| `config`    | string | `/etc/topolvm/lvmd.yaml` | Config file path for device-class settings |
+| `container` | -      | not set                  | Set if lvmd runs in the container          |
 
 The device-class settings can be specified in YAML file:
 
