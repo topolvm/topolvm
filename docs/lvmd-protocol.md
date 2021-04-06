@@ -202,8 +202,8 @@ The volume size will be set to exactly &#34;size_gb&#34;.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | free_bytes | [uint64](#uint64) |  | Free space of the volume group in bytes. |
-| size_bytes | [uint64](#uint64) |  | Size of the volume group in bytes. |
 | device_class | [string](#string) |  |  |
+| size_bytes | [uint64](#uint64) |  | Size of the volume group in bytes. |
 
 
 
