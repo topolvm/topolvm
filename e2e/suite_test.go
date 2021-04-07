@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -89,6 +90,9 @@ func getDaemonsetLvmdNodeName() string {
 	return nodes.Items[0].Name
 }
 
+//go:embed testdata/pause-pod.yaml
+var pausePodYAML []byte
+
 var _ = BeforeSuite(func() {
 	By("Getting the directory path which contains some binaries")
 	binDir = os.Getenv("BINDIR")
@@ -105,26 +109,14 @@ var _ = BeforeSuite(func() {
 	SetDefaultEventuallyTimeout(5 * time.Minute)
 
 	By("Waiting for mutating webhook to get ready")
-	podYAML := `apiVersion: v1
-kind: Pod
-metadata:
-  name: ubuntu
-  labels:
-    app.kubernetes.io/name: ubuntu
-spec:
-  containers:
-    - name: ubuntu
-      image: quay.io/cybozu/ubuntu:20.04
-      command: ["/usr/local/bin/pause"]
-`
 	Eventually(func() error {
-		_, stderr, err := kubectlWithInput([]byte(podYAML), "apply", "-f", "-")
+		_, stderr, err := kubectlWithInput(pausePodYAML, "apply", "-f", "-")
 		if err != nil {
 			return errors.New(string(stderr))
 		}
 		return nil
 	}).Should(Succeed())
-	stdout, stderr, err := kubectlWithInput([]byte(podYAML), "delete", "-f", "-")
+	stdout, stderr, err := kubectlWithInput(pausePodYAML, "delete", "-f", "-")
 	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 })
 

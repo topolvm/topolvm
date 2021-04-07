@@ -1,0 +1,30 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: topo-pvc-mount-option
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: topolvm-provisioner-mount-option
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ubuntu-mount-option
+  labels:
+    app.kubernetes.io/name: ubuntu
+spec:
+  containers:
+    - name: ubuntu
+      image: quay.io/cybozu/ubuntu:20.04
+      command: ["/usr/local/bin/pause"]
+      volumeMounts:
+        - mountPath: /test1
+          name: my-volume
+  volumes:
+    - name: my-volume
+      persistentVolumeClaim:
+        claimName: topo-pvc-mount-option

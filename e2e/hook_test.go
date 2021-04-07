@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +16,12 @@ import (
 )
 
 const nsHookTest = "hook-test"
+
+//go:embed testdata/hook/pod-with-pvc.yaml
+var podWithPVCYAML []byte
+
+//go:embed testdata/hook/ephemeral-volume-pod-with-pvc.yaml
+var ephemeralVolumePodWithPVCYAML []byte
 
 func hasTopoLVMFinalizer(pvc *corev1.PersistentVolumeClaim) bool {
 	for _, fin := range pvc.Finalizers {
@@ -66,55 +73,6 @@ func testHook() {
 		}).Should(Succeed())
 
 		By("creating pod with TopoLVM PVC")
-		yml := `
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: local-pvc1
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 2Gi
-  storageClassName: topolvm-provisioner
----
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: local-pvc2
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
-  storageClassName: topolvm-provisioner
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: testhttpd
-  labels:
-    app.kubernetes.io/name: testhttpd
-spec:
-  containers:
-    - name: ubuntu
-      image: quay.io/cybozu/ubuntu:20.04
-      command: ["/usr/local/bin/pause"]
-      volumeMounts:
-        - mountPath: /test1
-          name: my-volume1
-        - mountPath: /test2
-          name: my-volume2
-  volumes:
-    - name: my-volume1
-      persistentVolumeClaim:
-        claimName: local-pvc1
-    - name: my-volume2
-      persistentVolumeClaim:
-        claimName: local-pvc2
-`
 		const minVerDryRun int64 = 18
 		kubernetesVersionStr := os.Getenv("TEST_KUBERNETES_VERSION")
 		kubernetesVersion := strings.Split(kubernetesVersionStr, ".")
@@ -123,14 +81,14 @@ spec:
 		Expect(err).ShouldNot(HaveOccurred())
 
 		if kubernetesMinorVersion < minVerDryRun {
-			stdout, stderr, err := kubectlWithInput([]byte(yml), "-n", nsHookTest, "apply", "-f", "-", "--server-dry-run")
+			stdout, stderr, err := kubectlWithInput(podWithPVCYAML, "-n", nsHookTest, "apply", "-f", "-", "--server-dry-run")
 			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 		} else {
-			stdout, stderr, err := kubectlWithInput([]byte(yml), "-n", nsHookTest, "apply", "-f", "-", "--dry-run=server")
+			stdout, stderr, err := kubectlWithInput(podWithPVCYAML, "-n", nsHookTest, "apply", "-f", "-", "--dry-run=server")
 			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 		}
 
-		stdout, stderr, err := kubectlWithInput([]byte(yml), "-n", nsHookTest, "apply", "-f", "-")
+		stdout, stderr, err := kubectlWithInput(podWithPVCYAML, "-n", nsHookTest, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		By("checking pod is properly annotated")
@@ -210,51 +168,7 @@ spec:
 		}).Should(Succeed())
 
 		By("creating pod with TopoLVM inline ephemeral volumes and a TopoLVM PVC")
-		yml := `
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: local-pvc1
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 2Gi
-  storageClassName: topolvm-provisioner-default
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: testhttpd
-  labels:
-    app.kubernetes.io/name: testhttpd
-spec:
-  containers:
-    - name: ubuntu
-      image: quay.io/cybozu/ubuntu:20.04
-      command: ["/usr/local/bin/pause"]
-      volumeMounts:
-        - mountPath: /test1
-          name: my-ephemeral-volume1
-  volumes:
-      - name: my-ephemeral-volume1
-        csi:
-          driver: topolvm.cybozu.com
-          fsType: xfs
-          volumeAttributes:
-            topolvm.cybozu.com/size: "2"
-      - name: my-ephemeral-volume2
-        csi:
-          driver: topolvm.cybozu.com
-          fsType: xfs
-          volumeAttributes:
-            topolvm.cybozu.com/size: "1"
-      - name: my-pvc-volume1
-        persistentVolumeClaim:
-          claimName: local-pvc1
-`
-		stdout, stderr, err := kubectlWithInput([]byte(yml), "-n", nsHookTest, "apply", "-f", "-")
+		stdout, stderr, err := kubectlWithInput(ephemeralVolumePodWithPVCYAML, "-n", nsHookTest, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		By("checking pod is annotated with topolvm.cybozu.com/capacity")

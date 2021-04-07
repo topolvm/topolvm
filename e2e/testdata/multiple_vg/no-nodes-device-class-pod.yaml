@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ubuntu
+  labels:
+    app.kubernetes.io/name: ubuntu
+spec:
+  containers:
+    - name: ubuntu
+      image: quay.io/cybozu/ubuntu:20.04
+      command: ["/usr/local/bin/pause"]
+      volumeMounts:
+        - mountPath: /test2
+          name: my-volume2
+        - mountPath: /test3
+          name: my-volume3
+  volumes:
+    - name: my-volume2
+      persistentVolumeClaim:
+        claimName: topo-pvc2
+    - name: my-volume3
+      persistentVolumeClaim:
+        claimName: topo-pvc3

@@ -1,0 +1,42 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: local-pvc1
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: topolvm-provisioner-default
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: testhttpd
+  labels:
+    app.kubernetes.io/name: testhttpd
+spec:
+  containers:
+    - name: ubuntu
+      image: quay.io/cybozu/ubuntu:20.04
+      command: ["/usr/local/bin/pause"]
+      volumeMounts:
+        - mountPath: /test1
+          name: my-ephemeral-volume1
+  volumes:
+      - name: my-ephemeral-volume1
+        csi:
+          driver: topolvm.cybozu.com
+          fsType: xfs
+          volumeAttributes:
+            topolvm.cybozu.com/size: "2"
+      - name: my-ephemeral-volume2
+        csi:
+          driver: topolvm.cybozu.com
+          fsType: xfs
+          volumeAttributes:
+            topolvm.cybozu.com/size: "1"
+      - name: my-pvc-volume1
+        persistentVolumeClaim:
+          claimName: local-pvc1

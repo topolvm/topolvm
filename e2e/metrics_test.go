@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -16,40 +17,10 @@ import (
 
 const nsMetricsTest = "metrics-test"
 
-var metricsManifest = []byte(fmt.Sprintf(`
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: topo-pvc
-  namespace: %s
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
-  storageClassName: topolvm-provisioner-immediate
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: ubuntu
-  namespace: %s
-  labels:
-    app.kubernetes.io/name: ubuntu
-spec:
-  containers:
-    - name: ubuntu
-      image: quay.io/cybozu/ubuntu:20.04
-      command: ["/usr/local/bin/pause"]
-      volumeMounts:
-        - mountPath: /test1
-          name: my-volume
-  volumes:
-    - name: my-volume
-      persistentVolumeClaim:
-        claimName: topo-pvc
-`, nsMetricsTest, nsMetricsTest))
+//go:embed testdata/metrics/pause-pod-with-pvc-template.yaml
+var pausePodWithPVCTemplateYAML string
+
+var metricsManifest = []byte(fmt.Sprintf(pausePodWithPVCTemplateYAML, nsMetricsTest, nsMetricsTest))
 
 func testMetrics() {
 	var cc CleanupContext

@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"context"
+	_ "embed"
 	"errors"
 	"fmt"
 	"net"
@@ -15,6 +16,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 )
+
+//go:embed testdata/publish/lv-template.yaml
+var lvTemplateYAML string
+
+//go:embed testdata/publish/pod-with-mount-option-pvc.yaml
+var podWithMountOptionPVCYAML []byte
 
 type cleanup struct {
 	// key is volumeID, value is target path
@@ -98,23 +105,14 @@ func testPublishVolume() {
 		}
 
 		By("creating a logical volume resource")
-		lvYaml := []byte(fmt.Sprintf(`apiVersion: topolvm.cybozu.com/v1
-kind: LogicalVolume
-metadata:
-  name: csi-node-test-fs
-spec:
-  deviceClass: ssd
-  name: csi-node-test-fs
-  nodeName: %s
-  size: 1Gi
-`, nodeName))
-
+		name := "csi-node-test-fs"
+		lvYaml := []byte(fmt.Sprintf(lvTemplateYAML, name, name, nodeName))
 		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		var volumeID string
 		Eventually(func() error {
-			stdout, stderr, err := kubectl("get", "logicalvolume", "csi-node-test-fs", "-o", "yaml")
+			stdout, stderr, err := kubectl("get", "logicalvolume", name, "-o", "yaml")
 			if err != nil {
 				return fmt.Errorf("failed to get logical volume. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
 			}
@@ -205,23 +203,14 @@ spec:
 			nodeName = getDaemonsetLvmdNodeName()
 		}
 
-		lvYaml := []byte(fmt.Sprintf(`apiVersion: topolvm.cybozu.com/v1
-kind: LogicalVolume
-metadata:
-  name: csi-node-test-block
-spec:
-  deviceClass: ssd
-  name: csi-node-test-block
-  nodeName: %s
-  size: 1Gi
-`, nodeName))
-
+		name := "csi-node-test-block"
+		lvYaml := []byte(fmt.Sprintf(lvTemplateYAML, name, name, nodeName))
 		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		var volumeID string
 		Eventually(func() error {
-			stdout, stderr, err := kubectl("get", "logicalvolume", "csi-node-test-block", "-o", "yaml")
+			stdout, stderr, err := kubectl("get", "logicalvolume", name, "-o", "yaml")
 			if err != nil {
 				return fmt.Errorf("failed to get logical volume. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
 			}
@@ -298,39 +287,7 @@ spec:
 
 	It("should publish filesystem with mount option", func() {
 		By("creating a PVC and Pod")
-		lvYaml := []byte(`kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: topo-pvc-mount-option
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
-  storageClassName: topolvm-provisioner-mount-option
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: ubuntu-mount-option
-  labels:
-    app.kubernetes.io/name: ubuntu
-spec:
-  containers:
-    - name: ubuntu
-      image: quay.io/cybozu/ubuntu:20.04
-      command: ["/usr/local/bin/pause"]
-      volumeMounts:
-        - mountPath: /test1
-          name: my-volume
-  volumes:
-    - name: my-volume
-      persistentVolumeClaim:
-        claimName: topo-pvc-mount-option
-`)
-
-		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
+		_, _, err := kubectlWithInput(podWithMountOptionPVCYAML, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
@@ -380,7 +337,7 @@ spec:
 		Expect(isExistingOption).Should(BeTrue())
 
 		By("cleaning pvc/pod")
-		stdout, stderr, err = kubectlWithInput(lvYaml, "delete", "-f", "-")
+		stdout, stderr, err = kubectlWithInput(podWithMountOptionPVCYAML, "delete", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 	})
 
@@ -393,23 +350,14 @@ spec:
 			nodeName = getDaemonsetLvmdNodeName()
 		}
 
-		lvYaml := []byte(fmt.Sprintf(`apiVersion: topolvm.cybozu.com/v1
-kind: LogicalVolume
-metadata:
-  name: csi-node-test-fs
-spec:
-  deviceClass: ssd
-  name: csi-node-test-fs
-  nodeName: %s
-  size: 1Gi
-`, nodeName))
-
+		name := "csi-node-test-fs"
+		lvYaml := []byte(fmt.Sprintf(lvTemplateYAML, name, name, nodeName))
 		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		var volumeID string
 		Eventually(func() error {
-			stdout, stderr, err := kubectl("get", "logicalvolume", "csi-node-test-fs", "-o", "yaml")
+			stdout, stderr, err := kubectl("get", "logicalvolume", name, "-o", "yaml")
 			if err != nil {
 				return fmt.Errorf("failed to get logical volume. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
 			}

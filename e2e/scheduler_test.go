@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,6 +10,9 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 )
+
+//go:embed testdata/scheduler/capacity-pod-template.yaml
+var capacityPodTemplateYAML string
 
 func testScheduler() {
 	var cc CleanupContext
@@ -59,27 +63,7 @@ func testScheduler() {
 	It("should schedule pod if requested capacity is sufficient", func() {
 		ns := testNamespacePrefix + randomString(10)
 		createNamespace(ns)
-		podYml := fmt.Sprintf(`apiVersion: v1
-kind: Pod
-metadata:
-  name: testhttpd
-  namespace: %s
-  labels:
-    app.kubernetes.io/name: testhttpd
-  annotations:
-    capacity.topolvm.cybozu.com/ssd: "1073741824"
-spec:
-  containers:
-  - name: ubuntu
-    image: quay.io/cybozu/ubuntu:20.04
-    command: ["/usr/local/bin/pause"]
-    resources:
-      requests:
-        topolvm.cybozu.com/capacity: 1
-      limits:
-        topolvm.cybozu.com/capacity: 1
-`, ns)
-		stdout, stderr, err := kubectlWithInput([]byte(podYml), "apply", "-f", "-")
+		stdout, stderr, err := kubectlWithInput([]byte(fmt.Sprintf(capacityPodTemplateYAML, ns, "1073741824")), "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		Eventually(func() error {
@@ -108,27 +92,7 @@ spec:
 	It("should not schedule pod if requested capacity is not sufficient", func() {
 		ns := testNamespacePrefix + randomString(10)
 		createNamespace(ns)
-		podYml := fmt.Sprintf(`apiVersion: v1
-kind: Pod
-metadata:
-  name: testhttpd
-  namespace: %s
-  labels:
-    app.kubernetes.io/name: testhttpd
-  annotations:
-    capacity.topolvm.cybozu.com/ssd: "21474836480"
-spec:
-  containers:
-  - name: ubuntu
-    image: quay.io/cybozu/ubuntu:20.04
-    command: ["/usr/local/bin/pause"]
-    resources:
-      requests:
-        topolvm.cybozu.com/capacity: 1
-      limits:
-        topolvm.cybozu.com/capacity: 1
-`, ns)
-		stdout, stderr, err := kubectlWithInput([]byte(podYml), "apply", "-f", "-")
+		stdout, stderr, err := kubectlWithInput([]byte(fmt.Sprintf(capacityPodTemplateYAML, ns, "21474836480")), "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		Eventually(func() error {
