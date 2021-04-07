@@ -90,7 +90,77 @@ To setup `lvmd` with Daemonset:
     topolvm-lvmd   1         1         1       1            1           <none>          45m
     ```
 
+### Migrate lvmd, which is running as daemon, to DaemonSet
 
+This section describes how to switch to DaemonSet lvmd from lvmd running as daemons.
+
+1. Apply the manifest in `deploy/lvmd` folder and start lvmd with DaemonSet.
+   **You need to set the temporal `socket-name` which is not the same as the value in lvmd running as daemon.**
+   After applying the manifest, DaemonSet lvmd and lvmd running as daemon exist at the same time using different sockets.
+
+    ```yaml
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      namespace: topolvm-system
+      name: lvmd
+    data:
+      lvmd.yaml: |
+        socket-name: /run/topolvm/lvmd.sock # Change this value to something like `/run/topolvm/lvmd-work.sock`.
+        device-classes:
+          - name: ssd
+            volume-group: myvg1
+            default: true
+            spare-gb: 10
+    ```
+
+2. Change the options of topolvm-node to communicate with the DaemonSet lvmd instead of lvmd running as daemon.
+   **You should set the temporal socket name which is not the same as in lvmd running as daemon.**
+
+    ```yaml
+    $ kubect edit daemonset -n topolvm-system node
+    <snip>
+        spec:
+          serviceAccountName: node
+          containers:
+            - name: topolvm-node
+              image: quay.io/topolvm/topolvm-with-sidecar:latest
+              securityContext:
+                privileged: true
+              command:
+                - /topolvm-node
+                - --lvmd-socket=/run/lvmd/lvmd.sock # Change this value to to something linke `/run/lvmd/lvmd-work.sock`.
+    <snip>
+    ```
+3. Check if you can create Pod/PVC and can access to existing PV.
+
+4. Stop and remove lvmd running as daemon.
+
+5. Change the `socket-name` and `--lvmd-socket` options to the original one.
+   To reflect the changes of ConfigMap, restart DamonSet lvmd manually.
+
+    ```yaml
+    $ kubect edit cm -n topolvm-system lvmd
+    <snip>
+    data:
+      lvmd.yaml: |
+        socket-name: /run/topolvm/lvmd-work.sock # Change this value to something like `/run/topolvm/lvmd.sock`.
+    <snip>
+
+    $ kubect edit daemonset -n topolvm-system node
+    <snip>
+        spec:
+          serviceAccountName: node
+          containers:
+            - name: topolvm-node
+              image: quay.io/topolvm/topolvm-with-sidecar:latest
+              securityContext:
+                privileged: true
+              command:
+                - /topolvm-node
+                - --lvmd-socket=/run/lvmd/lvmd-work.sock # Change this value to something linke `/run/lvmd/lvmd.sock`.
+    <snip>
+    ```
 cert-manager
 ------------
 
