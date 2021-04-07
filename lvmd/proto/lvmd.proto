@@ -77,6 +77,7 @@ message WatchResponse {
 message WatchItem {
     uint64 free_bytes = 1;  // Free space of the volume group in bytes.
     string device_class = 2;
+    uint64 size_bytes = 3;  // Size of the volume group in bytes.
 }
 
 // Service to manage logical volumes of the volume group.

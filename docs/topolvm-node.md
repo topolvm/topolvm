@@ -79,6 +79,15 @@ free space in the LVM volume group in bytes.
 | `node`         | The node resource name |
 | `device_class` | The device class name. |
 
+### `topolvm_volumegroup_size_bytes`
+
+`topolvm_volumegroup_size_bytes` is a Gauge that indicates the size of the LVM volume group in bytes.
+
+| Label          | Description            |
+| -------------- | ---------------------- |
+| `node`         | The node resource name |
+| `device_class` | The device class name. |
+
 Node resource
 -------------
 

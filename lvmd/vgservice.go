@@ -100,6 +100,10 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 		if err != nil {
 			return status.Error(codes.Internal, err.Error())
 		}
+		vgSize, err := vg.Size()
+		if err != nil {
+			return status.Error(codes.Internal, err.Error())
+		}
 		dc, err := s.dcManager.FindDeviceClassByVGName(vg.Name())
 		if err == ErrNotFound {
 			continue
@@ -113,6 +117,7 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 		res.Items = append(res.Items, &proto.WatchItem{
 			DeviceClass: dc.Name,
 			FreeBytes:   vgFree,
+			SizeBytes:   vgSize,
 		})
 	}
 	return server.Send(res)
