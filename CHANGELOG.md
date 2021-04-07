@@ -7,6 +7,18 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.8.2] - 2021-04-07
+
+### Added
+- Add topolvm_volumegroup_size_bytes metric (#290)
+
+### Fixed
+- Add tests for DaemonSet lvmd (#285)
+- fix PodSecurityPolicy for Daemonset of lvmd (#291)
+
+### Contributors
+- @bells17
+
 ## [0.8.1] - 2021-03-22
 
 ### Fixed
@@ -275,7 +287,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.8.1...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.8.2...HEAD
+[0.8.2]: https://github.com/topolvm/topolvm/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/topolvm/topolvm/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/topolvm/topolvm/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/topolvm/topolvm/compare/v0.6.0...v0.7.0
