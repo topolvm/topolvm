@@ -35,15 +35,18 @@ spec:
         - key: CriticalAddonsOnly
           operator: Exists
         - effect: NoSchedule
-          key: node-role.kubernetes.io/master
-        - effect: NoSchedule
           key: node-role.kubernetes.io/control-plane
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
                   - key: node-role.kubernetes.io/control-plane
+                    operator: Exists
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/master
                     operator: Exists
       volumes:
         - name: scheduler-options

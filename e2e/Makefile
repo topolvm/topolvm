@@ -76,11 +76,6 @@ launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml /tmp/topolvm/scheduler
 	sed -e "s|@KUBERNETES_VERSION@|$(KUBERNETES_VERSION)|" \
 		-e "s|@KUBEADM_APIVERSION@|$(KUBEADM_APIVERSION)|" topolvm-cluster.yaml > /tmp/topolvm-cluster.yaml
 	$(KIND) create cluster --name=$(KIND_CLUSTER_NAME) --config /tmp/topolvm-cluster.yaml --image kindest/node:v$(KUBERNETES_VERSION)
-	# Set node-role.kubernetes.io/control-plane="" label manually
-	# because this label is not set when using k8s ~ v1.19 with kind(kubeadm).
-	if [ "$(TEST_KUBERNETES_VERSION)" = "1.19" -o "$(TEST_KUBERNETES_VERSION)" = "1.18" ]; then \
-		$(BINDIR)/kubectl label nodes $(KIND_CLUSTER_NAME)-control-plane node-role.kubernetes.io/control-plane=""; \
-	fi
 
 .PHONY: shutdown-kind
 shutdown-kind:

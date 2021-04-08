@@ -222,7 +222,7 @@ $ kubectl edit daemonset topolvm-scheduler -n topolvm-system
            requiredDuringSchedulingIgnoredDuringExecution:
              nodeSelectorTerms:
              - matchExpressions:
--              - key: node-role.kubernetes.io/control-plane
+-              - key: node-role.kubernetes.io/master
 +              - key: node-role.kubernetes.io/controlplane
                  operator: Exists
 ...
@@ -230,7 +230,7 @@ $ kubectl edit daemonset topolvm-scheduler -n topolvm-system
        - key: CriticalAddonsOnly
          operator: Exists
 -      - effect: NoSchedule
--        key: node-role.kubernetes.io/control-plane
+-        key: node-role.kubernetes.io/master
 +      - key: node-role.kubernetes.io/controlplane
 +        operator: Exists
 +      - key: node-role.kubernetes.io/etcd

@@ -37,7 +37,7 @@ func testCleanup() {
 	It("should finalize the delete node", func() {
 		By("checking Node finalizer")
 		Eventually(func() error {
-			stdout, stderr, err := kubectl("get", "nodes", "-l=node-role.kubernetes.io/control-plane!=", "-o=json")
+			stdout, stderr, err := kubectl("get", "nodes", "-l=node-role.kubernetes.io/master!=", "-o=json")
 			if err != nil {
 				return fmt.Errorf("%v, stdout=%s, stderr=%s", err, stdout, stderr)
 			}
