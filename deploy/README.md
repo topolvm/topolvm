@@ -238,13 +238,18 @@ spec:
         - key: CriticalAddonsOnly
           operator: Exists
         - effect: NoSchedule
+          key: node-role.kubernetes.io/control-plane
+        - effect: NoSchedule
           key: node-role.kubernetes.io/master
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - key: node-role.kubernetes.io/master    # match the control plane node specific labels
+                  - key: node-role.kubernetes.io/control-plane # match the control plane node specific labels
+                    operator: Exists
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/master # match the control plane node specific labels
                     operator: Exists
 ```
 
