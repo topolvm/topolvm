@@ -12,8 +12,6 @@ CSI_SIDECARS = \
 	livenessprobe
 
 GOPATH ?= $(shell go env GOPATH)
-GO111MODULE = on
-export GO111MODULE
 
 SRC_ROOT = $(GOPATH)/src/github.com/kubernetes-csi
 EXTERNAL_PROVISIONER_SRC  = $(SRC_ROOT)/external-provisioner

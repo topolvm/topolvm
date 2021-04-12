@@ -1,12 +1,11 @@
 ## Dependency versions
 
+CONTROLLER_RUNTIME_VERSION=$(shell awk '/sigs\.k8s\.io\/controller-runtime/ {print substr($$2, 2)}' go.mod)
 CONTROLLER_TOOLS_VERSION=0.5.0
 CSI_VERSION=1.3.0
-KUBEBUILDER_VERSION = 2.3.1
+KUBEBUILDER_VERSION = 3.0.0-rc.0
 KUSTOMIZE_VERSION= 3.8.9
 PROTOC_VERSION=3.15.0
-
-## DON'T EDIT BELOW THIS LINE
 
 SUDO=sudo
 CURL=curl -Lsf
@@ -15,21 +14,41 @@ CONTROLLER_GEN := $(BINDIR)/controller-gen
 KUSTOMIZE := $(BINDIR)/kustomize
 STATICCHECK := $(BINDIR)/staticcheck
 NILERR := $(BINDIR)/nilerr
-INEFFASSIGN := $(BINDIR)/ineffassign
-KUBEBUILDER_ASSETS := $(BINDIR)
 PROTOC := PATH=$(BINDIR):$(PATH) $(BINDIR)/protoc -I=$(PWD)/include:.
 PACKAGES := unzip lvm2 xfsprogs
+ENVTEST_ASSETS_DIR := $(PWD)/testbin
 
 GO_FILES=$(shell find -name '*.go' -not -name '*_test.go')
 GOOS := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
-GO111MODULE = on
 GOFLAGS =
-export GO111MODULE GOFLAGS KUBEBUILDER_ASSETS
+export GOFLAGS
 
 BUILD_TARGET=hypertopolvm
 TOPOLVM_VERSION ?= devel
 IMAGE_TAG ?= latest
+
+# Set the shell used to bash for better error handling.
+SHELL = /bin/bash
+.SHELLFLAGS = -e -o pipefail -c
+
+##@ General
+
+# The help target prints out all targets with their descriptions organized
+# beneath their categories. The categories are represented by '##@' and the
+# target descriptions by '##'. The awk commands is responsible for reading the
+# entire set of makefiles included in this invocation, looking for lines of the
+# file as xyz: ## something, and then pretty-format the target and help. Then,
+# if there's a line with ##@ something, that gets pretty-printed as a category.
+# More info on the usage of ANSI control characters for terminal formatting:
+# https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_parameters
+# More info on the awk command:
+# http://linuxcommand.org/lc3_adv_awk.php
+
+help: ## Display this help.
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+##@ Development
 
 csi.proto:
 	$(CURL) -o $@ https://raw.githubusercontent.com/container-storage-interface/spec/v$(CSI_VERSION)/csi.proto
@@ -56,41 +75,54 @@ docs/lvmd-protocol.md: lvmd/proto/lvmd.proto
 PROTOBUF_GEN = csi/csi.pb.go csi/csi_grpc.pb.go \
 	lvmd/proto/lvmd.pb.go lvmd/proto/lvmd_grpc.pb.go docs/lvmd-protocol.md
 
-.PHONY: test
-test:
-	test -z "$$(gofmt -s -l . | grep -v '^vendor' | tee /dev/stderr)"
-	$(STATICCHECK) ./...
-	test -z "$$($(NILERR) ./... 2>&1 | tee /dev/stderr)"
-	$(INEFFASSIGN) .
-	go install ./...
-	go test -race -v ./...
-	go vet ./...
-	test -z "$$(go vet ./... | grep -v '^vendor' | tee /dev/stderr)"
-
-# Generate manifests e.g. CRD, RBAC etc.
 .PHONY: manifests
-manifests:
+manifests: ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) \
 		crd:crdVersions=v1 \
 		rbac:roleName=topolvm-controller \
 		webhook \
-		paths="./api/...;./controllers;./hook;./driver/k8s" \
+		paths="./api/...;./controllers;./hook;./driver/k8s;./pkg/..." \
 		output:crd:artifacts:config=config/crd/bases
 	rm -f deploy/manifests/base/crd.yaml
 	cp config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml deploy/manifests/base/crd.yaml
 
 .PHONY: generate
-generate: $(PROTOBUF_GEN)
-	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate.go.txt paths="./api/..."
+generate: $(PROTOBUF_GEN) ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+	$(CONTROLLER_GEN) object:headerFile="./hack/boilerplate.go.txt" paths="./api/..."
 
 .PHONY: check-uncommitted
-check-uncommitted:
+check-uncommitted: ## Check if latest generated artifacts are committed.
 	$(MAKE) manifests
 	$(MAKE) generate
 	git diff --exit-code --name-only
 
+.PHONY: lint
+lint: ## Run lint
+	test -z "$$(gofmt -s -l . | grep -v '^vendor' | tee /dev/stderr)"
+	$(STATICCHECK) ./...
+	test -z "$$($(NILERR) ./... 2>&1 | tee /dev/stderr)"
+	go vet ./...
+	test -z "$$(go vet ./... | grep -v '^vendor' | tee /dev/stderr)"
+
+.PHONY: test
+test: lint ## Run lint and unit tests.
+	go install ./...
+
+	mkdir -p $(ENVTEST_ASSETS_DIR)
+	test -f $(ENVTEST_ASSETS_DIR)/setup-envtest.sh || curl -sSLo $(ENVTEST_ASSETS_DIR)/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v$(CONTROLLER_RUNTIME_VERSION)/hack/setup-envtest.sh
+	source $(ENVTEST_ASSETS_DIR)/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test -race -v ./...
+
+.PHONY: clean
+clean: ## Clean working directory.
+	rm -rf build/
+	rm -rf bin/
+	rm -rf include/
+	rm -rf testbin/
+
+##@ Build
+
 .PHONY: build
-build: build/hypertopolvm build/lvmd csi-sidecars
+build: build/hypertopolvm build/lvmd csi-sidecars ## Build binaries.
 
 build/hypertopolvm: $(GO_FILES)
 	mkdir -p build
@@ -101,47 +133,32 @@ build/lvmd:
 	CGO_ENABLED=0 go build -o $@ -ldflags "-w -s -X github.com/topolvm/topolvm.Version=$(TOPOLVM_VERSION)" ./pkg/lvmd
 
 .PHONY: csi-sidecars
-csi-sidecars:
+csi-sidecars: ## Build sidecar images.
 	mkdir -p build
 	make -f csi-sidecars.mk OUTPUT_DIR=build
 
 .PHONY: image
-image:
+image: ## Build topolvm images.
 	docker build -t $(IMAGE_PREFIX)topolvm:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) .
 	docker build -t $(IMAGE_PREFIX)topolvm-with-sidecar:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) -f Dockerfile.with-sidecar .
 
 .PHONY: tag
-tag:
+tag: ## Tag topolvm images.
 	docker tag $(IMAGE_PREFIX)topolvm:devel $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG)
 	docker tag $(IMAGE_PREFIX)topolvm-with-sidecar:devel $(IMAGE_PREFIX)topolvm-with-sidecar:$(IMAGE_TAG)
 
 .PHONY: push
-push:
+push: ## Push topolvm images.
 	docker push $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG)
 	docker push $(IMAGE_PREFIX)topolvm-with-sidecar:$(IMAGE_TAG)
 
-.PHONY: clean
-clean:
-	rm -rf build/
-	rm -rf bin/
-	rm -rf include/
+##@ Setup
 
 .PHONY: tools
-tools:
+tools: ## Install development tools.
 	GOBIN=$(BINDIR) go install golang.org/x/tools/cmd/goimports@latest
 	GOBIN=$(BINDIR) go install honnef.co/go/tools/cmd/staticcheck@latest
-	GOBIN=$(BINDIR) go install github.com/gordonklaus/ineffassign@latest
 	GOBIN=$(BINDIR) go install github.com/gostaticanalysis/nilerr/cmd/nilerr@latest
-
-.PHONY: setup
-setup: tools
-	$(SUDO) apt-get update
-	$(SUDO) apt-get -y install --no-install-recommends $(PACKAGES)
-
-	mkdir -p bin
-	curl -sfL https://go.kubebuilder.io/dl/$(KUBEBUILDER_VERSION)/$(GOOS)/$(GOARCH) | tar -xz -C /tmp/
-	mv /tmp/kubebuilder_$(KUBEBUILDER_VERSION)_$(GOOS)_$(GOARCH)/bin/* bin/
-	rm -rf /tmp/kubebuilder_*
 	GOBIN=$(BINDIR) go install sigs.k8s.io/controller-tools/cmd/controller-gen@v$(CONTROLLER_TOOLS_VERSION)
 
 	curl -sfL -o protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-linux-x86_64.zip
@@ -156,6 +173,11 @@ setup: tools
 	# check if kustomize suports `go install` command.
 	# known issue https://github.com/kubernetes-sigs/kustomize/issues/3618
 	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v$(KUSTOMIZE_VERSION))
+
+.PHONY: setup
+setup: tools ## Setup local environment.
+	$(SUDO) apt-get update
+	$(SUDO) apt-get -y install --no-install-recommends $(PACKAGES)
 
 # go-get-tool will 'go get' any package $2 and install it to $1.
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))

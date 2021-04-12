@@ -35,7 +35,6 @@ spec:
               deviceClass:
                 type: string
               name:
-                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster Important: Run "make" to regenerate code after modifying this file'
                 type: string
               nodeName:
                 type: string

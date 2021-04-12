@@ -25,8 +25,8 @@ func PVCMutator(c client.Client, dec *admission.Decoder) http.Handler {
 	return &webhook.Admission{Handler: persistentVolumeClaimMutator{c, dec}}
 }
 
-// +kubebuilder:webhook:failurePolicy=fail,matchPolicy=equivalent,groups="",resources=persistentvolumeclaims,verbs=create,versions=v1,name=pvc-hook.topolvm.cybozu.com,path=/pvc/mutate,mutating=true,sideEffects=none,admissionReviewVersions={v1,v1beta1}
-// +kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=get;list;watch
+//+kubebuilder:webhook:failurePolicy=fail,matchPolicy=equivalent,groups=core,resources=persistentvolumeclaims,verbs=create,versions=v1,name=pvc-hook.topolvm.cybozu.com,path=/pvc/mutate,mutating=true,sideEffects=none,admissionReviewVersions={v1,v1beta1}
+//+kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=get;list;watch
 
 // Handle implements admission.Handler interface.
 func (m persistentVolumeClaimMutator) Handle(ctx context.Context, req admission.Request) admission.Response {

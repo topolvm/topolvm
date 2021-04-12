@@ -57,15 +57,27 @@ metadata:
   namespace: topolvm-system
   name: leader-election
 rules:
-  - apiGroups: [""]
-    resources: ["configmaps"]
-    verbs: ["get", "watch", "list", "create", "update", "patch", "delete"]
-  - apiGroups: [""]
-    resources: ["configmaps/status"]
-    verbs: ["get", "update", "patch"]
-  - apiGroups: [""]
-    resources: ["events"]
-    verbs: ["create"]
+  - apiGroups:
+    - ""
+    - coordination.k8s.io
+    resources:
+    - configmaps
+    - leases
+    verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - patch
+    - delete
+  - apiGroups:
+    - ""
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
 ---
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -84,7 +96,7 @@ roleRef:
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: external-provisioner-runner
+  name: topolvm-external-provisioner-runner
 rules:
   - apiGroups: [""]
     resources: ["persistentvolumes"]
@@ -117,14 +129,14 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: csi-provisioner-role
+  name: topolvm-csi-provisioner-role
 subjects:
   - kind: ServiceAccount
     namespace: topolvm-system
     name: controller
 roleRef:
   kind: ClusterRole
-  name: external-provisioner-runner
+  name: topolvm-external-provisioner-runner
   apiGroup: rbac.authorization.k8s.io
 ---
 kind: Role
@@ -154,7 +166,7 @@ roleRef:
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: external-attacher-runner
+  name: topolvm-external-attacher-runner
 rules:
   - apiGroups: [""]
     resources: ["persistentvolumes"]
@@ -175,14 +187,14 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: csi-attacher-role
+  name: topolvm-csi-attacher-role
 subjects:
   - kind: ServiceAccount
     namespace: topolvm-system
     name: controller
 roleRef:
   kind: ClusterRole
-  name: external-attacher-runner
+  name: topolvm-external-attacher-runner
   apiGroup: rbac.authorization.k8s.io
 ---
 kind: Role
@@ -212,7 +224,7 @@ roleRef:
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: external-resizer-runner
+  name: topolvm-external-resizer-runner
 rules:
   - apiGroups: [""]
     resources: ["persistentvolumes"]
@@ -230,14 +242,14 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: csi-resizer-role
+  name: topolvm-csi-resizer-role
 subjects:
   - kind: ServiceAccount
     namespace: topolvm-system
     name: controller
 roleRef:
   kind: ClusterRole
-  name: external-resizer-runner
+  name: topolvm-external-resizer-runner
   apiGroup: rbac.authorization.k8s.io
 ---
 kind: Role

@@ -48,7 +48,7 @@ func init() {
 	fs := rootCmd.Flags()
 	fs.StringVar(&config.csiSocket, "csi-socket", topolvm.DefaultCSISocket, "UNIX domain socket filename for CSI")
 	fs.StringVar(&config.lvmdSocket, "lvmd-socket", topolvm.DefaultLVMdSocket, "UNIX domain socket of lvmd service")
-	fs.StringVar(&config.metricsAddr, "metrics-addr", ":8080", "Listen address for metrics")
+	fs.StringVar(&config.metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	fs.String("nodename", "", "The resource name of the running node")
 
 	viper.BindEnv("nodename", "NODE_NAME")
