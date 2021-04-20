@@ -25,7 +25,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	// +kubebuilder:scaffold:imports
+	//+kubebuilder:scaffold:imports
 )
 
 var (
@@ -34,10 +34,10 @@ var (
 )
 
 func init() {
-	utilruntime.Must(topolvmv1.AddToScheme(scheme))
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	// +kubebuilder:scaffold:scheme
+	utilruntime.Must(topolvmv1.AddToScheme(scheme))
+	//+kubebuilder:scaffold:scheme
 }
 
 func subMain() error {
@@ -78,7 +78,7 @@ func subMain() error {
 		setupLog.Error(err, "unable to create controller", "controller", "LogicalVolume")
 		return err
 	}
-	// +kubebuilder:scaffold:builder
+	//+kubebuilder:scaffold:builder
 
 	// Add health checker to manager
 	checker := runners.NewChecker(checkFunc(conn, mgr.GetAPIReader()), 1*time.Minute)
@@ -117,6 +117,8 @@ func subMain() error {
 
 	return nil
 }
+
+//+kubebuilder:rbac:groups=storage.k8s.io,resources=csidrivers,verbs=get;list;watch
 
 func checkFunc(conn *grpc.ClientConn, r client.Reader) func() error {
 	vgs := proto.NewVGServiceClient(conn)

@@ -23,7 +23,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-	// +kubebuilder:scaffold:imports
+	//+kubebuilder:scaffold:imports
 )
 
 var (
@@ -32,11 +32,13 @@ var (
 )
 
 func init() {
-	utilruntime.Must(topolvmv1.AddToScheme(scheme))
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	// +kubebuilder:scaffold:scheme
+	utilruntime.Must(topolvmv1.AddToScheme(scheme))
+	//+kubebuilder:scaffold:scheme
 }
+
+//+kubebuilder:rbac:groups=storage.k8s.io,resources=csidrivers,verbs=get;list;watch
 
 // Run builds and starts the manager with leader election.
 func subMain() error {
@@ -93,7 +95,7 @@ func subMain() error {
 		return err
 	}
 
-	// +kubebuilder:scaffold:builder
+	//+kubebuilder:scaffold:builder
 
 	// Add health checker to manager
 	ctx := context.Background()

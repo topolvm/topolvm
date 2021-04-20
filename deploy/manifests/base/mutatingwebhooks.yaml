@@ -7,45 +7,57 @@ metadata:
   labels:
     app.kubernetes.io/name: topolvm-hook
 webhooks:
-  - name: pod-hook.topolvm.cybozu.com
-    admissionReviewVersions:
-      - "v1"
-      - "v1beta1"
-    namespaceSelector:
-      matchExpressions:
-      - key: topolvm.cybozu.com/webhook
-        operator: NotIn
-        values: ["ignore"]
-    failurePolicy: Fail
-    clientConfig:
-      service:
-        namespace: topolvm-system
-        name: controller
-        path: /pod/mutate
-    rules:
-      - operations: ["CREATE"]
-        apiGroups: [""]
-        apiVersions: ["v1"]
-        resources: ["pods"]
-    sideEffects: None
-  - name: pvc-hook.topolvm.cybozu.com
-    admissionReviewVersions:
-      - "v1"
-      - "v1beta1"
-    namespaceSelector:
-      matchExpressions:
-      - key: topolvm.cybozu.com/webhook
-        operator: NotIn
-        values: ["ignore"]
-    failurePolicy: Fail
+  - admissionReviewVersions:
+    - v1
+    - v1beta1
     clientConfig:
       service:
         namespace: topolvm-system
         name: controller
         path: /pvc/mutate
+    failurePolicy: Fail
+    matchPolicy: Equivalent
+    name: pvc-hook.topolvm.cybozu.com
     rules:
-      - operations: ["CREATE"]
-        apiGroups: [""]
-        apiVersions: ["v1"]
-        resources: ["persistentvolumeclaims"]
+    - apiGroups:
+      - ""
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      resources:
+      - persistentvolumeclaims
     sideEffects: None
+    namespaceSelector:
+      matchExpressions:
+      - key: topolvm.cybozu.com/webhook
+        operator: NotIn
+        values:
+          - "ignore"
+  - admissionReviewVersions:
+    - v1
+    - v1beta1
+    clientConfig:
+      service:
+        namespace: topolvm-system
+        name: controller
+        path: /pod/mutate
+    failurePolicy: Fail
+    matchPolicy: Equivalent
+    name: pod-hook.topolvm.cybozu.com
+    rules:
+    - apiGroups:
+      - ""
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      resources:
+      - pods
+    sideEffects: None
+    namespaceSelector:
+      matchExpressions:
+      - key: topolvm.cybozu.com/webhook
+        operator: NotIn
+        values:
+          - "ignore"

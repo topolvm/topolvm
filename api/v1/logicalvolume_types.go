@@ -13,6 +13,7 @@ import (
 type LogicalVolumeSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+
 	Name        string            `json:"name"`
 	NodeName    string            `json:"nodeName"`
 	Size        resource.Quantity `json:"size"`
@@ -29,9 +30,9 @@ type LogicalVolumeStatus struct {
 	CurrentSize *resource.Quantity `json:"currentSize,omitempty"`
 }
 
-// +kubebuilder:object:root=true
-// +kubebuilder:resource:scope=Cluster
-// +kubebuilder:subresource:status
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
+//+kubebuilder:resource:scope=Cluster
 
 // LogicalVolume is the Schema for the logicalvolumes API
 type LogicalVolume struct {
@@ -53,7 +54,7 @@ func (lv *LogicalVolume) IsCompatibleWith(lv2 *LogicalVolume) bool {
 	return true
 }
 
-// +kubebuilder:object:root=true
+//+kubebuilder:object:root=true
 
 // LogicalVolumeList contains a list of LogicalVolume
 type LogicalVolumeList struct {

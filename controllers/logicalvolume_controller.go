@@ -18,7 +18,7 @@ import (
 	crlog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// LogicalVolumeReconciler reconciles a LogicalVolume object on each node.
+// LogicalVolumeReconciler reconciles a LogicalVolume object
 type LogicalVolumeReconciler struct {
 	client.Client
 	nodeName  string
@@ -26,8 +26,8 @@ type LogicalVolumeReconciler struct {
 	lvService proto.LVServiceClient
 }
 
-// +kubebuilder:rbac:groups=topolvm.cybozu.com,resources=logicalvolumes,verbs=get;list;watch;update;patch
-// +kubebuilder:rbac:groups=topolvm.cybozu.com,resources=logicalvolumes/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=topolvm.cybozu.com,resources=logicalvolumes,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups=topolvm.cybozu.com,resources=logicalvolumes/status,verbs=get;update;patch
 
 // NewLogicalVolumeReconciler returns LogicalVolumeReconciler with creating lvService and vgService.
 func NewLogicalVolumeReconciler(client client.Client, nodeName string, conn *grpc.ClientConn) *LogicalVolumeReconciler {
@@ -106,7 +106,7 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	return ctrl.Result{}, nil
 }
 
-// SetupWithManager sets up Reconciler with Manager.
+// SetupWithManager sets up the controller with the Manager.
 func (r *LogicalVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&topolvmv1.LogicalVolume{}).

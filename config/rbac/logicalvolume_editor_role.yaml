@@ -1,0 +1,24 @@
+# permissions for end users to edit logicalvolumes.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: logicalvolume-editor-role
+rules:
+- apiGroups:
+  - topolvm.cybozu.com
+  resources:
+  - logicalvolumes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - topolvm.cybozu.com
+  resources:
+  - logicalvolumes/status
+  verbs:
+  - get

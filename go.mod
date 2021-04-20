@@ -2,16 +2,13 @@ module github.com/topolvm/topolvm
 
 go 1.16
 
-replace launchpad.net/gocheck => github.com/go-check/check v0.0.0-20180628173108-788fd7840127
-
 require (
-	cloud.google.com/go v0.76.0 // indirect
 	github.com/cybozu-go/log v1.6.0
 	github.com/cybozu-go/well v1.10.0
-	github.com/go-logr/logr v0.3.0
+	github.com/go-logr/logr v0.4.0
 	github.com/golang/protobuf v1.4.3
 	github.com/google/go-cmp v0.5.4
-	github.com/kubernetes-csi/csi-test/v4 v4.0.2
+	github.com/kubernetes-csi/csi-test/v4 v4.1.0
 	github.com/onsi/ginkgo v1.15.0
 	github.com/onsi/gomega v1.10.5
 	github.com/prometheus/client_golang v1.9.0
@@ -28,7 +25,7 @@ require (
 	k8s.io/apimachinery v0.20.2
 	k8s.io/client-go v0.20.2
 	k8s.io/klog v1.0.0
-	k8s.io/mount-utils v0.20.2
+	k8s.io/mount-utils v0.21.0
 	k8s.io/utils v0.0.0-20210111153108-fddb29f9d009
 	sigs.k8s.io/controller-runtime v0.8.2
 	sigs.k8s.io/controller-tools v0.5.0

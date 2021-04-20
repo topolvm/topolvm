@@ -1,22 +1,37 @@
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin
+
 # Test binary, build with `go test -c`
 *.test
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
-# Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
-.glide/
+# Kubernetes Generated files - skip generated files, except for vendored files
 
-# Editors
+!vendor/**/zz_generated.*
+
+# editor and IDE paraphernalia
+.idea
+*.swp
+*.swo
 *~
-.*.swp
-.#*
-\#*#
 /.vscode
 
 # ignore tools
 /bin
-/include
 /build
 /e2e/build
 /e2e/tmpbin
+/include
+/testbin
+
+# ignore unneeded generated configs
+/config/prometheus
+/config/samples
