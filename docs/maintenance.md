@@ -23,12 +23,21 @@ First of all, we should have a look at the release notes in the order below.
     - Read the [release note](https://github.com/container-storage-interface/spec/releases) and check all the changes from the current version to the latest.
     - Basically, CSI spec should NOT be upgraded aggressively in this task.
     Upgrade the CSI version only if new features we should cover are introduced in newer versions, or the Kubernetes versions TopoLVM is going to support does not support the current CSI version.
+    - For updating CSI spec, please remove `csi.proto` file then run `make generate`.
 4. CSI sidecars
     - TopoLVM does not use all the sidecars listed [here](https://kubernetes-csi.github.io/docs/sidecar-containers.html).
       Have a look at `csi-sidecars.mk` first and understand what sidecars are actually being used.
     - Check the release pages of the sidecars under [kubernetes-csi](https://github.com/kubernetes-csi) one by one and choose the latest version for each sidecar which satisfies both "Minimal Kubernetes version" and "Supported CSI spec versions".
       DO NOT follow the "Status and Releases" tables in this [page](https://kubernetes-csi.github.io/docs/sidecar-containers.html) and the README.md files in the sidecar repositories because they are sometimes not updated properly.
     - Read the change logs which are linked from the release pages.
+    - Confirm diffs of RBAC between published in upstream and `deploy/manifests/base/controller.yaml`. And update it if required.
+5. Depending tools
+    - They does not depend on other software, use latest versions.
+      - [kustomize](https://github.com/kubernetes-sigs/kustomize/releases)
+      - [protoc](https://github.com/protocolbuffers/protobuf/releases)
+    - They depend on kubernetes, use appropriate version associating to minimal supported kubernetes version by TopoLVM.
+      - [kind](https://github.com/kubernetes-sigs/kind/releases)
+      - [minikube](https://github.com/kubernetes/minikube/releases)
 
 Please write down to the Github issue of this task what kinds of changes we find in the release note and what we are going to do and NOT going to do to address the changes.
 The format is up to you, but this is very important to keep track of what changes are made in this task, so please do not forget to do it.

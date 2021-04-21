@@ -19,7 +19,7 @@ Join our community on Slack: [Invitation form](https://docs.google.com/forms/d/e
 Supported environments
 ----------------------
 
-- Kubernetes: 1.20, 1.19, 1.18
+- Kubernetes: 1.21, 1.20, 1.19
 - Node OS: Linux with LVM2 (*1)
 - Filesystems: ext4, xfs
 

@@ -1,11 +1,11 @@
 ## Dependency versions
 
 CONTROLLER_RUNTIME_VERSION=$(shell awk '/sigs\.k8s\.io\/controller-runtime/ {print substr($$2, 2)}' go.mod)
-CONTROLLER_TOOLS_VERSION=0.5.0
-CSI_VERSION=1.3.0
-KUBEBUILDER_VERSION = 3.0.0-rc.0
+CONTROLLER_TOOLS_VERSION=$(shell awk '/sigs\.k8s\.io\/controller-tools/ {print substr($$2, 2)}' go.mod)
+CSI_VERSION=1.4.0
 KUSTOMIZE_VERSION= 3.8.9
 PROTOC_VERSION=3.15.0
+KIND_VERSION=v0.11.1
 
 SUDO=sudo
 CURL=curl -Lsf
@@ -27,6 +27,12 @@ export GOFLAGS
 BUILD_TARGET=hypertopolvm
 TOPOLVM_VERSION ?= devel
 IMAGE_TAG ?= latest
+
+## for build kind node
+KIND_NODE_VERSION=v1.21.1
+
+## TODO: update to 1.21 after envtest in controller-rutime support k8s 1.21
+ENVTEST_KUBERNETES_VERSION=1.20
 
 # Set the shell used to bash for better error handling.
 SHELL = /bin/bash
@@ -109,8 +115,7 @@ test: lint ## Run lint and unit tests.
 	go install ./...
 
 	mkdir -p $(ENVTEST_ASSETS_DIR)
-	test -f $(ENVTEST_ASSETS_DIR)/setup-envtest.sh || curl -sSLo $(ENVTEST_ASSETS_DIR)/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v$(CONTROLLER_RUNTIME_VERSION)/hack/setup-envtest.sh
-	source $(ENVTEST_ASSETS_DIR)/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test -race -v ./...
+	source <($(BINDIR)/setup-envtest use $(ENVTEST_KUBERNETES_VERSION) --bin-dir=$(ENVTEST_ASSETS_DIR) -p env); GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn go test -race -v ./...
 
 .PHONY: clean
 clean: ## Clean working directory.
@@ -154,11 +159,17 @@ push: ## Push topolvm images.
 
 ##@ Setup
 
+.PHONY: install-kind
+install-kind:
+	GOBIN=$(BINDIR) go install sigs.k8s.io/kind@$(KIND_VERSION)
+
 .PHONY: tools
-tools: ## Install development tools.
+tools: install-kind ## Install development tools.
 	GOBIN=$(BINDIR) go install golang.org/x/tools/cmd/goimports@latest
 	GOBIN=$(BINDIR) go install honnef.co/go/tools/cmd/staticcheck@latest
 	GOBIN=$(BINDIR) go install github.com/gostaticanalysis/nilerr/cmd/nilerr@latest
+	# Follow the official documentation to install the `latest` version, because explicitly specifying the version will get an error.
+	GOBIN=$(BINDIR) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 	GOBIN=$(BINDIR) go install sigs.k8s.io/controller-tools/cmd/controller-gen@v$(CONTROLLER_TOOLS_VERSION)
 
 	curl -sfL -o protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-linux-x86_64.zip
@@ -192,3 +203,8 @@ GOBIN=$(PROJECT_DIR)/bin go get $(2) ;\
 rm -rf $$TMP_DIR ;\
 }
 endef
+
+.PHONY: kind-node
+kind-node:
+	git clone --depth 1 https://github.com/kubernetes/kubernetes.git -b $(KIND_NODE_VERSION) /tmp/kind-node
+	$(BINDIR)/kind build node-image --kube-root /tmp/kind-node --image quay.io/topolvm/kind-node:$(KIND_NODE_VERSION)

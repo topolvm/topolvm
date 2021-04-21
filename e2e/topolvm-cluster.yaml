@@ -3,7 +3,7 @@ kind: Cluster
 # patch the generated kubeadm config with some extra settings
 kubeadmConfigPatches:
 - |
-  apiVersion: "@KUBEADM_APIVERSION@"
+  apiVersion: "kubeadm.k8s.io/v1beta2"
   kind: ClusterConfiguration
   metadata:
     name: config
@@ -22,7 +22,7 @@ kubeadmConfigPatches:
     extraArgs:
       "v": "5"
 - |
-  apiVersion: "@KUBEADM_APIVERSION@"
+  apiVersion: "kubeadm.k8s.io/v1beta2"
   kind: JoinConfiguration
   metadata:
     name: config
