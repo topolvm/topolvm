@@ -1,0 +1,9 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: topolvm-hook
+  annotations: null
+webhooks:
+  - name: pvc-hook.topolvm.cybozu.com
+    clientConfig:
+      caBundle: $(TLSCERT)

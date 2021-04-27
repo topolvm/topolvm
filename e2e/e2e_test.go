@@ -262,6 +262,11 @@ func testE2E() {
 	})
 
 	It("should choose a node with the largest capacity when volumeBindingMode == Immediate is specified", func() {
+		if isStorageCapacity() {
+			Skip(skipMessageForStorageCapacity + " and Storage Capacity Tracking doesn't check Storage Capacity when volumeBindingMode == Immediate is specified")
+			return
+		}
+
 		num := 3
 		if isDaemonsetLvmdEnvSet() {
 			num = 0
@@ -350,6 +355,11 @@ func testE2E() {
 	})
 
 	It("should scheduled onto the correct node where PV exists (volumeBindingMode == Immediate)", func() {
+		if isStorageCapacity() {
+			Skip(skipMessageForStorageCapacity + " and Storage Capacity Tracking doesn't check Storage Capacity when volumeBindingMode == Immediate is specified")
+			return
+		}
+
 		By("creating pvc")
 		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1, "topolvm-provisioner-immediate"))
 		stdout, stderr, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")

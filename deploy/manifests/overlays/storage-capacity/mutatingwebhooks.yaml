@@ -1,0 +1,7 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: topolvm-hook
+webhooks:
+  - name: pod-hook.topolvm.cybozu.com
+    $patch: delete

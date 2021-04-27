@@ -17,6 +17,7 @@ import (
 )
 
 var binDir string
+var skipMessageForStorageCapacity string = "skip because current environment is storage capacity"
 
 func TestMtest(t *testing.T) {
 	if os.Getenv("E2ETEST") == "" {
@@ -73,6 +74,10 @@ func isDaemonsetLvmdEnvSet() bool {
 	return os.Getenv("DAEMONSET_LVMD") != ""
 }
 
+func isStorageCapacity() bool {
+	return os.Getenv("STORAGE_CAPACITY") == "true"
+}
+
 func skipIfDaemonsetLvmd() {
 	if isDaemonsetLvmdEnvSet() {
 		Skip("skip because current environment is daemonset lvmd")
@@ -126,6 +131,7 @@ var _ = Describe("TopoLVM", func() {
 	Context("scheduler", testScheduler)
 	Context("metrics", testMetrics)
 	Context("publish", testPublishVolume)
+	Context("storage-capacity", testStorageCapacity)
 	Context("e2e", testE2E)
 	Context("multiple-vg", testMultipleVolumeGroups)
 	Context("cleanup", testCleanup)

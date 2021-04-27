@@ -208,8 +208,10 @@ Create namespace
 
 Create the `topolvm-system` namespace using `deploy/manifests/base/namespace.yaml`. This manifest has labels that are required for proper operation. Do not apply the other manifests yet, these will be applied after editing the values for Kustomize in the following steps.
 
-topolvm-scheduler
+Scheduing
 -----------------
+
+### topolvm-scheduler
 
 [topolvm-scheduler][] is a [scheduler extender](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/scheduler_extender.md) for `kube-scheduler`.
 It must be deployed to where `kube-scheduler` can connect.
@@ -220,7 +222,7 @@ limited to the control plane nodes.  `kube-scheduler` then connects to the exten
 Otherwise, `topolvm-scheduler` should be run as Deployment and Service.
 `kube-scheduler` then connects to the Service address.
 
-### Running topolvm-scheduler using DaemonSet
+#### Running topolvm-scheduler using DaemonSet
 
 The [example manifest](./manifests/overlays/daemonset-scheduler/scheduler.yaml) can be used almost as is.
 You may need to change the taint key or label name of the DaemonSet.
@@ -253,7 +255,7 @@ spec:
                     operator: Exists
 ```
 
-### Running topolvm-scheduler using Deployment and Service
+#### Running topolvm-scheduler using Deployment and Service
 
 In this case, you can use [deployment-scheduler/scheduler.yaml](./manifests/overlays/deployment-scheduler/scheduler.yaml) instead of [daemonset-scheduler/scheduler.yaml](./manifests/overlays/daemonset-scheduler/scheduler.yaml).
 
@@ -261,8 +263,7 @@ This way, `topolvm-scheduler` is exposed by LoadBalancer service.
 
 Then edit `urlPrefix` in [scheduler-config-v1beta1.yaml](./scheduler-config/scheduler-config-v1beta1.yaml) for K8s 1.19 or later, to specify the LoadBalancer address.
 
-OPTIONAL: tune the node scoring
--------------------------------
+#### OPTIONAL: tune the node scoring
 
 The node scoring for Pod scheduling can be fine-tuned with the following two ways:
 1. Adjust `divisor` parameter in the scoring expression
@@ -300,6 +301,28 @@ extenders:
     ignoredByScheduler: true
 ```
 
+### Storage Capacity Tracking
+
+topolvm supports [Storage Capacity Tracking](https://kubernetes.io/docs/concepts/storage/storage-capacity/).
+You can enable Storage Capacity Tracking mode instead of using topolvm-scheduler.
+You need to use Kubernetes Cluster v1.21 or later when using Storage Capacity Tracking with topolvm.
+
+You can see the limitations of using Storage Capacity Tracking from [here](https://kubernetes.io/docs/concepts/storage/storage-capacity/#scheduling).
+
+#### Use Storage Capacity Tracking
+
+If you want to use Storage Capacity Tracking instead of using topolvm-scheduler, you need following:
+
+- Add `--enable-capacity` and `--capacity-ownerref-level=2` to csi-provisoner arguments.
+- Append `NAMESPACE` and `POD_NAME` environment variables to csi-provisioner.
+
+The [example manifest](./manifests/overlays/storage-capcacity/controller.yaml) can be used almost as is.
+
+Deploy example is below:
+
+```
+kustomize build ./deploy/manifests/overlays/storage-capcacity | kubectl apply -f -
+```
 
 Protect system namespaces from TopoLVM webhook
 ---------------------------------------------

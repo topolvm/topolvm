@@ -3,7 +3,6 @@ package k8s
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strconv"
 
 	"github.com/topolvm/topolvm"
@@ -14,6 +13,7 @@ import (
 
 // ErrNodeNotFound represents the error that node is not found.
 var ErrNodeNotFound = errors.New("node not found")
+var ErrDeviceClassNotFound = errors.New("device class not found")
 
 // NodeService represents node service.
 type NodeService struct {
@@ -40,7 +40,7 @@ func (s NodeService) extractCapacityFromAnnotation(node *corev1.Node, deviceClas
 	}
 	c, ok := node.Annotations[topolvm.CapacityKeyPrefix+deviceClass]
 	if !ok {
-		return 0, fmt.Errorf("%s is not found", topolvm.CapacityKeyPrefix+deviceClass)
+		return 0, ErrDeviceClassNotFound
 	}
 	return strconv.ParseInt(c, 10, 64)
 }
