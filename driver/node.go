@@ -143,9 +143,9 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	}
 
 	if isBlockVol {
-		_, err = s.nodePublishBlockVolume(req, lv)
+		err = s.nodePublishBlockVolume(req, lv)
 	} else if isFsVol {
-		_, err = s.nodePublishFilesystemVolume(req, lv)
+		err = s.nodePublishFilesystemVolume(req, lv)
 	}
 
 	if err != nil {
@@ -154,7 +154,7 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 			// guarantee that NodePublishVolume will be called again, so if
 			// anything fails after the volume is created we need to attempt to
 			// clean up the LVM so we don't leak storage space.
-			if _, err = s.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: volumeID, DeviceClass: topolvm.DefaultDeviceClassName}); err != nil {
+			if _, err := s.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: volumeID, DeviceClass: topolvm.DefaultDeviceClassName}); err != nil {
 				return nil, status.Errorf(codes.Internal, "failed to remove LV for %s: %v", volumeID, err)
 			}
 		}
@@ -163,7 +163,7 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	return &csi.NodePublishVolumeResponse{}, nil
 }
 
-func (s *nodeService) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequest, lv *proto.LogicalVolume) (*csi.NodePublishVolumeResponse, error) {
+func (s *nodeService) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequest, lv *proto.LogicalVolume) error {
 	// Check request
 	mountOption := req.GetVolumeCapability().GetMount()
 	if mountOption.FsType == "" {
@@ -172,14 +172,14 @@ func (s *nodeService) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequ
 	accessMode := req.GetVolumeCapability().GetAccessMode().GetMode()
 	if accessMode != csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER {
 		modeName := csi.VolumeCapability_AccessMode_Mode_name[int32(accessMode)]
-		return nil, status.Errorf(codes.FailedPrecondition, "unsupported access mode: %s", modeName)
+		return status.Errorf(codes.FailedPrecondition, "unsupported access mode: %s", modeName)
 	}
 
 	// Find lv and create a block device with it
 	device := filepath.Join(DeviceDirectory, req.GetVolumeId())
 	err := s.createDeviceIfNeeded(device, lv)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	var mountOptions []string
@@ -189,36 +189,36 @@ func (s *nodeService) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequ
 
 	for _, f := range mountOption.MountFlags {
 		if f == "rw" && req.GetReadonly() {
-			return nil, status.Error(codes.InvalidArgument, "mount option \"rw\" is specified even though read only mode is specified")
+			return status.Error(codes.InvalidArgument, "mount option \"rw\" is specified even though read only mode is specified")
 		}
 		mountOptions = append(mountOptions, f)
 	}
 
 	err = os.MkdirAll(req.GetTargetPath(), 0755)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "mkdir failed: target=%s, error=%v", req.GetTargetPath(), err)
+		return status.Errorf(codes.Internal, "mkdir failed: target=%s, error=%v", req.GetTargetPath(), err)
 	}
 
 	fsType, err := filesystem.DetectFilesystem(device)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "filesystem check failed: volume=%s, error=%v", req.GetVolumeId(), err)
+		return status.Errorf(codes.Internal, "filesystem check failed: volume=%s, error=%v", req.GetVolumeId(), err)
 	}
 
 	if fsType != "" && fsType != mountOption.FsType {
-		return nil, status.Errorf(codes.Internal, "target device is already formatted with different filesystem: volume=%s, current=%s, new:%s", req.GetVolumeId(), fsType, mountOption.FsType)
+		return status.Errorf(codes.Internal, "target device is already formatted with different filesystem: volume=%s, current=%s, new:%s", req.GetVolumeId(), fsType, mountOption.FsType)
 	}
 
 	mounted, err := filesystem.IsMounted(device, req.GetTargetPath())
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "mount check failed: target=%s, error=%v", req.GetTargetPath(), err)
+		return status.Errorf(codes.Internal, "mount check failed: target=%s, error=%v", req.GetTargetPath(), err)
 	}
 
 	if !mounted {
 		if err := s.mounter.FormatAndMount(device, req.GetTargetPath(), mountOption.FsType, mountOptions); err != nil {
-			return nil, status.Errorf(codes.Internal, "mount failed: volume=%s, error=%v", req.GetVolumeId(), err)
+			return status.Errorf(codes.Internal, "mount failed: volume=%s, error=%v", req.GetVolumeId(), err)
 		}
 		if err := os.Chmod(req.GetTargetPath(), 0777|os.ModeSetgid); err != nil {
-			return nil, status.Errorf(codes.Internal, "chmod 2777 failed: target=%s, error=%v", req.GetTargetPath(), err)
+			return status.Errorf(codes.Internal, "chmod 2777 failed: target=%s, error=%v", req.GetTargetPath(), err)
 		}
 	}
 
@@ -227,7 +227,7 @@ func (s *nodeService) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequ
 		"target_path", req.GetTargetPath(),
 		"fstype", mountOption.FsType)
 
-	return &csi.NodePublishVolumeResponse{}, nil
+	return nil
 }
 
 func (s *nodeService) createDeviceIfNeeded(device string, lv *proto.LogicalVolume) error {
@@ -256,7 +256,7 @@ func (s *nodeService) createDeviceIfNeeded(device string, lv *proto.LogicalVolum
 	return nil
 }
 
-func (s *nodeService) nodePublishBlockVolume(req *csi.NodePublishVolumeRequest, lv *proto.LogicalVolume) (*csi.NodePublishVolumeResponse, error) {
+func (s *nodeService) nodePublishBlockVolume(req *csi.NodePublishVolumeRequest, lv *proto.LogicalVolume) error {
 	// Find lv and create a block device with it
 	var stat unix.Stat_t
 	target := req.GetTargetPath()
@@ -264,30 +264,30 @@ func (s *nodeService) nodePublishBlockVolume(req *csi.NodePublishVolumeRequest, 
 	switch err {
 	case nil:
 		if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && stat.Mode&devicePermission == devicePermission {
-			return &csi.NodePublishVolumeResponse{}, nil
+			return nil
 		}
 		if err := os.Remove(target); err != nil {
-			return nil, status.Errorf(codes.Internal, "failed to remove %s", target)
+			return status.Errorf(codes.Internal, "failed to remove %s", target)
 		}
 	case unix.ENOENT:
 	default:
-		return nil, status.Errorf(codes.Internal, "failed to stat: %v", err)
+		return status.Errorf(codes.Internal, "failed to stat: %v", err)
 	}
 
 	err = os.MkdirAll(path.Dir(target), 0755)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "mkdir failed: target=%s, error=%v", path.Dir(target), err)
+		return status.Errorf(codes.Internal, "mkdir failed: target=%s, error=%v", path.Dir(target), err)
 	}
 
 	devno := unix.Mkdev(lv.DevMajor, lv.DevMinor)
 	if err := filesystem.Mknod(target, devicePermission, int(devno)); err != nil {
-		return nil, status.Errorf(codes.Internal, "mknod failed for %s: error=%v", target, err)
+		return status.Errorf(codes.Internal, "mknod failed for %s: error=%v", target, err)
 	}
 
 	nodeLogger.Info("NodePublishVolume(block) succeeded",
 		"volume_id", req.GetVolumeId(),
 		"target_path", target)
-	return &csi.NodePublishVolumeResponse{}, nil
+	return nil
 }
 
 func (s *nodeService) findVolumeByID(listResp *proto.GetLVListResponse, name string) *proto.LogicalVolume {
