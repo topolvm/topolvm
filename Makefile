@@ -139,8 +139,8 @@ csi-sidecars: ## Build sidecar images.
 
 .PHONY: image
 image: ## Build topolvm images.
-	docker build -t $(IMAGE_PREFIX)topolvm:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) .
-	docker build -t $(IMAGE_PREFIX)topolvm-with-sidecar:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) -f Dockerfile.with-sidecar .
+	docker build --no-cache -t $(IMAGE_PREFIX)topolvm:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) .
+	docker build --no-cache -t $(IMAGE_PREFIX)topolvm-with-sidecar:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) -f Dockerfile.with-sidecar .
 
 .PHONY: tag
 tag: ## Tag topolvm images.
