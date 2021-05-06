@@ -6,13 +6,16 @@ TEST_SCHEDULER_MANIFEST ?= daemonset
 KIND_VERSION=0.10.0
 MINIKUBE_VERSION=v1.18.1
 
-BINDIR=$(PWD)/bin
+BINDIR := $(shell pwd)/bin
 SUDO=sudo
 KIND_CLUSTER_NAME=topolvm-e2e
 KIND := $(BINDIR)/kind
 KUBECTL := $(BINDIR)/kubectl
 KUSTOMIZE := ../bin/kustomize
 GINKGO := ../bin/ginkgo
+
+MINIKUBE_HOME = $(BINDIR)
+export MINIKUBE_HOME
 
 ifeq ($(TEST_KUBERNETES_TARGET),current)
 TEST_KUBERNETES_VERSION=1.20
@@ -199,16 +202,16 @@ daemonset-lvmd/setup-minikube:
 
 .PHONY: daemonset-lvmd/launch-minikube
 daemonset-lvmd/launch-minikube:
-	ls -la ${HOME}/.kube || true
-	if [ -d ${HOME}/.kube ]; then $(SUDO) chown -R ${USER} ${HOME}/.kube; chown -R a+r ${HOME}/.kube; fi
-	$(BINDIR)/minikube start \
+	$(SUDO) $(BINDIR)/minikube start \
 		--vm-driver=none \
 		--kubernetes-version=v$(KUBERNETES_VERSION) \
 		--extra-config=kubelet.read-only-port=10255
+	$(SUDO) chown -R $$USER $$HOME/.kube $(MINIKUBE_HOME)/.minikube
+	$(SUDO) chmod -R a+r /home/runner/.kube $(MINIKUBE_HOME)/.minikube
+	$(SUDO) find $(MINIKUBE_HOME)/.minikube -name id_rsa -exec chmod 600 {} ';'
 
 .PHONY: daemonset-lvmd/delete-minikube
 daemonset-lvmd/delete-minikube:
-	if [ -d ${HOME}/.kube ]; then $(SUDO) chown -R ${USER} ${HOME}/.kube; chown -R a+r ${HOME}/.kube; fi
 	$(BINDIR)/minikube delete || true
 
 # Set scheduler configs manually because minikube can't edit scheduler configs.
@@ -221,7 +224,7 @@ daemonset-lvmd/update-minikube-setting: daemonset-lvmd/delete-minikube daemonset
 
 .PHONY: daemonset-lvmd/test
 daemonset-lvmd/test: topolvm.img $(SERVER_CERT_FILES)
-	$(KUSTOMIZE) build --load_restrictor='none' manifests/overlays/daemonset-lvmd | $(KUBECTL) apply -f -
+	$(KUSTOMIZE) build --load_restrictor='none' manifests/overlays/daemonset-lvmd | $(SUDO) $(KUBECTL) apply -f -
 	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) DAEMONSET_LVMD=true $(GINKGO) --failFast -v .
 
 .PHONY: daemonset-lvmd/clean
