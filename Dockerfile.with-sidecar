@@ -7,7 +7,8 @@ ARG TOPOLVM_VERSION
 COPY . /workdir
 WORKDIR /workdir
 
-RUN make build TOPOLVM_VERSION=${TOPOLVM_VERSION}
+RUN touch csi/*.go lvmd/proto/*.go docs/*.md \
+    && make build TOPOLVM_VERSION=${TOPOLVM_VERSION}
 
 # TopoLVM container
 FROM ubuntu:20.04
