@@ -199,6 +199,8 @@ daemonset-lvmd/setup-minikube:
 
 .PHONY: daemonset-lvmd/launch-minikube
 daemonset-lvmd/launch-minikube:
+	ls -la ${HOME}/.kube || true
+	if [ -d ${HOME}/.kube ]; then $(SUDO) chown -R ${USER} ${HOME}/.kube; chown -R a+r ${HOME}/.kube; fi
 	$(BINDIR)/minikube start \
 		--vm-driver=none \
 		--kubernetes-version=v$(KUBERNETES_VERSION) \
@@ -206,6 +208,7 @@ daemonset-lvmd/launch-minikube:
 
 .PHONY: daemonset-lvmd/delete-minikube
 daemonset-lvmd/delete-minikube:
+	if [ -d ${HOME}/.kube ]; then $(SUDO) chown -R ${USER} ${HOME}/.kube; chown -R a+r ${HOME}/.kube; fi
 	$(BINDIR)/minikube delete || true
 
 # Set scheduler configs manually because minikube can't edit scheduler configs.
