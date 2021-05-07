@@ -14,7 +14,7 @@ KUBECTL := $(BINDIR)/kubectl
 KUSTOMIZE := ../bin/kustomize
 GINKGO := ../bin/ginkgo
 
-MINIKUBE_HOME := $(BINDIR)
+MINIKUBE_HOME = $(BINDIR)
 export MINIKUBE_HOME
 
 ifeq ($(TEST_KUBERNETES_TARGET),current)
@@ -212,7 +212,7 @@ daemonset-lvmd/launch-minikube:
 
 .PHONY: daemonset-lvmd/delete-minikube
 daemonset-lvmd/delete-minikube:
-	$(SUDO) $(BINDIR)/minikube delete || true
+	$(BINDIR)/minikube delete || true
 
 # Set scheduler configs manually because minikube can't edit scheduler configs.
 .PHONY: daemonset-lvmd/update-minikube-setting
