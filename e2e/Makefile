@@ -207,7 +207,7 @@ daemonset-lvmd/launch-minikube:
 		--kubernetes-version=v$(KUBERNETES_VERSION) \
 		--extra-config=kubelet.read-only-port=10255
 	$(SUDO) chown -R $$USER $$HOME/.kube $(MINIKUBE_HOME)/.minikube
-	$(SUDO) chmod -R a+r /home/runner/.kube $(MINIKUBE_HOME)/.minikube
+	$(SUDO) chmod -R a+r $$HOME/.kube $(MINIKUBE_HOME)/.minikube
 	$(SUDO) find $(MINIKUBE_HOME)/.minikube -name id_rsa -exec chmod 600 {} ';'
 
 .PHONY: daemonset-lvmd/delete-minikube
