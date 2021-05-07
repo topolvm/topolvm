@@ -6,7 +6,7 @@ TEST_SCHEDULER_MANIFEST ?= daemonset
 KIND_VERSION := 0.10.0
 MINIKUBE_VERSION := v1.18.1
 
-BINDIR := $(PWD)/bin
+BINDIR := $(shell pwd)/bin
 SUDO := sudo
 KIND_CLUSTER_NAME := topolvm-e2e
 KIND := $(BINDIR)/kind
