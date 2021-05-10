@@ -7,7 +7,7 @@ TOPOLVM_VERSION=0.8.2
 KIND_CLUSTER_NAME=topolvm-example
 
 SUDO=sudo
-BINDIR=$(PWD)/bin
+BINDIR=$(shell pwd)/bin
 KUSTOMIZE=$(BINDIR)/kustomize
 KUBECTL=$(BINDIR)/kubectl
 

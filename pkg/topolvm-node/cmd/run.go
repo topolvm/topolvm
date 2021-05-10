@@ -101,7 +101,7 @@ func subMain() error {
 	if err := os.MkdirAll(driver.DeviceDirectory, 0755); err != nil {
 		return err
 	}
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(ErrorLoggingInterceptor))
 	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityService(checker.Ready))
 	csi.RegisterNodeServer(grpcServer, driver.NewNodeService(nodename, conn, s))
 	err = mgr.Add(runners.NewGRPCRunner(grpcServer, config.csiSocket, false))
@@ -133,4 +133,12 @@ func checkFunc(conn *grpc.ClientConn, r client.Reader) func() error {
 		var drv storagev1.CSIDriver
 		return r.Get(ctx, types.NamespacedName{Name: topolvm.PluginName}, &drv)
 	}
+}
+
+func ErrorLoggingInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+	resp, err = handler(ctx, req)
+	if err != nil {
+		ctrl.Log.Error(err, "error on grpc call", "method", info.FullMethod)
+	}
+	return resp, err
 }

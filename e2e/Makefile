@@ -3,23 +3,26 @@ TEST_KUBERNETES_TARGET ?= current
 TEST_SCHEDULER_MANIFEST ?= daemonset
 
 ## Dependency versions
-KIND_VERSION=0.10.0
-MINIKUBE_VERSION=v1.18.1
+KIND_VERSION := 0.10.0
+MINIKUBE_VERSION := v1.18.1
 
-BINDIR=$(PWD)/bin
-SUDO=sudo
-KIND_CLUSTER_NAME=topolvm-e2e
+BINDIR := $(shell pwd)/bin
+SUDO := sudo
+KIND_CLUSTER_NAME := topolvm-e2e
 KIND := $(BINDIR)/kind
 KUBECTL := $(BINDIR)/kubectl
 KUSTOMIZE := ../bin/kustomize
 GINKGO := ../bin/ginkgo
 
+MINIKUBE_HOME = $(BINDIR)
+export MINIKUBE_HOME
+
 ifeq ($(TEST_KUBERNETES_TARGET),current)
-TEST_KUBERNETES_VERSION=1.20
+TEST_KUBERNETES_VERSION := 1.20
 else ifeq ($(TEST_KUBERNETES_TARGET),prev)
-TEST_KUBERNETES_VERSION=1.19
+TEST_KUBERNETES_VERSION := 1.19
 else ifeq ($(TEST_KUBERNETES_TARGET),prev2)
-TEST_KUBERNETES_VERSION=1.18
+TEST_KUBERNETES_VERSION := 1.18
 endif
 
 export TEST_KUBERNETES_VERSION
@@ -27,27 +30,27 @@ export TEST_KUBERNETES_VERSION
 SCHEDULER_POLICY := scheduler-policy-daemonset.cfg
 KUSTOMIZE_DIR := manifests/overlays/daemonset-scheduler
 ifeq ($(TEST_SCHEDULER_MANIFEST),deployment)
-SCHEDULER_POLICY=scheduler-policy-deployment.cfg
-KUSTOMIZE_DIR=manifests/overlays/deployment-scheduler
+SCHEDULER_POLICY := scheduler-policy-deployment.cfg
+KUSTOMIZE_DIR := manifests/overlays/deployment-scheduler
 endif
 
 ifeq ($(TEST_KUBERNETES_VERSION),1.20)
-KUBERNETES_VERSION=1.20.2
-KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
-SCHEDULER_CONFIG=scheduler-config-v1beta1-$(TEST_SCHEDULER_MANIFEST).yaml
+KUBERNETES_VERSION := 1.20.2
+KUBEADM_APIVERSION := kubeadm.k8s.io/v1beta2
+SCHEDULER_CONFIG := scheduler-config-v1beta1-$(TEST_SCHEDULER_MANIFEST).yaml
 else ifeq ($(TEST_KUBERNETES_VERSION),1.19)
-KUBERNETES_VERSION=1.19.4
-KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
-SCHEDULER_CONFIG=scheduler-config-v1beta1-$(TEST_SCHEDULER_MANIFEST).yaml
+KUBERNETES_VERSION := 1.19.4
+KUBEADM_APIVERSION := kubeadm.k8s.io/v1beta2
+SCHEDULER_CONFIG := scheduler-config-v1beta1-$(TEST_SCHEDULER_MANIFEST).yaml
 else ifeq ($(TEST_KUBERNETES_VERSION),1.18)
-KUBERNETES_VERSION=1.18.8
-KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
-SCHEDULER_CONFIG=scheduler-config-v1alpha1.yaml
+KUBERNETES_VERSION := 1.18.8
+KUBEADM_APIVERSION := kubeadm.k8s.io/v1beta2
+SCHEDULER_CONFIG := scheduler-config-v1alpha1.yaml
 endif
 
 GO_FILES := $(shell find .. -prune -o -path ../e2e -prune -o -name '*.go' -print)
-SERVER_CERT_FILES=./certs/cert.pem ./certs/key.pem
-BACKING_STORE=./build
+SERVER_CERT_FILES := ./certs/cert.pem ./certs/key.pem
+BACKING_STORE := ./build
 
 topolvm.img: $(GO_FILES)
 	rm -rf tmpbin
@@ -199,10 +202,13 @@ daemonset-lvmd/setup-minikube:
 
 .PHONY: daemonset-lvmd/launch-minikube
 daemonset-lvmd/launch-minikube:
-	$(BINDIR)/minikube start \
+	$(SUDO) $(BINDIR)/minikube start \
 		--vm-driver=none \
 		--kubernetes-version=v$(KUBERNETES_VERSION) \
 		--extra-config=kubelet.read-only-port=10255
+	$(SUDO) chown -R $$USER $$HOME/.kube $(MINIKUBE_HOME)/.minikube
+	$(SUDO) chmod -R a+r $$HOME/.kube $(MINIKUBE_HOME)/.minikube
+	$(SUDO) find $(MINIKUBE_HOME)/.minikube -name id_rsa -exec chmod 600 {} ';'
 
 .PHONY: daemonset-lvmd/delete-minikube
 daemonset-lvmd/delete-minikube:
@@ -218,7 +224,7 @@ daemonset-lvmd/update-minikube-setting: daemonset-lvmd/delete-minikube daemonset
 
 .PHONY: daemonset-lvmd/test
 daemonset-lvmd/test: topolvm.img $(SERVER_CERT_FILES)
-	$(KUSTOMIZE) build --load_restrictor='none' manifests/overlays/daemonset-lvmd | $(KUBECTL) apply -f -
+	$(KUSTOMIZE) build --load_restrictor='none' manifests/overlays/daemonset-lvmd | $(SUDO) $(KUBECTL) apply -f -
 	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) DAEMONSET_LVMD=true $(GINKGO) --failFast -v .
 
 .PHONY: daemonset-lvmd/clean

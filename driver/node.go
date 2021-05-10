@@ -32,7 +32,7 @@ const (
 	mountCmd         = "/bin/mount"
 	mountpointCmd    = "/bin/mountpoint"
 	umountCmd        = "/bin/umount"
-	findmntCmd       = "/usr/bin/findmnt"
+	findmntCmd       = "/bin/findmnt"
 	devicePermission = 0600 | unix.S_IFBLK
 	ephVolConKey     = "csi.storage.k8s.io/ephemeral"
 )

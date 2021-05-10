@@ -9,14 +9,14 @@ PROTOC_VERSION=3.15.0
 
 SUDO=sudo
 CURL=curl -Lsf
-BINDIR := $(PWD)/bin
+BINDIR := $(shell pwd)/bin
 CONTROLLER_GEN := $(BINDIR)/controller-gen
 KUSTOMIZE := $(BINDIR)/kustomize
 STATICCHECK := $(BINDIR)/staticcheck
 NILERR := $(BINDIR)/nilerr
-PROTOC := PATH=$(BINDIR):$(PATH) $(BINDIR)/protoc -I=$(PWD)/include:.
+PROTOC := PATH=$(BINDIR):$(PATH) $(BINDIR)/protoc -I=$(shell pwd)/include:.
 PACKAGES := unzip lvm2 xfsprogs
-ENVTEST_ASSETS_DIR := $(PWD)/testbin
+ENVTEST_ASSETS_DIR := $(shell pwd)/testbin
 
 GO_FILES=$(shell find -name '*.go' -not -name '*_test.go')
 GOOS := $(shell go env GOOS)
