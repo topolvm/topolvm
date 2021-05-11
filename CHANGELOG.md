@@ -9,7 +9,7 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 # [0.8.3] - 2021-05-11
 
-### Add
+### Added
 - Modify to use control-plane label and taint (#295)
 
 ### Changed
