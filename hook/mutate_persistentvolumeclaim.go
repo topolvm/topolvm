@@ -11,6 +11,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -54,6 +55,10 @@ func (m persistentVolumeClaimMutator) Handle(ctx context.Context, req admission.
 
 	if sc.Provisioner != topolvm.PluginName {
 		return admission.Allowed("no request for TopoLVM")
+	}
+
+	if controllerutil.ContainsFinalizer(pvc, topolvm.PVCFinalizer) {
+		return admission.Allowed("already added finalizer")
 	}
 
 	pvcPatch := pvc.DeepCopy()

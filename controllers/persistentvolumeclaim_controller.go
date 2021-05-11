@@ -42,18 +42,21 @@ func (r *PersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req ctr
 	}
 
 	needFinalize := false
-	for _, fin := range pvc.Finalizers {
-		if fin == topolvm.PVCFinalizer {
+	onlyTopoLVM := true
+	// Due to bug #310, we need to de-dup TopoLVM finalizers.
+	for _, f := range pvc.Finalizers {
+		if f == topolvm.PVCFinalizer {
 			needFinalize = true
-			break
+			continue
 		}
+		onlyTopoLVM = false
 	}
 	if !needFinalize {
 		return ctrl.Result{}, nil
 	}
 
 	// Requeue until other finalizers complete their jobs.
-	if len(pvc.Finalizers) != 1 {
+	if !onlyTopoLVM {
 		return ctrl.Result{
 			Requeue:      true,
 			RequeueAfter: 10 * time.Second,
