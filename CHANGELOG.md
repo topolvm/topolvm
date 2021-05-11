@@ -7,6 +7,24 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+# [0.8.3] - 2021-05-11
+
+### Add
+- Modify to use control-plane label and taint (#295)
+
+### Changed
+- Regenerate programs and manifests using kubebuilder v3 (#298)
+- Use Ubuntu 18.04 as the base image for TopoLVM container (#306)
+
+### Fixed
+- Stabilize Docker build (#304)
+- driver: fix overwriting error in NodePublishVolume (#305)
+- change urls of placeholder images (#307)
+- Fix duplicating finalizer entry (#311)
+
+### Contributors
+- @bells17
+
 ## [0.8.2] - 2021-04-07
 
 ### Added
@@ -287,7 +305,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.8.2...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.8.3...HEAD
+[0.8.3]: https://github.com/topolvm/topolvm/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/topolvm/topolvm/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/topolvm/topolvm/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/topolvm/topolvm/compare/v0.7.0...v0.8.0
