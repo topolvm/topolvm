@@ -79,6 +79,9 @@ func subMain() error {
 	for _, dc := range config.DeviceClasses {
 		_, err := command.FindVolumeGroup(dc.VolumeGroup)
 		if err != nil {
+			log.Error("Volume group not found:", map[string]interface{}{
+				"volume_group": dc.VolumeGroup,
+			})
 			return err
 		}
 	}
