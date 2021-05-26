@@ -1,0 +1,51 @@
+{{- if .Values.podSecurityPolicy.create }}
+---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: {{ template "topolvm.fullname" . }}-scheduler
+  labels:
+    {{- include "topolvm.labels" . | nindent 4 }}
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'secret'
+  hostNetwork: true
+  runAsUser:
+    rule: 'MustRunAsNonRoot'
+    ranges:
+      {{- if .Values.securityContext.runAsUser }}
+      - min: {{ .Values.securityContext.runAsUser }}
+        max: {{ .Values.securityContext.runAsUser }}
+      {{- else }}
+      - min: 1
+        max: 65535
+      {{- end }}
+  seLinux:
+    rule: 'RunAsAny'
+  supplementalGroups:
+    rule: 'MustRunAs'
+    ranges:
+      {{- if .Values.securityContext.runAsGroup }}
+      - min: {{ .Values.securityContext.runAsGroup }}
+        max: {{ .Values.securityContext.runAsGroup }}
+      {{- else }}
+      - min: 1
+        max: 65535
+      {{- end }}
+  fsGroup:
+    rule: 'MayRunAs'
+    ranges:
+      {{- if .Values.securityContext.runAsGroup }}
+      - min: {{ .Values.securityContext.runAsGroup }}
+        max: {{ .Values.securityContext.runAsGroup }}
+      {{- else }}
+      - min: 1
+        max: 65535
+      {{- end }}
+  readOnlyRootFilesystem: true
+---
+{{- end }}

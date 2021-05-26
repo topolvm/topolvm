@@ -1,0 +1,69 @@
+{{ if eq (lower .Values.scheduler.type) "daemonset" }}
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ template "topolvm.fullname" . }}-scheduler
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "topolvm.labels" . | nindent 4 }}
+spec:
+  {{- with .Values.scheduler.minReadySeconds }}
+  minReadySeconds: {{ . }}
+  {{- end }}
+  {{- with .Values.scheduler.updateStrategy }}
+  updateStrategy: {{ toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: topolvm-scheduler
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/scheduler/configmap.yaml") . | sha256sum }}
+      labels:
+        app.kubernetes.io/name: topolvm-scheduler
+    spec:
+      {{- with .Values.securityContext }}
+      securityContext: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.scheduler.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ . }}
+      {{- end }}
+      serviceAccountName: {{ template "topolvm.fullname" . }}-scheduler
+      containers:
+        - name: topolvm-scheduler
+          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          {{- with .Values.image.pullPolicy }}
+          imagePullPolicy: {{ . }}
+          {{- end }}
+          command:
+            - /topolvm-scheduler
+            - --config=/etc/topolvm/scheduler-options.yaml
+          livenessProbe:
+            httpGet:
+              host: {{ .Values.scheduler.options.listen.host }}
+              port: {{ .Values.scheduler.options.listen.port }}
+              path: /status
+          volumeMounts:
+            - mountPath: /etc/topolvm
+              name: {{ template "topolvm.fullname" . }}-scheduler-options
+          {{- with .Values.scheduler.resources }}
+          resources: {{ toYaml . | nindent 12 }}
+          {{- end }}
+      hostNetwork: true
+      volumes:
+        - name: {{ template "topolvm.fullname" . }}-scheduler-options
+          configMap:
+            name: {{ template "topolvm.fullname" . }}-scheduler-options
+      {{- with .Values.scheduler.affinity }}
+      affinity: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.scheduler.tolerations }}
+      tolerations: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.scheduler.nodeSelector }}
+      nodeSelector: {{ toYaml . | nindent 8 }}
+      {{- end }}
+---
+{{ end }}

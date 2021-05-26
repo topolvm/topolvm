@@ -6,6 +6,8 @@ CSI_VERSION=1.4.0
 KUSTOMIZE_VERSION= 3.8.9
 PROTOC_VERSION=3.15.0
 KIND_VERSION=v0.11.1
+HELM_VERSION=3.5.0
+HELM_DOCS_VERSION=1.5.0
 
 SUDO=sudo
 CURL=curl -Lsf
@@ -184,6 +186,10 @@ tools: install-kind ## Install development tools.
 	# check if kustomize suports `go install` command.
 	# known issue https://github.com/kubernetes-sigs/kustomize/issues/3618
 	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v$(KUSTOMIZE_VERSION))
+
+	GOBIN=$(BINDIR) go install github.com/norwoodj/helm-docs/cmd/helm-docs@v$(HELM_DOCS_VERSION)
+	curl -L -sS https://get.helm.sh/helm-v$(HELM_VERSION)-linux-amd64.tar.gz \
+	  | tar xvz --strip-components 1 linux-amd64/helm -C $(BINDIR)
 
 .PHONY: setup
 setup: tools ## Setup local environment.
