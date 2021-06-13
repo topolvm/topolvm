@@ -50,3 +50,10 @@ const DefaultSizeGb = 1
 
 // DefaultSize is DefaultSizeGb in bytes
 const DefaultSize = DefaultSizeGb << 30
+
+// Label key that indicates The controller/user who created this resource
+// https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/#labels
+const CreatedbyLabelKey = "app.kubernetes.io/created-by"
+
+// Label value that indicates The controller/user who created this resource
+const CreatedbyLabelValue = "topolvm-controller"
