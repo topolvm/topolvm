@@ -28,7 +28,7 @@ type cleanup struct {
 	volumes map[string]string
 }
 
-func (c cleanup) register(volumeID, targetPath string) {
+func (c *cleanup) register(volumeID, targetPath string) {
 	By("[cleanup] register")
 	if c.volumes == nil {
 		c.volumes = make(map[string]string)
@@ -36,14 +36,14 @@ func (c cleanup) register(volumeID, targetPath string) {
 	c.volumes[volumeID] = targetPath
 }
 
-func (c cleanup) unregister(volumeID, targetPath string) {
+func (c *cleanup) unregister(volumeID, targetPath string) {
 	By("[cleanup] unregister")
 	if c.volumes != nil {
 		delete(c.volumes, volumeID)
 	}
 }
 
-func (c cleanup) unpublishVolumes(nc csi.NodeClient) {
+func (c *cleanup) unpublishVolumes(nc csi.NodeClient) {
 	By("[cleanup] unpublishVolumes")
 	for volumeID, targetPath := range c.volumes {
 		req := &csi.NodeUnpublishVolumeRequest{
@@ -59,8 +59,8 @@ func (c cleanup) unpublishVolumes(nc csi.NodeClient) {
 }
 
 func testPublishVolume() {
+	cl := &cleanup{}
 	var (
-		cl   cleanup
 		nc   csi.NodeClient
 		conn *grpc.ClientConn
 	)
