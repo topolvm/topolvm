@@ -4,7 +4,7 @@ kind: CSIDriver
 metadata:
   name: topolvm.cybozu.com
 spec:
-  attachRequired: true
+  attachRequired: false
   podInfoOnMount: true
   volumeLifecycleModes:
     - Persistent
@@ -166,64 +166,6 @@ roleRef:
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: topolvm-external-attacher-runner
-rules:
-  - apiGroups: [""]
-    resources: ["persistentvolumes"]
-    verbs: ["get", "list", "watch", "update", "patch"]
-  - apiGroups: [""]
-    resources: ["nodes"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: ["storage.k8s.io"]
-    resources: ["csinodes"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: ["storage.k8s.io"]
-    resources: ["volumeattachments"]
-    verbs: ["get", "list", "watch", "update", "patch"]
-  - apiGroups: ["storage.k8s.io"]
-    resources: ["volumeattachments/status"]
-    verbs: ["patch"]
----
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: topolvm-csi-attacher-role
-subjects:
-  - kind: ServiceAccount
-    namespace: topolvm-system
-    name: controller
-roleRef:
-  kind: ClusterRole
-  name: topolvm-external-attacher-runner
-  apiGroup: rbac.authorization.k8s.io
----
-kind: Role
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  namespace: topolvm-system
-  name: external-attacher-cfg
-rules:
-  - apiGroups: ["coordination.k8s.io"]
-    resources: ["leases"]
-    verbs: ["get", "watch", "list", "delete", "update", "create"]
----
-kind: RoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: csi-attacher-role-cfg
-  namespace: topolvm-system
-subjects:
-  - kind: ServiceAccount
-    name: controller
-    namespace: topolvm-system
-roleRef:
-  kind: Role
-  name: external-attacher-cfg
-  apiGroup: rbac.authorization.k8s.io
----
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
   name: topolvm-external-resizer-runner
 rules:
   - apiGroups: [""]
@@ -354,17 +296,6 @@ spec:
             - /csi-provisioner
             - "--csi-address=/run/topolvm/csi-topolvm.sock"
             - "--feature-gates=Topology=true"
-            - --leader-election
-            - --leader-election-namespace=topolvm-system
-          volumeMounts:
-            - name: socket-dir
-              mountPath: /run/topolvm
-
-        - name: csi-attacher
-          image: quay.io/topolvm/topolvm-with-sidecar:latest
-          command:
-            - /csi-attacher
-            - "--csi-address=/run/topolvm/csi-topolvm.sock"
             - --leader-election
             - --leader-election-namespace=topolvm-system
           volumeMounts:

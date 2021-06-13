@@ -21,10 +21,6 @@ spec:
           image: topolvm:dev
           imagePullPolicy: Never
 
-        - name: csi-attacher
-          image: topolvm:dev
-          imagePullPolicy: Never
-
         - name: csi-resizer
           image: topolvm:dev
           imagePullPolicy: Never
