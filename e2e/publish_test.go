@@ -55,7 +55,6 @@ func (c *cleanup) unpublishVolumes(nc csi.NodeClient) {
 			fmt.Printf("failed to unpublish volume: %v", req)
 		}
 	}
-	//lint:ignore SA4005 This is an effective assignment
 	c.volumes = nil
 }
 
