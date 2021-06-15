@@ -69,6 +69,20 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			return ctrl.Result{Requeue: true}, nil
 		}
 
+		if !containsKeyAndValue(lv.Labels, topolvm.CreatedbyLabelKey, topolvm.CreatedbyLabelValue) {
+			lv2 := lv.DeepCopy()
+			if lv2.Labels == nil {
+				lv2.Labels = map[string]string{}
+			}
+			lv2.Labels[topolvm.CreatedbyLabelKey] = topolvm.CreatedbyLabelValue
+			patch := client.MergeFrom(lv)
+			if err := r.Patch(ctx, lv2, patch); err != nil {
+				log.Error(err, "failed to add label", "name", lv.Name)
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{Requeue: true}, nil
+		}
+
 		if lv.Status.VolumeID == "" {
 			err := r.createLV(ctx, log, lv)
 			if err != nil {
@@ -317,4 +331,13 @@ func extractFromError(err error) (codes.Code, string) {
 		return codes.Internal, err.Error()
 	}
 	return s.Code(), s.Message()
+}
+
+func containsKeyAndValue(labels map[string]string, key, value string) bool {
+	for k, v := range labels {
+		if k == key && v == value {
+			return true
+		}
+	}
+	return false
 }

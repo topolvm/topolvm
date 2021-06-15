@@ -10,6 +10,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/topolvm/topolvm"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	"github.com/topolvm/topolvm/csi"
 	"google.golang.org/grpc"
@@ -126,6 +127,15 @@ func testPublishVolume() {
 			if len(lv.Status.VolumeID) == 0 {
 				return errors.New("VolumeID is not set")
 			}
+
+			if lv.Labels == nil {
+				return errors.New("logical volume label is nil")
+			}
+
+			if lv.Labels[topolvm.CreatedbyLabelKey] != topolvm.CreatedbyLabelValue {
+				return fmt.Errorf("logical volume label %q is not eqaual %q", topolvm.CreatedbyLabelKey, topolvm.CreatedbyLabelValue)
+			}
+
 			volumeID = lv.Status.VolumeID
 			return nil
 		}).Should(Succeed())
