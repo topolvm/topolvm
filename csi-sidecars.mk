@@ -1,12 +1,10 @@
 # CSI sidecar versions
 EXTERNAL_PROVISIONER_VERSION = 2.1.0
-EXTERNAL_ATTACHER_VERSION = 3.1.0
 EXTERNAL_RESIZER_VERSION = 1.1.0
 NODE_DRIVER_REGISTRAR_VERSION = 2.1.0
 LIVENESSPROBE_VERSION = 2.2.0
 CSI_SIDECARS = \
 	external-provisioner \
-	external-attacher \
 	external-resizer \
 	node-driver-registrar \
 	livenessprobe
@@ -16,7 +14,6 @@ GOPATH ?= $(shell go env GOPATH)
 SRC_ROOT = $(GOPATH)/src/github.com/kubernetes-csi
 EXTERNAL_PROVISIONER_SRC  = $(SRC_ROOT)/external-provisioner
 NODE_DRIVER_REGISTRAR_SRC = $(SRC_ROOT)/node-driver-registrar
-EXTERNAL_ATTACHER_SRC     = $(SRC_ROOT)/external-attacher
 EXTERNAL_RESIZER_SRC      = $(SRC_ROOT)/external-resizer
 LIVENESSPROBE_SRC         = $(SRC_ROOT)/livenessprobe
 
@@ -31,14 +28,6 @@ external-provisioner:
         tar zxf - --strip-components 1 -C $(EXTERNAL_PROVISIONER_SRC)
 	make -C $(EXTERNAL_PROVISIONER_SRC)
 	cp -f $(EXTERNAL_PROVISIONER_SRC)/bin/csi-provisioner $(OUTPUT_DIR)/
-
-external-attacher:
-	rm -rf $(EXTERNAL_ATTACHER_SRC)
-	mkdir -p $(EXTERNAL_ATTACHER_SRC)
-	curl -sSLf https://github.com/kubernetes-csi/external-attacher/archive/v$(EXTERNAL_ATTACHER_VERSION).tar.gz | \
-        tar zxf - --strip-components 1 -C $(EXTERNAL_ATTACHER_SRC)
-	make -C $(EXTERNAL_ATTACHER_SRC)
-	cp -f $(EXTERNAL_ATTACHER_SRC)/bin/csi-attacher $(OUTPUT_DIR)/
 
 external-resizer:
 	rm -rf $(EXTERNAL_RESIZER_SRC)
