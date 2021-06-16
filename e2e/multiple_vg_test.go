@@ -80,6 +80,11 @@ func testMultipleVolumeGroups() {
 		stdout, stderr, err = kubectlWithInput(noNodesDeviceClassPodYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
+		expectMessage := "no capacity annotation"
+		if isStorageCapacity() {
+			expectMessage = "node(s) did not have enough free storage."
+		}
+
 		By("confirming that the pod wasn't scheduled")
 		Eventually(func() error {
 			stdout, stderr, err = kubectl("get", "-n", ns, "pod", "ubuntu", "-o", "json")
@@ -90,7 +95,7 @@ func testMultipleVolumeGroups() {
 			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 			for _, c := range pod.Status.Conditions {
-				if c.Type == corev1.PodScheduled && c.Status == corev1.ConditionFalse && strings.Contains(c.Message, "no capacity annotation") {
+				if c.Type == corev1.PodScheduled && c.Status == corev1.ConditionFalse && strings.Contains(c.Message, expectMessage) {
 					return nil
 				}
 			}

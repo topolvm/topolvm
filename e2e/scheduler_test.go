@@ -26,6 +26,11 @@ func testScheduler() {
 	testNamespacePrefix := "scheduler-test"
 
 	It("should be deployed topolvm-scheduler pod", func() {
+		if isStorageCapacity() {
+			Skip(skipMessageForStorageCapacity)
+			return
+		}
+
 		Eventually(func() error {
 			result, stderr, err := kubectl("get", "-n=topolvm-system", "pods", "--selector=app.kubernetes.io/name=topolvm-scheduler", "-o=json")
 			if err != nil {
@@ -61,6 +66,11 @@ func testScheduler() {
 	})
 
 	It("should schedule pod if requested capacity is sufficient", func() {
+		if isStorageCapacity() {
+			Skip(skipMessageForStorageCapacity)
+			return
+		}
+
 		ns := testNamespacePrefix + randomString(10)
 		createNamespace(ns)
 		stdout, stderr, err := kubectlWithInput([]byte(fmt.Sprintf(capacityPodTemplateYAML, ns, "1073741824")), "apply", "-f", "-")
@@ -90,6 +100,11 @@ func testScheduler() {
 	})
 
 	It("should not schedule pod if requested capacity is not sufficient", func() {
+		if isStorageCapacity() {
+			Skip(skipMessageForStorageCapacity)
+			return
+		}
+
 		ns := testNamespacePrefix + randomString(10)
 		createNamespace(ns)
 		stdout, stderr, err := kubectlWithInput([]byte(fmt.Sprintf(capacityPodTemplateYAML, ns, "21474836480")), "apply", "-f", "-")

@@ -1,6 +1,7 @@
 # parameters
 TEST_KUBERNETES_TARGET ?= current
 TEST_SCHEDULER_MANIFEST ?= daemonset
+STORAGE_CAPACITY ?= false
 
 ## Dependency versions
 MINIKUBE_VERSION := v1.21.0
@@ -32,8 +33,21 @@ ifeq ($(TEST_SCHEDULER_MANIFEST),deployment)
 KUSTOMIZE_DIR := manifests/overlays/deployment-scheduler
 endif
 
-SCHEDULER_CONFIG := scheduler-config-v1beta1-$(TEST_SCHEDULER_MANIFEST).yaml
+KUSTOMIZE_DIR_LVMD := ""
+ifeq ($(STORAGE_CAPACITY),true)
 
+ifeq ($(KUBERNETES_VERSION),1.21.1)
+KUSTOMIZE_DIR_LVMD := manifests/overlays/daemonset-lvmd-storage-capacity
+KUSTOMIZE_DIR := manifests/overlays/storage-capacity
+else
+KUSTOMIZE_DIR := ""
+endif
+
+else
+KUSTOMIZE_DIR_LVMD := manifests/overlays/daemonset-lvmd
+endif
+
+SCHEDULER_CONFIG := scheduler-config-v1beta1-$(TEST_SCHEDULER_MANIFEST).yaml
 GO_FILES := $(shell find .. -prune -o -path ../e2e -prune -o -name '*.go' -print)
 SERVER_CERT_FILES := ./certs/cert.pem ./certs/key.pem
 BACKING_STORE := ./build
@@ -121,11 +135,13 @@ stop-lvmd:
 # isn't a subdir of e2ebase
 .PHONY: test
 test: topolvm.img $(SERVER_CERT_FILES)
+ifneq ($(KUSTOMIZE_DIR),"")
 	$(MAKE) shutdown-kind
 	$(MAKE) launch-kind
 	$(KIND) load image-archive --name=$(KIND_CLUSTER_NAME) topolvm.img
 	$(KUSTOMIZE) build --load_restrictor='none' $(KUSTOMIZE_DIR) | $(KUBECTL) apply -f -
-	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) --failFast -v .
+	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) STORAGE_CAPACITY=$(STORAGE_CAPACITY) GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) --failFast -v .
+endif
 
 $(SERVER_CERT_FILES):
 	mkdir -p certs
@@ -180,7 +196,7 @@ daemonset-lvmd/setup-minikube:
 
 .PHONY: daemonset-lvmd/launch-minikube
 daemonset-lvmd/launch-minikube:
-	$(SUDO) $(BINDIR)/minikube start \
+	$(SUDO) -E $(BINDIR)/minikube start \
 		--vm-driver=none \
 		--kubernetes-version=v$(KUBERNETES_VERSION) \
 		--extra-config=kubelet.read-only-port=10255
@@ -190,19 +206,23 @@ daemonset-lvmd/launch-minikube:
 
 .PHONY: daemonset-lvmd/delete-minikube
 daemonset-lvmd/delete-minikube:
-	$(BINDIR)/minikube delete || true
+	$(SUDO) $(BINDIR)/minikube delete || true
 
 # Set scheduler configs manually because minikube can't edit scheduler configs.
 .PHONY: daemonset-lvmd/update-minikube-setting
 daemonset-lvmd/update-minikube-setting: daemonset-lvmd/delete-minikube daemonset-lvmd/launch-minikube
+ifneq ($(STORAGE_CAPACITY),true)
 	$(SUDO) mkdir -p /var/lib/scheduler
 	$(SUDO) sh -c 'sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|127.0.0.1|" $(SCHEDULER_CONFIG) > /var/lib/scheduler/scheduler-config.yaml'
 	$(SUDO) sh -c 'sed -e "s|@KUBERNETES_VERSION@|$(KUBERNETES_VERSION)|" kube-scheduler.yaml > /etc/kubernetes/manifests/kube-scheduler.yaml'
+endif
 
 .PHONY: daemonset-lvmd/test
 daemonset-lvmd/test: topolvm.img $(SERVER_CERT_FILES)
-	$(KUSTOMIZE) build --load_restrictor='none' manifests/overlays/daemonset-lvmd | $(SUDO) $(KUBECTL) apply -f -
-	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) DAEMONSET_LVMD=true GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) --failFast -v .
+ifneq ($(KUSTOMIZE_DIR_LVMD),"")
+	$(KUSTOMIZE) build --load_restrictor='none' $(KUSTOMIZE_DIR_LVMD) | $(SUDO) $(KUBECTL) apply -f -
+	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) STORAGE_CAPACITY=$(STORAGE_CAPACITY) DAEMONSET_LVMD=true GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) --failFast -v .
+endif
 
 .PHONY: daemonset-lvmd/clean
 daemonset-lvmd/clean: daemonset-lvmd/delete-minikube daemonset-lvmd/remove-vg

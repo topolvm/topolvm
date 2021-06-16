@@ -93,6 +93,10 @@ func testHook() {
 
 		By("checking pod is properly annotated")
 		Eventually(func() error {
+			if isStorageCapacity() {
+				return nil
+			}
+
 			result, stderr, err := kubectl("get", "-n", nsHookTest, "pods/testhttpd", "-o=json")
 			if err != nil {
 				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
@@ -139,6 +143,11 @@ func testHook() {
 		}
 	})
 	It("should test hooks for inline ephemeral volumes", func() {
+		if isStorageCapacity() {
+			Skip(skipMessageForStorageCapacity)
+			return
+		}
+
 		By("waiting controller pod become ready")
 		Eventually(func() error {
 			result, stderr, err := kubectl("get", "-n=topolvm-system", "pods", "--selector=app.kubernetes.io/name=controller", "-o=json")
