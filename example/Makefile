@@ -1,7 +1,6 @@
 
-KUBERNETES_VERSION=1.20.2
-KUSTOMIZE_VERSION= 3.8.9
-KIND_VERSION=0.10.0
+KUBERNETES_VERSION=1.21.1
+KUSTOMIZE_VERSION=3.8.9
 TOPOLVM_VERSION=0.8.3
 
 KIND_CLUSTER_NAME=topolvm-example
@@ -10,6 +9,7 @@ SUDO=sudo
 BINDIR=$(shell pwd)/bin
 KUSTOMIZE=$(BINDIR)/kustomize
 KUBECTL=$(BINDIR)/kubectl
+KIND=../bin/kind
 
 GO_FILES := $(shell find .. -prune -o -path ../e2e -prune -o -name '*.go' -print)
 SERVER_CERT_FILES=./certs/cert.pem ./certs/key.pem
@@ -32,16 +32,16 @@ run: $(SERVER_CERT_FILES)
 	$(MAKE) launch-kind
 	if [ "$(BUILD_IMAGE)" = "true" ]; then \
 		$(MAKE) build/topolvm.img; \
-		kind load image-archive --name=$(KIND_CLUSTER_NAME) build/topolvm.img; \
+		$(KIND) load image-archive --name=$(KIND_CLUSTER_NAME) build/topolvm.img; \
 	fi
 	$(KUSTOMIZE) build --enable_kyaml=false . | $(KUBECTL) apply -f -
 	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/controller
 	$(KUBECTL) apply -f podpvc.yaml
 
 setup: $(KUBECTL)
-	go install sigs.k8s.io/kind@v$(KIND_VERSION)
 	$(SUDO) apt-get update
 	$(SUDO) apt-get install -y lvm2 xfsprogs
+	cd ..; $(MAKE) install-kind
 	mkdir -p $(BINDIR)
 	mkdir -p build
 	curl -sSLf https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv$(KUSTOMIZE_VERSION)/kustomize_v$(KUSTOMIZE_VERSION)_linux_amd64.tar.gz | tar -xz -C $(BINDIR)
@@ -62,10 +62,10 @@ launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml kind/topolvm-cluster.y
 	$(MAKE) shutdown-kind
 	$(SUDO) rm -rf /tmp/topolvm/controller /tmp/topolvm/worker*
 	sed s/@KUBERNETES_VERSION@/$(KUBERNETES_VERSION)/ kind/topolvm-cluster.yaml > /tmp/topolvm-cluster.yaml
-	kind create cluster --name=$(KIND_CLUSTER_NAME) --config /tmp/topolvm-cluster.yaml --image kindest/node:v$(KUBERNETES_VERSION)
+	$(KIND) create cluster --name=$(KIND_CLUSTER_NAME) --config /tmp/topolvm-cluster.yaml --image kindest/node:v$(KUBERNETES_VERSION)
 
 shutdown-kind:
-	kind delete cluster --name=$(KIND_CLUSTER_NAME) || true
+	$(KIND) delete cluster --name=$(KIND_CLUSTER_NAME) || true
 	for d in $$($(SUDO) find /tmp/topolvm -type d); do \
 		if $(SUDO) mountpoint -q $$d; then \
 			$(SUDO) umount $$d; \

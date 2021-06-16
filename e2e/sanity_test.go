@@ -3,6 +3,7 @@ package e2e
 import (
 	"encoding/json"
 	"errors"
+	"path"
 
 	"github.com/kubernetes-csi/csi-test/v4/pkg/sanity"
 	. "github.com/onsi/ginkgo"
@@ -39,11 +40,27 @@ func testSanity() {
 	})
 
 	tc := sanity.NewTestConfig()
-	tc.Address = baseDir + "/node/csi-topolvm.sock"
-	tc.ControllerAddress = baseDir + "/controller/csi-topolvm.sock"
-	tc.TargetPath = baseDir + "/node/mountdir"
-	tc.StagingPath = baseDir + "/node/stagingdir"
+	tc.Address = path.Join(baseDir, "/node/csi-topolvm.sock")
+	tc.ControllerAddress = path.Join(baseDir, "/controller/csi-topolvm.sock")
+	tc.TargetPath = path.Join(baseDir, "/node/mountdir")
+	tc.StagingPath = path.Join(baseDir, "/node/stagingdir")
 	tc.TestVolumeSize = 1073741824
 	tc.IDGen = &sanity.DefaultIDGenerator{}
+	tc.CheckPath = func(path string) (sanity.PathKind, error) {
+		_, _, err := kubectl("exec", "-n", "topolvm-system", "daemonset/node", "--", "test", "-f", path)
+		if err == nil {
+			return sanity.PathIsFile, nil
+		}
+		_, _, err = kubectl("exec", "-n", "topolvm-system", "daemonset/node", "--", "test", "-d", path)
+		if err == nil {
+			return sanity.PathIsDir, nil
+		}
+		_, _, err = kubectl("exec", "-n", "topolvm-system", "daemonset/node", "--", "test", "!", "-e", path)
+		if err == nil {
+			return sanity.PathIsNotFound, nil
+		}
+		_, _, err = kubectl("exec", "-n", "topolvm-system", "daemonset/node", "--", "test", "-e", path)
+		return sanity.PathIsOther, err
+	}
 	sanity.GinkgoTest(&tc)
 }

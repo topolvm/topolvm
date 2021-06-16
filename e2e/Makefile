@@ -3,13 +3,12 @@ TEST_KUBERNETES_TARGET ?= current
 TEST_SCHEDULER_MANIFEST ?= daemonset
 
 ## Dependency versions
-KIND_VERSION := 0.10.0
-MINIKUBE_VERSION := v1.18.1
+MINIKUBE_VERSION := v1.21.0
 
 BINDIR := $(shell pwd)/bin
 SUDO := sudo
 KIND_CLUSTER_NAME := topolvm-e2e
-KIND := $(BINDIR)/kind
+KIND := ../bin/kind
 KUBECTL := $(BINDIR)/kubectl
 KUSTOMIZE := ../bin/kustomize
 GINKGO := ../bin/ginkgo
@@ -18,35 +17,22 @@ MINIKUBE_HOME = $(BINDIR)
 export MINIKUBE_HOME
 
 ifeq ($(TEST_KUBERNETES_TARGET),current)
-TEST_KUBERNETES_VERSION := 1.20
+KUBERNETES_VERSION := 1.21.1
 else ifeq ($(TEST_KUBERNETES_TARGET),prev)
-TEST_KUBERNETES_VERSION := 1.19
+KUBERNETES_VERSION := 1.20.2
 else ifeq ($(TEST_KUBERNETES_TARGET),prev2)
-TEST_KUBERNETES_VERSION := 1.18
+KUBERNETES_VERSION := 1.19.4
 endif
 
-export TEST_KUBERNETES_VERSION
+KIND_NODE_IMAGE=kindest/node:v$(KUBERNETES_VERSION)
+export TEST_KUBERNETES_VERSION=$(shell echo $(KUBERNETES_VERSION) | grep -o '^[0-9]*\.[0-9]*')
 
-SCHEDULER_POLICY := scheduler-policy-daemonset.cfg
 KUSTOMIZE_DIR := manifests/overlays/daemonset-scheduler
 ifeq ($(TEST_SCHEDULER_MANIFEST),deployment)
-SCHEDULER_POLICY := scheduler-policy-deployment.cfg
 KUSTOMIZE_DIR := manifests/overlays/deployment-scheduler
 endif
 
-ifeq ($(TEST_KUBERNETES_VERSION),1.20)
-KUBERNETES_VERSION := 1.20.2
-KUBEADM_APIVERSION := kubeadm.k8s.io/v1beta2
 SCHEDULER_CONFIG := scheduler-config-v1beta1-$(TEST_SCHEDULER_MANIFEST).yaml
-else ifeq ($(TEST_KUBERNETES_VERSION),1.19)
-KUBERNETES_VERSION := 1.19.4
-KUBEADM_APIVERSION := kubeadm.k8s.io/v1beta2
-SCHEDULER_CONFIG := scheduler-config-v1beta1-$(TEST_SCHEDULER_MANIFEST).yaml
-else ifeq ($(TEST_KUBERNETES_VERSION),1.18)
-KUBERNETES_VERSION := 1.18.8
-KUBEADM_APIVERSION := kubeadm.k8s.io/v1beta2
-SCHEDULER_CONFIG := scheduler-config-v1alpha1.yaml
-endif
 
 GO_FILES := $(shell find .. -prune -o -path ../e2e -prune -o -name '*.go' -print)
 SERVER_CERT_FILES := ./certs/cert.pem ./certs/key.pem
@@ -68,17 +54,11 @@ topolvm.img: $(GO_FILES)
 	mkdir -p /tmp/topolvm/scheduler
 	sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|topolvm-e2e-worker|" $< > $@
 
-# The policy file will be copied in all kubernetes version, but it isn't used in kubernetes v1.19 or later.
-/tmp/topolvm/scheduler/scheduler-policy.cfg: $(SCHEDULER_POLICY)
-	mkdir -p /tmp/topolvm/scheduler
-	sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|topolvm-e2e-worker|" $< > $@
-
 .PHONY: launch-kind
-launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml /tmp/topolvm/scheduler/scheduler-policy.cfg
+launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml
 	$(SUDO) rm -rf /tmp/topolvm/controller /tmp/topolvm/worker*
-	sed -e "s|@KUBERNETES_VERSION@|$(KUBERNETES_VERSION)|" \
-		-e "s|@KUBEADM_APIVERSION@|$(KUBEADM_APIVERSION)|" topolvm-cluster.yaml > /tmp/topolvm-cluster.yaml
-	$(KIND) create cluster --name=$(KIND_CLUSTER_NAME) --config /tmp/topolvm-cluster.yaml --image kindest/node:v$(KUBERNETES_VERSION)
+	sed -e "s|@KUBERNETES_VERSION@|$(KUBERNETES_VERSION)|" topolvm-cluster.yaml > /tmp/topolvm-cluster.yaml
+	$(KIND) create cluster --name=$(KIND_CLUSTER_NAME) --config /tmp/topolvm-cluster.yaml --image $(KIND_NODE_IMAGE)
 
 .PHONY: shutdown-kind
 shutdown-kind:
@@ -145,7 +125,7 @@ test: topolvm.img $(SERVER_CERT_FILES)
 	$(MAKE) launch-kind
 	$(KIND) load image-archive --name=$(KIND_CLUSTER_NAME) topolvm.img
 	$(KUSTOMIZE) build --load_restrictor='none' $(KUSTOMIZE_DIR) | $(KUBECTL) apply -f -
-	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) $(GINKGO) --failFast -v .
+	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) --failFast -v .
 
 $(SERVER_CERT_FILES):
 	mkdir -p certs
@@ -158,16 +138,14 @@ clean: stop-lvmd
 		topolvm.img \
 		build/ \
 		$(BACKING_STORE)/backing_store* \
-		/tmp/topolvm/scheduler/scheduler-config.yaml \
-		/tmp/topolvm/scheduler/scheduler-policy.cfg
+		/tmp/topolvm/scheduler/scheduler-config.yaml
 
 .PHONY: setup
 setup:
 	cd ..; $(MAKE) setup
 	mkdir -p $(BINDIR)
-	curl -o $(BINDIR)/kind -sfL https://kind.sigs.k8s.io/dl/v$(KIND_VERSION)/kind-linux-amd64
 	curl -o $(BINDIR)/kubectl -sfL https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl
-	chmod a+x $(BINDIR)/kubectl $(BINDIR)/kind
+	chmod a+x $(BINDIR)/kubectl
 
 .PHONY: daemonset-lvmd/create-vg
 daemonset-lvmd/create-vg:
@@ -218,14 +196,13 @@ daemonset-lvmd/delete-minikube:
 .PHONY: daemonset-lvmd/update-minikube-setting
 daemonset-lvmd/update-minikube-setting: daemonset-lvmd/delete-minikube daemonset-lvmd/launch-minikube
 	$(SUDO) mkdir -p /var/lib/scheduler
-	$(SUDO) sh -c 'sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|127.0.0.1|" $(SCHEDULER_POLICY) > /var/lib/scheduler/scheduler-policy.cfg'
 	$(SUDO) sh -c 'sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|127.0.0.1|" $(SCHEDULER_CONFIG) > /var/lib/scheduler/scheduler-config.yaml'
 	$(SUDO) sh -c 'sed -e "s|@KUBERNETES_VERSION@|$(KUBERNETES_VERSION)|" kube-scheduler.yaml > /etc/kubernetes/manifests/kube-scheduler.yaml'
 
 .PHONY: daemonset-lvmd/test
 daemonset-lvmd/test: topolvm.img $(SERVER_CERT_FILES)
 	$(KUSTOMIZE) build --load_restrictor='none' manifests/overlays/daemonset-lvmd | $(SUDO) $(KUBECTL) apply -f -
-	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) DAEMONSET_LVMD=true $(GINKGO) --failFast -v .
+	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) DAEMONSET_LVMD=true GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) --failFast -v .
 
 .PHONY: daemonset-lvmd/clean
 daemonset-lvmd/clean: daemonset-lvmd/delete-minikube daemonset-lvmd/remove-vg

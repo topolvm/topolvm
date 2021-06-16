@@ -3,11 +3,11 @@ package driver
 import (
 	"context"
 
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/topolvm/topolvm"
 	"github.com/topolvm/topolvm/csi"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -81,7 +81,7 @@ func (s identityService) Probe(ctx context.Context, req *csi.ProbeRequest) (*csi
 		return nil, status.Error(codes.FailedPrecondition, err.Error())
 	}
 	return &csi.ProbeResponse{
-		Ready: &wrappers.BoolValue{
+		Ready: &wrapperspb.BoolValue{
 			Value: ok,
 		},
 	}, nil

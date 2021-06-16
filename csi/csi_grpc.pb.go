@@ -11,6 +11,7 @@ import (
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
+// Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
 // IdentityClient is the client API for Identity service.
@@ -89,8 +90,8 @@ type UnsafeIdentityServer interface {
 	mustEmbedUnimplementedIdentityServer()
 }
 
-func RegisterIdentityServer(s *grpc.Server, srv IdentityServer) {
-	s.RegisterService(&_Identity_serviceDesc, srv)
+func RegisterIdentityServer(s grpc.ServiceRegistrar, srv IdentityServer) {
+	s.RegisterService(&Identity_ServiceDesc, srv)
 }
 
 func _Identity_GetPluginInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -147,7 +148,10 @@ func _Identity_Probe_Handler(srv interface{}, ctx context.Context, dec func(inte
 	return interceptor(ctx, in, info, handler)
 }
 
-var _Identity_serviceDesc = grpc.ServiceDesc{
+// Identity_ServiceDesc is the grpc.ServiceDesc for Identity service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var Identity_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "csi.v1.Identity",
 	HandlerType: (*IdentityServer)(nil),
 	Methods: []grpc.MethodDesc{
@@ -384,8 +388,8 @@ type UnsafeControllerServer interface {
 	mustEmbedUnimplementedControllerServer()
 }
 
-func RegisterControllerServer(s *grpc.Server, srv ControllerServer) {
-	s.RegisterService(&_Controller_serviceDesc, srv)
+func RegisterControllerServer(s grpc.ServiceRegistrar, srv ControllerServer) {
+	s.RegisterService(&Controller_ServiceDesc, srv)
 }
 
 func _Controller_CreateVolume_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -622,7 +626,10 @@ func _Controller_ControllerGetVolume_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
-var _Controller_serviceDesc = grpc.ServiceDesc{
+// Controller_ServiceDesc is the grpc.ServiceDesc for Controller service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var Controller_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "csi.v1.Controller",
 	HandlerType: (*ControllerServer)(nil),
 	Methods: []grpc.MethodDesc{
@@ -829,8 +836,8 @@ type UnsafeNodeServer interface {
 	mustEmbedUnimplementedNodeServer()
 }
 
-func RegisterNodeServer(s *grpc.Server, srv NodeServer) {
-	s.RegisterService(&_Node_serviceDesc, srv)
+func RegisterNodeServer(s grpc.ServiceRegistrar, srv NodeServer) {
+	s.RegisterService(&Node_ServiceDesc, srv)
 }
 
 func _Node_NodeStageVolume_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -977,7 +984,10 @@ func _Node_NodeGetInfo_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
-var _Node_serviceDesc = grpc.ServiceDesc{
+// Node_ServiceDesc is the grpc.ServiceDesc for Node service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var Node_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "csi.v1.Node",
 	HandlerType: (*NodeServer)(nil),
 	Methods: []grpc.MethodDesc{
