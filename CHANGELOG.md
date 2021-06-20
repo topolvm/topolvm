@@ -7,6 +7,22 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+### Added
+- Add recommended labels (#320)
+- Add Storage Capacity Tracking mode (#315)
+
+### Changed
+- Add error message (#314)
+- add document to run test using minikube for lvmd daemonset (#318)
+- Remove CSI Attacher sidecar (#319)
+  - **BREAKING**: You need to recreate the CSIDriver resource because of CSI Attacher sidecar was removed from topolvm.
+
+### Fixed
+
+### Contributors
+- @toelke
+- @bells17
+
 # [0.8.3] - 2021-05-11
 
 ### Added
