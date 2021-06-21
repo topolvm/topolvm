@@ -1,0 +1,29 @@
+{{- if and .Values.podSecurityPolicy.create .Values.lvmd.managed }}
+---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: {{ template "topolvm.fullname" . }}-lvmd
+  labels:
+    {{- include "topolvm.labels" . | nindent 4 }}
+spec:
+  privileged: true
+  hostPID: true
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'hostPath'
+    - 'secret'
+  allowedHostPaths:
+    - pathPrefix: "/run/topolvm"
+      readOnly: false
+  runAsUser:
+    rule: 'RunAsAny'
+  seLinux:
+    rule: 'RunAsAny'
+  supplementalGroups:
+    rule: 'RunAsAny'
+  fsGroup:
+    rule: 'RunAsAny'
+---
+{{- end }}

@@ -1,0 +1,25 @@
+{{- if .Values.lvmd.managed }}
+  {{ $global := . }}
+  {{- $lvmds := concat ( list .Values.lvmd ) .Values.lvmd.additionalConfigs }}
+  {{- range $lvmdidx, $lvmd := $lvmds }}
+    {{/* Undo the "." rewritten by the range block */}}
+    {{- with $global }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "topolvm.fullname" . }}-lvmd-{{ $lvmdidx }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    idx: {{ $lvmdidx | quote}}
+    {{- include "topolvm.labels" . | nindent 4 }}
+data:
+  lvmd.yaml: |
+    socket-name: {{ $lvmd.socketName }}
+    {{- if $lvmd.deviceClasses }}
+    device-classes: {{ toYaml $lvmd.deviceClasses | nindent 6 }}
+    {{- end }}
+---
+    {{- end }}
+  {{- end }}
+{{- end }}

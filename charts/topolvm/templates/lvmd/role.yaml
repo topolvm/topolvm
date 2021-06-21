@@ -1,0 +1,16 @@
+{{- if and .Values.podSecurityPolicy.create .Values.lvmd.managed }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: psp:{{ template "topolvm.fullname" . }}-lvmd
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "topolvm.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["policy"]
+    resources: ["podsecuritypolicies"]
+    verbs: ["use"]
+    resourceNames: ["{{ template "topolvm.fullname" . }}-lvmd"]
+---
+{{- end }}

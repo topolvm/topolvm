@@ -35,3 +35,6 @@ bin
 # ignore unneeded generated configs
 /config/prometheus
 /config/samples
+
+# ignore dependency charts
+charts/*/charts

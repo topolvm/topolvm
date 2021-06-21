@@ -1,0 +1,38 @@
+{{ $global := . }}
+{{- range $val := .Values.storageClasses }}
+  {{- if $val.storageClass }}
+    {{/* Undo the "." rewritten by the range block */}}
+    {{- with $global }}
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: {{ $val.name }}
+  annotations:
+    {{- if $val.storageClass.isDefaultClass }}
+    storageclass.kubernetes.io/is-default-class: "true"
+    {{- end }}
+    {{- with $val.storageClass.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  labels:
+    {{- include "topolvm.labels" . | nindent 4 }}
+provisioner: topolvm.cybozu.com
+parameters:
+  "csi.storage.k8s.io/fstype": {{ $val.storageClass.fsType | quote }}
+  {{- with $val.storageClass.additionalParameters }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+{{- with $val.storageClass.reclaimPolicy }}
+reclaimPolicy: {{ . }}
+{{- end }}
+{{- with $val.storageClass.volumeBindingMode }}
+volumeBindingMode: {{ . }}
+{{- end }}
+{{- with $val.storageClass.allowVolumeExpansion }}
+allowVolumeExpansion: {{ . }}
+{{- end }}
+---
+    {{- end }}
+  {{- end }}
+{{- end }}

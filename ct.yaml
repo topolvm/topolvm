@@ -1,0 +1,6 @@
+# This file is the config file for helm/chart-testing
+target-branch: main
+validate-maintainers: false
+check-version-increment: true
+chart-repos:
+  - jetstack=https://charts.jetstack.io

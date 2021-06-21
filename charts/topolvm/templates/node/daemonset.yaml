@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ template "topolvm.fullname" . }}-node
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "topolvm.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: topolvm-node
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: topolvm-node
+      {{- if and .Values.node.metrics.enabled .Values.node.metrics.annotations }}
+      annotations: {{ toYaml .Values.node.metrics.annotations | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ template "topolvm.fullname" . }}-node
+      containers:
+        - name: topolvm-node
+          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          {{- with .Values.image.pullPolicy }}
+          imagePullPolicy: {{ . }}
+          {{- end }}
+          {{- with .Values.node.securityContext }}
+          securityContext: {{ toYaml . | nindent 12 }}
+          {{- end }}
+          command:
+            - /topolvm-node
+            - --lvmd-socket=/run/lvmd/lvmd.sock
+          ports:
+            - containerPort: 9808
+              name: healthz
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: healthz
+            failureThreshold: 3
+            initialDelaySeconds: 10
+            timeoutSeconds: 3
+            periodSeconds: 60
+          {{- with .Values.node.resources }}
+          resources: {{ toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: node-plugin-dir
+              mountPath: /run/topolvm
+            - name: lvmd-socket-dir
+              mountPath: /run/lvmd
+            - name: pod-volumes-dir
+              mountPath: /var/lib/kubelet/pods
+              mountPropagation: "Bidirectional"
+            - name: csi-plugin-dir
+              mountPath: /var/lib/kubelet/plugins/kubernetes.io/csi
+              mountPropagation: "Bidirectional"
+
+        - name: csi-registrar
+          {{- if .Values.image.csi.nodeDriverRegistrar }}
+          image: {{ .Values.image.csi.nodeDriverRegistrar }}
+          {{- else }}
+          image: "quay.io/topolvm/topolvm-with-sidecar:{{ default .Chart.AppVersion .Values.image.tag }}"
+          {{- end }}
+          {{- with .Values.image.pullPolicy }}
+          imagePullPolicy: {{ . }}
+          {{- end }}
+          command:
+            - /csi-node-driver-registrar
+            - "--csi-address=/run/topolvm/csi-topolvm.sock"
+            - "--kubelet-registration-path=/var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock"
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "rm -rf /registration/topolvm.cybozu.com /registration/topolvm.cybozu.com-reg.sock"]
+          volumeMounts:
+            - name: node-plugin-dir
+              mountPath: /run/topolvm
+            - name: registration-dir
+              mountPath: /registration
+
+        - name: liveness-probe
+          {{- if .Values.image.csi.livenessProbe }}
+          image: {{ .Values.image.csi.livenessProbe }}
+          {{- else }}
+          image: "quay.io/topolvm/topolvm-with-sidecar:{{ default .Chart.AppVersion .Values.image.tag }}"
+          {{- end }}
+          {{- with .Values.image.pullPolicy }}
+          imagePullPolicy: {{ . }}
+          {{- end }}
+          command:
+            - /livenessprobe
+            - "--csi-address=/run/topolvm/csi-topolvm.sock"
+          volumeMounts:
+            - name: node-plugin-dir
+              mountPath: /run/topolvm
+
+      {{- with .Values.node.volumes }}
+      volumes: {{ toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.node.tolerations }}
+      tolerations: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.node.nodeSelector }}
+      nodeSelector: {{ toYaml . | nindent 8 }}
+      {{- end }}
