@@ -1,21 +1,22 @@
 
-KUBERNETES_VERSION=1.21.1
-KUSTOMIZE_VERSION=3.8.9
-TOPOLVM_VERSION=0.8.3
+KUBERNETES_VERSION := 1.21.1
+KUSTOMIZE_VERSION := 3.8.9
+TOPOLVM_VERSION := 0.8.3
 
-KIND_CLUSTER_NAME=topolvm-example
+KIND_CLUSTER_NAME := topolvm-example
 
-SUDO=sudo
-BINDIR=$(shell pwd)/bin
-KUSTOMIZE=$(BINDIR)/kustomize
-KUBECTL=$(BINDIR)/kubectl
-KIND=../bin/kind
+SUDO := sudo
+BINDIR := $(shell pwd)/bin
+TMPDIR := /tmp/topolvm
+KUSTOMIZE := $(BINDIR)/kustomize
+KUBECTL := $(BINDIR)/kubectl
+KIND := ../bin/kind
 
 GO_FILES := $(shell find .. -prune -o -path ../e2e -prune -o -name '*.go' -print)
-SERVER_CERT_FILES=./certs/cert.pem ./certs/key.pem
-BACKING_STORE=./build
+SERVER_CERT_FILES := ./certs/cert.pem ./certs/key.pem
+BACKING_STORE := ./build
 
-BUILD_IMAGE?=false
+BUILD_IMAGE := false
 
 $(KUBECTL):
 	mkdir -p $(BINDIR)
@@ -50,37 +51,37 @@ setup: $(KUBECTL)
 clean: stop-lvmd
 	rm -rf bin/ build/
 
-/tmp/topolvm/scheduler/scheduler-config.yaml: ../deploy/scheduler-config/scheduler-config-v1beta1.yaml
-	mkdir -p /tmp/topolvm/scheduler
+$(TMPDIR)/scheduler/scheduler-config.yaml: ../deploy/scheduler-config/scheduler-config-v1beta1.yaml
+	mkdir -p $(TMPDIR)/scheduler
 	cp $< $@
 
-/tmp/topolvm/lvmd/lvmd.yaml: ../deploy/lvmd-config/lvmd.yaml
-	mkdir -p /tmp/topolvm/lvmd
+$(TMPDIR)/lvmd/lvmd.yaml: ../deploy/lvmd-config/lvmd.yaml
+	mkdir -p $(TMPDIR)/lvmd
 	sed -e 's/\/run\/topolvm\/lvmd.sock/\/tmp\/topolvm\/lvmd\/lvmd.sock/' $< > $@
 
-launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml kind/topolvm-cluster.yaml
+launch-kind: $(TMPDIR)/scheduler/scheduler-config.yaml kind/topolvm-cluster.yaml
 	$(MAKE) shutdown-kind
-	$(SUDO) rm -rf /tmp/topolvm/controller /tmp/topolvm/worker*
-	sed s/@KUBERNETES_VERSION@/$(KUBERNETES_VERSION)/ kind/topolvm-cluster.yaml > /tmp/topolvm-cluster.yaml
-	$(KIND) create cluster --name=$(KIND_CLUSTER_NAME) --config /tmp/topolvm-cluster.yaml --image kindest/node:v$(KUBERNETES_VERSION)
+	$(SUDO) rm -rf $(TMPDIR)/controller $(TMPDIR)/worker*
+	sed s/@KUBERNETES_VERSION@/$(KUBERNETES_VERSION)/ kind/topolvm-cluster.yaml > $(TMPDIR)/topolvm-cluster.yaml
+	$(KIND) create cluster --name=$(KIND_CLUSTER_NAME) --config $(TMPDIR)/topolvm-cluster.yaml --image kindest/node:v$(KUBERNETES_VERSION)
 
 shutdown-kind:
 	$(KIND) delete cluster --name=$(KIND_CLUSTER_NAME) || true
-	for d in $$($(SUDO) find /tmp/topolvm -type d); do \
+	for d in $$($(SUDO) find $(TMPDIR) -type d); do \
 		if $(SUDO) mountpoint -q $$d; then \
 			$(SUDO) umount $$d; \
 		fi; \
 	done
 
-start-lvmd: /tmp/topolvm/lvmd/lvmd.yaml
+start-lvmd: $(TMPDIR)/lvmd/lvmd.yaml
 	go build -o build/lvmd ../pkg/lvmd
 	if [ -f $(BACKING_STORE)/backing_store ]; then $(MAKE) stop-lvmd; fi; \
-	mkdir -p /tmp/topolvm/worker; \
-	mkdir -p /tmp/topolvm/lvmd; \
+	mkdir -p $(TMPDIR)/worker; \
+	mkdir -p $(TMPDIR)/lvmd; \
 	truncate --size=20G $(BACKING_STORE)/backing_store; \
 	$(SUDO) losetup -f $(BACKING_STORE)/backing_store; \
 	$(SUDO) vgcreate -f -y myvg1 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store | cut -d: -f1); \
-	$(SUDO) systemd-run --unit=lvmd.service $(shell pwd)/build/lvmd --config=/tmp/topolvm/lvmd/lvmd.yaml; \
+	$(SUDO) systemd-run --unit=lvmd.service $(shell pwd)/build/lvmd --config=$(TMPDIR)/lvmd/lvmd.yaml; \
 
 stop-lvmd:
 	$(MAKE) shutdown-kind
