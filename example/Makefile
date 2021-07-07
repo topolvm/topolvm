@@ -57,12 +57,12 @@ $(TMPDIR)/scheduler/scheduler-config.yaml: ../deploy/scheduler-config/scheduler-
 
 $(TMPDIR)/lvmd/lvmd.yaml: ../deploy/lvmd-config/lvmd.yaml
 	mkdir -p $(TMPDIR)/lvmd
-	sed -e 's/\/run\/topolvm\/lvmd.sock/\/tmp\/topolvm\/lvmd\/lvmd.sock/' $< > $@
+	sed -e 's=/run/topolvm/lvmd.sock=$(TMPDIR)/lvmd/lvmd.sock=' $< > $@
 
 launch-kind: $(TMPDIR)/scheduler/scheduler-config.yaml kind/topolvm-cluster.yaml
 	$(MAKE) shutdown-kind
 	$(SUDO) rm -rf $(TMPDIR)/controller $(TMPDIR)/worker*
-	sed s/@KUBERNETES_VERSION@/$(KUBERNETES_VERSION)/ kind/topolvm-cluster.yaml > $(TMPDIR)/topolvm-cluster.yaml
+	sed 's/@KUBERNETES_VERSION@/$(KUBERNETES_VERSION)/; s=@TMPDIR@=$(TMPDIR)='  kind/topolvm-cluster.yaml > $(TMPDIR)/topolvm-cluster.yaml
 	$(KIND) create cluster --name=$(KIND_CLUSTER_NAME) --config $(TMPDIR)/topolvm-cluster.yaml --image kindest/node:v$(KUBERNETES_VERSION)
 
 shutdown-kind:

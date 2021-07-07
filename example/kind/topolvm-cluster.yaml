@@ -22,14 +22,14 @@ nodes:
 - role: control-plane
   extraMounts:
     - containerPath: /mnt/host/scheduler
-      hostPath: /tmp/topolvm/scheduler
+      hostPath: "@TMPDIR@/scheduler"
     - containerPath: /var/lib/kubelet
-      hostPath: /tmp/topolvm/controller
+      hostPath: "@TMPDIR@/controller"
       propagation: Bidirectional
 - role: worker
   extraMounts:
     - containerPath: /run/topolvm
-      hostPath: /tmp/topolvm/lvmd
+      hostPath: "@TMPDIR@/lvmd"
     - containerPath: /var/lib/kubelet
-      hostPath: /tmp/topolvm/worker
+      hostPath: "@TMPDIR@/worker"
       propagation: Bidirectional
