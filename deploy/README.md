@@ -78,7 +78,7 @@ To setup `lvmd` with Daemonset:
 3. Apply `lvmd` manifests.
 
     ```console
-    kustomize build ./manifests/lvmd | kubectl apply -f -
+    kustomize build ./manifests/overlays/lvmd/ | kubectl apply -f -
     ```
 
 4. Check DaemonSet `lvmd` is ready
