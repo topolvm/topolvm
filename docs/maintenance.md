@@ -55,6 +55,7 @@ Once we decide the versions we are going to upgrade, we should update the versio
 - `Makefile`: Makefile for running e2e tests
 - `e2e/Makefile`: Makefile for running e2e tests
 - `example/Makefile`: Makefile for running example
+- `deploy/manifests/overlays/lvmd/kustomization.yaml`: Kustomization for overwriting the TopoLVM image version
 - `deploy/manifests/overlays/daemonset-scheduler/kustomization.yaml`: Kustomization for overwriting the TopoLVM image version
 - `deploy/manifests/overlays/deployment-scheduler/kustomization.yaml`: Kustomization for overwriting the TopoLVM image version
 - `charts/topolvm/Chart.yaml`: Update the min Kubernetes version in `kubeVersion`

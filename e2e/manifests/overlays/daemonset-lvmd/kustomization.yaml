@@ -5,5 +5,5 @@ patchesStrategicMerge:
   - node.yaml
   - lvmd.yaml
 resources:
-  - ../../../../deploy/manifests/lvmd
+  - ../../../../deploy/manifests/overlays/lvmd
   - ../deployment-scheduler
