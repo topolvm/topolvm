@@ -189,7 +189,7 @@ tools: install-kind ## Install development tools.
 
 	GOBIN=$(BINDIR) go install github.com/norwoodj/helm-docs/cmd/helm-docs@v$(HELM_DOCS_VERSION)
 	curl -L -sS https://get.helm.sh/helm-v$(HELM_VERSION)-linux-amd64.tar.gz \
-	  | tar xvz --strip-components 1 linux-amd64/helm -C $(BINDIR)
+	  | tar xvz -C $(BINDIR) --strip-components 1 linux-amd64/helm
 
 .PHONY: setup
 setup: tools ## Setup local environment.
