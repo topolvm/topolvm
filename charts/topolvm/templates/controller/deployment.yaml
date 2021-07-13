@@ -27,8 +27,8 @@ spec:
       {{- with .Values.controller.affinity }}
       affinity: {{ toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.securityContext }}
-      securityContext: {{ toYaml . | nindent 8 }}
+      {{- if .Values.controller.securityContext.enabled }}
+      securityContext: {{ toYaml .Values.securityContext | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ template "topolvm.fullname" . }}-controller
       containers:
@@ -70,7 +70,7 @@ spec:
           {{- if .Values.image.csi.csiProvisioner }}
           image: {{ .Values.image.csi.csiProvisioner }}
           {{- else }}
-          image: "quay.io/topolvm/topolvm-with-sidecar:{{ default .Chart.AppVersion .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
           {{- end }}
           {{- with .Values.image.pullPolicy }}
           imagePullPolicy: {{ . }}
@@ -81,24 +81,21 @@ spec:
             - "--feature-gates=Topology=true"
             - --leader-election
             - --leader-election-namespace={{ .Release.Namespace }}
-          volumeMounts:
-            - name: socket-dir
-              mountPath: /run/topolvm
-
-        - name: csi-attacher
-          {{- if .Values.image.csi.csiAttacher }}
-          image: {{ .Values.image.csi.csiAttacher }}
-          {{- else }}
-          image: "quay.io/topolvm/topolvm-with-sidecar:{{ default .Chart.AppVersion .Values.image.tag }}"
+            {{- with .Values.controller.storageCapacityTracking.enabled }}
+            - --enable-capacity
+            - --capacity-ownerref-level=2
+            {{- end }}
+          {{- with .Values.controller.storageCapacityTracking.enabled }}
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
           {{- end }}
-          {{- with .Values.image.pullPolicy }}
-          imagePullPolicy: {{ . }}
-          {{- end }}
-          command:
-            - /csi-attacher
-            - "--csi-address=/run/topolvm/csi-topolvm.sock"
-            - --leader-election
-            - --leader-election-namespace={{ .Release.Namespace }}
           volumeMounts:
             - name: socket-dir
               mountPath: /run/topolvm
@@ -107,7 +104,7 @@ spec:
           {{- if .Values.image.csi.csiResizer }}
           image: {{ .Values.image.csi.csiResizer }}
           {{- else }}
-          image: "quay.io/topolvm/topolvm-with-sidecar:{{ default .Chart.AppVersion .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
           {{- end }}
           {{- with .Values.image.pullPolicy }}
           imagePullPolicy: {{ . }}
@@ -125,7 +122,7 @@ spec:
           {{- if .Values.image.csi.livenessProbe }}
           image: {{ .Values.image.csi.livenessProbe }}
           {{- else }}
-          image: "quay.io/topolvm/topolvm-with-sidecar:{{ default .Chart.AppVersion .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
           {{- end }}
           {{- with .Values.image.pullPolicy }}
           imagePullPolicy: {{ . }}
@@ -138,11 +135,13 @@ spec:
               mountPath: /run/topolvm
 
       volumes:
-        - name: socket-dir
-          emptyDir: {}
         - name: certs
           secret:
             secretName: {{ template "topolvm.fullname" . }}-mutatingwebhook
+        {{- with .Values.controller.volumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+
       {{- with .Values.controller.tolerations }}
       tolerations: {{ toYaml . | nindent 8 }}
       {{- end }}

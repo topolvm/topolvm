@@ -48,7 +48,7 @@ Specify parameters using `--set key=value[,key=value]` argument to `helm install
 Alternatively a YAML file that specifies the values for the parameters can be provided like this:
 
 ```sh
-helm upgrade --create-namespace -i topolvm -f values.yaml topolvm/topolvm
+helm upgrade --create-namespace --namespace=topolvm-system -f values.yaml -i topolvm topolvm/topolvm
 ```
 
 ### Install together with cert-manager

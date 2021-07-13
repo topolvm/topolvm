@@ -5,7 +5,10 @@ metadata:
   labels:
     {{- include "topolvm.labels" . | nindent 4 }}
 spec:
-  attachRequired: true
+  {{- with .Values.controller.storageCapacityTracking.enabled }}
+  storageCapacity: true
+  {{- end }}
+  attachRequired: false
   podInfoOnMount: true
   volumeLifecycleModes:
     - Persistent

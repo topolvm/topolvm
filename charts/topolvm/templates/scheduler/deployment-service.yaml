@@ -8,11 +8,14 @@ metadata:
   labels:
     {{- include "topolvm.labels" . | nindent 4 }}
 spec:
-  type: LoadBalancer
+  type: {{ .Values.scheduler.service.type }}
   selector:
     app.kubernetes.io/name: {{ template "topolvm.fullname" . }}-scheduler
   ports:
     - protocol: TCP
       port: {{ .Values.scheduler.options.listen.port }}
+      {{- with .Values.scheduler.service.nodePort}}
+      nodePort: {{ . }}
+      {{- end }}
 ---
 {{ end }}
