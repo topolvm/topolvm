@@ -57,8 +57,6 @@ jobs:
 
       - name: Setup kind
         run: |
-          mkdir -p e2e/certs
-          go run ./pkg/gencert -outdir e2e/certs
           make -C e2e setup
           make -C e2e daemonset-lvmd/create-vg
           make -C e2e daemonset-lvmd/setup-minikube

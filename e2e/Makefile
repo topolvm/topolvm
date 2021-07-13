@@ -5,6 +5,7 @@ STORAGE_CAPACITY ?= false
 
 ## Dependency versions
 MINIKUBE_VERSION := v1.21.0
+CERT_MANAGER_VERSION := v1.3.1
 
 BINDIR := $(shell pwd)/bin
 SUDO := sudo
@@ -12,6 +13,7 @@ KIND_CLUSTER_NAME := topolvm-e2e
 KIND := ../bin/kind
 KUBECTL := $(BINDIR)/kubectl
 KUSTOMIZE := ../bin/kustomize
+HELM := ../bin/helm
 GINKGO := ../bin/ginkgo
 
 MINIKUBE_HOME = $(BINDIR)
@@ -28,28 +30,27 @@ endif
 KIND_NODE_IMAGE=kindest/node:v$(KUBERNETES_VERSION)
 export TEST_KUBERNETES_VERSION=$(shell echo $(KUBERNETES_VERSION) | grep -o '^[0-9]*\.[0-9]*')
 
-KUSTOMIZE_DIR := manifests/overlays/daemonset-scheduler
+HELM_VALUES_FILE := manifests/values/daemonset-scheduler.yaml
 ifeq ($(TEST_SCHEDULER_MANIFEST),deployment)
-KUSTOMIZE_DIR := manifests/overlays/deployment-scheduler
+HELM_VALUES_FILE := manifests/values/deployment-scheduler.yaml
 endif
 
-KUSTOMIZE_DIR_LVMD := ""
+HELM_VALUES_FILE_LVMD := ""
 ifeq ($(STORAGE_CAPACITY),true)
 
 ifeq ($(KUBERNETES_VERSION),1.21.1)
-KUSTOMIZE_DIR_LVMD := manifests/overlays/daemonset-lvmd-storage-capacity
-KUSTOMIZE_DIR := manifests/overlays/storage-capacity
+HELM_VALUES_FILE_LVMD := manifests/values/daemonset-lvmd-storage-capacity.yaml
+HELM_VALUES_FILE := manifests/values/storage-capacity.yaml
 else
-KUSTOMIZE_DIR := ""
+HELM_VALUES_FILE := ""
 endif
 
 else
-KUSTOMIZE_DIR_LVMD := manifests/overlays/daemonset-lvmd
+HELM_VALUES_FILE_LVMD := manifests/values/daemonset-lvmd.yaml
 endif
 
 SCHEDULER_CONFIG := scheduler-config-v1beta1-$(TEST_SCHEDULER_MANIFEST).yaml
 GO_FILES := $(shell find .. -prune -o -path ../e2e -prune -o -name '*.go' -print)
-SERVER_CERT_FILES := ./certs/cert.pem ./certs/key.pem
 BACKING_STORE := ./build
 
 topolvm.img: $(GO_FILES)
@@ -131,26 +132,26 @@ stop-lvmd:
 		done; \
 	done
 
-# --load_restrictor='none' allows the certificates to be loaded from a path which
-# isn't a subdir of e2ebase
 .PHONY: test
-test: topolvm.img $(SERVER_CERT_FILES)
-ifneq ($(KUSTOMIZE_DIR),"")
+test: topolvm.img
+ifneq ($(HELM_VALUES_FILE),"")
 	$(MAKE) shutdown-kind
 	$(MAKE) launch-kind
 	$(KIND) load image-archive --name=$(KIND_CLUSTER_NAME) topolvm.img
-	$(KUSTOMIZE) build --load_restrictor='none' $(KUSTOMIZE_DIR) | $(KUBECTL) apply -f -
+	$(KUBECTL) apply -f https://github.com/jetstack/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
+	$(KUBECTL) create namespace topolvm-system
+	$(KUBECTL) label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
+	$(HELM) repo add jetstack https://charts.jetstack.io
+	$(HELM) repo update
+	$(HELM) dependency build ../charts/topolvm/
+	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE)
+	$(KUBECTL) apply -f manifests/common/
 	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) STORAGE_CAPACITY=$(STORAGE_CAPACITY) GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) --failFast -v .
 endif
-
-$(SERVER_CERT_FILES):
-	mkdir -p certs
-	go run ../pkg/gencert -outdir certs
 
 .PHONY: clean
 clean: stop-lvmd
 	rm -rf \
-		$(SERVER_CERT_FILES) \
 		topolvm.img \
 		build/ \
 		$(BACKING_STORE)/backing_store* \
@@ -218,9 +219,16 @@ ifneq ($(STORAGE_CAPACITY),true)
 endif
 
 .PHONY: daemonset-lvmd/test
-daemonset-lvmd/test: topolvm.img $(SERVER_CERT_FILES)
-ifneq ($(KUSTOMIZE_DIR_LVMD),"")
-	$(KUSTOMIZE) build --load_restrictor='none' $(KUSTOMIZE_DIR_LVMD) | $(SUDO) $(KUBECTL) apply -f -
+daemonset-lvmd/test: topolvm.img
+ifneq ($(HELM_VALUES_FILE_LVMD),"")
+	$(KUBECTL) apply -f https://github.com/jetstack/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
+	$(KUBECTL) create namespace topolvm-system
+	$(KUBECTL) label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
+	$(HELM) repo add jetstack https://charts.jetstack.io
+	$(HELM) repo update
+	$(HELM) dependency build ../charts/topolvm/
+	$(HELM) install --create-namespace --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE_LVMD)
+	$(KUBECTL) apply -f manifests/common/
 	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) STORAGE_CAPACITY=$(STORAGE_CAPACITY) DAEMONSET_LVMD=true GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) --failFast -v .
 endif
 

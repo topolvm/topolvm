@@ -1,3 +1,0 @@
-varReference:
-  - path: webhooks/clientConfig/caBundle
-    kind: MutatingWebhookConfiguration
