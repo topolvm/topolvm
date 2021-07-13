@@ -12,7 +12,6 @@ SUDO := sudo
 KIND_CLUSTER_NAME := topolvm-e2e
 KIND := ../bin/kind
 KUBECTL := $(BINDIR)/kubectl
-KUSTOMIZE := ../bin/kustomize
 HELM := ../bin/helm
 GINKGO := ../bin/ginkgo
 

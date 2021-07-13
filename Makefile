@@ -3,7 +3,6 @@
 CONTROLLER_RUNTIME_VERSION=$(shell awk '/sigs\.k8s\.io\/controller-runtime/ {print substr($$2, 2)}' go.mod)
 CONTROLLER_TOOLS_VERSION=$(shell awk '/sigs\.k8s\.io\/controller-tools/ {print substr($$2, 2)}' go.mod)
 CSI_VERSION=1.4.0
-KUSTOMIZE_VERSION= 3.8.9
 PROTOC_VERSION=3.15.0
 KIND_VERSION=v0.11.1
 HELM_VERSION=3.5.0
@@ -13,7 +12,6 @@ SUDO=sudo
 CURL=curl -Lsf
 BINDIR := $(shell pwd)/bin
 CONTROLLER_GEN := $(BINDIR)/controller-gen
-KUSTOMIZE := $(BINDIR)/kustomize
 STATICCHECK := $(BINDIR)/staticcheck
 NILERR := $(BINDIR)/nilerr
 PROTOC := PATH=$(BINDIR):$(PATH) $(BINDIR)/protoc -I=$(shell pwd)/include:.
@@ -182,10 +180,6 @@ tools: install-kind ## Install development tools.
 	GOBIN=$(BINDIR) go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@latest
 
 	GOBIN=$(BINDIR) go install github.com/onsi/ginkgo/ginkgo@latest
-
-	# check if kustomize suports `go install` command.
-	# known issue https://github.com/kubernetes-sigs/kustomize/issues/3618
-	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v$(KUSTOMIZE_VERSION))
 
 	GOBIN=$(BINDIR) go install github.com/norwoodj/helm-docs/cmd/helm-docs@v$(HELM_DOCS_VERSION)
 	curl -L -sS https://get.helm.sh/helm-v$(HELM_VERSION)-linux-amd64.tar.gz \

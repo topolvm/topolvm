@@ -1,19 +1,18 @@
-
 KUBERNETES_VERSION := 1.21.1
-KUSTOMIZE_VERSION := 3.8.9
+HELM_VERSION=3.5.0
 TOPOLVM_VERSION := 0.8.3
+CERT_MANAGER_VERSION := v1.3.1
 
 KIND_CLUSTER_NAME := topolvm-example
 
 SUDO := sudo
 BINDIR := $(shell pwd)/bin
 TMPDIR := /tmp/topolvm
-KUSTOMIZE := $(BINDIR)/kustomize
+HELM := $(BINDIR)/helm
 KUBECTL := $(BINDIR)/kubectl
 KIND := ../bin/kind
 
 GO_FILES := $(shell find .. -prune -o -path ../e2e -prune -o -name '*.go' -print)
-SERVER_CERT_FILES := ./certs/cert.pem ./certs/key.pem
 BACKING_STORE := ./build
 
 BUILD_IMAGE := false
@@ -28,15 +27,21 @@ build/topolvm.img: $(GO_FILES)
 	$(MAKE) -C .. tag IMAGE_PREFIX=quay.io/topolvm/ IMAGE_TAG=$(TOPOLVM_VERSION)
 	docker save -o $@ quay.io/topolvm/topolvm-with-sidecar:$(TOPOLVM_VERSION)
 
-run: $(SERVER_CERT_FILES)
+run:
 	$(MAKE) start-lvmd
 	$(MAKE) launch-kind
 	if [ "$(BUILD_IMAGE)" = "true" ]; then \
 		$(MAKE) build/topolvm.img; \
 		$(KIND) load image-archive --name=$(KIND_CLUSTER_NAME) build/topolvm.img; \
 	fi
-	$(KUSTOMIZE) build --enable_kyaml=false . | $(KUBECTL) apply -f -
-	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/controller
+	$(KUBECTL) apply -f https://github.com/jetstack/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
+	$(KUBECTL) create namespace topolvm-system
+	$(KUBECTL) label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
+	$(HELM) repo add jetstack https://charts.jetstack.io
+	$(HELM) repo update
+	$(HELM) dependency build ../charts/topolvm/
+	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f ./values.yaml
+	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/topolvm-controller
 	$(KUBECTL) apply -f podpvc.yaml
 
 setup: $(KUBECTL)
@@ -45,8 +50,8 @@ setup: $(KUBECTL)
 	cd ..; $(MAKE) install-kind
 	mkdir -p $(BINDIR)
 	mkdir -p build
-	curl -sSLf https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv$(KUSTOMIZE_VERSION)/kustomize_v$(KUSTOMIZE_VERSION)_linux_amd64.tar.gz | tar -xz -C $(BINDIR)
-	chmod 755 $(KUSTOMIZE)
+	curl -L -sS https://get.helm.sh/helm-v$(HELM_VERSION)-linux-amd64.tar.gz \
+	  | tar xvz -C $(BINDIR) --strip-components 1 linux-amd64/helm
 
 clean: stop-lvmd
 	rm -rf bin/ build/
@@ -92,9 +97,5 @@ stop-lvmd:
 		$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store | cut -d: -f1); \
 		rm -f $(BACKING_STORE)/backing_store; \
 	fi
-
-$(SERVER_CERT_FILES):
-	mkdir -p certs
-	go run ../pkg/gencert -outdir ./certs
 
 .PHONY: launch-kind shutdown-kind start-lvmd stop-lvmd run setup clean
