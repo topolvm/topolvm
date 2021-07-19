@@ -7,7 +7,7 @@
 
 Each of these steps are shown in depth in the following sections:
 
-1. Deploy [lvmd][] as a `systemd` service on a worker node with LVM installed.
+1. Deploy [lvmd][] as a `systemd` service or as a daemonset on a worker node with LVM installed.
 1. Prepare [cert-manager][] for [topolvm-controller][]. You may supplement an existing instance.
 1. Determine how [topolvm-scheduler][] to be run:
     - If you run with a managed control plane (such as GKE, AKS, etc), `topolvm-scheduler` should be deployed as Deployment and Service
