@@ -1,4 +1,5 @@
-{{- if .Values.podSecurityPolicy.create }}
+{{ if .Values.scheduler.enabled }}
+  {{ if .Values.podSecurityPolicy.create }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -13,4 +14,5 @@ rules:
     verbs: ["use"]
     resourceNames: ["topolvm-scheduler"]
 ---
-{{- end }}
+  {{ end }}
+{{ end }}

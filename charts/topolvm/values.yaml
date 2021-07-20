@@ -28,6 +28,9 @@ image:
 
 # A scheduler extender for TopoLVM
 scheduler:
+  # scheduler.enabled --  If true, enable scheduler extender for TopoLVM
+  enabled: true
+
   # scheduler.type -- If you run with a managed control plane (such as GKE, AKS, etc), topolvm-scheduler should be deployed as Deployment and Service.
   # topolvm-scheduler should otherwise be deployed as DaemonSet in unmanaged (i.e. bare metal) deployments.
   # possible values:  daemonset/deployment

@@ -1,4 +1,5 @@
-{{- if .Values.podSecurityPolicy.create }}
+{{ if .Values.scheduler.enabled }}
+  {{ if .Values.podSecurityPolicy.create }}
 ---
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
@@ -30,4 +31,5 @@ spec:
         max: 65535
   readOnlyRootFilesystem: true
 ---
-{{- end }}
+  {{ end }}
+{{ end }}

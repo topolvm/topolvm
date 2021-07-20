@@ -117,6 +117,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | podSecurityPolicy.create | bool | `true` | Enable pod security policy. |
 | scheduler.affinity | object | `{"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"node-role.kubernetes.io/control-plane","operator":"Exists"}]},{"matchExpressions":[{"key":"node-role.kubernetes.io/master","operator":"Exists"}]}]}}}` | Specify affinity on the Deployment or DaemonSet. |
 | scheduler.deployment.replicaCount | int | `2` | Number of replicas for Deployment. |
+| scheduler.enabled | bool | `true` | If true, enable scheduler extender for TopoLVM |
 | scheduler.minReadySeconds | int | `nil` | Specify minReadySeconds on the Deployment or DaemonSet. |
 | scheduler.nodeSelector | object | `{}` | Specify nodeSelector on the Deployment or DaemonSet. |
 | scheduler.options.listen.host | string | `"localhost"` | Host used by Probe. |

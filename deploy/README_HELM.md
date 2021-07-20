@@ -242,13 +242,16 @@ You can see the limitations of using Storage Capacity Tracking from [here](https
 #### Use Storage Capacity Tracking
 
 If you want to use Storage Capacity Tracking instead of using topolvm-scheduler,
-you need set the `controller.storageCapacityTracking.enabled=true` in the Helm Chart values.
+you need set the `controller.storageCapacityTracking.enabled=true` and `scheduler.enabled=false` in the Helm Chart values.
 
     ```yaml
     <snip>
     controller:
       storageCapacityTracking:
         enabled: false
+    <snip>
+    scheduler:
+      enabled: false
     <snip>
     ```
 

@@ -17,9 +17,7 @@ controller:
         type: DirectoryOrCreate
 
 scheduler:
-  type: deployment
-  deployment:
-    replicaCount: 0
+  enabled: false
 
 lvmd:
   socketName: /tmp/topolvm/daemonset_lvmd/lvmd.sock

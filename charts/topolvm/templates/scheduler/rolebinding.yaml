@@ -1,4 +1,5 @@
-{{- if .Values.podSecurityPolicy.create }}
+{{ if .Values.scheduler.enabled }}
+  {{ if .Values.podSecurityPolicy.create }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -16,4 +17,5 @@ subjects:
     namespace: {{ .Release.Namespace }}
     name: {{ template "topolvm.fullname" . }}-scheduler
 ---
-{{- end }}
+  {{ end }}
+{{ end }}
