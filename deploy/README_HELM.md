@@ -12,9 +12,9 @@ Each of these steps are shown in depth in the following sections:
 1. Determine how [topolvm-scheduler][] to be run:
     - If you run with a managed control plane (such as GKE, AKS, etc), `topolvm-scheduler` should be deployed as Deployment and Service
     - `topolvm-scheduler` should otherwise be deployed as DaemonSet in unmanaged (i.e. bare metal) deployments
-1. Apply remaining manifests for TopoLVM from `deploy/manifests/base` plus overlays as appropriate to your installation.
+    - Enable [Storage Capacity Tracking](https://kubernetes.io/docs/concepts/storage/storage-capacity/) mode instead of using `topolvm-scheduler`
+1. Install Helm chart
 1. Configure `kube-scheduler` to use `topolvm-scheduler`.
-1. Prepare StorageClasses for TopoLVM.
 
 ## lvmd
 
@@ -212,6 +212,7 @@ divisors:
 ```
 
 Besides, the scoring weight can be passed to kube-scheduler via [scheduler-config-v1beta1.yaml](./scheduler-config/scheduler-config-v1beta1.yaml). Almost all scoring algorithms in kube-scheduler are weighted as `"weight": 1`. So if you want to give a priority to the scoring by `topolvm-scheduler`, you have to set the weight as a value larger than one like as follows:
+
 ```yaml
 apiVersion: kubescheduler.config.k8s.io/v1beta1
 kind: KubeSchedulerConfiguration
@@ -261,6 +262,24 @@ To workaround the problem, add a label to system namespaces such as `kube-system
 ```console
 $ kubectl label namespace kube-system topolvm.cybozu.com/webhook=ignore
 ```
+
+## Configure StorageClasses
+
+You need to create [StorageClasses](https://kubernetes.io/docs/concepts/storage/storage-classes/) for TopoLVM.
+The Helm chart creates a StorageClasses by default with the following configuration.
+You can edit the Helm Chart values as needed.
+
+   ```yaml
+   <snip>
+   storageClasses:
+     - name: topolvm-provisioner
+       storageClass:
+         fsType: xfs
+         isDefaultClass: false
+         volumeBindingMode: WaitForFirstConsumer
+         allowVolumeExpansion: true
+   <snip>
+   ```
 
 ## Install Helm Chart
 
@@ -336,6 +355,10 @@ The changes to `/etc/kubernetes/manifests/kube-scheduler.yaml` that are affected
         name: topolvm-config
         readOnly: true
     ```
+
+## How to use TopoLVM provisioner
+
+See [podpvc.yaml](../example/podpvc.yaml) for how to use TopoLVM provisioner.
 
 [lvmd]: ../docs/lvmd.md
 [cert-manager]: https://github.com/jetstack/cert-manager
