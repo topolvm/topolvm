@@ -38,7 +38,6 @@ for example:
 | RoleBinding        | [csi-provisioner-role-cfg](https://github.com/topolvm/topolvm/blob/v0.8.3/deploy/manifests/base/controller.yaml#L152-L164) | **NO CHANGED** |
 | ClusterRole        | [topolvm-external-attacher-runner](https://github.com/topolvm/topolvm/blob/v0.8.3/deploy/manifests/base/controller.yaml#L166-L185) | **NO CHANGED** |
 | ClusterRoleBinding | [topolvm-csi-attacher-role](https://github.com/topolvm/topolvm/blob/v0.8.3/deploy/manifests/base/controller.yaml#L187-L198) | **NO CHANGED** |
-| Role               | [external-attacher-cfg](https://github.com/topolvm/topolvm/blob/v0.8.3/deploy/manifests/base/controller.yaml#L200-L208) | **NO CHANGED** |
 | RoleBinding        | [csi-attacher-role-cfg](https://github.com/topolvm/topolvm/blob/v0.8.3/deploy/manifests/base/controller.yaml#L210-L222) | **NO CHANGED** |
 | ClusterRole        | [topolvm-external-resizer-runner](https://github.com/topolvm/topolvm/blob/v0.8.3/deploy/manifests/base/controller.yaml#L224-L240) | **NO CHANGED** |
 | ClusterRoleBinding | [topolvm-csi-resizer-role](https://github.com/topolvm/topolvm/blob/v0.8.3/deploy/manifests/base/controller.yaml#L242-L253) | **NO CHANGED** |

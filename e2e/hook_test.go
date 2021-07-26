@@ -46,7 +46,7 @@ func testHook() {
 	It("should test hooks", func() {
 		By("waiting controller pod become ready")
 		Eventually(func() error {
-			result, stderr, err := kubectl("get", "-n=topolvm-system", "pods", "--selector=app.kubernetes.io/name=controller", "-o=json")
+			result, stderr, err := kubectl("get", "-n=topolvm-system", "pods", "--selector=app.kubernetes.io/name=topolvm-controller", "-o=json")
 			if err != nil {
 				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
 			}
@@ -150,7 +150,7 @@ func testHook() {
 
 		By("waiting controller pod become ready")
 		Eventually(func() error {
-			result, stderr, err := kubectl("get", "-n=topolvm-system", "pods", "--selector=app.kubernetes.io/name=controller", "-o=json")
+			result, stderr, err := kubectl("get", "-n=topolvm-system", "pods", "--selector=app.kubernetes.io/name=topolvm-controller", "-o=json")
 			if err != nil {
 				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
 			}

@@ -24,7 +24,7 @@ func testSanity() {
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() error {
 			var ds appsv1.DaemonSet
-			stdout, _, err := kubectl("get", "-n", "topolvm-system", "ds", "node", "-o", "json")
+			stdout, _, err := kubectl("get", "-n", "topolvm-system", "ds", "topolvm-node", "-o", "json")
 			if err != nil {
 				return err
 			}
@@ -47,19 +47,19 @@ func testSanity() {
 	tc.TestVolumeSize = 1073741824
 	tc.IDGen = &sanity.DefaultIDGenerator{}
 	tc.CheckPath = func(path string) (sanity.PathKind, error) {
-		_, _, err := kubectl("exec", "-n", "topolvm-system", "daemonset/node", "--", "test", "-f", path)
+		_, _, err := kubectl("exec", "-n", "topolvm-system", "daemonset/topolvm-node", "--", "test", "-f", path)
 		if err == nil {
 			return sanity.PathIsFile, nil
 		}
-		_, _, err = kubectl("exec", "-n", "topolvm-system", "daemonset/node", "--", "test", "-d", path)
+		_, _, err = kubectl("exec", "-n", "topolvm-system", "daemonset/topolvm-node", "--", "test", "-d", path)
 		if err == nil {
 			return sanity.PathIsDir, nil
 		}
-		_, _, err = kubectl("exec", "-n", "topolvm-system", "daemonset/node", "--", "test", "!", "-e", path)
+		_, _, err = kubectl("exec", "-n", "topolvm-system", "daemonset/topolvm-node", "--", "test", "!", "-e", path)
 		if err == nil {
 			return sanity.PathIsNotFound, nil
 		}
-		_, _, err = kubectl("exec", "-n", "topolvm-system", "daemonset/node", "--", "test", "-e", path)
+		_, _, err = kubectl("exec", "-n", "topolvm-system", "daemonset/topolvm-node", "--", "test", "-e", path)
 		return sanity.PathIsOther, err
 	}
 	sanity.GinkgoTest(&tc)

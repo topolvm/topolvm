@@ -1,0 +1,11 @@
+controller:
+  replicaCount: 1
+
+lvmd:
+  managed: false
+
+podSecurityPolicy:
+  create: false
+
+cert-manager:
+  enabled: true

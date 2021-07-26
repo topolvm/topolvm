@@ -152,7 +152,7 @@ func testCleanup() {
 
 		var targetTopolvmNode string
 		for _, pod := range pods.Items {
-			if strings.HasPrefix(pod.Name, "node-") && pod.Spec.NodeName == targetNode {
+			if strings.HasPrefix(pod.Name, "topolvm-node-") && pod.Spec.NodeName == targetNode {
 				targetTopolvmNode = pod.Name
 				break
 			}

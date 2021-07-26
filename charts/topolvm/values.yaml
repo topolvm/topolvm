@@ -18,10 +18,6 @@ image:
     # If not specified, `quay.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used.
     csiProvisioner:  # k8s.gcr.io/sig-storage/csi-provisioner:v2.2.1
 
-    # image.csi.csiAttacher -- Specify csi-attacher image.
-    # If not specified, `quay.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used.
-    csiAttacher:  # k8s.gcr.io/sig-storage/csi-attacher:v3.2.1
-
     # image.csi.csiResizer -- Specify csi-resizer image.
     # If not specified, `quay.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used.
     csiResizer:  # k8s.gcr.io/sig-storage/csi-resizer:v1.2.0
@@ -32,6 +28,9 @@ image:
 
 # A scheduler extender for TopoLVM
 scheduler:
+  # scheduler.enabled --  If true, enable scheduler extender for TopoLVM
+  enabled: true
+
   # scheduler.type -- If you run with a managed control plane (such as GKE, AKS, etc), topolvm-scheduler should be deployed as Deployment and Service.
   # topolvm-scheduler should otherwise be deployed as DaemonSet in unmanaged (i.e. bare metal) deployments.
   # possible values:  daemonset/deployment
@@ -42,16 +41,23 @@ scheduler:
     # scheduler.deployment.replicaCount -- Number of replicas for Deployment.
     replicaCount: 2
 
+  # Use only if you choose `scheduler.type` deployment
+  service:
+    # scheduler.service.type -- Specify Service type.
+    type: LoadBalancer
+    # scheduler.service.nodePort -- (int) Specify nodePort.
+    nodePort:  # 30251
+
   # scheduler.updateStrategy -- Specify updateStrategy on the Deployment or DaemonSet.
   updateStrategy: {}
   #  rollingUpdate:
   #    maxUnavailable: 1
   #  type: RollingUpdate
 
-  # scheduler.terminationGracePeriodSeconds -- Specify terminationGracePeriodSeconds on the Deployment or DaemonSet.
+  # scheduler.terminationGracePeriodSeconds -- (int) Specify terminationGracePeriodSeconds on the Deployment or DaemonSet.
   terminationGracePeriodSeconds:  # 30
 
-  # scheduler.minReadySeconds -- Specify minReadySeconds on the Deployment or DaemonSet.
+  # scheduler.minReadySeconds -- (int) Specify minReadySeconds on the Deployment or DaemonSet.
   minReadySeconds:  # 0
 
   # scheduler.affinity -- Specify affinity on the Deployment or DaemonSet.
@@ -161,8 +167,17 @@ lvmd:
   #          default: true
   #          spare-gb: 10
 
+  psp:
+    # lvmd.psp.allowedHostPaths -- Specify allowedHostPaths.
+    allowedHostPaths:
+      - pathPrefix: "/run/topolvm"
+        readOnly: false
+
 # CSI node service
 node:
+  # node.lvmdSocket -- Specify the socket to be used for communication with lvmd.
+  lvmdSocket: /run/lvmd/lvmd.sock
+
   # node.securityContext. -- Container securityContext.
   ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
   securityContext:
@@ -216,12 +231,34 @@ node:
         path: /run/topolvm
         type: Directory
 
+  volumeMounts:
+    # node.volumeMounts.topolvmNode -- Specify volumeMounts for topolvm-node container.
+    topolvmNode:
+      - name: node-plugin-dir
+        mountPath: /run/topolvm
+      - name: lvmd-socket-dir
+        mountPath: /run/lvmd
+      - name: pod-volumes-dir
+        mountPath: /var/lib/kubelet/pods
+        mountPropagation: "Bidirectional"
+      - name: csi-plugin-dir
+        mountPath: /var/lib/kubelet/plugins/kubernetes.io/csi
+        mountPropagation: "Bidirectional"
+
 # CSI controller service
 controller:
   # controller.replicaCount -- Number of replicas for CSI controller service.
   replicaCount: 2
 
-  # controller.terminationGracePeriodSeconds -- Specify terminationGracePeriodSeconds.
+  storageCapacityTracking:
+    # controller.storageCapacityTracking.enabled -- Enable Storage Capacity Tracking for csi-provisoner.
+    enabled: false
+
+  securityContext:
+    # controller.securityContext.enabled -- Enable securityContext.
+    enabled: true
+
+  # controller.terminationGracePeriodSeconds -- (int) Specify terminationGracePeriodSeconds.
   terminationGracePeriodSeconds:  # 10
 
   # controller.resources -- Specify resources.
@@ -241,7 +278,7 @@ controller:
   #    maxSurge: 50%
   #    maxUnavailable: 50%
 
-  # controller.minReadySeconds -- Specify minReadySeconds.
+  # controller.minReadySeconds -- (int) Specify minReadySeconds.
   minReadySeconds:  # 0
 
   # controller.affinity -- Specify affinity.
@@ -265,6 +302,11 @@ controller:
   ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
   nodeSelector: {}
 
+  # controller.volumes -- Specify volumes.
+  volumes:
+    - name: socket-dir
+      emptyDir: {}
+
 # storageClasses -- Whether to create storageclass(s)
 # ref: https://kubernetes.io/docs/concepts/storage/storage-classes/
 storageClasses:
@@ -285,6 +327,16 @@ storageClasses:
       allowVolumeExpansion: true
       additionalParameters: {}
       # "topolvm.cybozu.com/device-class": "ssd"
+
+webhook:
+  # webhook.caBundle -- Specify the certificate to be used for AdmissionWebhook.
+  caBundle:  # Base64-encoded, PEM-encoded CA certificate that signs the server certificate.
+  podMutatingWebhook:
+    # webhook.podMutatingWebhook.enabled -- Enable Pod MutatingWebhook.
+    enabled: true
+  pvcMutatingWebhook:
+    # webhook.pvcMutatingWebhook.enabled -- Enable PVC MutatingWebhook.
+    enabled: true
 
 # Container Security Context
 # ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/

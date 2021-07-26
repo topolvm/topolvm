@@ -1,0 +1,90 @@
+image:
+  repository: topolvm
+  tag: dev
+  pullPolicy: Never
+
+controller:
+  replicaCount: 1
+  securityContext:
+    enabled: false
+  nodeSelector:
+    kubernetes.io/hostname: topolvm-e2e-worker
+  # sanity test requires that the controller mounts this hostPath to communicate with it
+  volumes:
+    - name: socket-dir
+      hostPath:
+        path: /var/lib/kubelet/plugins/topolvm.cybozu.com/controller
+        type: DirectoryOrCreate
+
+scheduler:
+  type: deployment
+  deployment:
+    replicaCount: 2
+  service:
+    type: NodePort
+    nodePort: 30251
+  options:
+    listen:
+      host: 0.0.0.0
+  tolerations: null
+  affinity: null
+
+lvmd:
+  managed: false
+
+node:
+  volumeMounts:
+    topolvmNode:
+      - name: node-plugin-dir
+        mountPath: /run/topolvm
+      - name: lvmd-socket-dir
+        mountPath: /run/lvmd
+      - name: pod-volumes-dir
+        mountPath: /var/lib/kubelet/pods
+        mountPropagation: "Bidirectional"
+      - name: csi-plugin-dir
+        mountPath: /var/lib/kubelet/plugins/kubernetes.io/csi
+        mountPropagation: "Bidirectional"
+      - name: device-dir
+        mountPath: /dev
+  volumes:
+    - name: registration-dir
+      hostPath:
+        path: /var/lib/kubelet/plugins_registry/
+        type: Directory
+    - name: node-plugin-dir
+      hostPath:
+        path: /var/lib/kubelet/plugins/topolvm.cybozu.com/node
+        type: DirectoryOrCreate
+    - name: csi-plugin-dir
+      hostPath:
+        path: /var/lib/kubelet/plugins/kubernetes.io/csi
+        type: DirectoryOrCreate
+    - name: pod-volumes-dir
+      hostPath:
+        path: /var/lib/kubelet/pods/
+        type: DirectoryOrCreate
+    - name: lvmd-socket-dir
+      hostPath:
+        path: /tmp/topolvm
+        type: Directory
+    - name: device-dir
+      hostPath:
+        path: /dev
+        type: Directory
+
+storageClasses:
+  - name: topolvm-provisioner
+    storageClass:
+      fsType: xfs
+      isDefaultClass: false
+      volumeBindingMode: WaitForFirstConsumer
+      allowVolumeExpansion: true
+      additionalParameters:
+        topolvm.cybozu.com/device-class: "ssd"
+
+podSecurityPolicy:
+  create: false
+
+cert-manager:
+  enabled: true

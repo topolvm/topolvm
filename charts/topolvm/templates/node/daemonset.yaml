@@ -29,7 +29,7 @@ spec:
           {{- end }}
           command:
             - /topolvm-node
-            - --lvmd-socket=/run/lvmd/lvmd.sock
+            - --lvmd-socket={{ .Values.node.lvmdSocket }}
           ports:
             - containerPort: 9808
               name: healthz
@@ -50,23 +50,15 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-          volumeMounts:
-            - name: node-plugin-dir
-              mountPath: /run/topolvm
-            - name: lvmd-socket-dir
-              mountPath: /run/lvmd
-            - name: pod-volumes-dir
-              mountPath: /var/lib/kubelet/pods
-              mountPropagation: "Bidirectional"
-            - name: csi-plugin-dir
-              mountPath: /var/lib/kubelet/plugins/kubernetes.io/csi
-              mountPropagation: "Bidirectional"
+          {{- with .Values.node.volumeMounts.topolvmNode }}
+          volumeMounts: {{ toYaml . | nindent 12 }}
+          {{- end }}
 
         - name: csi-registrar
           {{- if .Values.image.csi.nodeDriverRegistrar }}
           image: {{ .Values.image.csi.nodeDriverRegistrar }}
           {{- else }}
-          image: "quay.io/topolvm/topolvm-with-sidecar:{{ default .Chart.AppVersion .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
           {{- end }}
           {{- with .Values.image.pullPolicy }}
           imagePullPolicy: {{ . }}
@@ -89,7 +81,7 @@ spec:
           {{- if .Values.image.csi.livenessProbe }}
           image: {{ .Values.image.csi.livenessProbe }}
           {{- else }}
-          image: "quay.io/topolvm/topolvm-with-sidecar:{{ default .Chart.AppVersion .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
           {{- end }}
           {{- with .Values.image.pullPolicy }}
           imagePullPolicy: {{ . }}

@@ -14,9 +14,9 @@ spec:
     - 'emptyDir'
     - 'hostPath'
     - 'secret'
-  allowedHostPaths:
-    - pathPrefix: "/run/topolvm"
-      readOnly: false
+  {{- with .Values.lvmd.psp.allowedHostPaths }}
+  allowedHostPaths: {{ toYaml . | nindent 2 }}
+  {{- end }}
   runAsUser:
     rule: 'RunAsAny'
   seLinux:

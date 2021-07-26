@@ -698,7 +698,7 @@ func testE2E() {
 		}, timeout).Should(Succeed())
 
 		By("deleting topolvm-node Pods to clear /dev/topolvm/*")
-		stdout, stderr, err = kubectl("delete", "-n", ns, "pod", "-l=app.kubernetes.io/name=node")
+		stdout, stderr, err = kubectl("delete", "-n", ns, "pod", "-l=app.kubernetes.io/name=topolvm-node")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		By("resizing PVC")
