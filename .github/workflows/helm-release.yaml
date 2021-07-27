@@ -16,6 +16,18 @@ jobs:
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
+      - name: Install Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: v3.5.0
+
+      # Add depending repository for helm to avoid the error below.
+      # `Error: no repository definition for https://charts.jetstack.io`
+      # see: https://github.com/helm/chart-releaser-action/issues/74
+      - name: Add cert-manager repo for helm
+        run: |
+          helm repo add cert-manager https://charts.jetstack.io
+
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.2.1
         with:
