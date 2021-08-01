@@ -40,12 +40,14 @@ endif
 
 HELM_VALUES_FILE_LVMD := ""
 KIND_CONFIG="topolvm-cluster.yaml"
+MINIKUBE_FEATURE_GATES=""
 ifeq ($(STORAGE_CAPACITY),true)
 
 ifneq ($(KUBERNETES_VERSION),1.20.7)
 HELM_VALUES_FILE_LVMD := manifests/values/daemonset-lvmd-storage-capacity.yaml
 HELM_VALUES_FILE := manifests/values/storage-capacity.yaml
 KIND_CONFIG="topolvm-cluster-capacity-priority.yaml"
+MINIKUBE_FEATURE_GATES="VolumeCapacityPriority=true"
 else
 HELM_VALUES_FILE := ""
 endif
@@ -205,7 +207,8 @@ daemonset-lvmd/launch-minikube:
 	$(SUDO) -E $(BINDIR)/minikube start \
 		--vm-driver=none \
 		--kubernetes-version=v$(KUBERNETES_VERSION) \
-		--extra-config=kubelet.read-only-port=10255
+		--extra-config=kubelet.read-only-port=10255 \
+		--feature-gates=$(MINIKUBE_FEATURE_GATES)
 	$(SUDO) chown -R $$USER $$HOME/.kube $(MINIKUBE_HOME)/.minikube
 	$(SUDO) chmod -R a+r $$HOME/.kube $(MINIKUBE_HOME)/.minikube
 	$(SUDO) find $(MINIKUBE_HOME)/.minikube -name id_rsa -exec chmod 600 {} ';'
