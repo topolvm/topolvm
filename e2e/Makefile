@@ -19,14 +19,18 @@ MINIKUBE_HOME = $(BINDIR)
 export MINIKUBE_HOME
 
 ifeq ($(TEST_KUBERNETES_TARGET),current)
-KUBERNETES_VERSION := 1.21.1
+KUBERNETES_VERSION := 1.22.0-beta.0
 else ifeq ($(TEST_KUBERNETES_TARGET),prev)
-KUBERNETES_VERSION := 1.20.2
+KUBERNETES_VERSION := 1.21.2
 else ifeq ($(TEST_KUBERNETES_TARGET),prev2)
-KUBERNETES_VERSION := 1.19.4
+KUBERNETES_VERSION := 1.20.7
 endif
 
 KIND_NODE_IMAGE=kindest/node:v$(KUBERNETES_VERSION)
+ifeq ($(KUBERNETES_VERSION),1.22.0-beta.0)
+KIND_NODE_IMAGE=quay.io/topolvm/kind-node:v$(KUBERNETES_VERSION)
+endif
+
 export TEST_KUBERNETES_VERSION=$(shell echo $(KUBERNETES_VERSION) | grep -o '^[0-9]*\.[0-9]*')
 
 HELM_VALUES_FILE := manifests/values/daemonset-scheduler.yaml
@@ -37,7 +41,7 @@ endif
 HELM_VALUES_FILE_LVMD := ""
 ifeq ($(STORAGE_CAPACITY),true)
 
-ifeq ($(KUBERNETES_VERSION),1.21.1)
+ifneq ($(KUBERNETES_VERSION),1.20.7)
 HELM_VALUES_FILE_LVMD := manifests/values/daemonset-lvmd-storage-capacity.yaml
 HELM_VALUES_FILE := manifests/values/storage-capacity.yaml
 else

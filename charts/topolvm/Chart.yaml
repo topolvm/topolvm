@@ -6,7 +6,7 @@ name: topolvm
 description: Topolvm
 version: 2.0.1
 appVersion: 0.8.3
-kubeVersion: ">=1.18.0"
+kubeVersion: ">=1.18.0 || >=1.18.0-alpha.0"
 sources:
   - https://github.com/topolvm/topolvm
 
