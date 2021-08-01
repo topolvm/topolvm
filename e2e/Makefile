@@ -39,11 +39,13 @@ HELM_VALUES_FILE := manifests/values/deployment-scheduler.yaml
 endif
 
 HELM_VALUES_FILE_LVMD := ""
+KIND_CONFIG="topolvm-cluster.yaml"
 ifeq ($(STORAGE_CAPACITY),true)
 
 ifneq ($(KUBERNETES_VERSION),1.20.7)
 HELM_VALUES_FILE_LVMD := manifests/values/daemonset-lvmd-storage-capacity.yaml
 HELM_VALUES_FILE := manifests/values/storage-capacity.yaml
+KIND_CONFIG="topolvm-cluster-capacity-priority.yaml"
 else
 HELM_VALUES_FILE := ""
 endif
@@ -75,8 +77,8 @@ topolvm.img: $(GO_FILES)
 .PHONY: launch-kind
 launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml
 	$(SUDO) rm -rf /tmp/topolvm/controller /tmp/topolvm/worker*
-	sed -e "s|@KUBERNETES_VERSION@|$(KUBERNETES_VERSION)|" topolvm-cluster.yaml > /tmp/topolvm-cluster.yaml
-	$(KIND) create cluster --name=$(KIND_CLUSTER_NAME) --config /tmp/topolvm-cluster.yaml --image $(KIND_NODE_IMAGE)
+	sed -e "s|@KUBERNETES_VERSION@|$(KUBERNETES_VERSION)|" $(KIND_CONFIG) > /tmp/$(KIND_CONFIG)
+	$(KIND) create cluster --name=$(KIND_CLUSTER_NAME) --config /tmp/$(KIND_CONFIG) --image $(KIND_NODE_IMAGE)
 
 .PHONY: shutdown-kind
 shutdown-kind:
