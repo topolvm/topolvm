@@ -33,7 +33,7 @@ First of all, we should have a look at the release notes in the order below.
     - Confirm diffs of RBAC between published in upstream and `deploy/manifests/base/controller.yaml`. And update it if required.
 5. Depending tools
     - They does not depend on other software, use latest versions.
-      - [kustomize](https://github.com/kubernetes-sigs/kustomize/releases)
+      - [helm](https://github.com/helm/helm/releases)
       - [protoc](https://github.com/protocolbuffers/protobuf/releases)
     - They depend on kubernetes, use appropriate version associating to minimal supported kubernetes version by TopoLVM.
       - [kind](https://github.com/kubernetes-sigs/kind/releases)
@@ -55,9 +55,6 @@ Once we decide the versions we are going to upgrade, we should update the versio
 - `Makefile`: Makefile for running e2e tests
 - `e2e/Makefile`: Makefile for running e2e tests
 - `example/Makefile`: Makefile for running example
-- `deploy/manifests/overlays/lvmd/kustomization.yaml`: Kustomization for overwriting the TopoLVM image version
-- `deploy/manifests/overlays/daemonset-scheduler/kustomization.yaml`: Kustomization for overwriting the TopoLVM image version
-- `deploy/manifests/overlays/deployment-scheduler/kustomization.yaml`: Kustomization for overwriting the TopoLVM image version
 - `charts/topolvm/Chart.yaml`: Update the min Kubernetes version in `kubeVersion`
 
 `git grep 1.18`, `git grep image:`, and `git grep -i VERSION` might help us avoid overlooking necessary changes.
