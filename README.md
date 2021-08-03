@@ -60,7 +60,7 @@ Getting started
 
 A demonstration of TopoLVM running on [kind (Kubernetes IN Docker)][kind] is available at [example](example/) directory.
 
-For production deployments, see [deploy](deploy/) directory.
+For production deployments, see [deploy/README.md](./deploy/README.md).
 
 User manual is at [docs/user-manual.md](docs/user-manual.md).
 
