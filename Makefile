@@ -89,8 +89,8 @@ manifests: ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefin
 		webhook \
 		paths="./api/...;./controllers;./hook;./driver/k8s;./pkg/..." \
 		output:crd:artifacts:config=config/crd/bases
-	rm -f deploy/manifests/base/crd.yaml
-	cp config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml deploy/manifests/base/crd.yaml
+	rm -f charts/topolvm/crds/topolvm.cybozu.com_logicalvolumes.yaml
+	cp config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml charts/topolvm/crds/topolvm.cybozu.com_logicalvolumes.yaml
 
 .PHONY: generate
 generate: $(PROTOBUF_GEN) ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.

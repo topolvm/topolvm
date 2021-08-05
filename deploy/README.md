@@ -1,31 +1,17 @@
-Deploying TopoLVM
-=================
+# Deploying TopoLVM
 
 Each of these steps are shown in depth in the following sections:
 
-1. Deploy [lvmd][] as a `systemd` service on a worker node with LVM installed.
+1. Deploy [lvmd][] as a `systemd` service or as a daemonset on a worker node with LVM installed.
 1. Prepare [cert-manager][] for [topolvm-controller][]. You may supplement an existing instance.
-1. Create the `topolvm-system` namespace using `deploy/manifests/base/namespace.yaml`.
 1. Determine how [topolvm-scheduler][] to be run:
-   - If you run with a managed control plane (such as GKE, AKS, etc), `topolvm-scheduler` should be deployed as Deployment and Service
-   - `topolvm-scheduler` should otherwise be deployed as DaemonSet in unmanaged (i.e. bare metal) deployments
-1. Add `topolvm.cybozu.com/webhook: ignore` label to system namespaces such as `kube-system`.
-1. Apply remaining manifests for TopoLVM from `deploy/manifests/base` plus overlays as appropriate to your installation.
-1. Configure `kube-scheduler` to use `topolvm-scheduler`. 
-1. Prepare StorageClasses for TopoLVM.
+    - If you run with a managed control plane (such as GKE, AKS, etc), `topolvm-scheduler` should be deployed as Deployment and Service
+    - `topolvm-scheduler` should otherwise be deployed as DaemonSet in unmanaged (i.e. bare metal) deployments
+    - Enable [Storage Capacity Tracking](https://kubernetes.io/docs/concepts/storage/storage-capacity/) mode instead of using `topolvm-scheduler`
+1. Install Helm chart
+1. Configure `kube-scheduler` to use `topolvm-scheduler`.
 
-Example configuration files are included in the following sub directories:
-
-- `lvmd-config/`: Configuration file for `lvmd`
-- `manifests/`: Manifests for Kubernetes.
-- `scheduler-config/`: Configurations to extend `kube-scheduler` with `topolvm-scheduler`.
-- `systemd/`: A systemd unit file for `lvmd`.
-
-These configuration files may need to be modified for your environment.
-Read carefully the following descriptions.
-
-lvmd
-----
+## lvmd
 
 [lvmd][] is a gRPC service to manage an LVM volume group.  The pre-built binary can be downloaded from [releases page](https://github.com/topolvm/topolvm/releases).
 It can be built from source code by `mkdir build; go build -o build/lvmd ./pkg/lvmd`.
@@ -56,82 +42,50 @@ Notice: The lvmd container uses `nsenter` to run some lvm commands(like `lvcreat
 To setup `lvmd` with Daemonset:
 
 1. Prepare LVM volume groups in the host. A non-empty volume group can be used because LV names wouldn't conflict.
-2. Edit `ConfigMap` in [lvmd-configmap.yaml](./manifests/lvmd/lvmd-configmap.yaml) as follows:
+2. Specify the following options in the values.yaml of Helm Chart:
 
-    ```yaml
-    ---
-    apiVersion: v1
-    kind: ConfigMap
-    metadata:
-      namespace: topolvm-system
-      name: lvmd
-    data:
-      lvmd.yaml: |
-        socket-name: /run/topolvm/lvmd.sock
-        device-classes:
-          - name: ssd
-            volume-group: myvg1 # Change this value to your VG name.
-            default: true
-            spare-gb: 10
-    ```
-
-3. Apply `lvmd` manifests.
-
-    ```console
-    kustomize build ./manifests/overlays/lvmd/ | kubectl apply -f -
-    ```
-
-4. Check DaemonSet `lvmd` is ready
-
-    ```console
-    # If DaemonSet lvmd is ready, launching lvmd is a success
-    $ kubectl -n topolvm-system get daemonset topolvm-lvmd
-    NAME           DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
-    topolvm-lvmd   1         1         1       1            1           <none>          45m
-    ```
+   ```yaml
+   lvmd:
+     managed: true
+     socketName: /run/topolvm/lvmd.sock
+     deviceClasses:
+       - name: ssd
+         volume-group: myvg1 # Change this value to your VG name.
+         default: true
+         spare-gb: 10
+   ```
 
 ### Migrate lvmd, which is running as daemon, to DaemonSet
 
 This section describes how to switch to DaemonSet lvmd from lvmd running as daemons.
 
-1. Apply the manifest in `deploy/lvmd` folder and start lvmd with DaemonSet.
+1. Install Helm Chart by configuring lvmd to act as a DaemonSet.
    **You need to set the temporal `socket-name` which is not the same as the value in lvmd running as daemon.**
-   After applying the manifest, DaemonSet lvmd and lvmd running as daemon exist at the same time using different sockets.
+   After the installation Helm Chart, DaemonSet lvmd and lvmd running as daemon exist at the same time using different sockets.
 
-    ```yaml
-    apiVersion: v1
-    kind: ConfigMap
-    metadata:
-      namespace: topolvm-system
-      name: lvmd
-    data:
-      lvmd.yaml: |
-        socket-name: /run/topolvm/lvmd.sock # Change this value to something like `/run/topolvm/lvmd-work.sock`.
-        device-classes:
-          - name: ssd
-            volume-group: myvg1
-            default: true
-            spare-gb: 10
-    ```
+   ```yaml
+   <snip>
+   lvmd:
+     managed: true
+     socketName: /run/topolvm/lvmd.sock # Change this value to something like `/run/topolvm/lvmd-work.sock`.
+     deviceClasses:
+       - name: ssd
+         volume-group: myvg1
+         default: true
+         spare-gb: 10
+   <snip>
+   ```
 
 2. Change the options of topolvm-node to communicate with the DaemonSet lvmd instead of lvmd running as daemon.
    **You should set the temporal socket name which is not the same as in lvmd running as daemon.**
 
-    ```yaml
-    $ kubect edit daemonset -n topolvm-system node
-    <snip>
-        spec:
-          serviceAccountName: node
-          containers:
-            - name: topolvm-node
-              image: quay.io/topolvm/topolvm-with-sidecar:latest
-              securityContext:
-                privileged: true
-              command:
-                - /topolvm-node
-                - --lvmd-socket=/run/lvmd/lvmd.sock # Change this value to to something linke `/run/lvmd/lvmd-work.sock`.
-    <snip>
-    ```
+   ```yaml
+   <snip>
+   node:
+     lvmdSocket: /run/lvmd/lvmd.sock # Change this value to to something linke `/run/lvmd/lvmd-work.sock`.
+   <snip>
+   ```
+
 3. Check if you can create Pod/PVC and can access to existing PV.
 
 4. Stop and remove lvmd running as daemon.
@@ -140,32 +94,34 @@ This section describes how to switch to DaemonSet lvmd from lvmd running as daem
    To reflect the changes of ConfigMap, restart DamonSet lvmd manually.
 
     ```yaml
-    $ kubect edit cm -n topolvm-system lvmd
-    <snip>
-    data:
-      lvmd.yaml: |
-        socket-name: /run/topolvm/lvmd-work.sock # Change this value to something like `/run/topolvm/lvmd.sock`.
-    <snip>
-
-    $ kubect edit daemonset -n topolvm-system node
-    <snip>
-        spec:
-          serviceAccountName: node
-          containers:
-            - name: topolvm-node
-              image: quay.io/topolvm/topolvm-with-sidecar:latest
-              securityContext:
-                privileged: true
-              command:
-                - /topolvm-node
-                - --lvmd-socket=/run/lvmd/lvmd-work.sock # Change this value to something linke `/run/lvmd/lvmd.sock`.
-    <snip>
+   <snip>
+   lvmd:
+     socketName: /run/topolvm/lvmd-work.sock # Change this value to something like `/run/topolvm/lvmd.sock`.
+   <snip>
+   node:
+     lvmdSocket: /run/lvmd/lvmd.sock # Change this value to something linke `/run/lvmd/lvmd.sock`.
+   <snip>
     ```
-cert-manager
-------------
+
+## cert-manager
 
 [cert-manager][] is used to issue self-signed TLS certificate for [topolvm-controller][].
 Follow the [documentation](https://docs.cert-manager.io/en/latest/getting-started/install/kubernetes.html) to install it into your Kubernetes cluster.
+
+### OPTIONAL: Install cert-manager with Helm Chart
+
+Before installing the chart, you must first install the cert-manager CustomResourceDefinition resources.
+
+```sh
+kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.3.1/cert-manager.crds.yaml
+```
+
+Set the `cert-manager.enabled=true` in the Helm Chart values.
+
+```yaml
+cert-manager:
+  enabled: true
+```
 
 ### OPTIONAL: Prepare the certificate without cert-manager
 
@@ -173,7 +129,7 @@ You can prepare the certificate manually without `cert-manager`.
 When doing so, do not apply [certificates.yaml](./manifests/base/certificates.yaml).
 
 1. Prepare PEM encoded self-signed certificate and key files.  
-    The certificate must be valid for hostname `controller.topolvm-system.svc`.
+   The certificate must be valid for hostname `controller.topolvm-system.svc`.
 2. Base64-encode the CA cert (in its PEM format
 3. Create Secret in `topolvm-system` namespace as follows:
 
@@ -182,34 +138,16 @@ When doing so, do not apply [certificates.yaml](./manifests/base/certificates.ya
         --cert=<CERTIFICATE FILE> --key=<KEY FILE>
     ```
 
-4. Edit `MutatingWebhookConfiguration` in [webhooks.yaml](./manifests/base/mutating/webhooks.yaml) as follows:
+4. Specify the certificate in the Helm Chart values.
 
     ```yaml
-    apiVersion: admissionregistration.k8s.io/v1
-    kind: MutatingWebhookConfiguration
-    metadata:
-      name: topolvm-hook
-    # snip
-    webhooks:
-      - name: pvc-hook.topolvm.cybozu.com
-        # snip
-        clientConfig:
-          caBundle: |  # Base64-encoded, PEM-encoded CA certificate that signs the server certificate
-            ...
-      - name: pod-hook.topolvm.cybozu.com
-        # snip
-        clientConfig:
-          caBundle: |  # The same CA certificate as above
-            ...
+    <snip>
+    webhook:
+      caBundle: ... # Base64-encoded, PEM-encoded CA certificate that signs the server certificate
+    <snip>
     ```
 
-Create namespace
-----------------
-
-Create the `topolvm-system` namespace using `deploy/manifests/base/namespace.yaml`. This manifest has labels that are required for proper operation. Do not apply the other manifests yet, these will be applied after editing the values for Kustomize in the following steps.
-
-Scheduing
------------------
+## Scheduing
 
 ### topolvm-scheduler
 
@@ -224,40 +162,26 @@ Otherwise, `topolvm-scheduler` should be run as Deployment and Service.
 
 #### Running topolvm-scheduler using DaemonSet
 
-The [example manifest](./manifests/overlays/daemonset-scheduler/scheduler.yaml) can be used almost as is.
-You may need to change the taint key or label name of the DaemonSet.
+Set the `scheduler.type=daemonset` in the Helm Chart values.
+The default is daemonset.
 
-```yaml
-apiVersion: apps/v1
-kind: DaemonSet
-metadata:
-  namespace: topolvm-system
-  name: topolvm-scheduler
-spec:
-  # snip
-      hostNetwork: true               # If kube-scheduler does not use host network, change this false.
-      tolerations:                    # Add tolerations needed to run pods on control plane nodes.
-        - key: CriticalAddonsOnly
-          operator: Exists
-        - effect: NoSchedule
-          key: node-role.kubernetes.io/control-plane
-        - effect: NoSchedule
-          key: node-role.kubernetes.io/master
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: node-role.kubernetes.io/control-plane # match the control plane node specific labels
-                    operator: Exists
-              - matchExpressions:
-                  - key: node-role.kubernetes.io/master # match the control plane node specific labels
-                    operator: Exists
-```
+    ```yaml
+    <snip>
+    scheduler:
+      type: daemonset
+    <snip>
+    ```
 
 #### Running topolvm-scheduler using Deployment and Service
 
-In this case, you can use [deployment-scheduler/scheduler.yaml](./manifests/overlays/deployment-scheduler/scheduler.yaml) instead of [daemonset-scheduler/scheduler.yaml](./manifests/overlays/daemonset-scheduler/scheduler.yaml).
+In this case, you can set the `scheduler.type=deployment` in the Helm Chart values.
+
+    ```yaml
+    <snip>
+    scheduler:
+      type: deployment
+    <snip>
+    ```
 
 This way, `topolvm-scheduler` is exposed by LoadBalancer service.
 
@@ -283,6 +207,7 @@ divisors:
 ```
 
 Besides, the scoring weight can be passed to kube-scheduler via [scheduler-config-v1beta1.yaml](./scheduler-config/scheduler-config-v1beta1.yaml). Almost all scoring algorithms in kube-scheduler are weighted as `"weight": 1`. So if you want to give a priority to the scoring by `topolvm-scheduler`, you have to set the weight as a value larger than one like as follows:
+
 ```yaml
 apiVersion: kubescheduler.config.k8s.io/v1beta1
 kind: KubeSchedulerConfiguration
@@ -311,21 +236,21 @@ You can see the limitations of using Storage Capacity Tracking from [here](https
 
 #### Use Storage Capacity Tracking
 
-If you want to use Storage Capacity Tracking instead of using topolvm-scheduler, you need following:
+If you want to use Storage Capacity Tracking instead of using topolvm-scheduler,
+you need set the `controller.storageCapacityTracking.enabled=true` and `scheduler.enabled=false` in the Helm Chart values.
 
-- Add `--enable-capacity` and `--capacity-ownerref-level=2` to csi-provisoner arguments.
-- Append `NAMESPACE` and `POD_NAME` environment variables to csi-provisioner.
+    ```yaml
+    <snip>
+    controller:
+      storageCapacityTracking:
+        enabled: false
+    <snip>
+    scheduler:
+      enabled: false
+    <snip>
+    ```
 
-The [example manifest](./manifests/overlays/storage-capcacity/controller.yaml) can be used almost as is.
-
-Deploy example is below:
-
-```
-kustomize build ./deploy/manifests/overlays/storage-capcacity | kubectl apply -f -
-```
-
-Protect system namespaces from TopoLVM webhook
----------------------------------------------
+## Protect system namespaces from TopoLVM webhook
 
 TopoLVM installs a mutating webhook for Pods.  It may prevent Kubernetes from bootstrapping
 if the webhook pods and the system pods are both missing.
@@ -333,42 +258,47 @@ if the webhook pods and the system pods are both missing.
 To workaround the problem, add a label to system namespaces such as `kube-system` as follows:
 
 ```console
-$ kubectl label ns kube-system topolvm.cybozu.com/webhook=ignore
+$ kubectl label namespace kube-system topolvm.cybozu.com/webhook=ignore
 ```
 
-This label was already applied to the `topolvm-system` namespace via the `deploy/manifests/base/namespace.yaml` manifest.
+## Configure StorageClasses
 
-Apply remaining manifests for TopoLVM
--------------------------------------
+You need to create [StorageClasses](https://kubernetes.io/docs/concepts/storage/storage-classes/) for TopoLVM.
+The Helm chart creates a StorageClasses by default with the following configuration.
+You can edit the Helm Chart values as needed.
 
-Previous sections describe how to tune the manifest configurations, apply them now using Kustomize as follows:
+   ```yaml
+   <snip>
+   storageClasses:
+     - name: topolvm-provisioner
+       storageClass:
+         fsType: xfs
+         isDefaultClass: false
+         volumeBindingMode: WaitForFirstConsumer
+         allowVolumeExpansion: true
+   <snip>
+   ```
 
-### Running topolvm-scheduler using DaemonSet
+## Install Helm Chart
 
-If using `topolvm-scheduler` as a DaemonSet, run the following command: 
+The first step is to create a namespace and add a label.
 
 ```console
-kustomize build ./deploy/manifests/overlays/daemonset-scheduler | kubectl apply -f -
+$ kubectl create namespace topolvm-system
+$ kubectl label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
 ```
 
-### Running topolvm-scheduler using Deployment and Service
+> :memo: Helm does not support adding labels or other metadata when creating namespaces.
+>
+> refs: https://github.com/helm/helm/issues/5153, https://github.com/helm/helm/issues/3503
 
-If using `topolvm-scheduler` as a Deployment, run the following command: 
+Install Helm Chart using the configured values.yaml.
 
-```console
-kustomize build ./deploy/manifests/overlays/deployment-scheduler | kubectl apply -f -
+```sh
+helm upgrade --namespace=topolvm-system -f values.yaml -i topolvm topolvm/topolvm
 ```
 
-### Generate cert-manager manifests
-
-Unless you chose to generate and install certificates manually, run the following:
-
-```console
-kubectl apply -f ./deploy/manifests/base/certificates.yaml
-```
-
-Configure kube-scheduler
-------------------------
+## Configure kube-scheduler
 
 `kube-scheduler` need to be configured to use `topolvm-scheduler` extender.
 
@@ -378,7 +308,7 @@ First you need to choose an appropriate `KubeSchdulerConfiguration` YAML file ac
 cp ./deploy/scheduler-config/scheduler-config-v1beta1.yaml ./deploy/scheduler-config/scheduler-config.yaml
 ```
 
-And then copy the `deploy/scheduler-config` directory to the hosts where `kube-scheduler`s run.
+And then copy the [deploy/scheduler-config](./scheduler-config) directory to the hosts where `kube-scheduler`s run.
 
 ### For new clusters
 
@@ -424,12 +354,7 @@ The changes to `/etc/kubernetes/manifests/kube-scheduler.yaml` that are affected
         readOnly: true
     ```
 
-Prepare StorageClasses
-----------------------
-
-Finally, you need to create [StorageClasses](https://kubernetes.io/docs/concepts/storage/storage-classes/) for TopoLVM.
-
-An example is available in [provisioner.yaml](./manifests/base/provisioner.yaml).
+## How to use TopoLVM provisioner
 
 See [podpvc.yaml](../example/podpvc.yaml) for how to use TopoLVM provisioner.
 
