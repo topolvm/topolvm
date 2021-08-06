@@ -19,13 +19,16 @@ It should look like:
 ## [Unreleased]
 
 ### Added
-- Implement ... (#35)
+- Add a notable feature for users (#35)
 
 ### Changed
-- Fix a bug in ... (#33)
+- Change a behavior affecting users (#33)
 
 ### Removed
-- Deprecated `-option` is removed ... (#39)
+- Remove a feature, users action required (#39)
+
+### Fixed
+- Fix something not affecting users or a minor change (#40)
 
 ### Contributors
 - @hoge
