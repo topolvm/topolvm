@@ -47,9 +47,15 @@ Bump version
     $ export VERSION
     ```
 
-2. Checkout `main` branch.
-3. Make a branch to release, for example by `git neco dev bump-$VERSION`
-4. Update image versions in files below:
+2. Make a branch for the release as follows:
+
+    ```console
+    $ git checkout main
+    $ git pull
+    $ git checkout -b bump-$VERSION
+    ```
+
+3. Update image versions in files below:
    - charts/topolvm/Chart.yaml
    - example/Makefile
    - example/README.md
@@ -58,16 +64,16 @@ Bump version
     $ sed -r -i "s/TOPOLVM_VERSION=[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/TOPOLVM_VERSION=${VERSION}/g" example/Makefile
     $ sed -r -i "s/checkout v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/checkout v${VERSION}/g" example/README.md
     ```
-5. Edit `CHANGELOG.md` for the new version ([example][]).
-6. Commit the change and create a pull request:
+4. Edit `CHANGELOG.md` for the new version ([example][]).
+5. Commit the change and create a pull request:
 
     ```console
     $ git commit -a -m "Bump version to $VERSION"
-    $ git neco review
+    $ git push -u origin bump-$VERSION
     ```
 
-7. Merge the new pull request.
-8. Add a new tag and push it as follows:
+6. Merge the new pull request.
+7. Add a new tag and push it as follows:
 
     ```console
     $ git checkout main
