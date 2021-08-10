@@ -78,6 +78,10 @@ func isStorageCapacity() bool {
 	return os.Getenv("STORAGE_CAPACITY") == "true"
 }
 
+func isVolumeCapacityPriority() bool {
+	return os.Getenv("VOLUME_CAPACITY_PRIORITY") == "true"
+}
+
 func skipIfDaemonsetLvmd() {
 	if isDaemonsetLvmdEnvSet() {
 		Skip("skip because current environment is daemonset lvmd")
@@ -132,6 +136,7 @@ var _ = Describe("TopoLVM", func() {
 	Context("metrics", testMetrics)
 	Context("publish", testPublishVolume)
 	Context("storage-capacity", testStorageCapacity)
+	Context("volume-capacity-priority", testVolumeCapacityPriority)
 	Context("e2e", testE2E)
 	Context("multiple-vg", testMultipleVolumeGroups)
 	Context("cleanup", testCleanup)

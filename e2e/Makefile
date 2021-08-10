@@ -41,6 +41,7 @@ endif
 HELM_VALUES_FILE_LVMD := ""
 KIND_CONFIG="topolvm-cluster.yaml"
 MINIKUBE_FEATURE_GATES=""
+VOLUME_CAPACITY_PRIORITY=false
 ifeq ($(STORAGE_CAPACITY),true)
 
 ifneq ($(KUBERNETES_VERSION),1.20.7)
@@ -48,6 +49,7 @@ HELM_VALUES_FILE_LVMD := manifests/values/daemonset-lvmd-storage-capacity.yaml
 HELM_VALUES_FILE := manifests/values/storage-capacity.yaml
 KIND_CONFIG="topolvm-cluster-capacity-priority.yaml"
 MINIKUBE_FEATURE_GATES="VolumeCapacityPriority=true"
+VOLUME_CAPACITY_PRIORITY=true
 else
 HELM_VALUES_FILE := ""
 endif
@@ -153,7 +155,7 @@ ifneq ($(HELM_VALUES_FILE),"")
 	$(HELM) dependency build ../charts/topolvm/
 	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE)
 	$(KUBECTL) apply -f manifests/common/
-	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) STORAGE_CAPACITY=$(STORAGE_CAPACITY) GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) --failFast -v .
+	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) STORAGE_CAPACITY=$(STORAGE_CAPACITY) VOLUME_CAPACITY_PRIORITY=$(VOLUME_CAPACITY_PRIORITY) GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) --failFast -v .
 endif
 
 .PHONY: clean
