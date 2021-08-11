@@ -18,8 +18,10 @@ GINKGO := ../bin/ginkgo
 MINIKUBE_HOME = $(BINDIR)
 export MINIKUBE_HOME
 
+READ_WRITE_ONCE_POD=false
 ifeq ($(TEST_KUBERNETES_TARGET),current)
 KUBERNETES_VERSION := 1.22.0
+READ_WRITE_ONCE_POD=true
 else ifeq ($(TEST_KUBERNETES_TARGET),prev)
 KUBERNETES_VERSION := 1.21.2
 else ifeq ($(TEST_KUBERNETES_TARGET),prev2)
@@ -142,18 +144,18 @@ stop-lvmd:
 .PHONY: test
 test: topolvm.img
 ifneq ($(HELM_VALUES_FILE),"")
-	$(MAKE) shutdown-kind
-	$(MAKE) launch-kind
-	$(KIND) load image-archive --name=$(KIND_CLUSTER_NAME) topolvm.img
-	$(KUBECTL) apply -f https://github.com/jetstack/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
-	$(KUBECTL) create namespace topolvm-system
-	$(KUBECTL) label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
-	$(HELM) repo add jetstack https://charts.jetstack.io
-	$(HELM) repo update
-	$(HELM) dependency build ../charts/topolvm/
-	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE)
-	$(KUBECTL) apply -f manifests/common/
-	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) STORAGE_CAPACITY=$(STORAGE_CAPACITY) GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) --failFast -v .
+	# $(MAKE) shutdown-kind
+	# $(MAKE) launch-kind
+	# $(KIND) load image-archive --name=$(KIND_CLUSTER_NAME) topolvm.img
+	# $(KUBECTL) apply -f https://github.com/jetstack/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
+	# $(KUBECTL) create namespace topolvm-system
+	# $(KUBECTL) label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
+	# $(HELM) repo add jetstack https://charts.jetstack.io
+	# $(HELM) repo update
+	# $(HELM) dependency build ../charts/topolvm/
+	# $(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE)
+	# $(KUBECTL) apply -f manifests/common/
+	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) STORAGE_CAPACITY=$(STORAGE_CAPACITY) READ_WRITE_ONCE_POD=$(READ_WRITE_ONCE_POD) GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) --failFast -v .
 endif
 
 .PHONY: clean
@@ -237,7 +239,7 @@ ifneq ($(HELM_VALUES_FILE_LVMD),"")
 	$(HELM) dependency build ../charts/topolvm/
 	$(HELM) install --create-namespace --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE_LVMD)
 	$(KUBECTL) apply -f manifests/common/
-	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) STORAGE_CAPACITY=$(STORAGE_CAPACITY) DAEMONSET_LVMD=true GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) --failFast -v .
+	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) STORAGE_CAPACITY=$(STORAGE_CAPACITY) DAEMONSET_LVMD=true READ_WRITE_ONCE_POD=$(READ_WRITE_ONCE_POD) GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) --failFast -v .
 endif
 
 .PHONY: daemonset-lvmd/clean
