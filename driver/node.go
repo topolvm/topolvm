@@ -169,10 +169,15 @@ func (s *nodeService) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequ
 	if mountOption.FsType == "" {
 		mountOption.FsType = "ext4"
 	}
+	// we only support SINGLE_NODE_WRITER/SINGLE_NODE_MULTI_WRITER/SINGLE_NODE_SINGLE_WRITER
 	accessMode := req.GetVolumeCapability().GetAccessMode().GetMode()
-	if accessMode != csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER {
+	switch accessMode {
+	case csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
+		csi.VolumeCapability_AccessMode_SINGLE_NODE_SINGLE_WRITER,
+		csi.VolumeCapability_AccessMode_SINGLE_NODE_MULTI_WRITER:
+	default:
 		modeName := csi.VolumeCapability_AccessMode_Mode_name[int32(accessMode)]
-		return status.Errorf(codes.FailedPrecondition, "unsupported access mode: %s (%d)", modeName, accessMode)
+		return status.Errorf(codes.InvalidArgument, "unsupported access mode: %s", modeName)
 	}
 
 	// Find lv and create a block device with it
@@ -565,6 +570,7 @@ func (s *nodeService) NodeGetCapabilities(context.Context, *csi.NodeGetCapabilit
 	capabilities := []csi.NodeServiceCapability_RPC_Type{
 		csi.NodeServiceCapability_RPC_GET_VOLUME_STATS,
 		csi.NodeServiceCapability_RPC_EXPAND_VOLUME,
+		csi.NodeServiceCapability_RPC_SINGLE_NODE_MULTI_WRITER,
 	}
 
 	csiCaps := make([]*csi.NodeServiceCapability, len(capabilities))
