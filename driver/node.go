@@ -177,7 +177,7 @@ func (s *nodeService) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequ
 		csi.VolumeCapability_AccessMode_SINGLE_NODE_MULTI_WRITER:
 	default:
 		modeName := csi.VolumeCapability_AccessMode_Mode_name[int32(accessMode)]
-		return status.Errorf(codes.InvalidArgument, "unsupported access mode: %s", modeName)
+		return status.Errorf(codes.FailedPrecondition, "unsupported access mode: %s (%d)", modeName, accessMode)
 	}
 
 	// Find lv and create a block device with it
