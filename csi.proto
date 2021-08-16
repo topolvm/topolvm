@@ -394,6 +394,19 @@ message VolumeCapability {
     // to untrusted entities. The total size of this repeated field
     // SHALL NOT exceed 4 KiB.
     repeated string mount_flags = 2;
+
+    // If SP has VOLUME_MOUNT_GROUP node capability and CO provides
+    // this field then SP MUST ensure that the volume_mount_group
+    // parameter is passed as the group identifier to the underlying
+    // operating system mount system call, with the understanding
+    // that the set of available mount call parameters and/or
+    // mount implementations may vary across operating systems.
+    // Additionally, new file and/or directory entries written to
+    // the underlying filesystem SHOULD be permission-labeled in such a
+    // manner, unless otherwise modified by a workload, that they are
+    // both readable and writable by said mount group identifier.
+    // This is an OPTIONAL field.
+    string volume_mount_group = 3 [(alpha_field) = true];
   }
 
   // Specify how a volume can be accessed.
@@ -419,6 +432,18 @@ message VolumeCapability {
       // Can be published as read/write at multiple nodes
       // simultaneously.
       MULTI_NODE_MULTI_WRITER = 5;
+
+      // Can only be published once as read/write at a single workload
+      // on a single node, at any given time. SHOULD be used instead of
+      // SINGLE_NODE_WRITER for COs using the experimental
+      // SINGLE_NODE_MULTI_WRITER capability.
+      SINGLE_NODE_SINGLE_WRITER = 6 [(alpha_enum_value) = true];
+
+      // Can be published as read/write at multiple workloads on a
+      // single node simultaneously. SHOULD be used instead of
+      // SINGLE_NODE_WRITER for COs using the experimental
+      // SINGLE_NODE_MULTI_WRITER capability.
+      SINGLE_NODE_MULTI_WRITER = 7 [(alpha_enum_value) = true];
     }
 
     // This field is REQUIRED.
@@ -1043,6 +1068,16 @@ message ControllerServiceCapability {
       // This enables COs to, for example, fetch per volume
       // condition after a volume is provisioned.
       GET_VOLUME = 12 [(alpha_enum_value) = true];
+
+      // Indicates the SP supports the SINGLE_NODE_SINGLE_WRITER and/or
+      // SINGLE_NODE_MULTI_WRITER access modes.
+      // These access modes are intended to replace the
+      // SINGLE_NODE_WRITER access mode to clarify the number of writers
+      // for a volume on a single node. Plugins MUST accept and allow
+      // use of the SINGLE_NODE_WRITER access mode when either
+      // SINGLE_NODE_SINGLE_WRITER and/or SINGLE_NODE_MULTI_WRITER are
+      // supported, in order to permit older COs to continue working.
+      SINGLE_NODE_MULTI_WRITER = 13 [(alpha_enum_value) = true];
     }
 
     Type type = 1;
@@ -1475,6 +1510,22 @@ message NodeServiceCapability {
       // Note that, for alpha, `VolumeCondition` is intended to be
       // informative for humans only, not for automation.
       VOLUME_CONDITION = 4 [(alpha_enum_value) = true];
+
+      // Indicates the SP supports the SINGLE_NODE_SINGLE_WRITER and/or
+      // SINGLE_NODE_MULTI_WRITER access modes.
+      // These access modes are intended to replace the
+      // SINGLE_NODE_WRITER access mode to clarify the number of writers
+      // for a volume on a single node. Plugins MUST accept and allow
+      // use of the SINGLE_NODE_WRITER access mode (subject to the
+      // processing rules for NodePublishVolume), when either
+      // SINGLE_NODE_SINGLE_WRITER and/or SINGLE_NODE_MULTI_WRITER are
+      // supported, in order to permit older COs to continue working.
+      SINGLE_NODE_MULTI_WRITER = 5 [(alpha_enum_value) = true];
+
+      // Indicates that Node service supports mounting volumes
+      // with provided volume group identifier during node stage
+      // or node publish RPC calls.
+      VOLUME_MOUNT_GROUP = 6 [(alpha_enum_value) = true];
     }
 
     Type type = 1;
@@ -1498,7 +1549,7 @@ message NodeGetInfoResponse {
   // The SP is NOT responsible for global uniqueness of node_id across
   // multiple SPs.
   // This field overrides the general CSI size limit.
-  // The size of this field SHALL NOT exceed 192 bytes. The general
+  // The size of this field SHALL NOT exceed 256 bytes. The general
   // CSI size limit, 128 byte, is RECOMMENDED for best backwards
   // compatibility.
   string node_id = 1;
@@ -1569,6 +1620,12 @@ message NodeExpandVolumeRequest {
   // access_type from given volume_path for the volume and perform
   // node expansion. This is an OPTIONAL field.
   VolumeCapability volume_capability = 5;
+
+  // Secrets required by plugin to complete node expand volume request.
+  // This field is OPTIONAL. Refer to the `Secrets Requirements`
+  // section on how to use this field.
+  map<string, string> secrets = 6
+    [(csi_secret) = true, (alpha_field) = true];
 }
 
 message NodeExpandVolumeResponse {

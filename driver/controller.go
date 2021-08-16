@@ -67,8 +67,12 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 		if mode := capability.GetAccessMode(); mode != nil {
 			modeName := csi.VolumeCapability_AccessMode_Mode_name[int32(mode.GetMode())]
 			ctrlLogger.Info("CreateVolume specifies volume capability", "access_mode", modeName)
-			// we only support SINGLE_NODE_WRITER
-			if mode.GetMode() != csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER {
+			// we only support SINGLE_NODE_WRITER/SINGLE_NODE_MULTI_WRITER/SINGLE_NODE_SINGLE_WRITER
+			switch mode.GetMode() {
+			case csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
+				csi.VolumeCapability_AccessMode_SINGLE_NODE_SINGLE_WRITER,
+				csi.VolumeCapability_AccessMode_SINGLE_NODE_MULTI_WRITER:
+			default:
 				return nil, status.Errorf(codes.InvalidArgument, "unsupported access mode: %s", modeName)
 			}
 		}
@@ -276,6 +280,7 @@ func (s controllerService) ControllerGetCapabilities(context.Context, *csi.Contr
 		csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
 		csi.ControllerServiceCapability_RPC_GET_CAPACITY,
 		csi.ControllerServiceCapability_RPC_EXPAND_VOLUME,
+		csi.ControllerServiceCapability_RPC_SINGLE_NODE_MULTI_WRITER,
 	}
 
 	csiCaps := make([]*csi.ControllerServiceCapability, len(capabilities))
