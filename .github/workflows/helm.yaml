@@ -62,7 +62,6 @@ jobs:
           make -C e2e daemonset-lvmd/setup-minikube
           make -C e2e daemonset-lvmd/update-minikube-setting
           make -C e2e topolvm.img
-          sudo chown -R "$USER" "$HOME/.kube" "$HOME/.minikube"
 
       - name: Apply cert-manager CRDs
         run: kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.3.1/cert-manager.crds.yaml
