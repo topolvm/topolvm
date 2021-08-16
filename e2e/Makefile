@@ -4,7 +4,7 @@ TEST_SCHEDULER_MANIFEST ?= daemonset
 STORAGE_CAPACITY ?= false
 
 ## Dependency versions
-MINIKUBE_VERSION := v1.21.0
+MINIKUBE_VERSION := v1.22.0
 CERT_MANAGER_VERSION := v1.3.1
 
 BINDIR := $(shell pwd)/bin
