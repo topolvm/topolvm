@@ -7,21 +7,32 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.9.0] - 2021-08-10
 ### Added
+- Add topolvm helm charts (#302)
+  - **BREAKING**: Some resource names or labels are changed. You need to delete previous manifests, then install helm chart.
 - Add recommended labels (#320)
 - Add Storage Capacity Tracking mode (#315)
 
 ### Changed
+- support k8s 1.21 (#299)
+- update conformed csi version (#322)
 - Add error message (#314)
-- add document to run test using minikube for lvmd daemonset (#318)
 - Remove CSI Attacher sidecar (#319)
-  - **BREAKING**: You need to recreate the CSIDriver resource because of CSI Attacher sidecar was removed from topolvm.
+  - **BREAKING**: You need to recreate the CSIDriver resource because CSI Attacher sidecar was removed from topolvm.
+
+### Removed
+- Remove kustomize manifests. (#336)
 
 ### Fixed
+- add document to run test using minikube for lvmd daemonset (#318)
+- Fix lint error (#321)
+- Migrate E2E manifests from kustomize to Helm (#325)
 
 ### Contributors
 - @toelke
 - @bells17
+- @d-kuro
 
 # [0.8.3] - 2021-05-11
 
@@ -321,7 +332,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.8.3...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/topolvm/topolvm/compare/v0.8.3...v0.9.0
 [0.8.3]: https://github.com/topolvm/topolvm/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/topolvm/topolvm/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/topolvm/topolvm/compare/v0.8.0...v0.8.1
