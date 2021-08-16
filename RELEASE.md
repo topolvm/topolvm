@@ -72,7 +72,7 @@ Bump version
     $ git push -u origin bump-$VERSION
     ```
 
-6. Merge the new pull request.
+6. Create new pull request and merge it.
 7. Add a new tag and push it as follows:
 
     ```console
