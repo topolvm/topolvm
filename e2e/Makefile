@@ -37,8 +37,12 @@ HELM_VALUES_FILE := manifests/values/deployment-scheduler.yaml
 endif
 
 KIND_CONFIG="topolvm-cluster.yaml"
+MINIKUBE_FEATURE_GATES=""
+MINIKUBE_SCHEDULER_MANIFEST=kube-scheduler.yaml
 ifeq ($(KUBERNETES_VERSION),1.22.0)
 KIND_CONFIG="topolvm-cluster-single-writer.yaml"
+MINIKUBE_FEATURE_GATES="ReadWriteOncePod=true"
+MINIKUBE_SCHEDULER_MANIFEST=kube-scheduler-single-writer.yaml
 endif
 
 HELM_VALUES_FILE_LVMD := ""
@@ -206,7 +210,8 @@ daemonset-lvmd/launch-minikube:
 	$(SUDO) -E $(BINDIR)/minikube start \
 		--vm-driver=none \
 		--kubernetes-version=v$(KUBERNETES_VERSION) \
-		--extra-config=kubelet.read-only-port=10255
+		--extra-config=kubelet.read-only-port=10255 \
+		--feature-gates=$(MINIKUBE_FEATURE_GATES)
 	$(SUDO) chown -R $$USER $$HOME/.kube $(MINIKUBE_HOME)/.minikube
 	$(SUDO) chmod -R a+r $$HOME/.kube $(MINIKUBE_HOME)/.minikube
 	$(SUDO) find $(MINIKUBE_HOME)/.minikube -name id_rsa -exec chmod 600 {} ';'
@@ -220,8 +225,8 @@ daemonset-lvmd/delete-minikube:
 daemonset-lvmd/update-minikube-setting: daemonset-lvmd/delete-minikube daemonset-lvmd/launch-minikube
 ifneq ($(STORAGE_CAPACITY),true)
 	$(SUDO) mkdir -p /var/lib/scheduler
-	$(SUDO) sh -c 'sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|127.0.0.1|" $(SCHEDULER_CONFIG) > /var/lib/scheduler/scheduler-config.yaml'
-	$(SUDO) sh -c 'sed -e "s|@KUBERNETES_VERSION@|$(KUBERNETES_VERSION)|" kube-scheduler.yaml > /etc/kubernetes/manifests/kube-scheduler.yaml'
+	$(SUDO) sh -c 'sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|127.0.0.1|" scheduler-config-v1beta1-deployment.yaml > /var/lib/scheduler/scheduler-config.yaml'
+	$(SUDO) sh -c 'sed -e "s|@KUBERNETES_VERSION@|$(KUBERNETES_VERSION)|" $(MINIKUBE_SCHEDULER_MANIFEST) > /etc/kubernetes/manifests/kube-scheduler.yaml'
 endif
 
 .PHONY: daemonset-lvmd/test
@@ -235,7 +240,7 @@ ifneq ($(HELM_VALUES_FILE_LVMD),"")
 	$(HELM) dependency build ../charts/topolvm/
 	$(HELM) install --create-namespace --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE_LVMD)
 	$(KUBECTL) apply -f manifests/common/
-	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) STORAGE_CAPACITY=$(STORAGE_CAPACITY) DAEMONSET_LVMD=true GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) --failFast -v .
+	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) STORAGE_CAPACITY=$(STORAGE_CAPACITY) READ_WRITE_ONCE_POD=$(READ_WRITE_ONCE_POD) DAEMONSET_LVMD=true GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) --failFast -v .
 endif
 
 .PHONY: daemonset-lvmd/clean
