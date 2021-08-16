@@ -217,7 +217,7 @@ daemonset-lvmd/launch-minikube:
 
 .PHONY: daemonset-lvmd/delete-minikube
 daemonset-lvmd/delete-minikube:
-	$(SUDO) $(BINDIR)/minikube delete || true
+	$(SUDO) -E $(BINDIR)/minikube delete || true
 
 # Set scheduler configs manually because minikube can't edit scheduler configs.
 .PHONY: daemonset-lvmd/update-minikube-setting
