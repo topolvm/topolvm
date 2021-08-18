@@ -245,6 +245,14 @@ node:
         mountPath: /var/lib/kubelet/plugins/kubernetes.io/csi
         mountPropagation: "Bidirectional"
 
+  psp:
+    # node.psp.allowedHostPaths -- Specify allowedHostPaths.
+    allowedHostPaths:
+      - pathPrefix: "/var/lib/kubelet"
+        readOnly: false
+      - pathPrefix: "/run/topolvm"
+        readOnly: false
+
 # CSI controller service
 controller:
   # controller.replicaCount -- Number of replicas for CSI controller service.
