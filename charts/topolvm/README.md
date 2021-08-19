@@ -124,6 +124,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | scheduler.options.listen.port | int | `9251` | Listen port. |
 | scheduler.resources | object | `{}` | Specify resources on the TopoLVM scheduler extender container. |
 | scheduler.schedulerOptions | object | `{}` | Tune the Node scoring. ref: https://github.com/topolvm/topolvm/blob/master/deploy/README.md |
+| scheduler.service.clusterIP | string | `nil` | Specify Service clusterIP. |
 | scheduler.service.nodePort | int | `nil` | Specify nodePort. |
 | scheduler.service.type | string | `"LoadBalancer"` | Specify Service type. |
 | scheduler.terminationGracePeriodSeconds | int | `nil` | Specify terminationGracePeriodSeconds on the Deployment or DaemonSet. |
