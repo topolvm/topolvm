@@ -10,6 +10,9 @@ metadata:
     {{- include "topolvm.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.scheduler.service.type }}
+  {{- with .Values.scheduler.service.clusterIP }}
+  clusterIP: {{ . }}
+  {{- end }}
   selector:
     app.kubernetes.io/name: {{ template "topolvm.fullname" . }}-scheduler
   ports:

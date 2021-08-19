@@ -45,6 +45,8 @@ scheduler:
   service:
     # scheduler.service.type -- Specify Service type.
     type: LoadBalancer
+    # scheduler.service.clusterIP -- Specify Service clusterIP.
+    clusterIP:  # None
     # scheduler.service.nodePort -- (int) Specify nodePort.
     nodePort:  # 30251
 
