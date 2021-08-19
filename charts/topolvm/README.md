@@ -109,6 +109,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | node.metrics.annotations | object | `{"prometheus.io/port":"8080"}` | Annotations for Scrape used by Prometheus.. |
 | node.metrics.enabled | bool | `true` | If true, enable scraping of metrics by Prometheus. |
 | node.nodeSelector | object | `{}` | Specify nodeSelector. |
+| node.psp.allowedHostPaths | list | `[{"pathPrefix":"/var/lib/kubelet","readOnly":false},{"pathPrefix":"/run/topolvm","readOnly":false}]` | Specify allowedHostPaths. |
 | node.resources | object | `{}` | Specify resources. |
 | node.securityContext.privileged | bool | `true` |  |
 | node.tolerations | list | `[]` | Specify tolerations. |
