@@ -4,7 +4,7 @@ type: application
 home: https://github.com/topolvm/topolvm
 name: topolvm
 description: Topolvm
-version: 2.1.0
+version: 2.2.0
 appVersion: 0.9.0
 kubeVersion: ">=1.18.0"
 sources:
