@@ -180,7 +180,7 @@ node:
   # node.lvmdSocket -- Specify the socket to be used for communication with lvmd.
   lvmdSocket: /run/lvmd/lvmd.sock
 
-  # node.kubeletRegistrationPath -- path to the CSI UNIX socket as seen by kubelet
+  # node.kubeletRegistrationPath -- Path to the CSI UNIX socket as seen by kubelet
   kubeletRegistrationPath: /var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
 
   # node.securityContext. -- Container securityContext.
