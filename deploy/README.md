@@ -243,7 +243,7 @@ you need set the `controller.storageCapacityTracking.enabled=true` and `schedule
     <snip>
     controller:
       storageCapacityTracking:
-        enabled: false
+        enabled: true
     <snip>
     scheduler:
       enabled: false
