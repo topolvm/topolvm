@@ -24,7 +24,7 @@ var stripeSizeRegexp = regexp.MustCompile("(?i)^([0-9]*)(k|m|g|t|p|e|b|s)?$")
 type DeviceClass struct {
 	// Name for the device-class name
 	Name string `json:"name"`
-	// Volume group name for the deice class
+	// Volume group name for the device-class
 	VolumeGroup string `json:"volume-group"`
 	// Default is a flag to indicate whether the device-class is the default
 	Default bool `json:"default"`
