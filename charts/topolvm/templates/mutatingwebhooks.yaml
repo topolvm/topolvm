@@ -8,7 +8,6 @@ metadata:
     cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ template "topolvm.fullname" . }}-mutatingwebhook
   labels:
     {{- include "topolvm.labels" . | nindent 4 }}
-    app.kubernetes.io/name: {{ template "topolvm.fullname" . }}-hook
 webhooks:
   {{- if .Values.webhook.pvcMutatingWebhook.enabled }}
   - name: pvc-hook.topolvm.cybozu.com
