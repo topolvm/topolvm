@@ -14,6 +14,6 @@ subjects:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: psp:lvmd
+  name: psp:{{ template "topolvm.fullname" . }}-lvmd
 ---
 {{- end }}
