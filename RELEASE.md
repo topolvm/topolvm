@@ -61,7 +61,7 @@ Bump version
    - example/README.md
     ```console
     $ sed -r -i "s/appVersion: [[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/appVersion: ${VERSION}/g" charts/topolvm/Chart.yaml
-    $ sed -r -i "s/TOPOLVM_VERSION=[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/TOPOLVM_VERSION=${VERSION}/g" example/Makefile
+    $ sed -r -i "s/TOPOLVM_VERSION := [[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/TOPOLVM_VERSION := ${VERSION}/g" example/Makefile
     $ sed -r -i "s/checkout v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/checkout v${VERSION}/g" example/README.md
     ```
 4. Edit `CHANGELOG.md` for the new version ([example][]).
