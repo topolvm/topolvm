@@ -7,6 +7,16 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.9.1] - 2021-09-06
+
+### Misc
+- Fix YAML example in deploy/README.md (#352)
+- Fix typo in a comment (#355)
+
+### Contributors
+- @nnstt1
+- @nonylene
+
 ## [0.9.0] - 2021-08-10
 ### Added
 - Add topolvm helm charts (#302)
@@ -332,7 +342,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/topolvm/topolvm/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/topolvm/topolvm/compare/v0.8.3...v0.9.0
 [0.8.3]: https://github.com/topolvm/topolvm/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/topolvm/topolvm/compare/v0.8.1...v0.8.2
