@@ -544,7 +544,7 @@ func (s *nodeService) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	r := filesystem.NewResizeFs(&s.mounter)
+	r := mountutil.NewResizeFs(s.mounter.Exec)
 	if _, err := r.Resize(device, vpath); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to resize filesystem %s (mounted at: %s): %v", vid, vpath, err)
 	}

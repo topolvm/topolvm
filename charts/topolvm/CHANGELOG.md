@@ -10,6 +10,19 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 ### Changed
 - Change license to Apache License Version 2.0.
 
+## [2.1.1] - 2021-09-07
+
+### Changed
+- Fix lvmd is not previleged in deploying with Helm (#358)
+- appVersion was changed to 0.9.2.
+
+### Misc
+- duplicate label causes YAML parsing errors (#351)
+
+### Contributors
+- @faruryo
+- @khrisrichardson
+
 ## [2.1.0] - 2021-08-20
 
 ### Changed
@@ -35,7 +48,8 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v2.1.0...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v2.1.1...HEAD
+[2.1.1]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v2.1.0...topolvm-chart-v2.1.1
 [2.1.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v2.0.3...topolvm-chart-v2.1.0
 [2.0.3]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v2.0.1...topolvm-chart-v2.0.3
 [2.0.1]: https://github.com/topolvm/topolvm/releases/tag/topolvm-chart-v2.0.1
