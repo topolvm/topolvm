@@ -75,6 +75,10 @@ scheduler:
               - key: node-role.kubernetes.io/master
                 operator: Exists
 
+  podDisruptionBudget:
+    # scheduler.podDisruptionBudget.enabled -- Specify podDisruptionBudget enabled.
+    enabled: true
+
   # scheduler.tolerations -- Specify tolerations on the Deployment or DaemonSet.
   ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
   tolerations:
@@ -175,6 +179,13 @@ lvmd:
       - pathPrefix: "/run/topolvm"
         readOnly: false
 
+  # lvmd.updateStrategy -- Specify updateStrategy.
+  updateStrategy: {}
+  #  type: RollingUpdate
+  #  rollingUpdate:
+  #    maxSurge: 50%
+  #    maxUnavailable: 50%
+
 # CSI node service
 node:
   # node.lvmdSocket -- Specify the socket to be used for communication with lvmd.
@@ -255,6 +266,13 @@ node:
       - pathPrefix: "/run/topolvm"
         readOnly: false
 
+  # node.updateStrategy -- Specify updateStrategy.
+  updateStrategy: {}
+  #  type: RollingUpdate
+  #  rollingUpdate:
+  #    maxSurge: 50%
+  #    maxUnavailable: 50%
+
 # CSI controller service
 controller:
   # controller.replicaCount -- Number of replicas for CSI controller service.
@@ -317,6 +335,10 @@ controller:
     - name: socket-dir
       emptyDir: {}
 
+  podDisruptionBudget:
+    # controller.podDisruptionBudget.enabled -- Specify podDisruptionBudget enabled.
+    enabled: true
+
 # storageClasses -- Whether to create storageclass(s)
 # ref: https://kubernetes.io/docs/concepts/storage/storage-classes/
 storageClasses:
@@ -365,3 +387,11 @@ cert-manager:
   # cert-manager.enabled -- Install cert-manager together.
   ## ref: https://cert-manager.io/docs/installation/kubernetes/#installing-with-helm
   enabled: false
+
+priorityClass:
+  # priorityClass.enabled -- Install priorityClass.
+  enabled: true
+  # priorityClass.name -- Specify priorityClass resource name.
+  name: topolvm
+  # priorityClass.value  -- Specify priorityClass value.
+  value: 1000000
