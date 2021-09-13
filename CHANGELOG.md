@@ -7,6 +7,17 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.10.0] - 2021-09-13
+
+### Changed
+- Change license to Apache License Version 2.0. (#360)
+
+### Fixed
+- Bugs: Fix nsenter -a args to nsenter -m -u -i -n -p -t 1 (#364)
+
+### Contributors
+- @attlee-wang
+
 ## [0.9.2] - 2021-09-07
 
 ### Added
@@ -350,7 +361,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.9.2...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/topolvm/topolvm/compare/v0.9.2...v0.10.0
 [0.9.2]: https://github.com/topolvm/topolvm/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/topolvm/topolvm/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/topolvm/topolvm/compare/v0.8.3...v0.9.0
