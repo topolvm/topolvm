@@ -306,7 +306,7 @@ helm upgrade --namespace=topolvm-system -f values.yaml -i topolvm topolvm/topolv
 
 `kube-scheduler` need to be configured to use `topolvm-scheduler` extender.
 
-First you need to choose an appropriate `KubeSchdulerConfiguration` YAML file according to your Kubernetes version.
+First you need to choose an appropriate `KubeSchedulerConfiguration` YAML file according to your Kubernetes version.
 
 ```console
 cp ./deploy/scheduler-config/scheduler-config-v1beta1.yaml ./deploy/scheduler-config/scheduler-config.yaml
