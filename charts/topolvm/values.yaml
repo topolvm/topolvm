@@ -341,6 +341,11 @@ storageClasses:
 webhook:
   # webhook.caBundle -- Specify the certificate to be used for AdmissionWebhook.
   caBundle:  # Base64-encoded, PEM-encoded CA certificate that signs the server certificate.
+  # webhook.existingCertManagerIssuer -- Specify the cert-manager issuer to be used for AdmissionWebhook.
+  existingCertManagerIssuer: {}
+    # group: cert-manager.io
+    # kind: Issuer
+    # name: webhook-issuer
   podMutatingWebhook:
     # webhook.podMutatingWebhook.enabled -- Enable Pod MutatingWebhook.
     enabled: true
