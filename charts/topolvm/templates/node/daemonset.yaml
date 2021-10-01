@@ -6,6 +6,9 @@ metadata:
   labels:
     {{- include "topolvm.labels" . | nindent 4 }}
 spec:
+  {{- with .Values.node.updateStrategy }}
+  updateStrategy: {{ toYaml . | nindent 4 }}
+  {{- end }}
   selector:
     matchLabels:
       app.kubernetes.io/name: topolvm-node

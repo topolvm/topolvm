@@ -1,0 +1,14 @@
+{{- if .Values.scheduler.podDisruptionBudget.enabled }}
+---
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ template "topolvm.fullname" . }}-scheduler
+  namespace: {{ .Release.Namespace }}
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: topolvm-scheduler
+---
+{{- end }}

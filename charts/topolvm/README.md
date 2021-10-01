@@ -80,6 +80,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | controller.affinity | object | `{"podAntiAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":[{"labelSelector":{"matchExpressions":[{"key":"app.kubernetes.io/name","operator":"In","values":["topolvm-controller"]}]},"topologyKey":"kubernetes.io/hostname"}]}}` | Specify affinity. |
 | controller.minReadySeconds | int | `nil` | Specify minReadySeconds. |
 | controller.nodeSelector | object | `{}` | Specify nodeSelector. |
+| controller.podDisruptionBudget.enabled | bool | `true` | Specify podDisruptionBudget enabled. |
 | controller.replicaCount | int | `2` | Number of replicas for CSI controller service. |
 | controller.resources | object | `{}` | Specify resources. |
 | controller.securityContext.enabled | bool | `true` | Enable securityContext. |
@@ -103,6 +104,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | lvmd.resources | object | `{}` | Specify resources. |
 | lvmd.socketName | string | `"/run/topolvm/lvmd.sock"` | Specify socketName. |
 | lvmd.tolerations | list | `[]` | Specify tolerations. |
+| lvmd.updateStrategy | object | `{}` | Specify updateStrategy. |
 | lvmd.volumeMounts | list | `[{"mountPath":"/run/topolvm","name":"lvmd-socket-dir"}]` | Specify volumeMounts. |
 | lvmd.volumes | list | `[{"hostPath":{"path":"/run/topolvm","type":"DirectoryOrCreate"},"name":"lvmd-socket-dir"}]` | Specify volumes. |
 | node.lvmdSocket | string | `"/run/lvmd/lvmd.sock"` | Specify the socket to be used for communication with lvmd. |
@@ -113,9 +115,13 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | node.resources | object | `{}` | Specify resources. |
 | node.securityContext.privileged | bool | `true` |  |
 | node.tolerations | list | `[]` | Specify tolerations. |
+| node.updateStrategy | object | `{}` | Specify updateStrategy. |
 | node.volumeMounts.topolvmNode | list | `[{"mountPath":"/run/topolvm","name":"node-plugin-dir"},{"mountPath":"/run/lvmd","name":"lvmd-socket-dir"},{"mountPath":"/var/lib/kubelet/pods","mountPropagation":"Bidirectional","name":"pod-volumes-dir"},{"mountPath":"/var/lib/kubelet/plugins/kubernetes.io/csi","mountPropagation":"Bidirectional","name":"csi-plugin-dir"}]` | Specify volumeMounts for topolvm-node container. |
 | node.volumes | list | `[{"hostPath":{"path":"/var/lib/kubelet/plugins_registry/","type":"Directory"},"name":"registration-dir"},{"hostPath":{"path":"/var/lib/kubelet/plugins/topolvm.cybozu.com/node","type":"DirectoryOrCreate"},"name":"node-plugin-dir"},{"hostPath":{"path":"/var/lib/kubelet/plugins/kubernetes.io/csi","type":"DirectoryOrCreate"},"name":"csi-plugin-dir"},{"hostPath":{"path":"/var/lib/kubelet/pods/","type":"DirectoryOrCreate"},"name":"pod-volumes-dir"},{"hostPath":{"path":"/run/topolvm","type":"Directory"},"name":"lvmd-socket-dir"}]` | Specify volumes. |
 | podSecurityPolicy.create | bool | `true` | Enable pod security policy. |
+| priorityClass.enabled | bool | `true` | Install priorityClass. |
+| priorityClass.name | string | `"topolvm"` | Specify priorityClass resource name. |
+| priorityClass.value | int | `1000000` |  |
 | scheduler.affinity | object | `{"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"node-role.kubernetes.io/control-plane","operator":"Exists"}]},{"matchExpressions":[{"key":"node-role.kubernetes.io/master","operator":"Exists"}]}]}}}` | Specify affinity on the Deployment or DaemonSet. |
 | scheduler.deployment.replicaCount | int | `2` | Number of replicas for Deployment. |
 | scheduler.enabled | bool | `true` | If true, enable scheduler extender for TopoLVM |
@@ -123,6 +129,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | scheduler.nodeSelector | object | `{}` | Specify nodeSelector on the Deployment or DaemonSet. |
 | scheduler.options.listen.host | string | `"localhost"` | Host used by Probe. |
 | scheduler.options.listen.port | int | `9251` | Listen port. |
+| scheduler.podDisruptionBudget.enabled | bool | `true` | Specify podDisruptionBudget enabled. |
 | scheduler.resources | object | `{}` | Specify resources on the TopoLVM scheduler extender container. |
 | scheduler.schedulerOptions | object | `{}` | Tune the Node scoring. ref: https://github.com/topolvm/topolvm/blob/master/deploy/README.md |
 | scheduler.service.clusterIP | string | `nil` | Specify Service clusterIP. |
