@@ -1,5 +1,4 @@
-{{ if .Values.scheduler.enabled }}
-  {{ if eq (lower .Values.scheduler.type) "deployment" }}
+{{ if and .Values.scheduler.enabled (eq (lower .Values.scheduler.type) "deployment") }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -65,6 +64,4 @@ spec:
       {{- with .Values.scheduler.nodeSelector }}
       nodeSelector: {{ toYaml . | nindent 8 }}
       {{- end }}
----
-  {{ end }}
 {{ end }}

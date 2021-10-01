@@ -38,13 +38,19 @@ spec:
             - /topolvm-controller
             - --cert-dir=/certs
           ports:
+            - containerPort: 9443
+              name: webhook
+              protocol: TCP
             - containerPort: 9808
               name: healthz
+              protocol: TCP
+            - containerPort: 8080
+              name: metrics
               protocol: TCP
           readinessProbe:
             httpGet:
               path: /metrics
-              port: 8080
+              port: metrics
               scheme: HTTP
           livenessProbe:
             httpGet:
@@ -77,8 +83,8 @@ spec:
           {{- end }}
           command:
             - /csi-provisioner
-            - "--csi-address=/run/topolvm/csi-topolvm.sock"
-            - "--feature-gates=Topology=true"
+            - --csi-address=/run/topolvm/csi-topolvm.sock
+            - --feature-gates=Topology=true
             - --leader-election
             - --leader-election-namespace={{ .Release.Namespace }}
             {{- with .Values.controller.storageCapacityTracking.enabled }}
@@ -111,7 +117,7 @@ spec:
           {{- end }}
           command:
             - /csi-resizer
-            - "--csi-address=/run/topolvm/csi-topolvm.sock"
+            - --csi-address=/run/topolvm/csi-topolvm.sock
             - --leader-election
             - --leader-election-namespace={{ .Release.Namespace }}
           volumeMounts:
@@ -129,7 +135,7 @@ spec:
           {{- end }}
           command:
             - /livenessprobe
-            - "--csi-address=/run/topolvm/csi-topolvm.sock"
+            - --csi-address=/run/topolvm/csi-topolvm.sock
           volumeMounts:
             - name: socket-dir
               mountPath: /run/topolvm

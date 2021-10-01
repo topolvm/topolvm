@@ -1,0 +1,36 @@
+{{- if .Values.node.prometheus.podMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ template "topolvm.fullname" . }}-node
+  namespace: {{ .Values.node.prometheus.podMonitor.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "topolvm.labels" . | nindent 4 }}
+    {{- with .Values.node.prometheus.podMonitor.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: topolvm-node
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  podMetricsEndpoints:
+  - path: /metrics
+    port: metrics
+    {{- with .Values.node.prometheus.podMonitor.interval }}
+    interval: {{ . }}
+    {{- end }}
+    {{- with .Values.node.prometheus.podMonitor.scrapeTimeout }}
+    scrapeTimeout: {{ . }}
+    {{- end }}
+    {{- with .Values.node.prometheus.podMonitor.relabelings }}
+    relabelings:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.node.prometheus.podMonitor.metricRelabelings }}
+    metricRelabelings:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+{{- end }}
