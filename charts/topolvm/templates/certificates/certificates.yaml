@@ -1,3 +1,4 @@
+{{- if not .Values.webhook.existingCertManagerIssuer }}
 # Generate a CA Certificate used to sign certificates for the webhook
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -8,15 +9,18 @@ metadata:
     {{- include "topolvm.labels" . | nindent 4 }}
 spec:
   secretName: {{ template "topolvm.fullname" . }}-webhook-ca
-  duration: 87600h0m0s # 10y
+  duration: 87600h # 10y
   issuerRef:
+    group: cert-manager.io
+    kind: Issuer
     name: {{ template "topolvm.fullname" . }}-webhook-selfsign
-  commonName: "ca.webhook.topolvm"
+  commonName: ca.webhook.topolvm
   isCA: true
   usages:
     - digital signature
     - key encipherment
     - cert sign
+{{- end }}
 ---
 # Finally, generate a serving certificate for the webhook to use
 apiVersion: cert-manager.io/v1
@@ -28,9 +32,15 @@ metadata:
     {{- include "topolvm.labels" . | nindent 4 }}
 spec:
   secretName: {{ template "topolvm.fullname" . }}-mutatingwebhook
-  duration: 8760h0m0s # 1y
+  duration: 8760h # 1y
   issuerRef:
+    {{- with .Values.webhook.existingCertManagerIssuer }}
+    {{- toYaml . | nindent 4 -}}
+    {{- else }}
+    group: cert-manager.io
+    kind: Issuer
     name: {{ template "topolvm.fullname" . }}-webhook-ca
+    {{- end }}
   dnsNames:
     - {{ template "topolvm.fullname" . }}-controller
     - {{ template "topolvm.fullname" . }}-controller.{{ .Release.Namespace }}
