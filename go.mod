@@ -7,7 +7,7 @@ require (
 	github.com/cybozu-go/well v1.10.0
 	github.com/go-logr/logr v0.4.0
 	github.com/google/go-cmp v0.5.6
-	github.com/kubernetes-csi/csi-test/v4 v4.2.1-0.20210804222850-c5c0c94cd86e
+	github.com/kubernetes-csi/csi-test/v4 v4.3.0
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.13.0
 	github.com/prometheus/client_golang v1.11.0
