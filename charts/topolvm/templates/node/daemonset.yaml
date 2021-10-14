@@ -34,8 +34,11 @@ spec:
             - /topolvm-node
             - --lvmd-socket={{ .Values.node.lvmdSocket }}
           ports:
-            - containerPort: 9808
-              name: healthz
+            - name: healthz
+              containerPort: 9808
+              protocol: TCP
+            - name: metrics
+              containerPort: 8080
               protocol: TCP
           livenessProbe:
             httpGet:
@@ -68,19 +71,22 @@ spec:
           {{- end }}
           command:
             - /csi-node-driver-registrar
-            - "--csi-address=/run/topolvm/csi-topolvm.sock"
-            - "--kubelet-registration-path=/var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock"
+            - --csi-address=/run/topolvm/csi-topolvm.sock
+            - --kubelet-registration-path=/var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
           livenessProbe:
             exec:
               command:
               - /csi-node-driver-registrar
-              - "--kubelet-registration-path=/var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock"
-              - "--mode=kubelet-registration-probe"
+              - --kubelet-registration-path=/var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
+              - --mode=kubelet-registration-probe
             initialDelaySeconds: 3
           lifecycle:
             preStop:
               exec:
-                command: ["/bin/sh", "-c", "rm -rf /registration/topolvm.cybozu.com /registration/topolvm.cybozu.com-reg.sock"]
+                command:
+                - /bin/sh
+                - -c
+                - rm -rf /registration/topolvm.cybozu.com /registration/topolvm.cybozu.com-reg.sock
           volumeMounts:
             - name: node-plugin-dir
               mountPath: /run/topolvm
@@ -98,7 +104,7 @@ spec:
           {{- end }}
           command:
             - /livenessprobe
-            - "--csi-address=/run/topolvm/csi-topolvm.sock"
+            - --csi-address=/run/topolvm/csi-topolvm.sock
           volumeMounts:
             - name: node-plugin-dir
               mountPath: /run/topolvm

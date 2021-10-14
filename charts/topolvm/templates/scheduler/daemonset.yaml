@@ -1,5 +1,4 @@
-{{ if .Values.scheduler.enabled }}
-  {{ if eq (lower .Values.scheduler.type) "daemonset" }}
+{{ if and .Values.scheduler.enabled (eq (lower .Values.scheduler.type) "daemonset") }}
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -66,6 +65,4 @@ spec:
       {{- with .Values.scheduler.nodeSelector }}
       nodeSelector: {{ toYaml . | nindent 8 }}
       {{- end }}
----
-  {{ end }}
 {{ end }}

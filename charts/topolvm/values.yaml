@@ -199,9 +199,42 @@ node:
   metrics:
     # node.metrics.enabled -- If true, enable scraping of metrics by Prometheus.
     enabled: true
-    # node.metrics.annotations -- Annotations for Scrape used by Prometheus..
+    # node.metrics.annotations -- Annotations for Scrape used by Prometheus.
     annotations:
-      prometheus.io/port: "8080"
+      prometheus.io/port: metrics
+
+  prometheus:
+    podMonitor:
+      # node.prometheus.podMonitor.enabled -- Set this to `true` to create PodMonitor for Prometheus operator.
+      enabled: false
+
+      # node.prometheus.podMonitor.additionalLabels -- Additional labels that can be used so PodMonitor will be discovered by Prometheus.
+      additionalLabels: {}
+
+      # node.prometheus.podMonitor.namespace -- Optional namespace in which to create PodMonitor.
+      namespace: ""
+
+      # node.prometheus.podMonitor.interval -- Scrape interval. If not set, the Prometheus default scrape interval is used.
+      interval: ""
+
+      # node.prometheus.podMonitor.scrapeTimeout -- Scrape timeout. If not set, the Prometheus default scrape timeout is used.
+      scrapeTimeout: ""
+
+      # node.prometheus.podMonitor.relabelings -- RelabelConfigs to apply to samples before scraping.
+      relabelings: []
+      # - sourceLabels: [__meta_kubernetes_service_label_cluster]
+      #   targetLabel: cluster
+      #   regex: (.*)
+      #   replacement: ${1}
+      #   action: replace
+
+      # node.prometheus.podMonitor.metricRelabelings -- MetricRelabelConfigs to apply to samples before ingestion.
+      metricRelabelings: []
+      # - sourceLabels: [__meta_kubernetes_service_label_cluster]
+      #   targetLabel: cluster
+      #   regex: (.*)
+      #   replacement: ${1}
+      #   action: replace
 
   # node.resources -- Specify resources.
   ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
@@ -285,6 +318,39 @@ controller:
   securityContext:
     # controller.securityContext.enabled -- Enable securityContext.
     enabled: true
+
+  prometheus:
+    podMonitor:
+      # controller.prometheus.podMonitor.enabled -- Set this to `true` to create PodMonitor for Prometheus operator.
+      enabled: false
+
+      # controller.prometheus.podMonitor.additionalLabels -- Additional labels that can be used so PodMonitor will be discovered by Prometheus.
+      additionalLabels: {}
+
+      # controller.prometheus.podMonitor.namespace -- Optional namespace in which to create PodMonitor.
+      namespace: ""
+
+      # controller.prometheus.podMonitor.interval -- Scrape interval. If not set, the Prometheus default scrape interval is used.
+      interval: ""
+
+      # controller.prometheus.podMonitor.scrapeTimeout -- Scrape timeout. If not set, the Prometheus default scrape timeout is used.
+      scrapeTimeout: ""
+
+      # controller.prometheus.podMonitor.relabelings -- RelabelConfigs to apply to samples before scraping.
+      relabelings: []
+      # - sourceLabels: [__meta_kubernetes_service_label_cluster]
+      #   targetLabel: cluster
+      #   regex: (.*)
+      #   replacement: ${1}
+      #   action: replace
+
+      # controller.prometheus.podMonitor.metricRelabelings -- MetricRelabelConfigs to apply to samples before ingestion.
+      metricRelabelings: []
+      # - sourceLabels: [__meta_kubernetes_service_label_cluster]
+      #   targetLabel: cluster
+      #   regex: (.*)
+      #   replacement: ${1}
+      #   action: replace
 
   # controller.terminationGracePeriodSeconds -- (int) Specify terminationGracePeriodSeconds.
   terminationGracePeriodSeconds:  # 10
