@@ -30,6 +30,9 @@ spec:
       {{- with .Values.scheduler.terminationGracePeriodSeconds }}
       terminationGracePeriodSeconds: {{ . }}
       {{- end }}
+      {{- with .Values.scheduler.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
       serviceAccountName: {{ template "topolvm.fullname" . }}-scheduler
       containers:
         - name: topolvm-scheduler

@@ -81,6 +81,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | controller.minReadySeconds | int | `nil` | Specify minReadySeconds. |
 | controller.nodeSelector | object | `{}` | Specify nodeSelector. |
 | controller.podDisruptionBudget.enabled | bool | `true` | Specify podDisruptionBudget enabled. |
+| controller.priorityClassName | string | `nil` | Specify priorityClassName. |
 | controller.prometheus.podMonitor.additionalLabels | object | `{}` | Additional labels that can be used so PodMonitor will be discovered by Prometheus. |
 | controller.prometheus.podMonitor.enabled | bool | `false` | Set this to `true` to create PodMonitor for Prometheus operator. |
 | controller.prometheus.podMonitor.interval | string | `""` | Scrape interval. If not set, the Prometheus default scrape interval is used. |
@@ -107,6 +108,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | lvmd.deviceClasses | list | `[{"default":true,"name":"ssd","spare-gb":10,"volume-group":"myvg1"}]` | Specify the device-class settings. |
 | lvmd.managed | bool | `true` | If true, set up lvmd service with DaemonSet. |
 | lvmd.nodeSelector | object | `{}` | Specify nodeSelector. |
+| lvmd.priorityClassName | string | `nil` | Specify priorityClassName. |
 | lvmd.psp.allowedHostPaths | list | `[{"pathPrefix":"/run/topolvm","readOnly":false}]` | Specify allowedHostPaths. |
 | lvmd.resources | object | `{}` | Specify resources. |
 | lvmd.socketName | string | `"/run/topolvm/lvmd.sock"` | Specify socketName. |
@@ -118,6 +120,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | node.metrics.annotations | object | `{"prometheus.io/port":"metrics"}` | Annotations for Scrape used by Prometheus. |
 | node.metrics.enabled | bool | `true` | If true, enable scraping of metrics by Prometheus. |
 | node.nodeSelector | object | `{}` | Specify nodeSelector. |
+| node.priorityClassName | string | `nil` | Specify priorityClassName. |
 | node.prometheus.podMonitor.additionalLabels | object | `{}` | Additional labels that can be used so PodMonitor will be discovered by Prometheus. |
 | node.prometheus.podMonitor.enabled | bool | `false` | Set this to `true` to create PodMonitor for Prometheus operator. |
 | node.prometheus.podMonitor.interval | string | `""` | Scrape interval. If not set, the Prometheus default scrape interval is used. |
@@ -144,6 +147,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | scheduler.options.listen.host | string | `"localhost"` | Host used by Probe. |
 | scheduler.options.listen.port | int | `9251` | Listen port. |
 | scheduler.podDisruptionBudget.enabled | bool | `true` | Specify podDisruptionBudget enabled. |
+| scheduler.priorityClassName | string | `nil` | Specify priorityClassName on the Deployment or DaemonSet. |
 | scheduler.resources | object | `{}` | Specify resources on the TopoLVM scheduler extender container. |
 | scheduler.schedulerOptions | object | `{}` | Tune the Node scoring. ref: https://github.com/topolvm/topolvm/blob/master/deploy/README.md |
 | scheduler.service.clusterIP | string | `nil` | Specify Service clusterIP. |

@@ -28,8 +28,11 @@ spec:
       {{- with .Values.securityContext }}
       securityContext: {{ toYaml . | nindent 8 }}
       {{- end }}
-      {{- if .Values.scheduler.terminationGracePeriodSeconds }}
-      terminationGracePeriodSeconds: {{ .Values.scheduler.terminationGracePeriodSeconds }}
+      {{- with .Values.scheduler.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ . }}
+      {{- end }}
+      {{- with .Values.scheduler.priorityClassName }}
+      priorityClassName: {{ . }}
       {{- end }}
       serviceAccountName: {{ template "topolvm.fullname" . }}-scheduler
       containers:
