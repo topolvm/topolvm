@@ -14,11 +14,9 @@ spec:
     - 'emptyDir'
     - 'secret'
     - 'hostPath'
-  allowedHostPaths:
-    - pathPrefix: "/var/lib/kubelet"
-      readOnly: false
-    - pathPrefix: "/run/topolvm"
-      readOnly: false
+  {{- with .Values.node.psp.allowedHostPaths }}
+  allowedHostPaths: {{ toYaml . | nindent 2 }}
+  {{- end }}
   hostNetwork: false
   runAsUser:
     rule: 'RunAsAny'

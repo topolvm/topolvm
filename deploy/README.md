@@ -237,16 +237,20 @@ You can see the limitations of using Storage Capacity Tracking from [here](https
 #### Use Storage Capacity Tracking
 
 If you want to use Storage Capacity Tracking instead of using topolvm-scheduler,
-you need set the `controller.storageCapacityTracking.enabled=true` and `scheduler.enabled=false` in the Helm Chart values.
+you need to set the `controller.storageCapacityTracking.enabled=true`, `scheduler.enabled=false` and `webhook.podMutatingWebhook.enabled=false` in the Helm Chart values.
 
     ```yaml
     <snip>
     controller:
       storageCapacityTracking:
-        enabled: false
+        enabled: true
     <snip>
     scheduler:
       enabled: false
+    <snip>
+    webhook:
+      podMutatingWebhook:
+        enabled: false
     <snip>
     ```
 
@@ -302,7 +306,7 @@ helm upgrade --namespace=topolvm-system -f values.yaml -i topolvm topolvm/topolv
 
 `kube-scheduler` need to be configured to use `topolvm-scheduler` extender.
 
-First you need to choose an appropriate `KubeSchdulerConfiguration` YAML file according to your Kubernetes version.
+First you need to choose an appropriate `KubeSchedulerConfiguration` YAML file according to your Kubernetes version.
 
 ```console
 cp ./deploy/scheduler-config/scheduler-config-v1beta1.yaml ./deploy/scheduler-config/scheduler-config.yaml

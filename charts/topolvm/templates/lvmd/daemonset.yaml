@@ -14,6 +14,9 @@ metadata:
     idx: {{ $lvmdidx | quote }}
     {{- include "topolvm.labels" . | nindent 4 }}
 spec:
+  {{- with .Values.lvmd.updateStrategy }}
+  updateStrategy: {{ toYaml . | nindent 4 }}
+  {{- end }}
   selector:
     matchLabels:
       idx: {{ $lvmdidx | quote }}

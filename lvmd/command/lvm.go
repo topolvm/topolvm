@@ -31,7 +31,7 @@ var ErrNotFound = errors.New("not found")
 // on the host
 func wrapExecCommand(cmd string, args ...string) *exec.Cmd {
 	if Containerized {
-		args = append([]string{"-a", "-t", "1", cmd}, args...)
+		args = append([]string{"-m", "-u", "-i", "-n", "-p", "-t", "1", cmd}, args...)
 		cmd = nsenter
 	}
 	c := exec.Command(cmd, args...)

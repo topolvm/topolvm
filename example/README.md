@@ -8,7 +8,7 @@ and loopback block devices to run `lvmd`.
 You can try TopoLVM using the example with tag like following command. The main branch is being edited, so it may not work.
 
 ```
-$ git checkout v0.8.3
+$ git checkout v0.10.0
 ```
 
 To start the demonstration environment, run the following commands:

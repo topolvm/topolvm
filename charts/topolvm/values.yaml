@@ -45,6 +45,8 @@ scheduler:
   service:
     # scheduler.service.type -- Specify Service type.
     type: LoadBalancer
+    # scheduler.service.clusterIP -- Specify Service clusterIP.
+    clusterIP:  # None
     # scheduler.service.nodePort -- (int) Specify nodePort.
     nodePort:  # 30251
 
@@ -72,6 +74,10 @@ scheduler:
           - matchExpressions:
               - key: node-role.kubernetes.io/master
                 operator: Exists
+
+  podDisruptionBudget:
+    # scheduler.podDisruptionBudget.enabled -- Specify podDisruptionBudget enabled.
+    enabled: true
 
   # scheduler.tolerations -- Specify tolerations on the Deployment or DaemonSet.
   ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
@@ -173,6 +179,13 @@ lvmd:
       - pathPrefix: "/run/topolvm"
         readOnly: false
 
+  # lvmd.updateStrategy -- Specify updateStrategy.
+  updateStrategy: {}
+  #  type: RollingUpdate
+  #  rollingUpdate:
+  #    maxSurge: 50%
+  #    maxUnavailable: 50%
+
 # CSI node service
 node:
   # node.lvmdSocket -- Specify the socket to be used for communication with lvmd.
@@ -186,9 +199,42 @@ node:
   metrics:
     # node.metrics.enabled -- If true, enable scraping of metrics by Prometheus.
     enabled: true
-    # node.metrics.annotations -- Annotations for Scrape used by Prometheus..
+    # node.metrics.annotations -- Annotations for Scrape used by Prometheus.
     annotations:
-      prometheus.io/port: "8080"
+      prometheus.io/port: metrics
+
+  prometheus:
+    podMonitor:
+      # node.prometheus.podMonitor.enabled -- Set this to `true` to create PodMonitor for Prometheus operator.
+      enabled: false
+
+      # node.prometheus.podMonitor.additionalLabels -- Additional labels that can be used so PodMonitor will be discovered by Prometheus.
+      additionalLabels: {}
+
+      # node.prometheus.podMonitor.namespace -- Optional namespace in which to create PodMonitor.
+      namespace: ""
+
+      # node.prometheus.podMonitor.interval -- Scrape interval. If not set, the Prometheus default scrape interval is used.
+      interval: ""
+
+      # node.prometheus.podMonitor.scrapeTimeout -- Scrape timeout. If not set, the Prometheus default scrape timeout is used.
+      scrapeTimeout: ""
+
+      # node.prometheus.podMonitor.relabelings -- RelabelConfigs to apply to samples before scraping.
+      relabelings: []
+      # - sourceLabels: [__meta_kubernetes_service_label_cluster]
+      #   targetLabel: cluster
+      #   regex: (.*)
+      #   replacement: ${1}
+      #   action: replace
+
+      # node.prometheus.podMonitor.metricRelabelings -- MetricRelabelConfigs to apply to samples before ingestion.
+      metricRelabelings: []
+      # - sourceLabels: [__meta_kubernetes_service_label_cluster]
+      #   targetLabel: cluster
+      #   regex: (.*)
+      #   replacement: ${1}
+      #   action: replace
 
   # node.resources -- Specify resources.
   ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
@@ -245,6 +291,21 @@ node:
         mountPath: /var/lib/kubelet/plugins/kubernetes.io/csi
         mountPropagation: "Bidirectional"
 
+  psp:
+    # node.psp.allowedHostPaths -- Specify allowedHostPaths.
+    allowedHostPaths:
+      - pathPrefix: "/var/lib/kubelet"
+        readOnly: false
+      - pathPrefix: "/run/topolvm"
+        readOnly: false
+
+  # node.updateStrategy -- Specify updateStrategy.
+  updateStrategy: {}
+  #  type: RollingUpdate
+  #  rollingUpdate:
+  #    maxSurge: 50%
+  #    maxUnavailable: 50%
+
 # CSI controller service
 controller:
   # controller.replicaCount -- Number of replicas for CSI controller service.
@@ -257,6 +318,39 @@ controller:
   securityContext:
     # controller.securityContext.enabled -- Enable securityContext.
     enabled: true
+
+  prometheus:
+    podMonitor:
+      # controller.prometheus.podMonitor.enabled -- Set this to `true` to create PodMonitor for Prometheus operator.
+      enabled: false
+
+      # controller.prometheus.podMonitor.additionalLabels -- Additional labels that can be used so PodMonitor will be discovered by Prometheus.
+      additionalLabels: {}
+
+      # controller.prometheus.podMonitor.namespace -- Optional namespace in which to create PodMonitor.
+      namespace: ""
+
+      # controller.prometheus.podMonitor.interval -- Scrape interval. If not set, the Prometheus default scrape interval is used.
+      interval: ""
+
+      # controller.prometheus.podMonitor.scrapeTimeout -- Scrape timeout. If not set, the Prometheus default scrape timeout is used.
+      scrapeTimeout: ""
+
+      # controller.prometheus.podMonitor.relabelings -- RelabelConfigs to apply to samples before scraping.
+      relabelings: []
+      # - sourceLabels: [__meta_kubernetes_service_label_cluster]
+      #   targetLabel: cluster
+      #   regex: (.*)
+      #   replacement: ${1}
+      #   action: replace
+
+      # controller.prometheus.podMonitor.metricRelabelings -- MetricRelabelConfigs to apply to samples before ingestion.
+      metricRelabelings: []
+      # - sourceLabels: [__meta_kubernetes_service_label_cluster]
+      #   targetLabel: cluster
+      #   regex: (.*)
+      #   replacement: ${1}
+      #   action: replace
 
   # controller.terminationGracePeriodSeconds -- (int) Specify terminationGracePeriodSeconds.
   terminationGracePeriodSeconds:  # 10
@@ -307,6 +401,10 @@ controller:
     - name: socket-dir
       emptyDir: {}
 
+  podDisruptionBudget:
+    # controller.podDisruptionBudget.enabled -- Specify podDisruptionBudget enabled.
+    enabled: true
+
 # storageClasses -- Whether to create storageclass(s)
 # ref: https://kubernetes.io/docs/concepts/storage/storage-classes/
 storageClasses:
@@ -331,6 +429,11 @@ storageClasses:
 webhook:
   # webhook.caBundle -- Specify the certificate to be used for AdmissionWebhook.
   caBundle:  # Base64-encoded, PEM-encoded CA certificate that signs the server certificate.
+  # webhook.existingCertManagerIssuer -- Specify the cert-manager issuer to be used for AdmissionWebhook.
+  existingCertManagerIssuer: {}
+    # group: cert-manager.io
+    # kind: Issuer
+    # name: webhook-issuer
   podMutatingWebhook:
     # webhook.podMutatingWebhook.enabled -- Enable Pod MutatingWebhook.
     enabled: true
@@ -355,3 +458,11 @@ cert-manager:
   # cert-manager.enabled -- Install cert-manager together.
   ## ref: https://cert-manager.io/docs/installation/kubernetes/#installing-with-helm
   enabled: false
+
+priorityClass:
+  # priorityClass.enabled -- Install priorityClass.
+  enabled: true
+  # priorityClass.name -- Specify priorityClass resource name.
+  name: topolvm
+  # priorityClass.value  -- Specify priorityClass value.
+  value: 1000000

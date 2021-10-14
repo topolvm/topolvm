@@ -80,6 +80,14 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | controller.affinity | object | `{"podAntiAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":[{"labelSelector":{"matchExpressions":[{"key":"app.kubernetes.io/name","operator":"In","values":["topolvm-controller"]}]},"topologyKey":"kubernetes.io/hostname"}]}}` | Specify affinity. |
 | controller.minReadySeconds | int | `nil` | Specify minReadySeconds. |
 | controller.nodeSelector | object | `{}` | Specify nodeSelector. |
+| controller.podDisruptionBudget.enabled | bool | `true` | Specify podDisruptionBudget enabled. |
+| controller.prometheus.podMonitor.additionalLabels | object | `{}` | Additional labels that can be used so PodMonitor will be discovered by Prometheus. |
+| controller.prometheus.podMonitor.enabled | bool | `false` | Set this to `true` to create PodMonitor for Prometheus operator. |
+| controller.prometheus.podMonitor.interval | string | `""` | Scrape interval. If not set, the Prometheus default scrape interval is used. |
+| controller.prometheus.podMonitor.metricRelabelings | list | `[]` | MetricRelabelConfigs to apply to samples before ingestion. |
+| controller.prometheus.podMonitor.namespace | string | `""` | Optional namespace in which to create PodMonitor. |
+| controller.prometheus.podMonitor.relabelings | list | `[]` | RelabelConfigs to apply to samples before scraping. |
+| controller.prometheus.podMonitor.scrapeTimeout | string | `""` | Scrape timeout. If not set, the Prometheus default scrape timeout is used. |
 | controller.replicaCount | int | `2` | Number of replicas for CSI controller service. |
 | controller.resources | object | `{}` | Specify resources. |
 | controller.securityContext.enabled | bool | `true` | Enable securityContext. |
@@ -103,18 +111,31 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | lvmd.resources | object | `{}` | Specify resources. |
 | lvmd.socketName | string | `"/run/topolvm/lvmd.sock"` | Specify socketName. |
 | lvmd.tolerations | list | `[]` | Specify tolerations. |
+| lvmd.updateStrategy | object | `{}` | Specify updateStrategy. |
 | lvmd.volumeMounts | list | `[{"mountPath":"/run/topolvm","name":"lvmd-socket-dir"}]` | Specify volumeMounts. |
 | lvmd.volumes | list | `[{"hostPath":{"path":"/run/topolvm","type":"DirectoryOrCreate"},"name":"lvmd-socket-dir"}]` | Specify volumes. |
 | node.lvmdSocket | string | `"/run/lvmd/lvmd.sock"` | Specify the socket to be used for communication with lvmd. |
-| node.metrics.annotations | object | `{"prometheus.io/port":"8080"}` | Annotations for Scrape used by Prometheus.. |
+| node.metrics.annotations | object | `{"prometheus.io/port":"metrics"}` | Annotations for Scrape used by Prometheus. |
 | node.metrics.enabled | bool | `true` | If true, enable scraping of metrics by Prometheus. |
 | node.nodeSelector | object | `{}` | Specify nodeSelector. |
+| node.prometheus.podMonitor.additionalLabels | object | `{}` | Additional labels that can be used so PodMonitor will be discovered by Prometheus. |
+| node.prometheus.podMonitor.enabled | bool | `false` | Set this to `true` to create PodMonitor for Prometheus operator. |
+| node.prometheus.podMonitor.interval | string | `""` | Scrape interval. If not set, the Prometheus default scrape interval is used. |
+| node.prometheus.podMonitor.metricRelabelings | list | `[]` | MetricRelabelConfigs to apply to samples before ingestion. |
+| node.prometheus.podMonitor.namespace | string | `""` | Optional namespace in which to create PodMonitor. |
+| node.prometheus.podMonitor.relabelings | list | `[]` | RelabelConfigs to apply to samples before scraping. |
+| node.prometheus.podMonitor.scrapeTimeout | string | `""` | Scrape timeout. If not set, the Prometheus default scrape timeout is used. |
+| node.psp.allowedHostPaths | list | `[{"pathPrefix":"/var/lib/kubelet","readOnly":false},{"pathPrefix":"/run/topolvm","readOnly":false}]` | Specify allowedHostPaths. |
 | node.resources | object | `{}` | Specify resources. |
 | node.securityContext.privileged | bool | `true` |  |
 | node.tolerations | list | `[]` | Specify tolerations. |
+| node.updateStrategy | object | `{}` | Specify updateStrategy. |
 | node.volumeMounts.topolvmNode | list | `[{"mountPath":"/run/topolvm","name":"node-plugin-dir"},{"mountPath":"/run/lvmd","name":"lvmd-socket-dir"},{"mountPath":"/var/lib/kubelet/pods","mountPropagation":"Bidirectional","name":"pod-volumes-dir"},{"mountPath":"/var/lib/kubelet/plugins/kubernetes.io/csi","mountPropagation":"Bidirectional","name":"csi-plugin-dir"}]` | Specify volumeMounts for topolvm-node container. |
 | node.volumes | list | `[{"hostPath":{"path":"/var/lib/kubelet/plugins_registry/","type":"Directory"},"name":"registration-dir"},{"hostPath":{"path":"/var/lib/kubelet/plugins/topolvm.cybozu.com/node","type":"DirectoryOrCreate"},"name":"node-plugin-dir"},{"hostPath":{"path":"/var/lib/kubelet/plugins/kubernetes.io/csi","type":"DirectoryOrCreate"},"name":"csi-plugin-dir"},{"hostPath":{"path":"/var/lib/kubelet/pods/","type":"DirectoryOrCreate"},"name":"pod-volumes-dir"},{"hostPath":{"path":"/run/topolvm","type":"Directory"},"name":"lvmd-socket-dir"}]` | Specify volumes. |
 | podSecurityPolicy.create | bool | `true` | Enable pod security policy. |
+| priorityClass.enabled | bool | `true` | Install priorityClass. |
+| priorityClass.name | string | `"topolvm"` | Specify priorityClass resource name. |
+| priorityClass.value | int | `1000000` |  |
 | scheduler.affinity | object | `{"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"node-role.kubernetes.io/control-plane","operator":"Exists"}]},{"matchExpressions":[{"key":"node-role.kubernetes.io/master","operator":"Exists"}]}]}}}` | Specify affinity on the Deployment or DaemonSet. |
 | scheduler.deployment.replicaCount | int | `2` | Number of replicas for Deployment. |
 | scheduler.enabled | bool | `true` | If true, enable scheduler extender for TopoLVM |
@@ -122,8 +143,10 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | scheduler.nodeSelector | object | `{}` | Specify nodeSelector on the Deployment or DaemonSet. |
 | scheduler.options.listen.host | string | `"localhost"` | Host used by Probe. |
 | scheduler.options.listen.port | int | `9251` | Listen port. |
+| scheduler.podDisruptionBudget.enabled | bool | `true` | Specify podDisruptionBudget enabled. |
 | scheduler.resources | object | `{}` | Specify resources on the TopoLVM scheduler extender container. |
 | scheduler.schedulerOptions | object | `{}` | Tune the Node scoring. ref: https://github.com/topolvm/topolvm/blob/master/deploy/README.md |
+| scheduler.service.clusterIP | string | `nil` | Specify Service clusterIP. |
 | scheduler.service.nodePort | int | `nil` | Specify nodePort. |
 | scheduler.service.type | string | `"LoadBalancer"` | Specify Service type. |
 | scheduler.terminationGracePeriodSeconds | int | `nil` | Specify terminationGracePeriodSeconds on the Deployment or DaemonSet. |
@@ -134,6 +157,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | securityContext.runAsUser | int | `10000` | Specify runAsUser. |
 | storageClasses | list | `[{"name":"topolvm-provisioner","storageClass":{"additionalParameters":{},"allowVolumeExpansion":true,"annotations":{},"fsType":"xfs","isDefaultClass":false,"reclaimPolicy":null,"volumeBindingMode":"WaitForFirstConsumer"}}]` | Whether to create storageclass(s) ref: https://kubernetes.io/docs/concepts/storage/storage-classes/ |
 | webhook.caBundle | string | `nil` | Specify the certificate to be used for AdmissionWebhook. |
+| webhook.existingCertManagerIssuer | object | `{}` | Specify the cert-manager issuer to be used for AdmissionWebhook. |
 | webhook.podMutatingWebhook.enabled | bool | `true` | Enable Pod MutatingWebhook. |
 | webhook.pvcMutatingWebhook.enabled | bool | `true` | Enable PVC MutatingWebhook. |
 
