@@ -7,6 +7,20 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [3.1.1] - 2021-10-18
+
+### Changed
+- appVersion was changed to 0.10.1.
+
+### Added
+
+- support priorityClassName (#377)
+- support PodMonitor (#373)
+- support existingCertManagerIssuer (#372)
+
+### Contributors
+- @dungdm93
+
 ## [3.1.0] - 2021-09-30
 
 ### Changed
@@ -56,7 +70,8 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v3.1.0...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v3.1.1...HEAD
+[3.1.1]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v3.1.0...topolvm-chart-v3.1.1
 [3.1.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v3.0.0...topolvm-chart-v3.1.0
 [3.0.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v2.1.1...topolvm-chart-v3.0.0
 [2.1.1]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v2.1.0...topolvm-chart-v2.1.1
