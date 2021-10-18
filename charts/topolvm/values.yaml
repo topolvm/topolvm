@@ -103,6 +103,9 @@ scheduler:
   #    memory: "200Mi"
   #    cpu: "200m"
 
+  # scheduler.priorityClassName -- Specify priorityClassName on the Deployment or DaemonSet.
+  priorityClassName:
+
   # scheduler.schedulerOptions -- Tune the Node scoring.
   # ref: https://github.com/topolvm/topolvm/blob/master/deploy/README.md
   schedulerOptions: {}
@@ -141,6 +144,9 @@ lvmd:
   #  limits:
   #    memory: 500Mi
   #    cpu: 500m
+
+  # lvmd.priorityClassName -- Specify priorityClassName.
+  priorityClassName:
 
   # lvmd.tolerations -- Specify tolerations.
   ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
@@ -245,6 +251,9 @@ node:
   #  limits:
   #    memory: 500Mi
   #    cpu: 500m
+
+  # node.priorityClassName -- Specify priorityClassName.
+  priorityClassName:
 
   # node.tolerations -- Specify tolerations.
   ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
@@ -364,6 +373,9 @@ controller:
   #  limits:
   #    memory: "200Mi"
   #    cpu: "200m"
+
+  # controller.priorityClassName -- Specify priorityClassName.
+  priorityClassName:
 
   # controller.updateStrategy -- Specify updateStrategy.
   updateStrategy: {}

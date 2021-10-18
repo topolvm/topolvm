@@ -20,6 +20,9 @@ spec:
       annotations: {{ toYaml .Values.node.metrics.annotations | nindent 8 }}
       {{- end }}
     spec:
+      {{- with .Values.node.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
       serviceAccountName: {{ template "topolvm.fullname" . }}-node
       containers:
         - name: topolvm-node

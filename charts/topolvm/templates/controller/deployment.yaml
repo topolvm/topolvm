@@ -24,11 +24,11 @@ spec:
       {{- with .Values.controller.terminationGracePeriodSeconds }}
       terminationGracePeriodSeconds: {{ . }}
       {{- end }}
-      {{- with .Values.controller.affinity }}
-      affinity: {{ toYaml . | nindent 8 }}
-      {{- end }}
       {{- if .Values.controller.securityContext.enabled }}
       securityContext: {{ toYaml .Values.securityContext | nindent 8 }}
+      {{- end }}
+      {{- with .Values.controller.priorityClassName }}
+      priorityClassName: {{ . }}
       {{- end }}
       serviceAccountName: {{ template "topolvm.fullname" . }}-controller
       containers:
@@ -148,6 +148,9 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
 
+      {{- with .Values.controller.affinity }}
+      affinity: {{ toYaml . | nindent 8 }}
+      {{- end }}
       {{- with .Values.controller.tolerations }}
       tolerations: {{ toYaml . | nindent 8 }}
       {{- end }}
