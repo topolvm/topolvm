@@ -120,7 +120,7 @@ This will prevent the TopoLVM version from going up just by modifying the Helm C
     $ sed -r -i "s/^version: [[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/version: ${CHARTVERSION}/g" charts/topolvm/Chart.yaml
     ```
 
-4. Edit `CHANGELOG.md` for the new version ([example][]).
+4. Edit `charts/topolvm/CHANGELOG.md` for the new version ([example][]).
 5. Commit the change and create a pull request:
 
     ```console
