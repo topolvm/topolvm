@@ -7,6 +7,18 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.10.1] - 2021-10-18
+
+### Fixed
+- Restart csi-registrar if registration is failed. (#374)
+- Fix typo for KubeSchedulerConfiguration (#367)
+
+### Added
+- Add logo (#376)
+
+### Contributors
+- @superbrothers
+
 ## [0.10.0] - 2021-09-13
 
 ### Changed
@@ -361,7 +373,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.10.1...HEAD
+[0.10.1]: https://github.com/topolvm/topolvm/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/topolvm/topolvm/compare/v0.9.2...v0.10.0
 [0.9.2]: https://github.com/topolvm/topolvm/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/topolvm/topolvm/compare/v0.9.0...v0.9.1
