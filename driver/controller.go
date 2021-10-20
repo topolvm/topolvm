@@ -69,9 +69,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 			ctrlLogger.Info("CreateVolume specifies volume capability", "access_mode", modeName)
 			// we only support SINGLE_NODE_WRITER/SINGLE_NODE_MULTI_WRITER/SINGLE_NODE_SINGLE_WRITER
 			switch mode.GetMode() {
-			case csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
-				csi.VolumeCapability_AccessMode_SINGLE_NODE_SINGLE_WRITER,
-				csi.VolumeCapability_AccessMode_SINGLE_NODE_MULTI_WRITER:
+			case csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER:
 			default:
 				return nil, status.Errorf(codes.InvalidArgument, "unsupported access mode: %s", modeName)
 			}
