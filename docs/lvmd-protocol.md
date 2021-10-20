@@ -6,6 +6,8 @@
 - [lvmd/proto/lvmd.proto](#lvmd/proto/lvmd.proto)
     - [CreateLVRequest](#proto.CreateLVRequest)
     - [CreateLVResponse](#proto.CreateLVResponse)
+    - [CreateSnapRequest](#proto.CreateSnapRequest)
+    - [CreateSnapResponse](#proto.CreateSnapResponse)
     - [Empty](#proto.Empty)
     - [GetFreeBytesRequest](#proto.GetFreeBytesRequest)
     - [GetFreeBytesResponse](#proto.GetFreeBytesResponse)
@@ -13,7 +15,10 @@
     - [GetLVListResponse](#proto.GetLVListResponse)
     - [LogicalVolume](#proto.LogicalVolume)
     - [RemoveLVRequest](#proto.RemoveLVRequest)
+    - [RemoveSnapRequest](#proto.RemoveSnapRequest)
     - [ResizeLVRequest](#proto.ResizeLVRequest)
+    - [RestoreLVRequest](#proto.RestoreLVRequest)
+    - [RestoreLVResponse](#proto.RestoreLVResponse)
     - [WatchItem](#proto.WatchItem)
     - [WatchResponse](#proto.WatchResponse)
   
@@ -62,6 +67,40 @@ Represents the response of CreateLV.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | volume | [LogicalVolume](#proto.LogicalVolume) |  | Information of the created volume. |
+
+
+
+
+
+
+<a name="proto.CreateSnapRequest"></a>
+
+### CreateSnapRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| name | [string](#string) |  | The snap volume name. |
+| size_gb | [uint64](#uint64) |  | Snap size in GiB. |
+| tags | [string](#string) | repeated | Tags to add to the volume during creation |
+| device_class | [string](#string) |  |  |
+| source | [string](#string) |  | Source lv of snap |
+
+
+
+
+
+
+<a name="proto.CreateSnapResponse"></a>
+
+### CreateSnapResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| snap | [LogicalVolume](#proto.LogicalVolume) |  | Information of the created snap lv. |
 
 
 
@@ -173,6 +212,22 @@ Represents the input for RemoveLV.
 
 
 
+<a name="proto.RemoveSnapRequest"></a>
+
+### RemoveSnapRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| name | [string](#string) |  | The snap volume name. |
+| device_class | [string](#string) |  |  |
+
+
+
+
+
+
 <a name="proto.ResizeLVRequest"></a>
 
 ### ResizeLVRequest
@@ -187,6 +242,42 @@ The volume size will be set to exactly &#34;size_gb&#34;.
 | name | [string](#string) |  | The logical volume name. |
 | size_gb | [uint64](#uint64) |  | Volume size in GiB. |
 | device_class | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="proto.RestoreLVRequest"></a>
+
+### RestoreLVRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| name | [string](#string) |  | The snap volume name. |
+| size_gb | [uint64](#uint64) |  | Snap size in GiB. |
+| tags | [string](#string) | repeated | Tags to add to the volume during creation |
+| device_class | [string](#string) |  |  |
+| snapshot | [string](#string) |  | Source lv of snap |
+| volume_mode | [string](#string) |  | Volume mode (Filesystem or Block) |
+| fs_type | [string](#string) |  | Volume filesystem type (if volume_mode is fs, need set this) |
+
+
+
+
+
+
+<a name="proto.RestoreLVResponse"></a>
+
+### RestoreLVResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| volume | [LogicalVolume](#proto.LogicalVolume) |  | Information of the created volume. |
 
 
 
@@ -242,6 +333,9 @@ Service to manage logical volumes of the volume group.
 | CreateLV | [CreateLVRequest](#proto.CreateLVRequest) | [CreateLVResponse](#proto.CreateLVResponse) | Create a logical volume. |
 | RemoveLV | [RemoveLVRequest](#proto.RemoveLVRequest) | [Empty](#proto.Empty) | Remove a logical volume. |
 | ResizeLV | [ResizeLVRequest](#proto.ResizeLVRequest) | [Empty](#proto.Empty) | Resize a logical volume. |
+| CreateSnap | [CreateSnapRequest](#proto.CreateSnapRequest) | [CreateSnapResponse](#proto.CreateSnapResponse) | Create a snapshot volume. |
+| RemoveSnap | [RemoveSnapRequest](#proto.RemoveSnapRequest) | [Empty](#proto.Empty) | Remove a snapshot volume. |
+| RestoreLV | [RestoreLVRequest](#proto.RestoreLVRequest) | [RestoreLVResponse](#proto.RestoreLVResponse) | Restore a volume. |
 
 
 <a name="proto.VGService"></a>

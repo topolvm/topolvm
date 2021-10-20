@@ -194,16 +194,58 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 			return nil
 		}
 
-		resp, err := r.lvService.CreateLV(ctx, &proto.CreateLVRequest{Name: string(lv.UID), DeviceClass: lv.Spec.DeviceClass, SizeGb: uint64(reqBytes >> 30)})
-		if err != nil {
-			code, message := extractFromError(err)
-			log.Error(err, message)
-			lv.Status.Code = code
-			lv.Status.Message = message
-			return err
+		var volume *proto.LogicalVolume
+		if lv.Annotations != nil && lv.Annotations[topolvm.LVSnapshotSourceVol] != "" {
+			// Create a snapshot lv
+			resp, err := r.lvService.CreateSnap(ctx, &proto.CreateSnapRequest{
+				Name:        string(lv.UID),
+				DeviceClass: lv.Spec.DeviceClass,
+				SizeGb:      uint64(reqBytes >> 30),
+				Source:      lv.Annotations[topolvm.LVSnapshotSourceVol],
+			})
+			if err != nil {
+				code, message := extractFromError(err)
+				log.Error(err, message)
+				lv.Status.Code = code
+				lv.Status.Message = message
+				return err
+			}
+			volume = resp.Snap
+		} else if lv.Annotations != nil && lv.Annotations[topolvm.LVParentID] != "" {
+			// Restore form a snapshot
+			resp, err := r.lvService.RestoreLV(ctx, &proto.RestoreLVRequest{
+				Name:        string(lv.UID),
+				DeviceClass: lv.Spec.DeviceClass,
+				SizeGb:      uint64(reqBytes >> 30),
+				Snapshot:    lv.Annotations[topolvm.LVParentID],
+				VolumeMode:  lv.Annotations[topolvm.LVVolumeMode],
+				FsType:      lv.Annotations[topolvm.LVVolumeFsType],
+			})
+			if err != nil {
+				code, message := extractFromError(err)
+				log.Error(err, message)
+				lv.Status.Code = code
+				lv.Status.Message = message
+				return err
+			}
+			volume = resp.Volume
+		} else {
+			resp, err := r.lvService.CreateLV(ctx, &proto.CreateLVRequest{
+				Name:        string(lv.UID),
+				DeviceClass: lv.Spec.DeviceClass,
+				SizeGb:      uint64(reqBytes >> 30),
+			})
+			if err != nil {
+				code, message := extractFromError(err)
+				log.Error(err, message)
+				lv.Status.Code = code
+				lv.Status.Message = message
+				return err
+			}
+			volume = resp.Volume
 		}
 
-		lv.Status.VolumeID = resp.Volume.Name
+		lv.Status.VolumeID = volume.Name
 		lv.Status.CurrentSize = resource.NewQuantity(reqBytes, resource.BinarySI)
 		lv.Status.Code = codes.OK
 		lv.Status.Message = ""

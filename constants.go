@@ -57,3 +57,8 @@ const CreatedbyLabelKey = "app.kubernetes.io/created-by"
 
 // Label value that indicates The controller/user who created this resource
 const CreatedbyLabelValue = "topolvm-controller"
+
+const LVSnapshotSourceVol = "topolvm.cybozu.com/snapshot-source-volume"
+const LVParentID = "topolvm.cybozu.com/parent-id"
+const LVVolumeMode = "topolvm.cybozu.com/volume-mode"
+const LVVolumeFsType = "topolvm.cybozu.com/fs-type"

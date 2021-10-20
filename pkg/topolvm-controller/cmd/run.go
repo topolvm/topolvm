@@ -6,6 +6,7 @@ import (
 	"net"
 	"time"
 
+	snapshotscheme "github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/clientset/versioned/scheme"
 	"github.com/topolvm/topolvm"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	"github.com/topolvm/topolvm/controllers"
@@ -33,6 +34,7 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(snapshotscheme.AddToScheme(scheme))
 
 	utilruntime.Must(topolvmv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme

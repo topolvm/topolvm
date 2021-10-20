@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"k8s.io/apimachinery/pkg/types"
 	"sync"
 	"time"
 
@@ -54,8 +55,15 @@ func NewLogicalVolumeService(mgr manager.Manager) (*LogicalVolumeService, error)
 }
 
 // CreateVolume creates volume
-func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, dc, name string, requestGb int64) (string, error) {
-	logger.Info("k8s.CreateVolume called", "name", name, "node", node, "size_gb", requestGb)
+func (s *LogicalVolumeService) CreateVolume(
+	ctx context.Context, node, dc, name string, requestGb int64, parentId, volMode, fsType string) (string, error) {
+	logger.Info("k8s.CreateVolume called",
+		"name", name,
+		"node", node,
+		"size_gb", requestGb,
+		"parent_id", parentId,
+		"volume_mode", volMode,
+		"fs_type", fsType)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -74,6 +82,11 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, dc, name 
 			Size:        *resource.NewQuantity(requestGb<<30, resource.BinarySI),
 		},
 	}
+	if parentId != "" {
+		metav1.SetMetaDataAnnotation(&lv.ObjectMeta, topolvm.LVParentID, parentId)
+		metav1.SetMetaDataAnnotation(&lv.ObjectMeta, topolvm.LVVolumeMode, volMode)
+		metav1.SetMetaDataAnnotation(&lv.ObjectMeta, topolvm.LVVolumeFsType, fsType)
+	}
 
 	existingLV := new(topolvmv1.LogicalVolume)
 	err := s.Get(ctx, client.ObjectKey{Name: name}, existingLV)
@@ -91,7 +104,7 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, dc, name 
 		// LV with same name was found; check compatibility
 		// skip check of capabilities because (1) we allow both of two access types, and (2) we allow only one access mode
 		// for ease of comparison, sizes are compared strictly, not by compatibility of ranges
-		if !existingLV.IsCompatibleWith(lv) {
+		if !existingLV.IsCompatibleWith(lv) || !existingLV.IsParentCompatibleWith(lv) {
 			return "", status.Error(codes.AlreadyExists, "Incompatible LogicalVolume already exists")
 		}
 		// compatible LV was found
@@ -289,5 +302,73 @@ func (s *LogicalVolumeService) UpdateCurrentSize(ctx context.Context, volumeID s
 		}
 
 		return nil
+	}
+}
+
+func (s *LogicalVolumeService) CreateSnapshot(
+	ctx context.Context, snapName string, sourceVolume *topolvmv1.LogicalVolume) (string, error) {
+	snapLV := &topolvmv1.LogicalVolume{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "LogicalVolume",
+			APIVersion: "topolvm.cybozu.com/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: snapName,
+			Annotations: map[string]string{
+				topolvm.LVSnapshotSourceVol: sourceVolume.Status.VolumeID,
+			},
+		},
+		Spec: topolvmv1.LogicalVolumeSpec{
+			Name:        snapName,
+			NodeName:    sourceVolume.Spec.NodeName,
+			DeviceClass: sourceVolume.Spec.DeviceClass,
+			Size:        sourceVolume.Spec.Size,
+		},
+	}
+
+	existingSnapshot := &topolvmv1.LogicalVolume{}
+	err := s.Get(ctx, types.NamespacedName{Name: snapName}, existingSnapshot)
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return "", err
+		}
+		err := s.Create(ctx, snapLV)
+		if err != nil {
+			return "", err
+		}
+		logger.Info("created LogicalVolume CRD", "name", snapName)
+	} else {
+		if !existingSnapshot.IsCompatibleWith(snapLV) || !(existingSnapshot.Annotations != nil &&
+			existingSnapshot.Annotations[topolvm.LVSnapshotSourceVol] != sourceVolume.Status.VolumeID) {
+			return "", status.Error(codes.AlreadyExists, "Incompatible LogicalVolume already exists")
+		}
+	}
+
+	for {
+		logger.Info("waiting for setting 'status.volumeID'", "name", snapName)
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		case <-time.After(100 * time.Millisecond):
+		}
+
+		var newLV topolvmv1.LogicalVolume
+		err := s.Get(ctx, client.ObjectKey{Name: snapName}, &newLV)
+		if err != nil {
+			logger.Error(err, "failed to get LogicalVolume", "name", snapName)
+			return "", err
+		}
+		if newLV.Status.VolumeID != "" {
+			logger.Info("end k8s.LogicalVolume", "volume_id", newLV.Status.VolumeID)
+			return newLV.Status.VolumeID, nil
+		}
+		if newLV.Status.Code != codes.OK {
+			err := s.Delete(ctx, &newLV)
+			if err != nil {
+				// log this error but do not return this error, because newLV.Status.Message is more important
+				logger.Error(err, "failed to delete LogicalVolume")
+			}
+			return "", status.Error(newLV.Status.Code, newLV.Status.Message)
+		}
 	}
 }

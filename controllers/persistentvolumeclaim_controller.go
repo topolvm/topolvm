@@ -2,11 +2,16 @@ package controllers
 
 import (
 	"context"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"time"
 
+	snapapi "github.com/kubernetes-csi/external-snapshotter/v2/pkg/apis/volumesnapshot/v1beta1"
+	"github.com/pkg/errors"
 	"github.com/topolvm/topolvm"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -38,6 +43,10 @@ func (r *PersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req ctr
 	}
 
 	if pvc.DeletionTimestamp == nil {
+		if err := r.addNodeSelectorWhenRestore(ctx, pvc); err != nil {
+			return ctrl.Result{}, err
+		}
+
 		return ctrl.Result{}, nil
 	}
 
@@ -114,6 +123,68 @@ OUTER:
 	return result, nil
 }
 
+func (r *PersistentVolumeClaimReconciler) addNodeSelectorWhenRestore(ctx context.Context, pvc *corev1.PersistentVolumeClaim) error {
+	if pvc.Annotations != nil && metav1.HasAnnotation(pvc.ObjectMeta, AnnSelectedNode) {
+		return nil
+	}
+
+	if pvc.Spec.StorageClassName == nil {
+		return nil
+	}
+
+	var sc storagev1.StorageClass
+	err := r.Get(ctx, types.NamespacedName{Name: *pvc.Spec.StorageClassName}, &sc)
+	switch {
+	case err == nil:
+	case apierrors.IsNotFound(err):
+		return nil
+	default:
+		return err
+	}
+
+	if sc.Provisioner != topolvm.PluginName {
+		return nil
+	}
+
+	if pvc.Spec.DataSource != nil &&
+		*pvc.Spec.DataSource.APIGroup == snapapi.SchemeGroupVersion.Group &&
+		pvc.Spec.DataSource.Kind == "VolumeSnapshot" {
+
+		var snap = &snapapi.VolumeSnapshot{}
+		err = r.Get(ctx, types.NamespacedName{
+			Name:      pvc.Spec.DataSource.Name,
+			Namespace: pvc.Namespace,
+		}, snap)
+		if err != nil {
+			return err
+		}
+
+		source := *snap.Spec.Source.PersistentVolumeClaimName
+		sourcePVC := &corev1.PersistentVolumeClaim{}
+		err = r.Get(ctx, types.NamespacedName{
+			Name:      source,
+			Namespace: pvc.Namespace,
+		}, sourcePVC)
+		if err != nil {
+			return err
+		}
+
+		if sourcePVC.Annotations == nil || !metav1.HasAnnotation(sourcePVC.ObjectMeta, AnnSelectedNode) {
+			return errors.Errorf("source pvc %s not have annotation %s", sourcePVC.Name, AnnSelectedNode)
+		}
+
+		metav1.SetMetaDataAnnotation(&pvc.ObjectMeta, AnnSelectedNode, sourcePVC.Annotations[AnnSelectedNode])
+		if err := r.Update(ctx, pvc); err != nil {
+			crlog.FromContext(ctx).Error(err, "failed to add annotation",
+				"pvc", pvc.Name, "annotation", AnnSelectedNode)
+			return err
+		}
+	}
+
+	return nil
+}
+
+// SetupWithManager sets up Reconciler with Manager.
 // SetupWithManager sets up the controller with the Manager.
 func (r *PersistentVolumeClaimReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	pred := predicate.Funcs{

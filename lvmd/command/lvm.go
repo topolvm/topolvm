@@ -50,6 +50,16 @@ func CallLVM(cmd string, args ...string) error {
 	return c.Run()
 }
 
+func Call(cmd string, args ...string) error {
+	c := wrapExecCommand(cmd, args...)
+	log.Info("invoking command", map[string]interface{}{
+		"cmd":  cmd,
+		"args": args,
+	})
+	c.Stderr = os.Stderr
+	return c.Run()
+}
+
 // LVInfo is a map of lv attributes to values.
 type LVInfo map[string]string
 
@@ -532,13 +542,13 @@ func (l *LogicalVolume) Snapshot(name string, cowSize uint64) (*LogicalVolume, e
 			gbSize = cowSize >> 30
 		} else {
 			gbSize = (l.size * 2 / 10) >> 30
-			if gbSize > cowMax {
-				gbSize = cowMax
-			}
+			//if gbSize > cowMax {
+			//	gbSize = cowMax
+			//}
 		}
-		if gbSize < cowMin {
-			gbSize = cowMin
-		}
+		//if gbSize < cowMin {
+		//	gbSize = cowMin
+		//}
 		if l.size < (gbSize << 30) {
 			gbSize = (l.size >> 30) << 30
 		}
@@ -600,5 +610,72 @@ func (l *LogicalVolume) Rename(name string) error {
 	l.fullname = fullName(name, l.vg)
 	l.name = name
 	l.path = path.Join(path.Dir(l.path), l.name)
+	return nil
+}
+
+func (l *LogicalVolume) Copy(source *LogicalVolume, volMode, fsType string) error {
+	return l.copyDataUseDD(source, volMode, fsType)
+}
+
+func (l *LogicalVolume) copyDataUseDD(source *LogicalVolume, volMode, fsType string) error {
+	in := fmt.Sprintf("if=%s", source.path)
+	out := fmt.Sprintf("of=%s", l.path)
+	err := Call("dd", in, out, "bs=1M", "conv=fsync")
+	if err != nil {
+		return err
+	}
+
+	if volMode == "Filesystem" {
+		switch fsType {
+		case "xfs":
+			dirIsCreate := false
+			mounted := false
+			mountDir := fmt.Sprintf("/tmp/%s", l.name)
+
+			defer func() {
+				if err != nil {
+					if mounted {
+						Call("umount", mountDir)
+					}
+
+					if dirIsCreate {
+						Call("rm", "-rf", mountDir)
+					}
+				}
+			}()
+
+			err = Call("mkdir", "-p", mountDir)
+			if err != nil {
+				return err
+			}
+			dirIsCreate = true
+
+			// mount to replay log
+			err = Call("mount", l.path, "-o", "nouuid", mountDir)
+			if err != nil {
+				return err
+			}
+			mounted = true
+
+			err = Call("umount", mountDir)
+			if err != nil {
+				return err
+			}
+			mounted = false
+
+			err = Call("rm", "-rf", mountDir)
+			if err != nil {
+				return err
+			}
+			dirIsCreate = false
+
+			return Call("xfs_admin", "-U", "generate", l.path)
+		case "ext4":
+			//return Call("tune2fs", "-U",  "random", l.path)
+		default:
+			return fmt.Errorf("unsuport filesystem type: %s", fsType)
+		}
+	}
+
 	return nil
 }

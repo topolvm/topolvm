@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"github.com/topolvm/topolvm"
 	"google.golang.org/grpc/codes"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,6 +53,18 @@ func (lv *LogicalVolume) IsCompatibleWith(lv2 *LogicalVolume) bool {
 		return false
 	}
 	return true
+}
+
+func (lv *LogicalVolume) IsParentCompatibleWith(lv2 *LogicalVolume) bool {
+	if lv2.Annotations == nil {
+		return true
+	} else if lv.Annotations == nil {
+		return false
+	} else if lv.Annotations[topolvm.LVParentID] != lv2.Annotations[topolvm.LVParentID] {
+		return false
+	} else {
+		return true
+	}
 }
 
 //+kubebuilder:object:root=true

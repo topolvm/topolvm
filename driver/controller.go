@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/topolvm/topolvm"
 	"github.com/topolvm/topolvm/csi"
 	"github.com/topolvm/topolvm/driver/k8s"
@@ -44,18 +46,29 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 		"content_source", source,
 		"accessibility_requirements", req.GetAccessibilityRequirements().String())
 
+	var parentId string
+	var err error
+
 	if source != nil {
-		return nil, status.Error(codes.InvalidArgument, "volume_content_source not supported")
+		parentId, err = checkContentSource(req)
+		if err != nil {
+			return nil, err
+		}
 	}
+
 	if capabilities == nil {
 		return nil, status.Error(codes.InvalidArgument, "no volume capabilities are provided")
 	}
 
 	// check required volume capabilities
+	var volumeMode, fsType string
 	for _, capability := range capabilities {
 		if block := capability.GetBlock(); block != nil {
+			volumeMode = "Block"
 			ctrlLogger.Info("CreateVolume specifies volume capability", "access_type", "block")
 		} else if mount := capability.GetMount(); mount != nil {
+			volumeMode = "Filesystem"
+			fsType = mount.GetFsType()
 			ctrlLogger.Info("CreateVolume specifies volume capability",
 				"access_type", "mount",
 				"fs_type", mount.GetFsType(),
@@ -128,7 +141,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 
 	name = strings.ToLower(name)
 
-	volumeID, err := s.lvService.CreateVolume(ctx, node, deviceClass, name, requestGb)
+	volumeID, err := s.lvService.CreateVolume(ctx, node, deviceClass, name, requestGb, parentId, volumeMode, fsType)
 	if err != nil {
 		_, ok := status.FromError(err)
 		if !ok {
@@ -141,6 +154,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 		Volume: &csi.Volume{
 			CapacityBytes: requestGb << 30,
 			VolumeId:      volumeID,
+			ContentSource: req.GetVolumeContentSource(),
 			AccessibleTopology: []*csi.Topology{
 				{
 					Segments: map[string]string{topolvm.TopologyNodeKey: node},
@@ -278,6 +292,7 @@ func (s controllerService) ControllerGetCapabilities(context.Context, *csi.Contr
 		csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
 		csi.ControllerServiceCapability_RPC_GET_CAPACITY,
 		csi.ControllerServiceCapability_RPC_EXPAND_VOLUME,
+		csi.ControllerServiceCapability_RPC_CREATE_DELETE_SNAPSHOT,
 	}
 
 	csiCaps := make([]*csi.ControllerServiceCapability, len(capabilities))
@@ -361,4 +376,79 @@ func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.
 		CapacityBytes:         requestGb << 30,
 		NodeExpansionRequired: true,
 	}, nil
+}
+
+func (s controllerService) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequest) (*csi.CreateSnapshotResponse, error) {
+	ctrlLogger.Info("CreateSnapshot called",
+		"name", req.Name,
+		"SourceVolumeId", req.SourceVolumeId)
+
+	snapName := req.GetName()
+	sourceVolID := req.GetSourceVolumeId()
+
+	// validate snapshot request
+	if req.Name == "" || req.SourceVolumeId == "" {
+		return nil, status.Errorf(codes.InvalidArgument,
+			"CreateSnapshot error invalid request %s: %s", snapName, sourceVolID)
+	}
+
+	// Get Source Volume
+	sourceVolume, err := s.lvService.GetVolume(ctx, sourceVolID)
+	if err != nil {
+		return nil, err
+	}
+
+	snapTimeStamp := &timestamp.Timestamp{
+		Seconds: time.Now().Unix(),
+		Nanos:   0,
+	}
+
+	// Create snapshot lv
+	snapID, err := s.lvService.CreateSnapshot(ctx, snapName, sourceVolume)
+
+	return &csi.CreateSnapshotResponse{
+		Snapshot: &csi.Snapshot{
+			SizeBytes:      sourceVolume.Spec.Size.Value(),
+			SnapshotId:     snapID,
+			SourceVolumeId: req.SourceVolumeId,
+			CreationTime:   snapTimeStamp,
+			ReadyToUse:     err == nil,
+		},
+	}, err
+}
+
+func (s controllerService) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnapshotRequest) (*csi.DeleteSnapshotResponse, error) {
+	ctrlLogger.Info("DeleteSnapshot called",
+		"snapshot_id", req.GetSnapshotId(),
+		"num_secrets", len(req.GetSecrets()))
+	if len(req.GetSnapshotId()) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "volume_id is not provided")
+	}
+
+	err := s.lvService.DeleteVolume(ctx, req.GetSnapshotId())
+	if err != nil {
+		ctrlLogger.Error(err, "DeleteSnapshot failed", "snapshot_id", req.GetSnapshotId())
+		_, ok := status.FromError(err)
+		if !ok {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+		return nil, err
+	}
+
+	return &csi.DeleteSnapshotResponse{}, nil
+}
+
+func checkContentSource(req *csi.CreateVolumeRequest) (string, error) {
+	volumeSource := req.VolumeContentSource
+
+	switch volumeSource.Type.(type) {
+	case *csi.VolumeContentSource_Snapshot:
+		snapshotID := req.VolumeContentSource.GetSnapshot().GetSnapshotId()
+		return snapshotID, nil
+
+	case *csi.VolumeContentSource_Volume:
+		return "", status.Error(codes.InvalidArgument, "volume_content_source volume not supported")
+	}
+
+	return "", status.Errorf(codes.InvalidArgument, "not a proper volume source %v", volumeSource)
 }

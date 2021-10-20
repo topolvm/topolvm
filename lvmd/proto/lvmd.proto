@@ -50,6 +50,37 @@ message ResizeLVRequest {
     string device_class = 3;
 }
 
+message CreateSnapRequest {
+    string name = 1;              // The snap volume name.
+    uint64 size_gb = 2;           // Snap size in GiB.
+    repeated string tags = 3;     // Tags to add to the volume during creation
+    string device_class = 4;
+    string source = 5;            // Source lv of snap
+}
+
+message CreateSnapResponse {
+    LogicalVolume snap = 1;  // Information of the created snap lv.
+}
+
+message RemoveSnapRequest {
+    string name = 1;       // The snap volume name.
+    string device_class = 2;
+}
+
+message RestoreLVRequest {
+    string name = 1;              // The snap volume name.
+    uint64 size_gb = 2;           // Snap size in GiB.
+    repeated string tags = 3;     // Tags to add to the volume during creation
+    string device_class = 4;
+    string snapshot = 5;          // Source lv of snap
+    string volume_mode = 6;       // Volume mode (Filesystem or Block)
+    string fs_type = 7;           // Volume filesystem type (if volume_mode is fs, need set this)
+}
+
+message RestoreLVResponse {
+    LogicalVolume volume = 1;  // Information of the created volume.
+}
+
 // Represents the response of GetLVList.
 message GetLVListResponse {
     repeated LogicalVolume volumes = 1;  // Information of volumes.
@@ -88,6 +119,12 @@ service LVService {
     rpc RemoveLV(RemoveLVRequest) returns (Empty);
     // Resize a logical volume.
     rpc ResizeLV(ResizeLVRequest) returns (Empty);
+    // Create a snapshot volume.
+    rpc CreateSnap(CreateSnapRequest) returns (CreateSnapResponse);
+    // Remove a snapshot volume.
+    rpc RemoveSnap(RemoveSnapRequest) returns (Empty);
+    // Restore a volume.
+    rpc RestoreLV(RestoreLVRequest) returns (RestoreLVResponse);
 }
 
 // Service to retrieve information of the volume group.
