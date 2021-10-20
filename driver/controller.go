@@ -67,7 +67,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 		if mode := capability.GetAccessMode(); mode != nil {
 			modeName := csi.VolumeCapability_AccessMode_Mode_name[int32(mode.GetMode())]
 			ctrlLogger.Info("CreateVolume specifies volume capability", "access_mode", modeName)
-			// we only support SINGLE_NODE_WRITER/SINGLE_NODE_MULTI_WRITER/SINGLE_NODE_SINGLE_WRITER
+			// we only support SINGLE_NODE_WRITER
 			switch mode.GetMode() {
 			case csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER:
 			default:
