@@ -280,7 +280,6 @@ func (s controllerService) ControllerGetCapabilities(context.Context, *csi.Contr
 		csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
 		csi.ControllerServiceCapability_RPC_GET_CAPACITY,
 		csi.ControllerServiceCapability_RPC_EXPAND_VOLUME,
-		csi.ControllerServiceCapability_RPC_SINGLE_NODE_MULTI_WRITER,
 	}
 
 	csiCaps := make([]*csi.ControllerServiceCapability, len(capabilities))
