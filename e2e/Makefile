@@ -4,7 +4,7 @@ TEST_SCHEDULER_MANIFEST ?= daemonset
 STORAGE_CAPACITY ?= false
 
 ## Dependency versions
-MINIKUBE_VERSION := v1.21.0
+MINIKUBE_VERSION := v1.22.0
 CERT_MANAGER_VERSION := v1.3.1
 
 BINDIR := $(shell pwd)/bin
@@ -18,12 +18,14 @@ GINKGO := ../bin/ginkgo
 MINIKUBE_HOME = $(BINDIR)
 export MINIKUBE_HOME
 
+READ_WRITE_ONCE_POD=false
 ifeq ($(TEST_KUBERNETES_TARGET),current)
-KUBERNETES_VERSION := 1.21.1
+KUBERNETES_VERSION := 1.22.0
+READ_WRITE_ONCE_POD=true
 else ifeq ($(TEST_KUBERNETES_TARGET),prev)
-KUBERNETES_VERSION := 1.20.2
+KUBERNETES_VERSION := 1.21.2
 else ifeq ($(TEST_KUBERNETES_TARGET),prev2)
-KUBERNETES_VERSION := 1.19.4
+KUBERNETES_VERSION := 1.20.7
 endif
 
 KIND_NODE_IMAGE=kindest/node:v$(KUBERNETES_VERSION)
@@ -34,10 +36,19 @@ ifeq ($(TEST_SCHEDULER_MANIFEST),deployment)
 HELM_VALUES_FILE := manifests/values/deployment-scheduler.yaml
 endif
 
+KIND_CONFIG="topolvm-cluster.yaml"
+MINIKUBE_FEATURE_GATES=""
+MINIKUBE_SCHEDULER_MANIFEST=kube-scheduler.yaml
+ifeq ($(KUBERNETES_VERSION),1.22.0)
+KIND_CONFIG="topolvm-cluster-single-writer.yaml"
+MINIKUBE_FEATURE_GATES="ReadWriteOncePod=true"
+MINIKUBE_SCHEDULER_MANIFEST=kube-scheduler-single-writer.yaml
+endif
+
 HELM_VALUES_FILE_LVMD := ""
 ifeq ($(STORAGE_CAPACITY),true)
 
-ifeq ($(KUBERNETES_VERSION),1.21.1)
+ifneq ($(KUBERNETES_VERSION),1.20.7)
 HELM_VALUES_FILE_LVMD := manifests/values/daemonset-lvmd-storage-capacity.yaml
 HELM_VALUES_FILE := manifests/values/storage-capacity.yaml
 else
@@ -71,8 +82,8 @@ topolvm.img: $(GO_FILES)
 .PHONY: launch-kind
 launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml
 	$(SUDO) rm -rf /tmp/topolvm/controller /tmp/topolvm/worker*
-	sed -e "s|@KUBERNETES_VERSION@|$(KUBERNETES_VERSION)|" topolvm-cluster.yaml > /tmp/topolvm-cluster.yaml
-	$(KIND) create cluster --name=$(KIND_CLUSTER_NAME) --config /tmp/topolvm-cluster.yaml --image $(KIND_NODE_IMAGE)
+	sed -e "s|@KUBERNETES_VERSION@|$(KUBERNETES_VERSION)|" $(KIND_CONFIG) > /tmp/$(KIND_CONFIG)
+	$(KIND) create cluster --name=$(KIND_CLUSTER_NAME) --config /tmp/$(KIND_CONFIG) --image $(KIND_NODE_IMAGE)
 
 .PHONY: shutdown-kind
 shutdown-kind:
@@ -145,7 +156,7 @@ ifneq ($(HELM_VALUES_FILE),"")
 	$(HELM) dependency build ../charts/topolvm/
 	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE)
 	$(KUBECTL) apply -f manifests/common/
-	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) STORAGE_CAPACITY=$(STORAGE_CAPACITY) GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) --failFast -v .
+	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) STORAGE_CAPACITY=$(STORAGE_CAPACITY) READ_WRITE_ONCE_POD=$(READ_WRITE_ONCE_POD) GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) --failFast -v .
 endif
 
 .PHONY: clean
@@ -199,22 +210,23 @@ daemonset-lvmd/launch-minikube:
 	$(SUDO) -E $(BINDIR)/minikube start \
 		--vm-driver=none \
 		--kubernetes-version=v$(KUBERNETES_VERSION) \
-		--extra-config=kubelet.read-only-port=10255
+		--extra-config=kubelet.read-only-port=10255 \
+		--feature-gates=$(MINIKUBE_FEATURE_GATES)
 	$(SUDO) chown -R $$USER $$HOME/.kube $(MINIKUBE_HOME)/.minikube
 	$(SUDO) chmod -R a+r $$HOME/.kube $(MINIKUBE_HOME)/.minikube
 	$(SUDO) find $(MINIKUBE_HOME)/.minikube -name id_rsa -exec chmod 600 {} ';'
 
 .PHONY: daemonset-lvmd/delete-minikube
 daemonset-lvmd/delete-minikube:
-	$(SUDO) $(BINDIR)/minikube delete || true
+	$(SUDO) -E $(BINDIR)/minikube delete || true
 
 # Set scheduler configs manually because minikube can't edit scheduler configs.
 .PHONY: daemonset-lvmd/update-minikube-setting
 daemonset-lvmd/update-minikube-setting: daemonset-lvmd/delete-minikube daemonset-lvmd/launch-minikube
 ifneq ($(STORAGE_CAPACITY),true)
 	$(SUDO) mkdir -p /var/lib/scheduler
-	$(SUDO) sh -c 'sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|127.0.0.1|" $(SCHEDULER_CONFIG) > /var/lib/scheduler/scheduler-config.yaml'
-	$(SUDO) sh -c 'sed -e "s|@KUBERNETES_VERSION@|$(KUBERNETES_VERSION)|" kube-scheduler.yaml > /etc/kubernetes/manifests/kube-scheduler.yaml'
+	$(SUDO) sh -c 'sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|127.0.0.1|" scheduler-config-v1beta1-deployment.yaml > /var/lib/scheduler/scheduler-config.yaml'
+	$(SUDO) sh -c 'sed -e "s|@KUBERNETES_VERSION@|$(KUBERNETES_VERSION)|" $(MINIKUBE_SCHEDULER_MANIFEST) > /etc/kubernetes/manifests/kube-scheduler.yaml'
 endif
 
 .PHONY: daemonset-lvmd/test
@@ -228,7 +240,7 @@ ifneq ($(HELM_VALUES_FILE_LVMD),"")
 	$(HELM) dependency build ../charts/topolvm/
 	$(HELM) install --create-namespace --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE_LVMD)
 	$(KUBECTL) apply -f manifests/common/
-	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) STORAGE_CAPACITY=$(STORAGE_CAPACITY) DAEMONSET_LVMD=true GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) --failFast -v .
+	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) STORAGE_CAPACITY=$(STORAGE_CAPACITY) READ_WRITE_ONCE_POD=$(READ_WRITE_ONCE_POD) DAEMONSET_LVMD=true GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) --failFast -v .
 endif
 
 .PHONY: daemonset-lvmd/clean

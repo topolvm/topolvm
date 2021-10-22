@@ -84,6 +84,10 @@ func skipIfDaemonsetLvmd() {
 	}
 }
 
+func isReadWriteOncePod() bool {
+	return os.Getenv("READ_WRITE_ONCE_POD") == "true"
+}
+
 func getDaemonsetLvmdNodeName() string {
 	stdout, stderr, err := kubectl("get", "nodes", "-o=json")
 	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
@@ -132,6 +136,7 @@ var _ = Describe("TopoLVM", func() {
 	Context("metrics", testMetrics)
 	Context("publish", testPublishVolume)
 	Context("storage-capacity", testStorageCapacity)
+	Context("ReadWriteOncePod", testReadWriteOncePod)
 	Context("e2e", testE2E)
 	Context("multiple-vg", testMultipleVolumeGroups)
 	Context("cleanup", testCleanup)

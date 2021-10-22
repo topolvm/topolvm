@@ -15,7 +15,7 @@ The team presented the motivation and implementation of TopoLVM at KubeCon Europ
 Join our community on Slack: [Invitation form](https://docs.google.com/forms/d/e/1FAIpQLSd2zZhqZUDTs8YUfhvKmSI_xb_iiPnz3-Hy6S7ehmHHmiifEg/viewform?embedded=true)
 
 - **Project Status**: Testing for production
-- **Conformed CSI version**: [1.4.0](https://github.com/container-storage-interface/spec/blob/v1.4.0/spec.md)
+- **Conformed CSI version**: [1.5.0](https://github.com/container-storage-interface/spec/blob/v1.5.0/spec.md)
 
 Supported environments
 ----------------------

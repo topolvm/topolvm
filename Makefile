@@ -2,7 +2,7 @@
 
 CONTROLLER_RUNTIME_VERSION=$(shell awk '/sigs\.k8s\.io\/controller-runtime/ {print substr($$2, 2)}' go.mod)
 CONTROLLER_TOOLS_VERSION=$(shell awk '/sigs\.k8s\.io\/controller-tools/ {print substr($$2, 2)}' go.mod)
-CSI_VERSION=1.4.0
+CSI_VERSION=1.5.0
 PROTOC_VERSION=3.15.0
 KIND_VERSION=v0.11.1
 HELM_VERSION=3.5.0
