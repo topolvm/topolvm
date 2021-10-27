@@ -466,6 +466,11 @@ podSecurityPolicy:
   ## ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/
   create: true
 
+securityContextConstraint:
+  # securityContextConstraint.create -- Create Openshift Security Context Constraints.
+  ## ref: https://docs.okd.io/latest/authentication/managing-security-context-constraints.html
+  create: false
+
 cert-manager:
   # cert-manager.enabled -- Install cert-manager together.
   ## ref: https://cert-manager.io/docs/installation/kubernetes/#installing-with-helm

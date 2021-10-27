@@ -1,0 +1,34 @@
+{{- if and .Values.securityContextConstraint.create  .Values.scheduler.enabled }}
+---
+# scc for the topolvm deployment and daemonsets
+kind: SecurityContextConstraints
+apiVersion: security.openshift.io/v1
+metadata:
+  name: {{ template "topolvm.fullname" . }}-scheduler
+allowPrivilegedContainer: false
+allowHostDirVolumePlugin: false
+priority:
+allowHostNetwork: true
+allowHostPorts: false
+allowedCapabilities: []
+allowHostPID: false
+allowHostIPC: false
+readOnlyRootFilesystem: true
+requiredDropCapabilities: []
+defaultAddCapabilities: []
+runAsUser:
+  type: RunAsAny
+seLinuxContext:
+  type: MustRunAs
+fsGroup:
+  type: MustRunAs
+supplementalGroups:
+  type: RunAsAny
+volumes:
+  - configMap
+  - emptyDir
+  - secret
+users:
+  - system:serviceaccount:{{ .Release.Namespace }}:{{ template "topolvm.fullname" . }}-scheduler
+---
+{{- end }}

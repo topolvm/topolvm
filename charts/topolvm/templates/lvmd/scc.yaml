@@ -1,0 +1,35 @@
+{{- if and .Values.securityContextConstraint.create .Values.lvmd.managed }}
+---
+# scc for the topolvm deployment and daemonsets
+kind: SecurityContextConstraints
+apiVersion: security.openshift.io/v1
+metadata:
+  name: {{ template "topolvm.fullname" . }}-lvmd
+allowPrivilegedContainer: true
+allowHostDirVolumePlugin: true
+priority:
+allowHostNetwork: false
+allowHostPorts: false
+allowedCapabilities: []
+allowHostPID: true
+allowHostIPC: true
+readOnlyRootFilesystem: false
+requiredDropCapabilities: []
+defaultAddCapabilities: []
+runAsUser:
+  type: RunAsAny
+seLinuxContext:
+  type: MustRunAs
+fsGroup:
+  type: MustRunAs
+supplementalGroups:
+  type: RunAsAny
+volumes:
+  - configMap
+  - emptyDir
+  - hostPath
+  - secret
+users:
+  - system:serviceaccount:{{ .Release.Namespace }}:{{ template "topolvm.fullname" . }}-lvmd
+---
+{{- end }}
