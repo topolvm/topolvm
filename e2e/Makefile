@@ -4,7 +4,7 @@ TEST_SCHEDULER_MANIFEST ?= daemonset
 STORAGE_CAPACITY ?= false
 
 ## Dependency versions
-MINIKUBE_VERSION := v1.22.0
+MINIKUBE_VERSION := v1.23.2
 CERT_MANAGER_VERSION := v1.3.1
 
 BINDIR := $(shell pwd)/bin
@@ -20,7 +20,7 @@ export MINIKUBE_HOME
 
 READ_WRITE_ONCE_POD=false
 ifeq ($(TEST_KUBERNETES_TARGET),current)
-KUBERNETES_VERSION := 1.22.0
+KUBERNETES_VERSION := 1.22.2
 READ_WRITE_ONCE_POD=true
 else ifeq ($(TEST_KUBERNETES_TARGET),prev)
 KUBERNETES_VERSION := 1.21.2
@@ -39,7 +39,7 @@ endif
 KIND_CONFIG="topolvm-cluster.yaml"
 MINIKUBE_FEATURE_GATES=""
 MINIKUBE_SCHEDULER_MANIFEST=kube-scheduler.yaml
-ifeq ($(KUBERNETES_VERSION),1.22.0)
+ifeq ($(KUBERNETES_VERSION),1.22.2)
 KIND_CONFIG="topolvm-cluster-single-writer.yaml"
 MINIKUBE_FEATURE_GATES="ReadWriteOncePod=true"
 MINIKUBE_SCHEDULER_MANIFEST=kube-scheduler-single-writer.yaml
