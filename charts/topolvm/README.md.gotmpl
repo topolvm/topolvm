@@ -37,10 +37,16 @@ Also, [lvmd](../../deploy/README.md#lvmd) is run in a DaemonSet by default.
 
 > :memo: NOTE: This installation method requires cert-manger to be installed beforehand.
 
-To install the chart with the release name `topolvm` using a dedicated namespace(recommended):
+To work webhooks properly, add a label to the target namespace. We also recommend to use a dedicated namespace.
 
 ```sh
-helm install --create-namespace --namespace=topolvm-system topolvm topolvm/topolvm
+kubectl label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
+```
+
+Install the chart with the release name `topolvm` into the namespace:
+
+```sh
+helm install --namespace=topolvm-system topolvm topolvm/topolvm
 ```
 
 Specify parameters using `--set key=value[,key=value]` argument to `helm install`.
@@ -48,7 +54,7 @@ Specify parameters using `--set key=value[,key=value]` argument to `helm install
 Alternatively a YAML file that specifies the values for the parameters can be provided like this:
 
 ```sh
-helm upgrade --create-namespace --namespace=topolvm-system -f values.yaml -i topolvm topolvm/topolvm
+helm upgrade --namespace=topolvm-system -f values.yaml -i topolvm topolvm/topolvm
 ```
 
 ### Install together with cert-manager
@@ -62,7 +68,7 @@ kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.3
 Set the `cert-manager.enabled=true` parameter when installing topolvm chart:
 
 ```sh
-helm install --create-namespace --namespace=topolvm-system topolvm topolvm/topolvm --set cert-manager.enabled=true
+helm install --namespace=topolvm-system topolvm topolvm/topolvm --set cert-manager.enabled=true
 ```
 
 ## Configure kube-scheduler
