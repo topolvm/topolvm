@@ -5,8 +5,8 @@ CONTROLLER_TOOLS_VERSION=$(shell awk '/sigs\.k8s\.io\/controller-tools/ {print s
 CSI_VERSION=1.5.0
 PROTOC_VERSION=3.15.0
 KIND_VERSION=v0.11.1
-HELM_VERSION=3.5.0
-HELM_DOCS_VERSION=1.5.0
+HELM_VERSION=3.7.1
+HELM_DOCS_VERSION=1.6.0
 YQ_VERSION=4.14.1
 
 SUDO=sudo
@@ -32,8 +32,7 @@ IMAGE_TAG ?= latest
 ## for build kind node
 KIND_NODE_VERSION=v1.21.1
 
-## TODO: update to 1.21 after envtest in controller-rutime support k8s 1.21
-ENVTEST_KUBERNETES_VERSION=1.20
+ENVTEST_KUBERNETES_VERSION=1.22
 
 # Set the shell used to bash for better error handling.
 SHELL = /bin/bash

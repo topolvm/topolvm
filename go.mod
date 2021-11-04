@@ -17,7 +17,7 @@ require (
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/viper v1.8.1
 	golang.org/x/sys v0.0.0-20210817190340-bfb29a6856f2
-	google.golang.org/grpc v1.38.0
+	google.golang.org/grpc v1.42.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
 	google.golang.org/protobuf v1.26.0
 	k8s.io/api v0.22.2

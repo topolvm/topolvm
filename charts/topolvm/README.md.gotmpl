@@ -3,7 +3,7 @@
 
 ## Prerequisites
 
-* Kubernetes 1.18+
+* Kubernetes 1.20+
 * Configure `kube-scheduler` on the underlying nodes, ref: https://github.com/topolvm/topolvm/tree/master/deploy#configure-kube-scheduler
 * `cert-manager` version `v1.0.0+` installed. ref: https://cert-manager.io/
 * Requires at least `v3.5.0+` version of helm to support
