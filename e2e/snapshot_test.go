@@ -214,16 +214,6 @@ func testSnapshot() {
 		By("delete ns " + namespace)
 		_, _, err = kubectl("delete", "ns", namespace)
 		Expect(err).ShouldNot(HaveOccurred())
-
-		Eventually(func() error {
-			_, _, err := kubectl("get", "ns", namespace)
-			if err != nil {
-				return nil
-			} else {
-				return fmt.Errorf("ns %s not deleted", namespace)
-			}
-		}).Should(Succeed())
-
 	})
 }
 
