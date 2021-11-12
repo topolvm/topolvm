@@ -156,6 +156,9 @@ ifneq ($(HELM_VALUES_FILE),"")
 	$(MAKE) launch-kind
 	$(KIND) load image-archive --name=$(KIND_CLUSTER_NAME) topolvm.img
 	$(KUBECTL) apply -f https://github.com/jetstack/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
+	$(KUBECTL) apply -f testdata/snapshot/deploy/crd.yaml
+	$(KUBECTL) apply -f testdata/snapshot/deploy/rbac.yaml
+	$(KUBECTL) apply -f testdata/snapshot/deploy/controller.yaml
 	$(KUBECTL) create namespace topolvm-system
 	$(KUBECTL) label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
 	$(HELM) repo add jetstack https://charts.jetstack.io
@@ -237,7 +240,7 @@ ifneq ($(STORAGE_CAPACITY),true)
 endif
 
 .PHONY: daemonset-lvmd/test
-daemonset-lvmd/test: topolvm.img
+daemonset-lvmd/test: topolvm.img snapshot-controller
 ifneq ($(HELM_VALUES_FILE_LVMD),"")
 	$(KUBECTL) apply -f https://github.com/jetstack/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
 	$(KUBECTL) create namespace topolvm-system
@@ -252,3 +255,9 @@ endif
 
 .PHONY: daemonset-lvmd/clean
 daemonset-lvmd/clean: daemonset-lvmd/delete-minikube daemonset-lvmd/remove-vg
+
+
+snapshot-controller:
+	$(KUBECTL) apply -f testdata/snapshot/deploy/crd.yaml
+	$(KUBECTL) apply -f testdata/snapshot/deploy/rbac.yaml
+	$(KUBECTL) apply -f testdata/snapshot/deploy/controller.yaml

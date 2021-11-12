@@ -50,3 +50,6 @@ podSecurityPolicy:
 
 cert-manager:
   enabled: true
+
+snapshot:
+  enabled: true

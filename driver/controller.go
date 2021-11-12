@@ -403,8 +403,12 @@ func (s controllerService) CreateSnapshot(ctx context.Context, req *csi.CreateSn
 		Nanos:   0,
 	}
 
+	snapName = strings.ToLower(snapName)
 	// Create snapshot lv
 	snapID, err := s.lvService.CreateSnapshot(ctx, snapName, sourceVolume)
+	if err != nil {
+		return nil, err
+	}
 
 	return &csi.CreateSnapshotResponse{
 		Snapshot: &csi.Snapshot{
@@ -422,17 +426,13 @@ func (s controllerService) DeleteSnapshot(ctx context.Context, req *csi.DeleteSn
 		"snapshot_id", req.GetSnapshotId(),
 		"num_secrets", len(req.GetSecrets()))
 	if len(req.GetSnapshotId()) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "volume_id is not provided")
+		return nil, status.Error(codes.InvalidArgument, "volume ID is not provided")
 	}
 
 	err := s.lvService.DeleteVolume(ctx, req.GetSnapshotId())
 	if err != nil {
-		ctrlLogger.Error(err, "DeleteSnapshot failed", "snapshot_id", req.GetSnapshotId())
-		_, ok := status.FromError(err)
-		if !ok {
-			return nil, status.Error(codes.Internal, err.Error())
-		}
-		return nil, err
+		ctrlLogger.Error(err, "DeleteSnapshot failed", "snapshot IdD", req.GetSnapshotId())
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return &csi.DeleteSnapshotResponse{}, nil
@@ -443,7 +443,14 @@ func checkContentSource(req *csi.CreateVolumeRequest) (string, error) {
 
 	switch volumeSource.Type.(type) {
 	case *csi.VolumeContentSource_Snapshot:
-		snapshotID := req.VolumeContentSource.GetSnapshot().GetSnapshotId()
+		snapshot := req.VolumeContentSource.GetSnapshot()
+		if snapshot == nil {
+			return "", status.Error(codes.NotFound, "volume Snapshot cannot be empty")
+		}
+		snapshotID := snapshot.GetSnapshotId()
+		if snapshotID == "" {
+			return "", status.Errorf(codes.NotFound, "volume Snapshot ID cannot be empty")
+		}
 		return snapshotID, nil
 
 	case *csi.VolumeContentSource_Volume:

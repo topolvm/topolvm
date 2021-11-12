@@ -626,6 +626,9 @@ func (l *LogicalVolume) copyDataUseDD(source *LogicalVolume, volMode, fsType str
 	}
 
 	if volMode == "Filesystem" {
+		if fsType == "" {
+			fsType = "ext4"
+		}
 		switch fsType {
 		case "xfs":
 			dirIsCreate := false

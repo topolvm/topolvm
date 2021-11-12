@@ -135,6 +135,7 @@ var _ = BeforeSuite(func() {
 
 var _ = Describe("TopoLVM", func() {
 	Context("hook", testHook)
+	Context("snapshot", testSnapshot)
 	Context("topolvm-node", testNode)
 	Context("scheduler", testScheduler)
 	Context("metrics", testMetrics)

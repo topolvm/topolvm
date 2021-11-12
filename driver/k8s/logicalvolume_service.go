@@ -21,7 +21,7 @@ import (
 )
 
 // ErrVolumeNotFound represents the specified volume is not found.
-var ErrVolumeNotFound = errors.New("VolumeID is not found")
+var ErrVolumeNotFound = errors.New("volume ID is not found")
 
 // LogicalVolumeService represents service for LogicalVolume.
 type LogicalVolumeService struct {
@@ -83,6 +83,20 @@ func (s *LogicalVolumeService) CreateVolume(
 		},
 	}
 	if parentId != "" {
+		existingLVs := new(topolvmv1.LogicalVolumeList)
+		err := s.List(ctx, existingLVs, &client.ListOptions{})
+		if err != nil {
+			return "", err
+		}
+		found := false
+		for _, lv := range existingLVs.Items {
+			if lv.Status.VolumeID == parentId {
+				found = true
+			}
+		}
+		if !found {
+			return "", status.Error(codes.NotFound, "source volume not found")
+		}
 		metav1.SetMetaDataAnnotation(&lv.ObjectMeta, topolvm.LVParentID, parentId)
 		metav1.SetMetaDataAnnotation(&lv.ObjectMeta, topolvm.LVVolumeMode, volMode)
 		metav1.SetMetaDataAnnotation(&lv.ObjectMeta, topolvm.LVVolumeFsType, fsType)
@@ -94,7 +108,6 @@ func (s *LogicalVolumeService) CreateVolume(
 		if !apierrors.IsNotFound(err) {
 			return "", err
 		}
-
 		err := s.Create(ctx, lv)
 		if err != nil {
 			return "", err
@@ -104,12 +117,13 @@ func (s *LogicalVolumeService) CreateVolume(
 		// LV with same name was found; check compatibility
 		// skip check of capabilities because (1) we allow both of two access types, and (2) we allow only one access mode
 		// for ease of comparison, sizes are compared strictly, not by compatibility of ranges
-		if !existingLV.IsCompatibleWith(lv) || !existingLV.IsParentCompatibleWith(lv) {
+		if !existingLV.IsCompatibleWith(lv) {
 			return "", status.Error(codes.AlreadyExists, "Incompatible LogicalVolume already exists")
 		}
 		// compatible LV was found
 	}
 
+	retry := 0
 	for {
 		logger.Info("waiting for setting 'status.volumeID'", "name", name)
 		select {
@@ -135,6 +149,10 @@ func (s *LogicalVolumeService) CreateVolume(
 				logger.Error(err, "failed to delete LogicalVolume")
 			}
 			return "", status.Error(newLV.Status.Code, newLV.Status.Message)
+		}
+		retry++
+		if parentId != "" && retry > 600 {
+			return "", status.Error(codes.DeadlineExceeded, "waiting volume is ok")
 		}
 	}
 }
@@ -338,10 +356,11 @@ func (s *LogicalVolumeService) CreateSnapshot(
 		}
 		logger.Info("created LogicalVolume CRD", "name", snapName)
 	} else {
-		if !existingSnapshot.IsCompatibleWith(snapLV) || !(existingSnapshot.Annotations != nil &&
+		if !existingSnapshot.IsCompatibleWith(snapLV) || (existingSnapshot.Annotations != nil &&
 			existingSnapshot.Annotations[topolvm.LVSnapshotSourceVol] != sourceVolume.Status.VolumeID) {
 			return "", status.Error(codes.AlreadyExists, "Incompatible LogicalVolume already exists")
 		}
+
 	}
 
 	for {

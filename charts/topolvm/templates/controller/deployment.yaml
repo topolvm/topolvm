@@ -127,6 +127,26 @@ spec:
             - name: socket-dir
               mountPath: /run/topolvm
 
+        {{- if .Values.snapshot.enabled }}
+        - name: csi-snapshot
+          {{- if .Values.image.csi.csiSnapshotter }}
+          image: {{ .Values.image.csi.csiSnapshotter }}
+          {{- else }}
+          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          {{- end }}
+          {{- with .Values.image.pullPolicy }}
+          imagePullPolicy: {{ . }}
+          {{- end }}
+          command:
+            - /csi-snapshotter
+            - --csi-address=/run/topolvm/csi-topolvm.sock
+            - --leader-election
+            - --leader-election-namespace={{ .Release.Namespace }}
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /run/topolvm
+        {{- end }}
+
         - name: liveness-probe
           {{- if .Values.image.csi.livenessProbe }}
           image: {{ .Values.image.csi.livenessProbe }}

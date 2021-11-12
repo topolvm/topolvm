@@ -3,10 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"net"
-	"time"
-
-	snapshotscheme "github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/clientset/versioned/scheme"
+	snapshotscheme "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
 	"github.com/topolvm/topolvm"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	"github.com/topolvm/topolvm/controllers"
@@ -21,9 +18,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"net"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+	"time"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -35,7 +34,6 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(snapshotscheme.AddToScheme(scheme))
-
 	utilruntime.Must(topolvmv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }

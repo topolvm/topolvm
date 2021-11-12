@@ -105,6 +105,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | controller.volumes | list | `[{"emptyDir":{},"name":"socket-dir"}]` | Specify volumes. |
 | image.csi.csiProvisioner | string | `nil` | Specify csi-provisioner image. If not specified, `quay.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used. |
 | image.csi.csiResizer | string | `nil` | Specify csi-resizer image. If not specified, `quay.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used. |
+| image.csi.csiSnapshotter | string | `nil` | Specify csi-snapshot image. If not specified, `quay.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used. |
 | image.csi.livenessProbe | string | `nil` | Specify livenessprobe image. If not specified, `quay.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used. |
 | image.csi.nodeDriverRegistrar | string | `nil` | Specify csi-node-driver-registrar: image. If not specified, `quay.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used. |
 | image.pullPolicy | string | `nil` | TopoLVM image pullPolicy. |
@@ -166,6 +167,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | scheduler.updateStrategy | object | `{}` | Specify updateStrategy on the Deployment or DaemonSet. |
 | securityContext.runAsGroup | int | `10000` | Specify runAsGroup. |
 | securityContext.runAsUser | int | `10000` | Specify runAsUser. |
+| snapshot.enabled | bool | `false` | turn on snapshot feature. |
 | storageClasses | list | `[{"name":"topolvm-provisioner","storageClass":{"additionalParameters":{},"allowVolumeExpansion":true,"annotations":{},"fsType":"xfs","isDefaultClass":false,"reclaimPolicy":null,"volumeBindingMode":"WaitForFirstConsumer"}}]` | Whether to create storageclass(s) ref: https://kubernetes.io/docs/concepts/storage/storage-classes/ |
 | webhook.caBundle | string | `nil` | Specify the certificate to be used for AdmissionWebhook. |
 | webhook.existingCertManagerIssuer | object | `{}` | Specify the cert-manager issuer to be used for AdmissionWebhook. |
