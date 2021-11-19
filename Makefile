@@ -5,8 +5,9 @@ CONTROLLER_TOOLS_VERSION=$(shell awk '/sigs\.k8s\.io\/controller-tools/ {print s
 CSI_VERSION=1.5.0
 PROTOC_VERSION=3.15.0
 KIND_VERSION=v0.11.1
-HELM_VERSION=3.5.0
+HELM_VERSION=3.7.1
 HELM_DOCS_VERSION=1.5.0
+YQ_VERSION=4.14.1
 
 SUDO=sudo
 CURL=curl -Lsf
@@ -31,8 +32,7 @@ IMAGE_TAG ?= latest
 ## for build kind node
 KIND_NODE_VERSION=v1.21.1
 
-## TODO: update to 1.21 after envtest in controller-rutime support k8s 1.21
-ENVTEST_KUBERNETES_VERSION=1.20
+ENVTEST_KUBERNETES_VERSION=1.22
 
 # Set the shell used to bash for better error handling.
 SHELL = /bin/bash
@@ -89,7 +89,7 @@ manifests: ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefin
 		webhook \
 		paths="./api/...;./controllers;./hook;./driver/k8s;./pkg/..." \
 		output:crd:artifacts:config=config/crd/bases
-	yq eval 'del(.status)' config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml > charts/topolvm/crds/topolvm.cybozu.com_logicalvolumes.yaml
+	$(BINDIR)/yq eval 'del(.status)' config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml > charts/topolvm/crds/topolvm.cybozu.com_logicalvolumes.yaml
 
 .PHONY: generate
 generate: $(PROTOBUF_GEN) ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -182,7 +182,9 @@ tools: install-kind ## Install development tools.
 
 	GOBIN=$(BINDIR) go install github.com/norwoodj/helm-docs/cmd/helm-docs@v$(HELM_DOCS_VERSION)
 	curl -L -sS https://get.helm.sh/helm-v$(HELM_VERSION)-linux-amd64.tar.gz \
-	  | tar xvz -C $(BINDIR) --strip-components 1 linux-amd64/helm
+		| tar xvz -C $(BINDIR) --strip-components 1 linux-amd64/helm
+	wget https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_amd64 -O $(BINDIR)/yq \
+		&& chmod +x $(BINDIR)/yq
 
 .PHONY: setup
 setup: tools ## Setup local environment.

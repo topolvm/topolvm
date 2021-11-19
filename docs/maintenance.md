@@ -17,8 +17,8 @@ First of all, we should have a look at the release notes in the order below.
 
 1. Kubernetes
     - Choose the next version and check the [release note](https://kubernetes.io/docs/setup/release/notes/). e.g. 1.17, 1.18, 1.19 -> 1.18, 1.19, 1.20
-2. controller-runtime
     - Read the [release note](https://github.com/kubernetes-sigs/controller-runtime/releases), and check which version is compatible with the Kubernetes versions.
+    - Read the [kubebuilder go.mod](https://github.com/kubernetes-sigs/kubebuilder/blob/master/go.mod), and check the controller-tools version corresponding to controller-runtime.
 3. CSI spec
     - Read the [release note](https://github.com/container-storage-interface/spec/releases) and check all the changes from the current version to the latest.
     - Basically, CSI spec should NOT be upgraded aggressively in this task.
@@ -34,10 +34,14 @@ First of all, we should have a look at the release notes in the order below.
 5. Depending tools
     - They does not depend on other software, use latest versions.
       - [helm](https://github.com/helm/helm/releases)
+      - [helm-docs](github.com/norwoodj/helm-docs/releases)
       - [protoc](https://github.com/protocolbuffers/protobuf/releases)
     - They depend on kubernetes, use appropriate version associating to minimal supported kubernetes version by TopoLVM.
       - [kind](https://github.com/kubernetes-sigs/kind/releases)
       - [minikube](https://github.com/kubernetes/minikube/releases)
+6. Depending modules
+  - Read [kubernetes go.mod](https://github.com/kubernetes/kubernetes/blob/master/go.mod), and update the `prometheus/*` and `grpc` modules.
+  - Read [csi-test go.mod](https://github.com/kubernetes-csi/csi-test/blob/master/go.mod), and update the `ginkgo` and `gomega` modules.
 
 Please write down to the Github issue of this task what kinds of changes we find in the release note and what we are going to do and NOT going to do to address the changes.
 The format is up to you, but this is very important to keep track of what changes are made in this task, so please do not forget to do it.

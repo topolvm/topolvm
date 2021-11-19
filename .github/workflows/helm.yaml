@@ -20,22 +20,12 @@ jobs:
         with:
           go-version: 1.16
 
-      - name: Setup Helm
-        uses: azure/setup-helm@v1
-        with:
-          version: v3.5.0
-
-      - name: Setup helm-docs
+      - name: Setup Tools
         run: |
-          HELM_DOCS_VERSION="1.5.0"
-          OS=$(uname)
-
-          curl -L -sS https://github.com/norwoodj/helm-docs/releases/download/v"${HELM_DOCS_VERSION}"/helm-docs_"${HELM_DOCS_VERSION}"_${OS}_x86_64.tar.gz \
-            | tar zx -C /tmp
-          sudo mv /tmp/helm-docs /usr/local/bin
+          make -C e2e setup
 
       - name: Run helm-docs
-        run: helm-docs && git diff --no-patch --exit-code
+        run: ./bin/helm-docs && git diff --no-patch --exit-code
 
       - uses: actions/setup-python@v2
         with:
@@ -57,7 +47,6 @@ jobs:
 
       - name: Setup kind
         run: |
-          make -C e2e setup
           make -C e2e daemonset-lvmd/create-vg
           make -C e2e daemonset-lvmd/setup-minikube
           make -C e2e daemonset-lvmd/update-minikube-setting
