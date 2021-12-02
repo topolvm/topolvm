@@ -7,6 +7,14 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.10.3] - 2021-12-01
+
+### Changed
+- Support Kubernetes v1.22 (#394)
+
+### Contributors
+- @bells17
+
 ## [0.10.2] - 2021-11-01
 
 ### Added
@@ -381,7 +389,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.10.2...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.10.3...HEAD
+[0.10.3]: https://github.com/topolvm/topolvm/compare/v0.10.2...v0.10.3
 [0.10.2]: https://github.com/topolvm/topolvm/compare/v0.10.1...v0.10.2
 [0.10.1]: https://github.com/topolvm/topolvm/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/topolvm/topolvm/compare/v0.9.2...v0.10.0
