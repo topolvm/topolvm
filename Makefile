@@ -187,9 +187,10 @@ tools: install-kind ## Install development tools.
 		&& chmod +x $(BINDIR)/yq
 
 .PHONY: setup
-setup: tools ## Setup local environment.
+setup: ## Setup local environment.
 	$(SUDO) apt-get update
 	$(SUDO) apt-get -y install --no-install-recommends $(PACKAGES)
+	$(MAKE) tools
 
 # go-get-tool will 'go get' any package $2 and install it to $1.
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
