@@ -159,7 +159,11 @@ Controllers
 `topolvm-metrics` adds `topolvm.cybozu.com/node` finalizer.
 
 When a Node is being deleted, the controller deletes all PVCs and LogicalVolumes for TopoLVM
-on the deleting node.
+on the deleting node. 
+
+This node finalize procedure may be skipped with the `--skip-node-finalize` flag. 
+When this is true, the PVCs and the LogicalVolume CRs from a deleted node must be
+deleted manually by a cluster administrator.
 
 ### PVC finalizer
 
@@ -171,10 +175,11 @@ the deleted PVC, if any.
 Command-line flags
 ------------------
 
-| Name                   | Type   | Default                                 | Description                                   |
-| ---------------------- | ------ | --------------------------------------- | --------------------------------------------- |
-| `cert-dir`             | string | `/tmp/k8s-webhook-server/serving-certs` | Directory for `tls.crt` and `tls.key` files.  |
-| `csi-socket`           | string | `/run/topolvm/csi-topolvm.sock`         | UNIX domain socket of `topolvm-controller`.   |
-| `metrics-bind-address` | string | `:8080`                                 | Listen address for Prometheus metrics.        |
-| `leader-election-id`   | string | `topolvm`                               | ID for leader election by controller-runtime. |
-| `webhook-addr`         | string | `:9443`                                 | Listen address for the webhook endpoint.      |
+| Name                      | Type   | Default                                 | Description                                                                  |
+| ------------------------- | ------ | --------------------------------------- | ---------------------------------------------------------------------------- |
+| `cert-dir`                | string | `/tmp/k8s-webhook-server/serving-certs` | Directory for `tls.crt` and `tls.key` files.                                 |
+| `csi-socket`              | string | `/run/topolvm/csi-topolvm.sock`         | UNIX domain socket of `topolvm-controller`.                                  |
+| `metrics-bind-address`    | string | `:8080`                                 | Listen address for Prometheus metrics.                                       |
+| `leader-election-id`      | string | `topolvm`                               | ID for leader election by controller-runtime.                                |
+| `webhook-addr`            | string | `:9443`                                 | Listen address for the webhook endpoint.                                     |
+| `skip-node-finalize`      | bool   | `false`                                 | When true, skips automatic cleanup of PhysicalVolumeClaims on Node deletion. |

@@ -84,6 +84,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | cert-manager.enabled | bool | `false` | Install cert-manager together. |
 | controller.affinity | object | `{"podAntiAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":[{"labelSelector":{"matchExpressions":[{"key":"app.kubernetes.io/name","operator":"In","values":["topolvm-controller"]}]},"topologyKey":"kubernetes.io/hostname"}]}}` | Specify affinity. |
 | controller.minReadySeconds | int | `nil` | Specify minReadySeconds. |
+| controller.nodeFinalize.skipped | bool | `false` | Skip automatic cleanup of PhysicalVolumeClaims when a Node is deleted. |
 | controller.nodeSelector | object | `{}` | Specify nodeSelector. |
 | controller.podDisruptionBudget.enabled | bool | `true` | Specify podDisruptionBudget enabled. |
 | controller.priorityClassName | string | `nil` | Specify priorityClassName. |

@@ -328,6 +328,10 @@ controller:
     # controller.securityContext.enabled -- Enable securityContext.
     enabled: true
 
+  nodeFinalize:
+    # controller.nodeFinalize.skipped -- Skip automatic cleanup of PhysicalVolumeClaims when a Node is deleted.
+    skipped: false
+
   prometheus:
     podMonitor:
       # controller.prometheus.podMonitor.enabled -- Set this to `true` to create PodMonitor for Prometheus operator.
