@@ -75,12 +75,12 @@ spec:
           command:
             - /csi-node-driver-registrar
             - --csi-address=/run/topolvm/csi-topolvm.sock
-            - --kubelet-registration-path=/var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
+            - --kubelet-registration-path={{ .Values.node.kubeletRegistrationPath }}
           livenessProbe:
             exec:
               command:
               - /csi-node-driver-registrar
-              - --kubelet-registration-path=/var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
+              - --kubelet-registration-path={{ .Values.node.kubeletRegistrationPath }}
               - --mode=kubelet-registration-probe
             initialDelaySeconds: 3
           lifecycle:
