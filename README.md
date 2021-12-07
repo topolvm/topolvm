@@ -49,7 +49,7 @@ A diagram of components is available in [docs/design.md](docs/design.md#diagram)
 This repository contains these programs:
 
 - `topolvm-controller`: CSI controller service.
-- `topolvm-scheduler`: A [scheduler extender](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/scheduler_extender.md) for TopoLVM.
+- `topolvm-scheduler`: A [scheduler plugin](https://kubernetes.io/docs/concepts/scheduling-eviction/scheduling-framework/) for TopoLVM.
 - `topolvm-node`: CSI node service.
 - `lvmd`: gRPC service to manage LVM volumes.
 

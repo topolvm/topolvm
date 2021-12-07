@@ -151,7 +151,7 @@ When doing so, do not apply [certificates.yaml](./manifests/base/certificates.ya
 
 ### topolvm-scheduler
 
-[topolvm-scheduler][] is a [scheduler extender](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/scheduler_extender.md) for `kube-scheduler`.
+[topolvm-scheduler][] is a [scheduler plugin](https://kubernetes.io/docs/concepts/scheduling-eviction/scheduling-framework/) for `kube-scheduler`.
 It must be deployed to where `kube-scheduler` can connect.
 
 If your Kubernetes cluster runs the control plane on Nodes, `topolvm-scheduler` should be run as DaemonSet
