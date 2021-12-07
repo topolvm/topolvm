@@ -197,6 +197,7 @@ node:
   # node.lvmdSocket -- Specify the socket to be used for communication with lvmd.
   lvmdSocket: /run/lvmd/lvmd.sock
   # node.kubeletRegistrationPath -- Specify the path to the CSI driver socket on the host node that kubelet will use to issue CSI operations.
+  ## https://github.com/kubernetes-csi/node-driver-registrar#required-arguments
   kubeletRegistrationPath: /var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
 
   # node.securityContext. -- Container securityContext.

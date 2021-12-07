@@ -121,6 +121,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | lvmd.updateStrategy | object | `{}` | Specify updateStrategy. |
 | lvmd.volumeMounts | list | `[{"mountPath":"/run/topolvm","name":"lvmd-socket-dir"}]` | Specify volumeMounts. |
 | lvmd.volumes | list | `[{"hostPath":{"path":"/run/topolvm","type":"DirectoryOrCreate"},"name":"lvmd-socket-dir"}]` | Specify volumes. |
+| node.kubeletRegistrationPath | string | `"/var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock"` | Specify the path to the CSI driver socket on the host node that kubelet will use to issue CSI operations. |
 | node.lvmdSocket | string | `"/run/lvmd/lvmd.sock"` | Specify the socket to be used for communication with lvmd. |
 | node.metrics.annotations | object | `{"prometheus.io/port":"metrics"}` | Annotations for Scrape used by Prometheus. |
 | node.metrics.enabled | bool | `true` | If true, enable scraping of metrics by Prometheus. |
