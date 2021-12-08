@@ -35,6 +35,7 @@ spec:
           {{- end }}
           command:
             - /topolvm-node
+            - --csi-socket={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
             - --lvmd-socket={{ .Values.node.lvmdSocket }}
           ports:
             - name: healthz
@@ -59,9 +60,21 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-          {{- with .Values.node.volumeMounts.topolvmNode }}
-          volumeMounts: {{ toYaml . | nindent 12 }}
-          {{- end }}
+          volumeMounts:
+            {{- if .Values.node.volumeMounts.topolvmNode }}
+            {{- toYaml .Values.node.volumeMounts.topolvmNode | nindent 12 }}
+            {{- else }}
+            - name: node-plugin-dir
+              mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/
+            - name: lvmd-socket-dir
+              mountPath: {{ dir .Values.node.lvmdSocket }}
+            - name: pod-volumes-dir
+              mountPath: {{ .Values.node.kubeletWorkDirectory }}/pods
+              mountPropagation: "Bidirectional"
+            - name: csi-plugin-dir
+              mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/kubernetes.io/csi
+              mountPropagation: "Bidirectional"
+            {{- end }}
 
         - name: csi-registrar
           {{- if .Values.image.csi.nodeDriverRegistrar }}
@@ -74,13 +87,13 @@ spec:
           {{- end }}
           command:
             - /csi-node-driver-registrar
-            - --csi-address=/run/topolvm/csi-topolvm.sock
-            - --kubelet-registration-path=/var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
+            - --csi-address={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
+            - --kubelet-registration-path={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
           livenessProbe:
             exec:
               command:
               - /csi-node-driver-registrar
-              - --kubelet-registration-path=/var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
+              - --kubelet-registration-path={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
               - --mode=kubelet-registration-probe
             initialDelaySeconds: 3
           lifecycle:
@@ -92,7 +105,7 @@ spec:
                 - rm -rf /registration/topolvm.cybozu.com /registration/topolvm.cybozu.com-reg.sock
           volumeMounts:
             - name: node-plugin-dir
-              mountPath: /run/topolvm
+              mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/
             - name: registration-dir
               mountPath: /registration
 
@@ -107,14 +120,36 @@ spec:
           {{- end }}
           command:
             - /livenessprobe
-            - --csi-address=/run/topolvm/csi-topolvm.sock
+            - --csi-address={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
           volumeMounts:
             - name: node-plugin-dir
-              mountPath: /run/topolvm
+              mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/
 
-      {{- with .Values.node.volumes }}
-      volumes: {{ toYaml . | nindent 8 }}
-      {{- end }}
+      volumes:
+        {{- if .Values.node.volumes }}
+        {{- toYaml .Values.node.volumes | nindent 8 }}
+        {{- else }}
+        - name: registration-dir
+          hostPath:
+            path: {{ .Values.node.kubeletWorkDirectory }}/plugins_registry/
+            type: Directory
+        - name: node-plugin-dir
+          hostPath:
+            path: {{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node
+            type: DirectoryOrCreate
+        - name: csi-plugin-dir
+          hostPath:
+            path: {{ .Values.node.kubeletWorkDirectory }}/plugins/kubernetes.io/csi
+            type: DirectoryOrCreate
+        - name: pod-volumes-dir
+          hostPath:
+            path: {{ .Values.node.kubeletWorkDirectory }}/pods/
+            type: DirectoryOrCreate
+        - name: lvmd-socket-dir
+          hostPath:
+            path: {{ dir .Values.node.lvmdSocket }}
+            type: Directory
+        {{- end }}
 
       {{- with .Values.node.tolerations }}
       tolerations: {{ toYaml . | nindent 8 }}

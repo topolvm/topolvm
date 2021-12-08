@@ -157,16 +157,16 @@ lvmd:
   nodeSelector: {}
 
   # lvmd.volumes -- Specify volumes.
-  volumes:
-    - name: lvmd-socket-dir
-      hostPath:
-        path: /run/topolvm
-        type: DirectoryOrCreate
+  volumes: []
+  #  - name: lvmd-socket-dir
+  #    hostPath:
+  #      path: /run/topolvm
+  #      type: DirectoryOrCreate
 
   # lvmd.volumeMounts -- Specify volumeMounts.
-  volumeMounts:
-    - name: lvmd-socket-dir
-      mountPath: /run/topolvm
+  volumeMounts: []
+  #  - name: lvmd-socket-dir
+  #    mountPath: /run/topolvm
 
   # lvmd.additionalConfigs -- Define additional LVM Daemon configs if you have additional types of nodes.
   # Please ensure nodeSelectors are non overlapping.
@@ -181,9 +181,9 @@ lvmd:
 
   psp:
     # lvmd.psp.allowedHostPaths -- Specify allowedHostPaths.
-    allowedHostPaths:
-      - pathPrefix: "/run/topolvm"
-        readOnly: false
+    allowedHostPaths: []
+    #  - pathPrefix: "/run/topolvm"
+    #    readOnly: false
 
   # lvmd.updateStrategy -- Specify updateStrategy.
   updateStrategy: {}
@@ -195,7 +195,10 @@ lvmd:
 # CSI node service
 node:
   # node.lvmdSocket -- Specify the socket to be used for communication with lvmd.
-  lvmdSocket: /run/lvmd/lvmd.sock
+  lvmdSocket: /run/topolvm/lvmd.sock
+  # node.kubeletWorkDirectory -- Specify the work directory of Kubelet on the host.
+  # For example, on microk8s it needs to be set to `/var/snap/microk8s/common/var/lib/kubelet`
+  kubeletWorkDirectory: /var/lib/kubelet
 
   # node.securityContext. -- Container securityContext.
   ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
@@ -264,49 +267,49 @@ node:
   nodeSelector: {}
 
   # node.volumes -- Specify volumes.
-  volumes:
-    - name: registration-dir
-      hostPath:
-        path: /var/lib/kubelet/plugins_registry/
-        type: Directory
-    - name: node-plugin-dir
-      hostPath:
-        path: /var/lib/kubelet/plugins/topolvm.cybozu.com/node
-        type: DirectoryOrCreate
-    - name: csi-plugin-dir
-      hostPath:
-        path: /var/lib/kubelet/plugins/kubernetes.io/csi
-        type: DirectoryOrCreate
-    - name: pod-volumes-dir
-      hostPath:
-        path: /var/lib/kubelet/pods/
-        type: DirectoryOrCreate
-    - name: lvmd-socket-dir
-      hostPath:
-        path: /run/topolvm
-        type: Directory
+  volumes: []
+  #  - name: registration-dir
+  #    hostPath:
+  #      path: /var/lib/kubelet/plugins_registry/
+  #      type: Directory
+  #  - name: node-plugin-dir
+  #    hostPath:
+  #      path: /var/lib/kubelet/plugins/topolvm.cybozu.com/node
+  #      type: DirectoryOrCreate
+  #  - name: csi-plugin-dir
+  #    hostPath:
+  #      path: /var/lib/kubelet/plugins/kubernetes.io/csi
+  #      type: DirectoryOrCreate
+  #  - name: pod-volumes-dir
+  #    hostPath:
+  #      path: /var/lib/kubelet/pods/
+  #      type: DirectoryOrCreate
+  #  - name: lvmd-socket-dir
+  #    hostPath:
+  #      path: /run/topolvm
+  #      type: Directory
 
   volumeMounts:
-    # node.volumeMounts.topolvmNode -- Specify volumeMounts for topolvm-node container.
-    topolvmNode:
-      - name: node-plugin-dir
-        mountPath: /run/topolvm
-      - name: lvmd-socket-dir
-        mountPath: /run/lvmd
-      - name: pod-volumes-dir
-        mountPath: /var/lib/kubelet/pods
-        mountPropagation: "Bidirectional"
-      - name: csi-plugin-dir
-        mountPath: /var/lib/kubelet/plugins/kubernetes.io/csi
-        mountPropagation: "Bidirectional"
+    # node.volumeMounts.topolvmNode -- Specify volumes.
+    topolvmNode: []
+    # - name: node-plugin-dir
+    #   mountPath: /var/lib/kubelet/plugins/topolvm.cybozu.com/node
+    # - name: csi-plugin-dir
+    #   mountPath: /var/lib/kubelet/plugins/kubernetes.io/csi
+    #   mountPropagation: "Bidirectional"
+    # - name: pod-volumes-dir
+    #   mountPath: /var/lib/kubelet/pods
+    #   mountPropagation: "Bidirectional"
+    # - name: lvmd-socket-dir
+    #   mountPath: /run/topolvm
 
   psp:
-    # node.psp.allowedHostPaths -- Specify allowedHostPaths.
-    allowedHostPaths:
-      - pathPrefix: "/var/lib/kubelet"
-        readOnly: false
-      - pathPrefix: "/run/topolvm"
-        readOnly: false
+    # node.psp.allowedHostPaths -- Specify volumes.
+    allowedHostPaths: []
+    # - pathPrefix: "/var/lib/kubelet"
+    #   readOnly: false
+    # - pathPrefix: "/run/topolvm"
+    #   readOnly: false
 
   # node.updateStrategy -- Specify updateStrategy.
   updateStrategy: {}
