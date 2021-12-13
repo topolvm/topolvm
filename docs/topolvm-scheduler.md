@@ -1,7 +1,7 @@
 topolvm-scheduler
 =================
 
-`topolvm-scheduler` is a Kubernetes [scheduler extender](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/scheduler_extender.md) for TopoLVM.
+`topolvm-scheduler` is a Kubernetes [scheduler extender](https://github.com/kubernetes/design-proposals-archive/blob/main/scheduling/scheduler_extender.md) for TopoLVM.
 
 It filters and prioritizes Nodes based on the amount of free space in their volume groups.
 

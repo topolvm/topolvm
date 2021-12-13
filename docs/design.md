@@ -26,7 +26,7 @@ Components
 ----------
 
 - `topolvm-controller`: CSI controller service.
-- `topolvm-scheduler`: A [scheduler extender](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/scheduler_extender.md) for TopoLVM.
+- `topolvm-scheduler`: A [scheduler extender](https://github.com/kubernetes/design-proposals-archive/blob/main/scheduling/scheduler_extender.md) for TopoLVM.
 - `topolvm-node`: CSI node service.
 - `lvmd`: gRPC service to manage LVM volumes.
 
@@ -65,7 +65,7 @@ dynamic volume provisioning.  Details are described in the following sections.
 a custom Kubernetes controller to implement dynamic volume provisioning and
 resource cleanups.
 
-`topolvm-scheduler` is a [scheduler extender](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/scheduler_extender.md) to extend the
+`topolvm-scheduler` is a [scheduler extender](https://github.com/kubernetes/design-proposals-archive/blob/main/scheduling/scheduler_extender.md) to extend the
 standard Kubernetes scheduler for TopoLVM.
 
 ### How the scheduler extension works
