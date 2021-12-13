@@ -285,6 +285,8 @@ node:
       hostPath:
         path: /run/topolvm
         type: Directory
+    - name: kubelet-registration-probe
+      emptyDir: {}
 
   volumeMounts:
     # node.volumeMounts.topolvmNode -- Specify volumeMounts for topolvm-node container.

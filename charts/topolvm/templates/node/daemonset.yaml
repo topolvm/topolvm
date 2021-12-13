@@ -95,6 +95,8 @@ spec:
               mountPath: /run/topolvm
             - name: registration-dir
               mountPath: /registration
+            - name: kubelet-registration-probe
+              mountPath: /var/lib/kubelet/plugins/topolvm.cybozu.com/node
 
         - name: liveness-probe
           {{- if .Values.image.csi.livenessProbe }}
