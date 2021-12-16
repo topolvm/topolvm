@@ -13,10 +13,12 @@ jobs:
         test_kubernetes_target: [current, prev, prev2]
         test_scheduler_manifest: [daemonset, deployment]
         storage_capacity: ["false", "true"]
+        skip_node_finalize: ["false", "true"]
     env:
       TEST_KUBERNETES_TARGET: ${{ matrix.test_kubernetes_target }}
       TEST_SCHEDULER_MANIFEST: ${{ matrix.test_scheduler_manifest }}
       STORAGE_CAPACITY: ${{ matrix.storage_capacity }}
+      SKIP_NODE_FINALIZE: ${{ matrix.skip_node_finalize }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2

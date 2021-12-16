@@ -37,6 +37,9 @@ spec:
           command:
             - /topolvm-controller
             - --cert-dir=/certs
+            {{- if .Values.controller.nodeFinalize.skipped }}
+            - --skip-node-finalize
+            {{- end }}
           ports:
             - containerPort: 9443
               name: webhook
