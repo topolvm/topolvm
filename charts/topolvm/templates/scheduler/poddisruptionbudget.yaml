@@ -1,5 +1,4 @@
-{{ if .Values.scheduler.enabled }}
-  {{ if .Values.scheduler.podDisruptionBudget.enabled }}
+{{ if and .Values.scheduler.enabled .Values.scheduler.podDisruptionBudget.enabled }}
 ---
 apiVersion: policy/v1beta1
 kind: PodDisruptionBudget
@@ -12,5 +11,4 @@ spec:
     matchLabels:
       app.kubernetes.io/name: topolvm-scheduler
 ---
-  {{ end }}
 {{ end }}
