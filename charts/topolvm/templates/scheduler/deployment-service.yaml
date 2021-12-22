@@ -1,5 +1,4 @@
-{{ if .Values.scheduler.enabled }}
-  {{ if eq (lower .Values.scheduler.type) "deployment" }}
+{{ if and .Values.scheduler.enabled (eq (lower .Values.scheduler.type) "deployment") }}
 ---
 apiVersion: v1
 kind: Service
@@ -22,5 +21,4 @@ spec:
       nodePort: {{ . }}
       {{- end }}
 ---
-  {{ end }}
 {{ end }}
