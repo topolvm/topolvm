@@ -24,8 +24,8 @@ var ErrVolumeNotFound = errors.New("VolumeID is not found")
 
 // LogicalVolumeService represents service for LogicalVolume.
 type LogicalVolumeService struct {
-	client.Client
-	mu sync.Mutex
+	client client.Client
+	mu     sync.Mutex
 }
 
 const (
@@ -50,7 +50,7 @@ func NewLogicalVolumeService(mgr manager.Manager) (*LogicalVolumeService, error)
 		return nil, err
 	}
 
-	return &LogicalVolumeService{Client: mgr.GetClient()}, nil
+	return &LogicalVolumeService{client: mgr.GetClient()}, nil
 }
 
 // CreateVolume creates volume
@@ -76,13 +76,13 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, dc, name 
 	}
 
 	existingLV := new(topolvmv1.LogicalVolume)
-	err := s.Get(ctx, client.ObjectKey{Name: name}, existingLV)
+	err := s.client.Get(ctx, client.ObjectKey{Name: name}, existingLV)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			return "", err
 		}
 
-		err := s.Create(ctx, lv)
+		err := s.client.Create(ctx, lv)
 		if err != nil {
 			return "", err
 		}
@@ -106,7 +106,7 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, dc, name 
 		}
 
 		var newLV topolvmv1.LogicalVolume
-		err := s.Get(ctx, client.ObjectKey{Name: name}, &newLV)
+		err := s.client.Get(ctx, client.ObjectKey{Name: name}, &newLV)
 		if err != nil {
 			logger.Error(err, "failed to get LogicalVolume", "name", name)
 			return "", err
@@ -116,7 +116,7 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, dc, name 
 			return newLV.Status.VolumeID, nil
 		}
 		if newLV.Status.Code != codes.OK {
-			err := s.Delete(ctx, &newLV)
+			err := s.client.Delete(ctx, &newLV)
 			if err != nil {
 				// log this error but do not return this error, because newLV.Status.Message is more important
 				logger.Error(err, "failed to delete LogicalVolume")
@@ -139,7 +139,7 @@ func (s *LogicalVolumeService) DeleteVolume(ctx context.Context, volumeID string
 		return err
 	}
 
-	err = s.Delete(ctx, lv)
+	err = s.client.Delete(ctx, lv)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil
@@ -156,7 +156,7 @@ func (s *LogicalVolumeService) DeleteVolume(ctx context.Context, volumeID string
 		case <-time.After(100 * time.Millisecond):
 		}
 
-		err := s.Get(ctx, client.ObjectKey{Name: lv.Name}, new(topolvmv1.LogicalVolume))
+		err := s.client.Get(ctx, client.ObjectKey{Name: lv.Name}, new(topolvmv1.LogicalVolume))
 		if err != nil {
 			if apierrors.IsNotFound(err) {
 				return nil
@@ -193,7 +193,7 @@ func (s *LogicalVolumeService) ExpandVolume(ctx context.Context, volumeID string
 		}
 
 		var changedLV topolvmv1.LogicalVolume
-		err := s.Get(ctx, client.ObjectKey{Name: lv.Name}, &changedLV)
+		err := s.client.Get(ctx, client.ObjectKey{Name: lv.Name}, &changedLV)
 		if err != nil {
 			logger.Error(err, "failed to get LogicalVolume", "name", lv.Name)
 			return err
@@ -217,7 +217,7 @@ func (s *LogicalVolumeService) ExpandVolume(ctx context.Context, volumeID string
 // GetVolume returns LogicalVolume by volume ID.
 func (s *LogicalVolumeService) GetVolume(ctx context.Context, volumeID string) (*topolvmv1.LogicalVolume, error) {
 	lvList := new(topolvmv1.LogicalVolumeList)
-	err := s.List(ctx, lvList, client.MatchingFields{indexFieldVolumeID: volumeID})
+	err := s.client.List(ctx, lvList, client.MatchingFields{indexFieldVolumeID: volumeID})
 	if err != nil {
 		return nil, err
 	}
@@ -250,7 +250,7 @@ func (s *LogicalVolumeService) UpdateSpecSize(ctx context.Context, volumeID stri
 		}
 		lv.Annotations[topolvm.ResizeRequestedAtKey] = time.Now().UTC().String()
 
-		if err := s.Update(ctx, lv); err != nil {
+		if err := s.client.Update(ctx, lv); err != nil {
 			if apierrors.IsConflict(err) {
 				logger.Info("detect conflict when LogicalVolume spec update", "name", lv.Name)
 				continue
@@ -279,7 +279,7 @@ func (s *LogicalVolumeService) UpdateCurrentSize(ctx context.Context, volumeID s
 
 		lv.Status.CurrentSize = size
 
-		if err := s.Status().Update(ctx, lv); err != nil {
+		if err := s.client.Status().Update(ctx, lv); err != nil {
 			if apierrors.IsConflict(err) {
 				logger.Info("detect conflict when LogicalVolume status update", "name", lv.Name)
 				continue
