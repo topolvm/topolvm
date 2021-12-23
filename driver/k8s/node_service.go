@@ -17,17 +17,18 @@ var ErrDeviceClassNotFound = errors.New("device class not found")
 
 // NodeService represents node service.
 type NodeService struct {
-	client client.Client
+	// it is safe to use cache reader because updating node annotations is periodic.
+	reader client.Reader
 }
 
 // NewNodeService returns NodeService.
 func NewNodeService(mgr manager.Manager) *NodeService {
-	return &NodeService{client: mgr.GetClient()}
+	return &NodeService{mgr.GetClient()}
 }
 
 func (s NodeService) getNodes(ctx context.Context) (*corev1.NodeList, error) {
 	nl := new(corev1.NodeList)
-	err := s.client.List(ctx, nl)
+	err := s.reader.List(ctx, nl)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +49,7 @@ func (s NodeService) extractCapacityFromAnnotation(node *corev1.Node, deviceClas
 // GetCapacityByName returns VG capacity of specified node by name.
 func (s NodeService) GetCapacityByName(ctx context.Context, name, deviceClass string) (int64, error) {
 	n := new(corev1.Node)
-	err := s.client.Get(ctx, client.ObjectKey{Name: name}, n)
+	err := s.reader.Get(ctx, client.ObjectKey{Name: name}, n)
 	if err != nil {
 		return 0, err
 	}

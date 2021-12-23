@@ -8,7 +8,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 	// +kubebuilder:scaffold:imports
 )
@@ -32,8 +31,8 @@ func run(ctx context.Context, cfg *rest.Config, scheme *runtime.Scheme, opts *en
 
 	dec, _ := admission.NewDecoder(scheme)
 	wh := mgr.GetWebhookServer()
-	wh.Register(podMutatingWebhookPath, &webhook.Admission{Handler: podMutator{mgr.GetClient(), dec}})
-	wh.Register(pvcMutatingWebhookPath, &webhook.Admission{Handler: persistentVolumeClaimMutator{mgr.GetClient(), dec}})
+	wh.Register(podMutatingWebhookPath, PodMutator(mgr.GetClient(), mgr.GetAPIReader(), dec))
+	wh.Register(pvcMutatingWebhookPath, PVCMutator(mgr.GetClient(), mgr.GetAPIReader(), dec))
 
 	if err := mgr.Start(ctx); err != nil {
 		return err
