@@ -123,7 +123,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | lvmd.volumeMounts | list | `[]` | Specify volumeMounts. |
 | lvmd.volumes | list | `[]` | Specify volumes. |
 | node.kubeletWorkDirectory | string | `"/var/lib/kubelet"` | Specify the work directory of Kubelet on the host. For example, on microk8s it needs to be set to `/var/snap/microk8s/common/var/lib/kubelet` |
-| node.lvmdSocket | string | `"/run/topolvm/lvmd.sock"` | Specify the socket to be used for communication with lvmd. |
+| node.lvmdSocketName | string | `"/run/topolvm/lvmd.sock"` | Specify the socket to be used for communication with lvmd. |
 | node.metrics.annotations | object | `{"prometheus.io/port":"metrics"}` | Annotations for Scrape used by Prometheus. |
 | node.metrics.enabled | bool | `true` | If true, enable scraping of metrics by Prometheus. |
 | node.nodeSelector | object | `{}` | Specify nodeSelector. |

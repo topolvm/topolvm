@@ -20,7 +20,7 @@ spec:
     {{- else }}
     - pathPrefix: {{ .Values.node.kubeletWorkDirectory }}
       readOnly: false
-    - pathPrefix: {{ dir .Values.node.lvmdSocket }}
+    - pathPrefix: {{ dir .Values.node.lvmdSocketName }}
       readOnly: false
     {{- end }}
   hostNetwork: false

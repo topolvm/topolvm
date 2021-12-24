@@ -25,7 +25,7 @@ lvmd:
   managed: false
 
 node:
-  lvmdSocket: /tmp/topolvm/lvmd.sock
+  lvmdSocketName: /tmp/topolvm/lvmd.sock
 
 storageClasses:
   - name: topolvm-provisioner

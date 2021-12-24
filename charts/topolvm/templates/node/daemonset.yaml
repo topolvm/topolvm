@@ -36,7 +36,7 @@ spec:
           command:
             - /topolvm-node
             - --csi-socket={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
-            - --lvmd-socket={{ .Values.node.lvmdSocket }}
+            - --lvmd-socket={{ .Values.node.lvmdSocketName }}
           ports:
             - name: healthz
               containerPort: 9808
@@ -67,7 +67,7 @@ spec:
             - name: node-plugin-dir
               mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/
             - name: lvmd-socket-dir
-              mountPath: {{ dir .Values.node.lvmdSocket }}
+              mountPath: {{ dir .Values.node.lvmdSocketName }}
             - name: pod-volumes-dir
               mountPath: {{ .Values.node.kubeletWorkDirectory }}/pods
               mountPropagation: "Bidirectional"
@@ -147,7 +147,7 @@ spec:
             type: DirectoryOrCreate
         - name: lvmd-socket-dir
           hostPath:
-            path: {{ dir .Values.node.lvmdSocket }}
+            path: {{ dir .Values.node.lvmdSocketName }}
             type: Directory
         {{- end }}
 

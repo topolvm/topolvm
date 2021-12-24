@@ -42,7 +42,7 @@ lvmd:
       spare-gb: 1
 
 node:
-  lvmdSocket: /tmp/topolvm/daemonset_lvmd/lvmd.sock
+  lvmdSocketName: /tmp/topolvm/daemonset_lvmd/lvmd.sock
 
 storageClasses:
   - name: topolvm-provisioner

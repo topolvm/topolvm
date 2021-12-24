@@ -194,8 +194,8 @@ lvmd:
 
 # CSI node service
 node:
-  # node.lvmdSocket -- Specify the socket to be used for communication with lvmd.
-  lvmdSocket: /run/topolvm/lvmd.sock
+  # node.lvmdSocketName -- Specify the socket to be used for communication with lvmd.
+  lvmdSocketName: /run/topolvm/lvmd.sock
   # node.kubeletWorkDirectory -- Specify the work directory of Kubelet on the host.
   # For example, on microk8s it needs to be set to `/var/snap/microk8s/common/var/lib/kubelet`
   kubeletWorkDirectory: /var/lib/kubelet
