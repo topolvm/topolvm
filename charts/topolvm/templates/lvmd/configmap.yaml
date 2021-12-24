@@ -15,7 +15,7 @@ metadata:
     {{- include "topolvm.labels" . | nindent 4 }}
 data:
   lvmd.yaml: |
-    socket-name: {{ $lvmd.socketName }}
+    socket-name: {{ default .Values.lvmd.socketName $lvmd.socketName }}
     {{- if $lvmd.deviceClasses }}
     device-classes: {{ toYaml $lvmd.deviceClasses | nindent 6 }}
     {{- end }}
