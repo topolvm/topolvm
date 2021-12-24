@@ -14,9 +14,15 @@ spec:
     - 'emptyDir'
     - 'secret'
     - 'hostPath'
-  {{- with .Values.node.psp.allowedHostPaths }}
-  allowedHostPaths: {{ toYaml . | nindent 2 }}
-  {{- end }}
+  allowedHostPaths:
+    {{- if .Values.node.psp.allowedHostPaths }}
+    {{- toYaml .Values.node.psp.allowedHostPaths | nindent 4 }}
+    {{- else }}
+    - pathPrefix: {{ .Values.node.kubeletWorkDirectory }}
+      readOnly: false
+    - pathPrefix: {{ dir .Values.node.lvmdSocket }}
+      readOnly: false
+    {{- end }}
   hostNetwork: false
   runAsUser:
     rule: 'RunAsAny'

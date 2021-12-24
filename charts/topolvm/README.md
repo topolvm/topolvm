@@ -115,14 +115,15 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | lvmd.managed | bool | `true` | If true, set up lvmd service with DaemonSet. |
 | lvmd.nodeSelector | object | `{}` | Specify nodeSelector. |
 | lvmd.priorityClassName | string | `nil` | Specify priorityClassName. |
-| lvmd.psp.allowedHostPaths | list | `[{"pathPrefix":"/run/topolvm","readOnly":false}]` | Specify allowedHostPaths. |
+| lvmd.psp.allowedHostPaths | list | `[]` | Specify allowedHostPaths. |
 | lvmd.resources | object | `{}` | Specify resources. |
 | lvmd.socketName | string | `"/run/topolvm/lvmd.sock"` | Specify socketName. |
 | lvmd.tolerations | list | `[]` | Specify tolerations. |
 | lvmd.updateStrategy | object | `{}` | Specify updateStrategy. |
-| lvmd.volumeMounts | list | `[{"mountPath":"/run/topolvm","name":"lvmd-socket-dir"}]` | Specify volumeMounts. |
-| lvmd.volumes | list | `[{"hostPath":{"path":"/run/topolvm","type":"DirectoryOrCreate"},"name":"lvmd-socket-dir"}]` | Specify volumes. |
-| node.lvmdSocket | string | `"/run/lvmd/lvmd.sock"` | Specify the socket to be used for communication with lvmd. |
+| lvmd.volumeMounts | list | `[]` | Specify volumeMounts. |
+| lvmd.volumes | list | `[]` | Specify volumes. |
+| node.kubeletWorkDirectory | string | `"/var/lib/kubelet"` | Specify the work directory of Kubelet on the host. For example, on microk8s it needs to be set to `/var/snap/microk8s/common/var/lib/kubelet` |
+| node.lvmdSocket | string | `"/run/topolvm/lvmd.sock"` | Specify the socket to be used for communication with lvmd. |
 | node.metrics.annotations | object | `{"prometheus.io/port":"metrics"}` | Annotations for Scrape used by Prometheus. |
 | node.metrics.enabled | bool | `true` | If true, enable scraping of metrics by Prometheus. |
 | node.nodeSelector | object | `{}` | Specify nodeSelector. |
@@ -134,13 +135,13 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | node.prometheus.podMonitor.namespace | string | `""` | Optional namespace in which to create PodMonitor. |
 | node.prometheus.podMonitor.relabelings | list | `[]` | RelabelConfigs to apply to samples before scraping. |
 | node.prometheus.podMonitor.scrapeTimeout | string | `""` | Scrape timeout. If not set, the Prometheus default scrape timeout is used. |
-| node.psp.allowedHostPaths | list | `[{"pathPrefix":"/var/lib/kubelet","readOnly":false},{"pathPrefix":"/run/topolvm","readOnly":false}]` | Specify allowedHostPaths. |
+| node.psp.allowedHostPaths | list | `[]` | Specify volumes. |
 | node.resources | object | `{}` | Specify resources. |
 | node.securityContext.privileged | bool | `true` |  |
 | node.tolerations | list | `[]` | Specify tolerations. |
 | node.updateStrategy | object | `{}` | Specify updateStrategy. |
-| node.volumeMounts.topolvmNode | list | `[{"mountPath":"/run/topolvm","name":"node-plugin-dir"},{"mountPath":"/run/lvmd","name":"lvmd-socket-dir"},{"mountPath":"/var/lib/kubelet/pods","mountPropagation":"Bidirectional","name":"pod-volumes-dir"},{"mountPath":"/var/lib/kubelet/plugins/kubernetes.io/csi","mountPropagation":"Bidirectional","name":"csi-plugin-dir"}]` | Specify volumeMounts for topolvm-node container. |
-| node.volumes | list | `[{"hostPath":{"path":"/var/lib/kubelet/plugins_registry/","type":"Directory"},"name":"registration-dir"},{"hostPath":{"path":"/var/lib/kubelet/plugins/topolvm.cybozu.com/node","type":"DirectoryOrCreate"},"name":"node-plugin-dir"},{"hostPath":{"path":"/var/lib/kubelet/plugins/kubernetes.io/csi","type":"DirectoryOrCreate"},"name":"csi-plugin-dir"},{"hostPath":{"path":"/var/lib/kubelet/pods/","type":"DirectoryOrCreate"},"name":"pod-volumes-dir"},{"hostPath":{"path":"/run/topolvm","type":"Directory"},"name":"lvmd-socket-dir"}]` | Specify volumes. |
+| node.volumeMounts.topolvmNode | list | `[]` | Specify volumes. |
+| node.volumes | list | `[]` | Specify volumes. |
 | podSecurityPolicy.create | bool | `true` | Enable pod security policy. |
 | priorityClass.enabled | bool | `true` | Install priorityClass. |
 | priorityClass.name | string | `"topolvm"` | Specify priorityClass resource name. |

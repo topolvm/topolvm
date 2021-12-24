@@ -51,15 +51,23 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/topolvm
-            {{- with .Values.lvmd.volumeMounts }}
-            {{- toYaml . | nindent 12 }}
-            {{- end }}
+            {{- if .Values.lvmd.volumeMounts }}
+            {{- toYaml .Values.lvmd.volumeMounts | nindent 12 }}
+            {{- else}}
+            - name: lvmd-socket-dir
+              mountPath: {{ dir .Values.lvmd.socketName }}
+            {{- end}}
       volumes:
         - name: config
           configMap:
             name: {{ template "topolvm.fullname" . }}-lvmd-{{ $lvmdidx }}
-        {{- with .Values.lvmd.volumes }}
-        {{- toYaml . | nindent 8 }}
+        {{- if .Values.lvmd.volumes }}
+        {{- toYaml .Values.lvmd.volumes | nindent 8 }}
+        {{- else }}
+        - name: lvmd-socket-dir
+          hostPath:
+            path: {{ dir .Values.lvmd.socketName }}
+            type: DirectoryOrCreate
         {{- end }}
       {{- with $lvmd.tolerations }}
       tolerations: {{ toYaml . | nindent 8 }}

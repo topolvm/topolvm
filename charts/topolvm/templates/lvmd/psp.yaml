@@ -14,9 +14,13 @@ spec:
     - 'emptyDir'
     - 'hostPath'
     - 'secret'
-  {{- with .Values.lvmd.psp.allowedHostPaths }}
-  allowedHostPaths: {{ toYaml . | nindent 2 }}
-  {{- end }}
+  allowedHostPaths:
+    {{- if .Values.lvmd.psp.allowedHostPaths }}
+    {{- toYaml .Values.lvmd.psp.allowedHostPaths | nindent 4 }}
+    {{- else }}
+    - pathPrefix: {{ dir .Values.lvmd.socketName }}
+      readOnly: false
+    {{- end }}
   runAsUser:
     rule: 'RunAsAny'
   seLinux:

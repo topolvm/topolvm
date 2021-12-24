@@ -40,61 +40,9 @@ lvmd:
     - name: "hdd2"
       volume-group: "node-myvg3"
       spare-gb: 1
-  volumes:
-    - name: lvmd-socket-dir
-      hostPath:
-        path: /tmp/topolvm/daemonset_lvmd
-        type: DirectoryOrCreate
-  volumeMounts:
-    - name: lvmd-socket-dir
-      mountPath: /tmp/topolvm/daemonset_lvmd
-    - name: lvmd-socket-dir
-      mountPath: /run/topolvm
-  psp:
-    allowedHostPaths:
-      - pathPrefix: "/tmp/topolvm/daemonset_lvmd"
-        readOnly: false
 
 node:
-  volumeMounts:
-    topolvmNode:
-      - name: node-plugin-dir
-        mountPath: /run/topolvm
-      - name: lvmd-socket-dir
-        mountPath: /run/lvmd
-      - name: pod-volumes-dir
-        mountPath: /var/lib/kubelet/pods
-        mountPropagation: "Bidirectional"
-      - name: csi-plugin-dir
-        mountPath: /var/lib/kubelet/plugins/kubernetes.io/csi
-        mountPropagation: "Bidirectional"
-      - name: device-dir
-        mountPath: /dev
-  volumes:
-    - name: registration-dir
-      hostPath:
-        path: /var/lib/kubelet/plugins_registry/
-        type: Directory
-    - name: node-plugin-dir
-      hostPath:
-        path: /var/lib/kubelet/plugins/topolvm.cybozu.com/node
-        type: DirectoryOrCreate
-    - name: csi-plugin-dir
-      hostPath:
-        path: /var/lib/kubelet/plugins/kubernetes.io/csi
-        type: DirectoryOrCreate
-    - name: pod-volumes-dir
-      hostPath:
-        path: /var/lib/kubelet/pods/
-        type: DirectoryOrCreate
-    - name: lvmd-socket-dir
-      hostPath:
-        path: /tmp/topolvm/daemonset_lvmd
-        type: Directory
-    - name: device-dir
-      hostPath:
-        path: /dev
-        type: Directory
+  lvmdSocket: /tmp/topolvm/daemonset_lvmd/lvmd.sock
 
 storageClasses:
   - name: topolvm-provisioner
