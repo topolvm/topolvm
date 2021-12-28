@@ -8,12 +8,16 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
+	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v4/apis/volumesnapshot/v1"
 	"github.com/topolvm/topolvm"
 	"github.com/topolvm/topolvm/csi"
 	"github.com/topolvm/topolvm/driver/k8s"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var ctrlLogger = ctrl.Log.WithName("driver").WithName("controller")
@@ -192,7 +196,17 @@ func (s controllerService) DeleteVolume(ctx context.Context, req *csi.DeleteVolu
 		return nil, status.Error(codes.InvalidArgument, "volume_id is not provided")
 	}
 
-	err := s.lvService.DeleteVolume(ctx, req.GetVolumeId())
+	snapExists, err := s.volumeSnapshotExists(ctx, req.GetVolumeId())
+	if err != nil {
+		ctrlLogger.Error(err, "failed getting snapshot for volume", "volume_id", req.GetVolumeId())
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	if snapExists {
+		ctrlLogger.Info("volume have snapshot", "volume_id", req.GetVolumeId())
+		return nil, status.Errorf(codes.Internal, "volume %s have snapshot", req.GetVolumeId())
+	}
+
+	err = s.lvService.DeleteVolume(ctx, req.GetVolumeId())
 	if err != nil {
 		ctrlLogger.Error(err, "DeleteVolume failed", "volume_id", req.GetVolumeId())
 		_, ok := status.FromError(err)
@@ -458,4 +472,43 @@ func checkContentSource(req *csi.CreateVolumeRequest) (string, error) {
 	}
 
 	return "", status.Errorf(codes.InvalidArgument, "not a proper volume source %v", volumeSource)
+}
+
+func (s controllerService) volumeSnapshotExists(ctx context.Context, volID string) (bool, error) {
+	ctrlLogger.Info("enter function volumeSnapshotExists", "volume-id", volID)
+
+	lv, err := s.lvService.GetVolume(ctx, volID)
+	if err != nil {
+		ctrlLogger.Info("Can not get volume when do DeleteVolume", "volumeID", volID)
+		return false, err
+	}
+
+	pv := v1.PersistentVolume{}
+	err = s.lvService.Get(ctx, client.ObjectKey{Name: lv.Spec.Name}, &pv)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			ctrlLogger.Info("Can not get pv when do DeleteVolume", "pvName", lv.Spec.Name)
+			return false, err
+		}
+		ctrlLogger.Error(err, "Get pv failed when do DeleteVolume", "pvName", lv.Spec.Name)
+		return false, err
+	}
+
+	exists := false
+
+	snapList := snapshotv1.VolumeSnapshotList{}
+	err = s.lvService.List(ctx, &snapList, &client.ListOptions{Namespace: pv.Spec.ClaimRef.Namespace})
+	if err != nil {
+		ctrlLogger.Error(err, "Get snapshot failed when do DeleteVolume")
+		return false, err
+	}
+
+	for _, snap := range snapList.Items {
+		if *snap.Spec.Source.PersistentVolumeClaimName == pv.Spec.ClaimRef.Name {
+			exists = true
+			break
+		}
+	}
+
+	return exists, err
 }
