@@ -7,6 +7,8 @@ SKIP_NODE_FINALIZE ?= false
 ## Dependency versions
 MINIKUBE_VERSION := v1.23.2
 CERT_MANAGER_VERSION := v1.3.1
+SNAPSHOT_CONTROLLER_VERSION := 4.2
+
 
 BINDIR := $(shell pwd)/bin
 SUDO := sudo
@@ -156,9 +158,11 @@ ifneq ($(HELM_VALUES_FILE),"")
 	$(MAKE) launch-kind
 	$(KIND) load image-archive --name=$(KIND_CLUSTER_NAME) topolvm.img
 	$(KUBECTL) apply -f https://github.com/jetstack/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
-	$(KUBECTL) apply -f testdata/snapshot/deploy/crd.yaml
-	$(KUBECTL) apply -f testdata/snapshot/deploy/rbac.yaml
-	$(KUBECTL) apply -f testdata/snapshot/deploy/controller.yaml
+	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/release-$(SNAPSHOT_CONTROLLER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
+	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/release-$(SNAPSHOT_CONTROLLER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
+	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/release-$(SNAPSHOT_CONTROLLER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
+	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/release-$(SNAPSHOT_CONTROLLER_VERSION)/deploy/kubernetes/snapshot-controller/rbac-snapshot-controller.yaml
+    $(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/release-$(SNAPSHOT_CONTROLLER_VERSION)/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml
 	$(KUBECTL) create namespace topolvm-system
 	$(KUBECTL) label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
 	$(HELM) repo add jetstack https://charts.jetstack.io
