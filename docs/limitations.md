@@ -36,3 +36,7 @@ CSI ephemeral volumes may leave orphaned logical volumes
 
 The logical volume created by CSI ephemeral volumes may be left behind by restarting the node.
 This problem is because the kubelet on the restarted node may fail to remove the logical volume through the CSI driver when pods are removed.
+
+User should not use pending pvc that restore from snapshot
+-------------------------
+The pvc controller check pvc has datasource or not. if yes, pvc controller will schedule pvc by patching the node info to it. if pod not wait for pvc's phase switch to `Bound`, schedule may go wrong.  
