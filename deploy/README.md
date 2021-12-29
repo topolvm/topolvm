@@ -357,6 +357,24 @@ The changes to `/etc/kubernetes/manifests/kube-scheduler.yaml` that are affected
         name: topolvm-config
         readOnly: true
     ```
+   
+## How to use snapshot
+
+Please follow [snapshot controller deployment](https://github.com/kubernetes-csi/external-snapshotter#usage) to install common snapshot controller.Do this once per cluster.
+After installing common snapshot controller, follow [how to create snapshot and restore](https://kubernetes.io/docs/concepts/storage/volume-snapshots/).  
+
+`VolumeSnapshotClass` example:
+
+```yaml
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: csi-topolvm-snapclass
+driver: topolvm.cybozu.com
+deletionPolicy: Delete
+parameters:
+```
+
 
 ## How to use TopoLVM provisioner
 
