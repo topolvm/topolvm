@@ -7,6 +7,21 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [4.0.0] - 2022-01-07
+
+### Changed
+- remove k8s version specification from Chart.yaml (#403)
+- Make kubelet work directory overridable via single chart parameter (#410)
+  - **BREAKING**: The `node.kubeletWorkDirectory` parameter has been added, and the default values of other parameters regarding the host path have changed. Please review the settings related to the host path.
+- skip PDB when topolvm-scheduler isn't enabled (#417)
+
+### Added
+- Add topolvm-controller CLI flag to skip node finalize (#409)
+
+### Contributors
+- @macaptain
+- @rkrzewski
+
 ## [3.2.0] - 2021-12-01
 ### Changed
 - appVersion was changed to 0.10.3.
@@ -84,7 +99,8 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v3.2.0...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v4.0.0...HEAD
+[4.0.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v3.2.0...topolvm-chart-v4.0.0
 [3.2.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v3.1.2...topolvm-chart-v3.2.0
 [3.1.2]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v3.1.1...topolvm-chart-v3.1.2
 [3.1.1]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v3.1.0...topolvm-chart-v3.1.1
