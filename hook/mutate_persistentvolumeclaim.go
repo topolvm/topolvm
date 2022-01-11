@@ -26,7 +26,7 @@ type persistentVolumeClaimMutator struct {
 func PVCMutator(r client.Reader, apiReader client.Reader, dec *admission.Decoder) http.Handler {
 	return &webhook.Admission{
 		Handler: &persistentVolumeClaimMutator{
-			getter: getter.NewRetryMissingGetter(r, apiReader),
+			getter:  getter.NewRetryMissingGetter(r, apiReader),
 			decoder: dec,
 		},
 	}

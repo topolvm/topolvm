@@ -35,7 +35,7 @@ type podMutator struct {
 func PodMutator(r client.Reader, apiReader client.Reader, dec *admission.Decoder) http.Handler {
 	return &webhook.Admission{
 		Handler: &podMutator{
-			getter: getter.NewRetryMissingGetter(r, apiReader),
+			getter:  getter.NewRetryMissingGetter(r, apiReader),
 			decoder: dec,
 		},
 	}
