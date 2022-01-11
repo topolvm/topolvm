@@ -23,7 +23,7 @@ type NodeService struct {
 
 // NewNodeService returns NodeService.
 func NewNodeService(mgr manager.Manager) *NodeService {
-	return &NodeService{mgr.GetClient()}
+	return &NodeService{reader: mgr.GetClient()}
 }
 
 func (s NodeService) getNodes(ctx context.Context) (*corev1.NodeList, error) {
