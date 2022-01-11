@@ -33,7 +33,12 @@ type podMutator struct {
 
 // PodMutator creates a mutating webhook for Pods.
 func PodMutator(r client.Reader, apiReader client.Reader, dec *admission.Decoder) http.Handler {
-	return &webhook.Admission{Handler: &podMutator{getter.NewRetryMissingGetter(r, apiReader), dec}}
+	return &webhook.Admission{
+		Handler: &podMutator{
+			getter: getter.NewRetryMissingGetter(r, apiReader),
+			decoder: dec,
+		},
+	}
 }
 
 // Handle implements admission.Handler interface.
