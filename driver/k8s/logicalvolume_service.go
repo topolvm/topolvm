@@ -103,7 +103,7 @@ func NewLogicalVolumeService(mgr manager.Manager) (*LogicalVolumeService, error)
 	return &LogicalVolumeService{
 		writer:       mgr.GetClient(),
 		getter:       getter.NewRetryMissingGetter(mgr.GetClient(), mgr.GetAPIReader()),
-		volumeGetter: &volumeGetter{mgr.GetClient(), mgr.GetAPIReader()},
+		volumeGetter: &volumeGetter{cacheReader: mgr.GetClient(), apiReader: mgr.GetAPIReader()},
 	}, nil
 }
 
