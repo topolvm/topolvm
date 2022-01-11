@@ -24,7 +24,12 @@ type persistentVolumeClaimMutator struct {
 
 // PVCMutator creates a mutating webhook for PVCs.
 func PVCMutator(r client.Reader, apiReader client.Reader, dec *admission.Decoder) http.Handler {
-	return &webhook.Admission{Handler: &persistentVolumeClaimMutator{getter.NewRetryMissingGetter(r, apiReader), dec}}
+	return &webhook.Admission{
+		Handler: &persistentVolumeClaimMutator{
+			getter: getter.NewRetryMissingGetter(r, apiReader),
+			decoder: dec,
+		},
+	}
 }
 
 //+kubebuilder:webhook:failurePolicy=fail,matchPolicy=equivalent,groups=core,resources=persistentvolumeclaims,verbs=create,versions=v1,name=pvc-hook.topolvm.cybozu.com,path=/pvc/mutate,mutating=true,sideEffects=none,admissionReviewVersions={v1,v1beta1}
