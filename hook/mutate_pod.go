@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/topolvm/topolvm"
+	"github.com/topolvm/topolvm/getter"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
@@ -26,17 +27,22 @@ var pmLogger = ctrl.Log.WithName("pod-mutator")
 
 // podMutator mutates pods using PVC for TopoLVM.
 type podMutator struct {
-	client  client.Client
+	getter  *getter.RetryMissingGetter
 	decoder *admission.Decoder
 }
 
 // PodMutator creates a mutating webhook for Pods.
-func PodMutator(c client.Client, dec *admission.Decoder) http.Handler {
-	return &webhook.Admission{Handler: podMutator{c, dec}}
+func PodMutator(r client.Reader, apiReader client.Reader, dec *admission.Decoder) http.Handler {
+	return &webhook.Admission{
+		Handler: &podMutator{
+			getter:  getter.NewRetryMissingGetter(r, apiReader),
+			decoder: dec,
+		},
+	}
 }
 
 // Handle implements admission.Handler interface.
-func (m podMutator) Handle(ctx context.Context, req admission.Request) admission.Response {
+func (m *podMutator) Handle(ctx context.Context, req admission.Request) admission.Response {
 	pod := &corev1.Pod{}
 	err := m.decoder.Decode(req, pod)
 	if err != nil {
@@ -58,13 +64,7 @@ func (m podMutator) Handle(ctx context.Context, req admission.Request) admission
 		pod.Namespace = req.Namespace
 	}
 
-	targets, err := m.targetStorageClasses(ctx)
-	if err != nil {
-		pmLogger.Error(err, "targetStorageClasses failed")
-		return admission.Errored(http.StatusInternalServerError, err)
-	}
-
-	pvcCapacities, err := m.requestedPVCCapacity(ctx, pod, targets)
+	pvcCapacities, err := m.requestedPVCCapacity(ctx, pod)
 	if err != nil {
 		pmLogger.Error(err, "requestedPVCCapacity failed")
 		return admission.Errored(http.StatusInternalServerError, err)
@@ -113,23 +113,35 @@ func (m podMutator) Handle(ctx context.Context, req admission.Request) admission
 	return admission.PatchResponseFromRaw(req.Object.Raw, marshaledPod)
 }
 
-func (m podMutator) targetStorageClasses(ctx context.Context) (map[string]storagev1.StorageClass, error) {
-	var scl storagev1.StorageClassList
-	if err := m.client.List(ctx, &scl); err != nil {
-		return nil, err
-	}
-
-	targets := make(map[string]storagev1.StorageClass)
-	for _, sc := range scl.Items {
-		if sc.Provisioner != topolvm.PluginName {
-			continue
-		}
-		targets[sc.Name] = sc
-	}
-	return targets, nil
+type targetSC struct {
+	getter *getter.RetryMissingGetter
+	cache  map[string]*storagev1.StorageClass
 }
 
-func (m podMutator) requestedPVCCapacity(ctx context.Context, pod *corev1.Pod, targets map[string]storagev1.StorageClass) (map[string]int64, error) {
+func (t *targetSC) Get(ctx context.Context, name string) (*storagev1.StorageClass, error) {
+	if sc, ok := t.cache[name]; ok {
+		return sc, nil
+	}
+
+	var sc storagev1.StorageClass
+	err := t.getter.Get(ctx, types.NamespacedName{Name: name}, &sc)
+	if err != nil {
+		if apierrs.IsNotFound(err) {
+			t.cache[name] = nil
+			return nil, nil
+		}
+		return nil, err
+	}
+	if sc.Provisioner != topolvm.PluginName {
+		t.cache[name] = nil
+		return nil, nil
+	}
+	t.cache[name] = &sc
+	return &sc, nil
+}
+
+func (m *podMutator) requestedPVCCapacity(ctx context.Context, pod *corev1.Pod) (map[string]int64, error) {
+	targetSC := targetSC{m.getter, map[string]*storagev1.StorageClass{}}
 	capacities := make(map[string]int64)
 	for _, vol := range pod.Spec.Volumes {
 		if vol.PersistentVolumeClaim == nil {
@@ -145,7 +157,7 @@ func (m podMutator) requestedPVCCapacity(ctx context.Context, pod *corev1.Pod, t
 		}
 
 		var pvc corev1.PersistentVolumeClaim
-		if err := m.client.Get(ctx, name, &pvc); err != nil {
+		if err := m.getter.Get(ctx, name, &pvc); err != nil {
 			if !apierrs.IsNotFound(err) {
 				pmLogger.Error(err, "failed to get pvc",
 					"pod", pod.Name,
@@ -165,8 +177,11 @@ func (m podMutator) requestedPVCCapacity(ctx context.Context, pod *corev1.Pod, t
 			// https://kubernetes.io/docs/concepts/storage/persistent-volumes/#class-1
 			continue
 		}
-		sc, ok := targets[*pvc.Spec.StorageClassName]
-		if !ok {
+		sc, err := targetSC.Get(ctx, *pvc.Spec.StorageClassName)
+		if err != nil {
+			return nil, err
+		}
+		if sc == nil {
 			continue
 		}
 
@@ -192,7 +207,7 @@ func (m podMutator) requestedPVCCapacity(ctx context.Context, pod *corev1.Pod, t
 	return capacities, nil
 }
 
-func (m podMutator) requestedEphemeralCapacity(pod *corev1.Pod) (int64, error) {
+func (m *podMutator) requestedEphemeralCapacity(pod *corev1.Pod) (int64, error) {
 	var total int64
 	for _, vol := range pod.Spec.Volumes {
 		if vol.CSI == nil {

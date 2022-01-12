@@ -31,7 +31,7 @@ type NodeMetrics struct {
 }
 
 type metricsExporter struct {
-	client.Client
+	client         client.Client
 	nodeName       string
 	vgService      proto.VGServiceClient
 	availableBytes *prometheus.GaugeVec
@@ -62,7 +62,7 @@ func NewMetricsExporter(conn *grpc.ClientConn, mgr manager.Manager, nodeName str
 	metrics.Registry.MustRegister(sizeBytes)
 
 	return &metricsExporter{
-		Client:         mgr.GetClient(),
+		client:         mgr.GetClient(),
 		nodeName:       nodeName,
 		vgService:      proto.NewVGServiceClient(conn),
 		availableBytes: availableBytes,
@@ -119,7 +119,7 @@ func (m *metricsExporter) updateNode(ctx context.Context, wc proto.VGService_Wat
 		}
 
 		var node corev1.Node
-		if err := m.Get(ctx, types.NamespacedName{Name: m.nodeName}, &node); err != nil {
+		if err := m.client.Get(ctx, types.NamespacedName{Name: m.nodeName}, &node); err != nil {
 			return err
 		}
 
@@ -145,7 +145,7 @@ func (m *metricsExporter) updateNode(ctx context.Context, wc proto.VGService_Wat
 		for _, item := range res.Items {
 			node2.Annotations[topolvm.CapacityKeyPrefix+item.DeviceClass] = strconv.FormatUint(item.FreeBytes, 10)
 		}
-		if err := m.Patch(ctx, node2, client.MergeFrom(&node)); err != nil {
+		if err := m.client.Patch(ctx, node2, client.MergeFrom(&node)); err != nil {
 			return err
 		}
 	}

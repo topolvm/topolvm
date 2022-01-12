@@ -74,8 +74,8 @@ func subMain() error {
 	// admissoin.NewDecoder never returns non-nil error
 	dec, _ := admission.NewDecoder(scheme)
 	wh := mgr.GetWebhookServer()
-	wh.Register("/pod/mutate", hook.PodMutator(mgr.GetClient(), dec))
-	wh.Register("/pvc/mutate", hook.PVCMutator(mgr.GetClient(), dec))
+	wh.Register("/pod/mutate", hook.PodMutator(mgr.GetClient(), mgr.GetAPIReader(), dec))
+	wh.Register("/pvc/mutate", hook.PVCMutator(mgr.GetClient(), mgr.GetAPIReader(), dec))
 
 	// register controllers
 	nodecontroller := &controllers.NodeReconciler{
