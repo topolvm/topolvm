@@ -48,6 +48,10 @@ spec:
             httpGet:
               port: {{ .Values.scheduler.options.listen.port }}
               path: /status
+          readinessProbe:
+            httpGet:
+              port: {{ .Values.scheduler.options.listen.port }}
+              path: /status
           volumeMounts:
             - mountPath: /etc/topolvm
               name: {{ template "topolvm.fullname" . }}-scheduler-options
