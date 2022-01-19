@@ -126,7 +126,6 @@ cert-manager:
 ### OPTIONAL: Prepare the certificate without cert-manager
 
 You can prepare the certificate manually without `cert-manager`.
-When doing so, do not apply [certificates.yaml](./manifests/base/certificates.yaml).
 
 1. Prepare PEM encoded self-signed certificate and key files.  
    The certificate must be valid for hostname `controller.topolvm-system.svc`.
@@ -134,7 +133,7 @@ When doing so, do not apply [certificates.yaml](./manifests/base/certificates.ya
 3. Create Secret in `topolvm-system` namespace as follows:
 
     ```console
-    kubectl -n topolvm-system create secret tls mutatingwebhook \
+    kubectl -n topolvm-system create secret tls topolvm-mutatingwebhook \
         --cert=<CERTIFICATE FILE> --key=<KEY FILE>
     ```
 
