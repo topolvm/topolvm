@@ -39,6 +39,7 @@ Also, [lvmd](../../deploy/README.md#lvmd) is run in a DaemonSet by default.
 To work webhooks properly, add a label to the target namespace. We also recommend to use a dedicated namespace.
 
 ```sh
+kubectl label namespace kube-system topolvm.cybozu.com/webhook=ignore
 kubectl label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
 ```
 

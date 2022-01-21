@@ -37,6 +37,7 @@ run:
 	$(KUBECTL) apply -f https://github.com/jetstack/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
 	$(KUBECTL) create namespace topolvm-system
 	$(KUBECTL) label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
+	$(KUBECTL) label namespace kube-system topolvm.cybozu.com/webhook=ignore
 	$(HELM) repo add jetstack https://charts.jetstack.io
 	$(HELM) repo update
 	$(HELM) dependency build ../charts/topolvm/
