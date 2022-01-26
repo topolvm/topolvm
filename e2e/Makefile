@@ -7,6 +7,7 @@ SKIP_NODE_FINALIZE ?= false
 ## Dependency versions
 MINIKUBE_VERSION := v1.23.2
 CERT_MANAGER_VERSION := v1.3.1
+KUSTOMIZE_VERSION := v4.4.1
 
 BINDIR := $(shell pwd)/bin
 SUDO := sudo
@@ -39,11 +40,9 @@ endif
 
 KIND_CONFIG="topolvm-cluster.yaml"
 MINIKUBE_FEATURE_GATES=""
-MINIKUBE_SCHEDULER_MANIFEST=kube-scheduler.yaml
 ifeq ($(KUBERNETES_VERSION),1.22.2)
 KIND_CONFIG="topolvm-cluster-single-writer.yaml"
 MINIKUBE_FEATURE_GATES="ReadWriteOncePod=true"
-MINIKUBE_SCHEDULER_MANIFEST=kube-scheduler-single-writer.yaml
 endif
 
 HELM_VALUES_FILE_LVMD := ""
@@ -158,6 +157,7 @@ ifneq ($(HELM_VALUES_FILE),"")
 	$(KUBECTL) apply -f https://github.com/jetstack/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
 	$(KUBECTL) create namespace topolvm-system
 	$(KUBECTL) label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
+	$(KUBECTL) label namespace kube-system topolvm.cybozu.com/webhook=ignore
 	$(HELM) repo add jetstack https://charts.jetstack.io
 	$(HELM) repo update
 	$(HELM) dependency build ../charts/topolvm/
@@ -180,6 +180,7 @@ setup:
 	mkdir -p $(BINDIR)
 	curl -o $(BINDIR)/kubectl -sfL https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl
 	chmod a+x $(BINDIR)/kubectl
+	curl -sfL https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F$(KUSTOMIZE_VERSION)/kustomize_$(KUSTOMIZE_VERSION)_linux_amd64.tar.gz | tar zxf - -C $(BINDIR)
 
 .PHONY: daemonset-lvmd/create-vg
 daemonset-lvmd/create-vg:
@@ -212,12 +213,17 @@ daemonset-lvmd/setup-minikube:
 	chmod a+x minikube-linux-amd64
 	mv minikube-linux-amd64 $(BINDIR)/minikube
 
+# Setting scheduler.config causes kube-scheduler CLBO because specified yaml can not be read from the container.
+# To resolve this, kube-scheduler pod is patched on daemonset-lvmd/update-minikube-setting.
 .PHONY: daemonset-lvmd/launch-minikube
 daemonset-lvmd/launch-minikube:
 	$(SUDO) -E $(BINDIR)/minikube start \
 		--vm-driver=none \
 		--kubernetes-version=v$(KUBERNETES_VERSION) \
 		--extra-config=kubelet.read-only-port=10255 \
+		$(if $(findstring false,$(STORAGE_CAPACITY)), \
+		--extra-config=scheduler.config=/var/lib/scheduler/scheduler-config.yaml \
+		) \
 		--feature-gates=$(MINIKUBE_FEATURE_GATES)
 	$(SUDO) chown -R $$USER $$HOME/.kube $(MINIKUBE_HOME)/.minikube
 	$(SUDO) chmod -R a+r $$HOME/.kube $(MINIKUBE_HOME)/.minikube
@@ -233,7 +239,7 @@ daemonset-lvmd/update-minikube-setting: daemonset-lvmd/delete-minikube daemonset
 ifneq ($(STORAGE_CAPACITY),true)
 	$(SUDO) mkdir -p /var/lib/scheduler
 	$(SUDO) sh -c 'sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|127.0.0.1|" scheduler-config-v1beta1-deployment.yaml > /var/lib/scheduler/scheduler-config.yaml'
-	$(SUDO) sh -c 'sed -e "s|@KUBERNETES_VERSION@|$(KUBERNETES_VERSION)|" $(MINIKUBE_SCHEDULER_MANIFEST) > /etc/kubernetes/manifests/kube-scheduler.yaml'
+	$(SUDO) manifests/kube-scheduler/patch.sh
 endif
 
 .PHONY: daemonset-lvmd/test
@@ -242,6 +248,7 @@ ifneq ($(HELM_VALUES_FILE_LVMD),"")
 	$(KUBECTL) apply -f https://github.com/jetstack/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
 	$(KUBECTL) create namespace topolvm-system
 	$(KUBECTL) label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
+	$(KUBECTL) label namespace kube-system topolvm.cybozu.com/webhook=ignore
 	$(HELM) repo add jetstack https://charts.jetstack.io
 	$(HELM) repo update
 	$(HELM) dependency build ../charts/topolvm/

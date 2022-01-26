@@ -40,6 +40,7 @@ To work webhooks properly, add a label to the target namespace. We also recommen
 
 ```sh
 kubectl label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
+kubectl label namespace kube-system topolvm.cybozu.com/webhook=ignore
 ```
 
 Install the chart with the release name `topolvm` into the namespace:
