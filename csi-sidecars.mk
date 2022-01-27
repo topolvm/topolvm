@@ -3,11 +3,6 @@ EXTERNAL_PROVISIONER_VERSION = 3.0.0
 EXTERNAL_RESIZER_VERSION = 1.3.0
 NODE_DRIVER_REGISTRAR_VERSION = 2.3.0
 LIVENESSPROBE_VERSION = 2.4.0
-CSI_SIDECARS = \
-	external-provisioner \
-	external-resizer \
-	node-driver-registrar \
-	livenessprobe
 
 GOPATH ?= $(shell go env GOPATH)
 
@@ -19,9 +14,13 @@ LIVENESSPROBE_SRC         = $(SRC_ROOT)/livenessprobe
 
 OUTPUT_DIR ?= .
 
-build: $(CSI_SIDECARS)
+.PHONY: build
+build: $(OUTPUT_DIR)/csi-provisioner
+build: $(OUTPUT_DIR)/csi-resizer
+build: $(OUTPUT_DIR)/csi-node-driver-registrar
+build: $(OUTPUT_DIR)/livenessprobe
 
-external-provisioner:
+$(OUTPUT_DIR)/csi-provisioner:
 	rm -rf $(EXTERNAL_PROVISIONER_SRC)
 	mkdir -p $(EXTERNAL_PROVISIONER_SRC)
 	curl -sSLf https://github.com/kubernetes-csi/external-provisioner/archive/v$(EXTERNAL_PROVISIONER_VERSION).tar.gz | \
@@ -29,7 +28,7 @@ external-provisioner:
 	make -C $(EXTERNAL_PROVISIONER_SRC)
 	cp -f $(EXTERNAL_PROVISIONER_SRC)/bin/csi-provisioner $(OUTPUT_DIR)/
 
-external-resizer:
+$(OUTPUT_DIR)/csi-resizer:
 	rm -rf $(EXTERNAL_RESIZER_SRC)
 	mkdir -p $(EXTERNAL_RESIZER_SRC)
 	curl -sSLf https://github.com/kubernetes-csi/external-resizer/archive/v$(EXTERNAL_RESIZER_VERSION).tar.gz | \
@@ -37,7 +36,7 @@ external-resizer:
 	make -C $(EXTERNAL_RESIZER_SRC)
 	cp -f $(EXTERNAL_RESIZER_SRC)/bin/csi-resizer $(OUTPUT_DIR)/
 
-node-driver-registrar:
+$(OUTPUT_DIR)/csi-node-driver-registrar:
 	rm -rf $(NODE_DRIVER_REGISTRAR_SRC)
 	mkdir -p $(NODE_DRIVER_REGISTRAR_SRC)
 	curl -sSLf https://github.com/kubernetes-csi/node-driver-registrar/archive/v$(NODE_DRIVER_REGISTRAR_VERSION).tar.gz | \
@@ -45,12 +44,10 @@ node-driver-registrar:
 	make -C $(NODE_DRIVER_REGISTRAR_SRC)
 	cp -f $(NODE_DRIVER_REGISTRAR_SRC)/bin/csi-node-driver-registrar $(OUTPUT_DIR)/
 
-livenessprobe:
+$(OUTPUT_DIR)/livenessprobe:
 	rm -rf $(LIVENESSPROBE_SRC)
 	mkdir -p $(LIVENESSPROBE_SRC)
 	curl -sSLf https://github.com/kubernetes-csi/livenessprobe/archive/v$(LIVENESSPROBE_VERSION).tar.gz | \
         tar zxf - --strip-components 1 -C $(LIVENESSPROBE_SRC)
 	make -C $(LIVENESSPROBE_SRC)
 	cp -f $(LIVENESSPROBE_SRC)/bin/livenessprobe $(OUTPUT_DIR)/
-
-.PHONY: build $(CSI_SIDECARS)

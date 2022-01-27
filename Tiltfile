@@ -6,7 +6,7 @@ def get_all_go_files():
 all_go_files = get_all_go_files()
 ignores=["e2e/tmpbin", "e2e/bin", "e2e/build", "build", "bin", "include", "testbin", "e2e/topolvm.img", "*/.docker_temp_*"]
 
-local_resource("hypertopolvm", "make -C e2e topolvm.img", deps=all_go_files, ignore=ignores)
+local_resource("hypertopolvm", "make -C e2e e2e-bin", deps=all_go_files, ignore=ignores)
 
 docker_build("topolvm:dev", "e2e/tmpbin", dockerfile="e2e/Dockerfile")
 
