@@ -29,6 +29,7 @@ bin
 /build
 /e2e/build
 /e2e/tmpbin
+/tilt_modules
 /include
 /testbin
 
