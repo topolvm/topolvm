@@ -66,7 +66,7 @@ HELM_SKIP_NODE_FINALIZE_FLAG :=
 endif
 
 SCHEDULER_CONFIG := scheduler-config-v1beta1-$(TEST_SCHEDULER_MANIFEST).yaml
-GO_FILES := $(shell find .. -prune -o -path ../e2e -prune -o -name '*.go' -print)
+GO_FILES := $(shell find .. -path ../e2e -prune -o -name '*.go' -print)
 BACKING_STORE := ./build
 
 topolvm.img: $(GO_FILES)
