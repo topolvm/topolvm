@@ -9,6 +9,10 @@ controller:
     enabled: false
   nodeSelector:
     kubernetes.io/hostname: topolvm-e2e-worker
+  # The nodeSelector above combined with the default podAntiAffinity means we
+  # cannot use RollingUpdate.
+  updateStrategy:
+    type: Recreate
   # sanity test requires that the controller mounts this hostPath to communicate with it
   volumes:
     - name: socket-dir
