@@ -59,6 +59,24 @@ func TestValidateDeviceClasses(t *testing.T) {
 		{
 			deviceClasses: []*DeviceClass{
 				{
+					Name:            "extra-options",
+					VolumeGroup:     "node1-myvg1",
+					Default:         true,
+					LVCreateOptions: []string{"--mirrors=1"},
+				},
+				{
+					Name:            "stripes-and-options",
+					VolumeGroup:     "node1-myvg2",
+					Stripe:          &stripe,
+					StripeSize:      "4G",
+					LVCreateOptions: []string{"--mirrors=1"},
+				},
+			},
+			valid: true,
+		},
+		{
+			deviceClasses: []*DeviceClass{
+				{
 					Name:        "__invalid-device-class-name__",
 					VolumeGroup: "node1-myvg1",
 					Default:     true,
@@ -139,6 +157,7 @@ func TestValidateDeviceClasses(t *testing.T) {
 func TestDeviceClassManager(t *testing.T) {
 	spare50gb := uint64(50)
 	spare100gb := uint64(100)
+	lvcreateOptions := []string{"--mirrors=1"}
 	deviceClasses := []*DeviceClass{
 		{
 			Name:        "hdd1",
@@ -154,6 +173,11 @@ func TestDeviceClassManager(t *testing.T) {
 			Name:        "ssd",
 			VolumeGroup: "ssd-vg",
 			Default:     true,
+		},
+		{
+			Name:            "mirrors",
+			VolumeGroup:     "hdd1-vg",
+			LVCreateOptions: lvcreateOptions,
 		},
 	}
 	manager := NewDeviceClassManager(deviceClasses)
@@ -182,6 +206,16 @@ func TestDeviceClassManager(t *testing.T) {
 	_, err = manager.FindDeviceClassByVGName("unknown")
 	if err != ErrNotFound {
 		t.Error("'unknown' should not be found")
+	}
+
+	dc, err = manager.DeviceClass("mirrors")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range dc.LVCreateOptions {
+		if dc.LVCreateOptions[i] != lvcreateOptions[i] {
+			t.Fatal("Wrong LVCreateOptions")
+		}
 	}
 
 	dc = manager.defaultDeviceClass
