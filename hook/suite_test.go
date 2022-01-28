@@ -133,7 +133,7 @@ var _ = BeforeSuite(func() {
 	failPolicy := admissionv1.Fail
 	sideEffects := admissionv1.SideEffectClassNone
 	webhookInstallOptions := envtest.WebhookInstallOptions{
-		MutatingWebhooks: []admissionv1.MutatingWebhookConfiguration{
+		MutatingWebhooks: []*admissionv1.MutatingWebhookConfiguration{
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "topolvm-hook",

@@ -1,28 +1,28 @@
-name: e2e-k8s-daemonset-lvmd
+name: "e2e-k8s-daemonset-lvmd"
 on:
   pull_request:
   push:
     branches:
-      - 'main'
+      - "main"
 jobs:
   e2e-k8s-daemonset-lvmd:
-    name: e2e-k8s-daemonset-lvmd
-    runs-on: ubuntu-18.04
+    name: "e2e-k8s-daemonset-lvmd"
+    runs-on: "ubuntu-18.04"
     strategy:
       matrix:
-        test_kubernetes_target: [current, prev, prev2]
+        test_kubernetes_target: ["current", "prev", "prev2"]
         storage_capacity: ["false", "true"]
         skip_node_finalize: ["false", "true"]
     env:
       TEST_KUBERNETES_TARGET: ${{ matrix.test_kubernetes_target }}
-      TEST_SCHEDULER_MANIFEST: deployment
+      TEST_SCHEDULER_MANIFEST: "deployment"
       STORAGE_CAPACITY: ${{ matrix.storage_capacity }}
       SKIP_NODE_FINALIZE: ${{ matrix.skip_node_finalize }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: "1.17"
       - run: make -C e2e setup
       - run: make -C e2e daemonset-lvmd/create-vg
       - run: make -C e2e daemonset-lvmd/setup-minikube

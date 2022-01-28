@@ -42,12 +42,16 @@ First of all, we should have a look at the release notes in the order below.
 6. Depending modules
   - Read [kubernetes go.mod](https://github.com/kubernetes/kubernetes/blob/master/go.mod), and update the `prometheus/*` and `grpc` modules.
   - Read [csi-test go.mod](https://github.com/kubernetes-csi/csi-test/blob/master/go.mod), and update the `ginkgo` and `gomega` modules.
+7. Update upstream information
+  - Visit [the upstream web page](https://kubernetes-csi.github.io/docs/drivers.html) to check current TopoLVM information. If some information is old, create PR to update the information.
 
 Please write down to the Github issue of this task what kinds of changes we find in the release note and what we are going to do and NOT going to do to address the changes.
 The format is up to you, but this is very important to keep track of what changes are made in this task, so please do not forget to do it.
 
 Basically, we should pay attention to breaking changes and security fixes first.
 If we find some interesting features added in new versions, please consider if we are going to use them or not and make a GitHub issue to incorporate them after the upgrading task is done.
+
+Note: Ubuntu 18.04 is used to keep the backward compatibility of XFS formatting. (https://github.com/topolvm/topolvm/pull/306)
 
 ### Update written versions
 

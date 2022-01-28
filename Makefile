@@ -3,11 +3,11 @@
 CONTROLLER_RUNTIME_VERSION=$(shell awk '/sigs\.k8s\.io\/controller-runtime/ {print substr($$2, 2)}' go.mod)
 CONTROLLER_TOOLS_VERSION=$(shell awk '/sigs\.k8s\.io\/controller-tools/ {print substr($$2, 2)}' go.mod)
 CSI_VERSION=1.5.0
-PROTOC_VERSION=3.15.0
+PROTOC_VERSION=3.19.3
 KIND_VERSION=v0.11.1
-HELM_VERSION=3.7.1
-HELM_DOCS_VERSION=1.5.0
-YQ_VERSION=4.14.1
+HELM_VERSION=3.8.0
+HELM_DOCS_VERSION=1.7.0
+YQ_VERSION=4.18.1
 
 SUDO=sudo
 CURL=curl -Lsf
@@ -29,10 +29,14 @@ BUILD_TARGET=hypertopolvm
 TOPOLVM_VERSION ?= devel
 IMAGE_TAG ?= latest
 
-## for build kind node
+## for custom build kind node
+## ignore if you do not need a custom image
 KIND_NODE_VERSION=v1.21.1
 
-ENVTEST_KUBERNETES_VERSION=1.22
+ENVTEST_KUBERNETES_VERSION=1.23
+
+PROTOC_GEN_DOC_VERSION := $(shell awk '/github.com\/pseudomuto\/protoc-gen-doc/ {print substr($$2, 2)}' go.mod)
+PROTOC_GEN_GO_GRPC_VERSION := $(shell awk '/google.golang.org\/grpc\/cmd\/protoc-gen-go-grpc/ {print substr($$2, 2)}' go.mod)
 
 # Set the shell used to bash for better error handling.
 SHELL = /bin/bash
@@ -175,8 +179,8 @@ tools: install-kind ## Install development tools.
 	unzip -o protoc.zip bin/protoc 'include/*'
 	rm -f protoc.zip
 	GOBIN=$(BINDIR) go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-	GOBIN=$(BINDIR) go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-	GOBIN=$(BINDIR) go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@latest
+	GOBIN=$(BINDIR) go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v$(PROTOC_GEN_GO_GRPC_VERSION)
+	GOBIN=$(BINDIR) go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v$(PROTOC_GEN_DOC_VERSION)
 
 	GOBIN=$(BINDIR) go install github.com/onsi/ginkgo/ginkgo@latest
 

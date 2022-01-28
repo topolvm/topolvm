@@ -1,34 +1,34 @@
-name: Release Charts
+name: "Release Charts"
 
-on: workflow_dispatch
+on: "workflow_dispatch"
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: "ubuntu-latest"
     steps:
-      - name: Checkout
+      - name: "Checkout"
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
 
-      - name: Configure Git
+      - name: "Configure Git"
         run: |
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
-      - name: Install Helm
+      - name: "Install Helm"
         uses: azure/setup-helm@v1
         with:
-          version: v3.5.0
+          version: "v3.8.0"
 
       # Add depending repository for helm to avoid the error below.
       # `Error: no repository definition for https://charts.jetstack.io`
       # see: https://github.com/helm/chart-releaser-action/issues/74
-      - name: Add cert-manager repo for helm
+      - name: "Add cert-manager repo for helm"
         run: |
           helm repo add cert-manager https://charts.jetstack.io
 
-      - name: Run chart-releaser
+      - name: "Run chart-releaser"
         uses: helm/chart-releaser-action@v1.2.1
         with:
           config: .cr.yaml

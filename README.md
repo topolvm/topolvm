@@ -20,7 +20,7 @@ Join our community on Slack: [Invitation link](https://join.slack.com/t/topolvm/
 Supported environments
 ----------------------
 
-- Kubernetes: 1.22, 1.21, 1.20
+- Kubernetes: 1.23, 1.22, 1.21
 - Node OS: Linux with LVM2 (*1)
 - Filesystems: ext4, xfs
 
@@ -36,6 +36,7 @@ Features
 - Extended scheduler: TopoLVM extends the general Pod scheduler to prioritize Nodes having larger storage capacity.
 - Volume metrics: Usage stats are exported as Prometheus metrics from `kubelet`.
 - [Volume Expansion](https://kubernetes-csi.github.io/docs/volume-expansion.html): Volumes can be expanded by editing `PersistentVolumeClaim` objects.
+- [Storage capacity tracking](https://github.com/topolvm/topolvm/tree/main/deploy#storage-capacity-tracking): You can enable Storage Capacity Tracking mode instead of using topolvm-scheduler.
 
 ### Planned features
 
