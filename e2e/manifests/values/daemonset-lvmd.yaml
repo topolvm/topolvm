@@ -40,6 +40,11 @@ lvmd:
     - name: "hdd2"
       volume-group: "node-myvg3"
       spare-gb: 1
+    - name: "raid"
+      volume-group: "node-myvg4"
+      spare-gb: 1
+      lvcreate-options:
+        - "--type=raid1"
 
 node:
   lvmdSocket: /tmp/topolvm/daemonset_lvmd/lvmd.sock

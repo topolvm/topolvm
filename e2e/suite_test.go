@@ -143,6 +143,7 @@ var _ = Describe("TopoLVM", func() {
 	Context("ReadWriteOncePod", testReadWriteOncePod)
 	Context("e2e", testE2E)
 	Context("multiple-vg", testMultipleVolumeGroups)
+	Context("lvcreate-options", testLVCreateOptions)
 	Context("cleanup", testCleanup)
 	Context("CSI sanity", testSanity)
 })

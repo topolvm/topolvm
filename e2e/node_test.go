@@ -142,9 +142,9 @@ func testNode() {
 			}
 			found = true
 
-			length := 2
+			length := 3
 			if isDaemonsetLvmdEnvSet() {
-				length = 3
+				length = 4
 			}
 			Expect(family.Metric).Should(HaveLen(length))
 
