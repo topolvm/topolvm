@@ -57,7 +57,7 @@ setup: $(KUBECTL)
 clean: stop-lvmd
 	rm -rf bin/ build/
 
-$(TMPDIR)/scheduler/scheduler-config.yaml: ../deploy/scheduler-config/scheduler-config-v1beta1.yaml
+$(TMPDIR)/scheduler/scheduler-config.yaml: ../deploy/scheduler-config/scheduler-config-v1beta2.yaml
 	mkdir -p $(TMPDIR)/scheduler
 	cp $< $@
 

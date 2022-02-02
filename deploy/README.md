@@ -209,7 +209,7 @@ divisors:
 Besides, the scoring weight can be passed to kube-scheduler via [scheduler-config-v1beta1.yaml](./scheduler-config/scheduler-config-v1beta1.yaml). Almost all scoring algorithms in kube-scheduler are weighted as `"weight": 1`. So if you want to give a priority to the scoring by `topolvm-scheduler`, you have to set the weight as a value larger than one like as follows:
 
 ```yaml
-apiVersion: kubescheduler.config.k8s.io/v1beta1
+apiVersion: kubescheduler.config.k8s.io/v1beta2
 kind: KubeSchedulerConfiguration
 leaderElection:
   leaderElect: true

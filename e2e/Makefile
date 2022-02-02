@@ -59,7 +59,18 @@ else
 HELM_SKIP_NODE_FINALIZE_FLAG :=
 endif
 
+ifeq ($(KUBERNETES_VERSION),1.21.2)
 SCHEDULER_CONFIG := scheduler-config-v1beta1-$(TEST_SCHEDULER_MANIFEST).yaml
+else
+SCHEDULER_CONFIG := scheduler-config-v1beta2-$(TEST_SCHEDULER_MANIFEST).yaml
+endif
+
+ifeq ($(KUBERNETES_VERSION),1.21.2)
+SCHEDULER_DEPLOYMENT_CONFIG := scheduler-config-v1beta1-deployment.yaml
+else
+SCHEDULER_DEPLOYMENT_CONFIG := scheduler-config-v1beta2-deployment.yaml
+endif
+
 GO_FILES := $(shell find .. -prune -o -path ../e2e -prune -o -name '*.go' -print)
 BACKING_STORE := ./build
 
@@ -232,7 +243,7 @@ daemonset-lvmd/delete-minikube:
 daemonset-lvmd/update-minikube-setting: daemonset-lvmd/delete-minikube daemonset-lvmd/launch-minikube
 ifneq ($(STORAGE_CAPACITY),true)
 	$(SUDO) mkdir -p /var/lib/scheduler
-	$(SUDO) sh -c 'sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|127.0.0.1|" scheduler-config-v1beta1-deployment.yaml > /var/lib/scheduler/scheduler-config.yaml'
+	$(SUDO) sh -c 'sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|127.0.0.1|" $(SCHEDULER_DEPLOYMENT_CONFIG) > /var/lib/scheduler/scheduler-config.yaml'
 	$(SUDO) manifests/kube-scheduler/patch.sh
 endif
 
