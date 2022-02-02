@@ -31,7 +31,7 @@ If its response is succeeded, `topolvm-node` set `logicalvolume.status.volumeID`
 When a `LogicalVolume` resource is being deleted, `topolvm-node` sends
 a `RemoveLV` request to `lvmd`.
 
-Inline ephemeral volume provisioning
+Inline ephemeral volume provisioning (**deprecated**)
 ------------------------------------
 
 `topolvm-node` manages [inline ephemeral volumes](https://kubernetes-csi.github.io/docs/ephemeral-local-volumes.html) through special handling in the
