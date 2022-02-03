@@ -103,7 +103,9 @@ generate: $(PROTOBUF_GEN) ## Generate code containing DeepCopy, DeepCopyInto, an
 .PHONY: check-uncommitted
 check-uncommitted: ## Check if latest generated artifacts are committed.
 	$(MAKE) manifests
+	find . -name "*.pb.go" -delete
 	$(MAKE) generate
+	./bin/helm-docs -c charts/topolvm/
 	git diff --exit-code --name-only
 
 .PHONY: lint

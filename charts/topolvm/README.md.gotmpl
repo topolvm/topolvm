@@ -24,7 +24,7 @@ helm repo update
 
 | Repository | Name	| Version |
 | ---------- | ---- | ------- |
-| https://charts.jetstack.io | cert-manager | 1.3.1 |
+| https://charts.jetstack.io | cert-manager | 1.7.0 |
 
 ## Quick start
 
@@ -62,7 +62,7 @@ helm upgrade --namespace=topolvm-system -f values.yaml -i topolvm topolvm/topolv
 Before installing the chart, you must first install the cert-manager CustomResourceDefinition resources.
 
 ```sh
-kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.3.1/cert-manager.crds.yaml
+kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.7.0/cert-manager.crds.yaml
 ```
 
 Set the `cert-manager.enabled=true` parameter when installing topolvm chart:

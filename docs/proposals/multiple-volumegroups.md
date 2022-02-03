@@ -12,7 +12,7 @@
   - [How to expose free storage capacity of nodes](#how-to-expose-free-storage-capacity-of-nodes)
   - [How to annotate resources](#how-to-annotate-resources)
   - [Setting of divisors](#setting-of-divisors)
-  - [Ephemeral Inline Volume (**deprecated**)](#ephemeral-inline-volume-deprecated)
+  - [Ephemeral Inline Volume](#ephemeral-inline-volume)
   - [Device-class setting](#device-class-setting)
   - [Upgrade / Downgrade Strategy](#upgrade--downgrade-strategy)
 <!-- /toc -->
@@ -303,7 +303,7 @@ data:
       hdd: 10
 ```
 
-### Ephemeral Inline Volume (**deprecated**)
+### Ephemeral Inline Volume
 
 Ephemeral Inline Volumes are not related to StorageClass.
 
@@ -362,3 +362,4 @@ And run `lvmd` with the following options:
 ```console
 $ lvmd --config=/path/to/your-config.yaml
 ```
+
