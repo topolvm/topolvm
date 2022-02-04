@@ -7,15 +7,34 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.10.5] - 2022-02-04
+
 ### Deprecated
 
 - The following features are deprecated. Please see [README](README.md) for details.
   - Ephemeral inline volume
   - Pod security policy
 
+### Changed
+- Support Kubernetes v1.23 (#431)
+
+### Added
+- add readinessProbe for scheduler (#427)
+- Add proposal for lvcreate options (#420)
+
+### Fixed
+- Fix flaky (#419)
+- Fix flakiness from not configured kube-scheduler. (#430)
+- cast Statfs_t.Frsize to int64 for s390x arch (#425)
+- fix deploy.md for manual certificate setup. (#428)
+
+### Contributors
+- @sp98
+- @lentzi90
+
 ## [0.10.4] - 2022-01-07
 
-### Add
+### Added
 - Add topolvm-controller CLI flag to skip node finalize (#409)
 
 ### Contributors
@@ -403,7 +422,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.10.4...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.10.5...HEAD
+[0.10.5]: https://github.com/topolvm/topolvm/compare/v0.10.4...v0.10.5
 [0.10.4]: https://github.com/topolvm/topolvm/compare/v0.10.3...v0.10.4
 [0.10.3]: https://github.com/topolvm/topolvm/compare/v0.10.2...v0.10.3
 [0.10.2]: https://github.com/topolvm/topolvm/compare/v0.10.1...v0.10.2
