@@ -11,7 +11,7 @@ For deployment, please read [../deploy/README.md](../deploy/README.md).
 - [Node maintenance](#node-maintenance)
   - [Retiring nodes](#retiring-nodes)
   - [Rebooting nodes](#rebooting-nodes)
-- [Inline Ephemeral Volumes](#inline-ephemeral-volumes)
+- [Inline Ephemeral Volumes (**deprecated**)](#inline-ephemeral-volumes-deprecated)
 - [Other documents](#other-documents)
 
 StorageClass
@@ -115,7 +115,7 @@ To reboot a node without removing volumes, follow these steps:
 3. Run `kubectl uncordon NODE` after the node comes back online.
 4. After reboot, Pods will be rescheduled to the same node because PVCs remain intact.
 
-Inline Ephemeral Volumes
+Inline Ephemeral Volumes (**deprecated**)
 ------------------------
 
 An example use of a TopoLVM inline ephemeral volume is as follows:

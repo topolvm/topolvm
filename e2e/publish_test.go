@@ -14,6 +14,7 @@ import (
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	"github.com/topolvm/topolvm/csi"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 )
@@ -81,7 +82,7 @@ func testPublishVolume() {
 			return dialer.DialContext(ctx, "unix", a)
 		}
 		var err error
-		conn, err = grpc.Dial(nodeSocket, grpc.WithInsecure(), grpc.WithContextDialer(dialFunc))
+		conn, err = grpc.Dial(nodeSocket, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithContextDialer(dialFunc))
 		Expect(err).ShouldNot(HaveOccurred())
 
 		nc = csi.NewNodeClient(conn)

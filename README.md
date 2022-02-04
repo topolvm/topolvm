@@ -20,7 +20,7 @@ Join our community on Slack: [Invitation link](https://join.slack.com/t/topolvm/
 Supported environments
 ----------------------
 
-- Kubernetes: 1.22, 1.21, 1.20
+- Kubernetes: 1.23, 1.22, 1.21
 - Node OS: Linux with LVM2 (*1)
 - Filesystems: ext4, xfs
 
@@ -31,11 +31,12 @@ Features
 
 - [Dynamic provisioning](https://kubernetes-csi.github.io/docs/external-provisioner.html): Volumes are created dynamically when `PersistentVolumeClaim` objects are created.
 - [Raw block volume](https://kubernetes-csi.github.io/docs/raw-block.html): Volumes are available as block devices inside containers.
-- [Ephemeral inline volume](https://kubernetes.io/docs/concepts/storage/volumes/#csi-ephemeral-volumes): Volumes can be directly embedded in the Pod specification.
+- [Ephemeral inline volume](https://kubernetes.io/docs/concepts/storage/volumes/#csi-ephemeral-volumes) (**deprecated**): Volumes can be directly embedded in the Pod specification.
 - [Topology](https://kubernetes-csi.github.io/docs/topology.html): TopoLVM uses CSI topology feature to schedule Pod to Node where LVM volume exists.
 - Extended scheduler: TopoLVM extends the general Pod scheduler to prioritize Nodes having larger storage capacity.
 - Volume metrics: Usage stats are exported as Prometheus metrics from `kubelet`.
 - [Volume Expansion](https://kubernetes-csi.github.io/docs/volume-expansion.html): Volumes can be expanded by editing `PersistentVolumeClaim` objects.
+- [Storage capacity tracking](https://github.com/topolvm/topolvm/tree/main/deploy#storage-capacity-tracking): You can enable Storage Capacity Tracking mode instead of using topolvm-scheduler.
 
 ### Planned features
 
@@ -80,3 +81,9 @@ Docker images are available on [Quay.io](https://quay.io/organization/topolvm)
 [releases]: https://github.com/topolvm/topolvm/releases
 [CSI]: https://github.com/container-storage-interface/spec
 [kind]: https://github.com/kubernetes-sigs/kind
+
+Deprecated features
+-------------------
+- TopoLVM currently supports [Ephemeral inline volume](https://kubernetes.io/docs/concepts/storage/volumes/#csi-ephemeral-volumes), but it has a limitation that capacity tracking is not supported.
+As of kubernetes 1.21, [Generic ephemeral volume](https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/#generic-ephemeral-volumes) is introduced and it has no such limitation. So we will replace CSI ephemeral volume with Generic ephemeral volume, and deprecate CSI ephemeral volume.
+- TopoLVM currently uses [Pod security policy](https://kubernetes.io/docs/concepts/policy/pod-security-policy/), but it has been deprecated since Kubernetes 1.21, and will be deleted in Kubernetes 1.25. So it is also deprecated in TopoLVM.

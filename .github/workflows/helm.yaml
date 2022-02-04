@@ -1,4 +1,4 @@
-name: Lint and Test Charts
+name: "Lint and Test Charts"
 
 on:
   pull_request:
@@ -7,34 +7,34 @@ on:
 
 jobs:
   lint-test:
-    runs-on: ubuntu-18.04
+    runs-on: "ubuntu-18.04"
 
     steps:
-      - name: Checkout
+      - name: "Checkout"
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
 
-      - name: Setup Go
+      - name: "Setup Go"
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: "1.17"
 
-      - name: Setup Tools
+      - name: "Setup Tools"
         run: |
           make -C e2e setup
 
-      - name: Run helm-docs
+      - name: "Run helm-docs"
         run: ./bin/helm-docs && git diff --no-patch --exit-code
 
       - uses: actions/setup-python@v2
         with:
-          python-version: 3.7
+          python-version: "3.10"
 
-      - name: Set up chart-testing
-        uses: helm/chart-testing-action@v2.0.1
+      - name: "Set up chart-testing"
+        uses: helm/chart-testing-action@v2.2.0
 
-      - name: Run chart-testing (list-changed)
+      - name: "Run chart-testing (list-changed)"
         id: list-changed
         run: |
           changed=$(ct list-changed --config ct.yaml)
@@ -42,18 +42,18 @@ jobs:
             echo "::set-output name=changed::true"
           fi
 
-      - name: Run chart-testing (lint)
+      - name: "Run chart-testing (lint)"
         run: ct lint --config ct.yaml
 
-      - name: Setup kind
+      - name: "Setup kind"
         run: |
           make -C e2e daemonset-lvmd/create-vg
           make -C e2e daemonset-lvmd/setup-minikube
           make -C e2e daemonset-lvmd/update-minikube-setting
           make -C e2e topolvm.img
 
-      - name: Apply cert-manager CRDs
-        run: kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.3.1/cert-manager.crds.yaml
+      - name: "Apply cert-manager CRDs"
+        run: kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.7.0/cert-manager.crds.yaml
 
-      - name: Run chart-testing (install)
+      - name: "Run chart-testing (install)"
         run: ct install --config ct.yaml

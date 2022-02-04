@@ -1,33 +1,33 @@
-name: Main
+name: "Main"
 on:
   pull_request:
   push:
     branches:
-      - 'main'
+      - "main"
 jobs:
   build:
-    name: build
-    runs-on: ubuntu-18.04
+    name: "build"
+    runs-on: "ubuntu-18.04"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: "1.17"
       - run: make setup
       - run: make check-uncommitted
       - run: make test
       - run: sudo -E env PATH=${PATH} go test -race -v ./lvmd ./driver ./filesystem
       - run: make image
   example:
-    name: example
-    runs-on: ubuntu-18.04
+    name: "example"
+    runs-on: "ubuntu-18.04"
     defaults:
       run:
-        working-directory: example
+        working-directory: "example"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: "1.17"
       - run: make setup
       - run: make run BUILD_IMAGE=true

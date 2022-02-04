@@ -17,6 +17,7 @@ import (
 	"github.com/topolvm/topolvm/lvmd/proto"
 	"github.com/topolvm/topolvm/runners"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -62,7 +63,7 @@ func subMain() error {
 	dialFunc := func(ctx context.Context, a string) (net.Conn, error) {
 		return dialer.DialContext(ctx, "unix", a)
 	}
-	conn, err := grpc.Dial(config.lvmdSocket, grpc.WithInsecure(), grpc.WithContextDialer(dialFunc))
+	conn, err := grpc.Dial(config.lvmdSocket, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithContextDialer(dialFunc))
 	if err != nil {
 		return err
 	}

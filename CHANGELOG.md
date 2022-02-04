@@ -7,6 +7,12 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+### Deprecated
+
+- The following features are deprecated. Please see [README](README.md) for details.
+  - Ephemeral inline volume
+  - Pod security policy
+
 ## [0.10.4] - 2022-01-07
 
 ### Add

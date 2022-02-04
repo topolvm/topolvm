@@ -5,8 +5,8 @@ STORAGE_CAPACITY ?= false
 SKIP_NODE_FINALIZE ?= false
 
 ## Dependency versions
-MINIKUBE_VERSION := v1.23.2
-CERT_MANAGER_VERSION := v1.3.1
+MINIKUBE_VERSION := v1.25.1
+CERT_MANAGER_VERSION := v1.7.0
 KUSTOMIZE_VERSION := v4.4.1
 
 BINDIR := $(shell pwd)/bin
@@ -22,12 +22,13 @@ export MINIKUBE_HOME
 
 READ_WRITE_ONCE_POD=false
 ifeq ($(TEST_KUBERNETES_TARGET),current)
-KUBERNETES_VERSION := 1.22.2
+KUBERNETES_VERSION := 1.23.3
 READ_WRITE_ONCE_POD=true
 else ifeq ($(TEST_KUBERNETES_TARGET),prev)
-KUBERNETES_VERSION := 1.21.2
+KUBERNETES_VERSION := 1.22.2
+READ_WRITE_ONCE_POD=true
 else ifeq ($(TEST_KUBERNETES_TARGET),prev2)
-KUBERNETES_VERSION := 1.20.7
+KUBERNETES_VERSION := 1.21.2
 endif
 
 KIND_NODE_IMAGE=kindest/node:v$(KUBERNETES_VERSION)
@@ -40,21 +41,14 @@ endif
 
 KIND_CONFIG="topolvm-cluster.yaml"
 MINIKUBE_FEATURE_GATES=""
-ifeq ($(KUBERNETES_VERSION),1.22.2)
+ifneq ($(KUBERNETES_VERSION),1.21.2)
 KIND_CONFIG="topolvm-cluster-single-writer.yaml"
 MINIKUBE_FEATURE_GATES="ReadWriteOncePod=true"
 endif
 
-HELM_VALUES_FILE_LVMD := ""
 ifeq ($(STORAGE_CAPACITY),true)
-
-ifneq ($(KUBERNETES_VERSION),1.20.7)
 HELM_VALUES_FILE_LVMD := manifests/values/daemonset-lvmd-storage-capacity.yaml
 HELM_VALUES_FILE := manifests/values/storage-capacity.yaml
-else
-HELM_VALUES_FILE := ""
-endif
-
 else
 HELM_VALUES_FILE_LVMD := manifests/values/daemonset-lvmd.yaml
 endif
@@ -65,7 +59,18 @@ else
 HELM_SKIP_NODE_FINALIZE_FLAG :=
 endif
 
+ifeq ($(KUBERNETES_VERSION),1.21.2)
 SCHEDULER_CONFIG := scheduler-config-v1beta1-$(TEST_SCHEDULER_MANIFEST).yaml
+else
+SCHEDULER_CONFIG := scheduler-config-v1beta2-$(TEST_SCHEDULER_MANIFEST).yaml
+endif
+
+ifeq ($(KUBERNETES_VERSION),1.21.2)
+SCHEDULER_DEPLOYMENT_CONFIG := scheduler-config-v1beta1-deployment.yaml
+else
+SCHEDULER_DEPLOYMENT_CONFIG := scheduler-config-v1beta2-deployment.yaml
+endif
+
 GO_FILES := $(shell find .. -prune -o -path ../e2e -prune -o -name '*.go' -print)
 BACKING_STORE := ./build
 
@@ -238,13 +243,12 @@ daemonset-lvmd/delete-minikube:
 daemonset-lvmd/update-minikube-setting: daemonset-lvmd/delete-minikube daemonset-lvmd/launch-minikube
 ifneq ($(STORAGE_CAPACITY),true)
 	$(SUDO) mkdir -p /var/lib/scheduler
-	$(SUDO) sh -c 'sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|127.0.0.1|" scheduler-config-v1beta1-deployment.yaml > /var/lib/scheduler/scheduler-config.yaml'
+	$(SUDO) sh -c 'sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|127.0.0.1|" $(SCHEDULER_DEPLOYMENT_CONFIG) > /var/lib/scheduler/scheduler-config.yaml'
 	$(SUDO) manifests/kube-scheduler/patch.sh
 endif
 
 .PHONY: daemonset-lvmd/test
 daemonset-lvmd/test: topolvm.img
-ifneq ($(HELM_VALUES_FILE_LVMD),"")
 	$(KUBECTL) apply -f https://github.com/jetstack/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
 	$(KUBECTL) create namespace topolvm-system
 	$(KUBECTL) label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
@@ -255,7 +259,6 @@ ifneq ($(HELM_VALUES_FILE_LVMD),"")
 	$(HELM) install --create-namespace --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE_LVMD) $(HELM_SKIP_NODE_FINALIZE_FLAG)
 	$(KUBECTL) apply -f manifests/common/
 	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) STORAGE_CAPACITY=$(STORAGE_CAPACITY) SKIP_NODE_FINALIZE=$(SKIP_NODE_FINALIZE) READ_WRITE_ONCE_POD=$(READ_WRITE_ONCE_POD) DAEMONSET_LVMD=true GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) --failFast -v .
-endif
 
 .PHONY: daemonset-lvmd/clean
 daemonset-lvmd/clean: daemonset-lvmd/delete-minikube daemonset-lvmd/remove-vg
