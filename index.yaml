@@ -2,6 +2,24 @@ apiVersion: v1
 entries:
   topolvm:
   - apiVersion: v2
+    appVersion: 0.10.5
+    created: "2022-02-07T04:35:33.31106827Z"
+    dependencies:
+    - condition: cert-manager.enabled
+      name: cert-manager
+      repository: https://charts.jetstack.io
+      version: 1.7.0
+    description: Topolvm
+    digest: 263d7d69e73cef818dcb3ddf716e34ee77dfe6c2a52e2ff1980f9ae394080a02
+    home: https://github.com/topolvm/topolvm
+    name: topolvm
+    sources:
+    - https://github.com/topolvm/topolvm
+    type: application
+    urls:
+    - https://github.com/topolvm/topolvm/releases/download/topolvm-chart-v4.0.1/topolvm-4.0.1.tgz
+    version: 4.0.1
+  - apiVersion: v2
     appVersion: 0.10.4
     created: "2022-01-11T07:18:59.108013714Z"
     dependencies:
@@ -190,4 +208,4 @@ entries:
     urls:
     - https://github.com/topolvm/topolvm/releases/download/topolvm-chart-v2.0.1/topolvm-2.0.1.tgz
     version: 2.0.1
-generated: "2022-01-11T07:18:59.108071815Z"
+generated: "2022-02-07T04:35:33.311109671Z"
