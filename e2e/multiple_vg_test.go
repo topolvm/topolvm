@@ -66,7 +66,7 @@ func testMultipleVolumeGroups() {
 			return err
 		}).Should(Succeed())
 
-		vgName := "node3-myvg3"
+		vgName := "node3-myvg2"
 		if isDaemonsetLvmdEnvSet() {
 			vgName = "node-myvg3"
 		}

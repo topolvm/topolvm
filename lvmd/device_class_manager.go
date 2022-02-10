@@ -34,6 +34,8 @@ type DeviceClass struct {
 	Stripe *uint `json:"stripe"`
 	// StripeSize is the amount of data that is written to one device before moving to the next device
 	StripeSize string `json:"stripe-size"`
+	// LVCreateOptions are extra arguments to pass to lvcreate
+	LVCreateOptions []string `json:"lvcreate-options"`
 }
 
 // GetSpare returns spare in bytes for the device-class

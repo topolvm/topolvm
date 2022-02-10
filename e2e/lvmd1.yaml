@@ -7,3 +7,8 @@ device-classes:
   - name: "hdd1"
     volume-group: "node1-myvg2"
     spare-gb: 1
+  - name: "raid"
+    volume-group: "node1-myvg3"
+    spare-gb: 1
+    lvcreate-options:
+      - "--type=raid1"

@@ -5,5 +5,10 @@ device-classes:
     default: true
     spare-gb: 1
   - name: "hdd2"
+    volume-group: "node3-myvg2"
+    spare-gb: 1
+  - name: "raid"
     volume-group: "node3-myvg3"
     spare-gb: 1
+    lvcreate-options:
+      - "--type=raid1"
