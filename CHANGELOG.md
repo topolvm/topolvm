@@ -7,6 +7,14 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.10.6] - 2022-03-03
+
+### Added
+- ✨ Add lvcreate-options (#433)
+
+### Contributors
+- @lentzi90
+
 ## [0.10.5] - 2022-02-04
 
 ### Deprecated
@@ -422,7 +430,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.10.5...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.10.6...HEAD
+[0.10.6]: https://github.com/topolvm/topolvm/compare/v0.10.5...v0.10.6
 [0.10.5]: https://github.com/topolvm/topolvm/compare/v0.10.4...v0.10.5
 [0.10.4]: https://github.com/topolvm/topolvm/compare/v0.10.3...v0.10.4
 [0.10.3]: https://github.com/topolvm/topolvm/compare/v0.10.2...v0.10.3
