@@ -1,5 +1,5 @@
 # parameters
-TEST_KUBERNETES_TARGET ?= current
+KUBERNETES_VERSION ?= 1.23.3
 TEST_SCHEDULER_MANIFEST ?= daemonset
 STORAGE_CAPACITY ?= false
 SKIP_NODE_FINALIZE ?= false
@@ -20,15 +20,9 @@ GINKGO := ../bin/ginkgo
 MINIKUBE_HOME = $(BINDIR)
 export MINIKUBE_HOME
 
+READ_WRITE_ONCE_POD=true
+ifeq ($(KUBERNETES_VERSION),1.21.2)
 READ_WRITE_ONCE_POD=false
-ifeq ($(TEST_KUBERNETES_TARGET),current)
-KUBERNETES_VERSION := 1.23.3
-READ_WRITE_ONCE_POD=true
-else ifeq ($(TEST_KUBERNETES_TARGET),prev)
-KUBERNETES_VERSION := 1.22.2
-READ_WRITE_ONCE_POD=true
-else ifeq ($(TEST_KUBERNETES_TARGET),prev2)
-KUBERNETES_VERSION := 1.21.2
 endif
 
 KIND_NODE_IMAGE=kindest/node:v$(KUBERNETES_VERSION)
@@ -164,12 +158,11 @@ stop-lvmd:
 		done; \
 	done
 
-.PHONY: test
-test: topolvm.img
-ifneq ($(HELM_VALUES_FILE),"")
+.PHONY: create-cluster
+create-cluster: topolvm.img
 	$(MAKE) shutdown-kind
 	$(MAKE) launch-kind
-	$(KIND) load image-archive --name=$(KIND_CLUSTER_NAME) topolvm.img
+	$(KIND) load image-archive --name=$(KIND_CLUSTER_NAME) $<
 	$(KUBECTL) apply -f https://github.com/jetstack/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
 	$(KUBECTL) create namespace topolvm-system
 	$(KUBECTL) label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
@@ -178,9 +171,11 @@ ifneq ($(HELM_VALUES_FILE),"")
 	$(HELM) repo update
 	$(HELM) dependency build ../charts/topolvm/
 	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE) $(HELM_SKIP_NODE_FINALIZE_FLAG)
+
+.PHONY: test
+test: create-cluster
 	$(KUBECTL) apply -f manifests/common/
 	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) STORAGE_CAPACITY=$(STORAGE_CAPACITY) SKIP_NODE_FINALIZE=$(SKIP_NODE_FINALIZE) READ_WRITE_ONCE_POD=$(READ_WRITE_ONCE_POD) GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) --failFast -v .
-endif
 
 .PHONY: clean
 clean: stop-lvmd

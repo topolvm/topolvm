@@ -31,6 +31,12 @@ When tests fail, use `kubectl` to inspect the Kubernetes cluster.
 make test
 ```
 
+You can also start a cluster without running tests by the following command.
+
+```console
+make create-cluster
+```
+
 You can cleanup test environment as follows:
 
 ```
