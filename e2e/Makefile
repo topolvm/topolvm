@@ -170,7 +170,7 @@ create-cluster: topolvm.img
 	$(HELM) repo add jetstack https://charts.jetstack.io
 	$(HELM) repo update
 	$(HELM) dependency build ../charts/topolvm/
-	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE) $(HELM_SKIP_NODE_FINALIZE_FLAG)
+	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE) --set "controller.nodeSelector.kubernetes\.io/hostname"=$(KIND_CLUSTER_NAME)-worker $(HELM_SKIP_NODE_FINALIZE_FLAG)
 
 .PHONY: test
 test: create-cluster
