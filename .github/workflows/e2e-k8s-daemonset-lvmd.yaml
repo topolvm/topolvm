@@ -10,11 +10,11 @@ jobs:
     runs-on: "ubuntu-18.04"
     strategy:
       matrix:
-        test_kubernetes_target: ["current", "prev", "prev2"]
+        kubernetes_versions: ["1.23.3", "1.22.2", "1.21.2"]
         storage_capacity: ["false", "true"]
         skip_node_finalize: ["false", "true"]
     env:
-      TEST_KUBERNETES_TARGET: ${{ matrix.test_kubernetes_target }}
+      KUBERNETES_VERSION: ${{ matrix.kubernetes_versions }}
       TEST_SCHEDULER_MANIFEST: "deployment"
       STORAGE_CAPACITY: ${{ matrix.storage_capacity }}
       SKIP_NODE_FINALIZE: ${{ matrix.skip_node_finalize }}

@@ -64,6 +64,8 @@ Once we decide the versions we are going to upgrade, we should update the versio
 - `e2e/Makefile`: Makefile for running e2e tests
 - `example/Makefile`: Makefile for running example
 - `charts/topolvm/Chart.yaml`: Update the min Kubernetes version in `kubeVersion`
+- `.github/workflows/e2e-k8s-daemonset-lvmd.yaml`: Update the Kubernetes versions to be tested.
+- `.github/workflows/e2e-k8s.yaml`: Update the Kubernetes versions to be tested.
 
 `git grep 1.18`, `git grep image:`, and `git grep -i VERSION` might help us avoid overlooking necessary changes.
 Please update the versions in the code and docs with great care.
