@@ -11,7 +11,13 @@ import (
 // ErrNotFound is returned when a VG or LV is not found.
 var ErrNotFound = errors.New("device-class not found")
 
-const defaultSpareGB = 10
+type DeviceType string
+
+const (
+	defaultSpareGB = 10
+	TypeThin       = DeviceType("thin")
+	TypeThick      = DeviceType("thick")
+)
 
 // This regexp is based on the following validation:
 //   https://github.com/kubernetes/apimachinery/blob/v0.18.3/pkg/util/validation/validation.go#L42
@@ -20,7 +26,16 @@ var qualifiedNameRegexp = regexp.MustCompile("^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Z
 // This regexp is used to check StripeSize format
 var stripeSizeRegexp = regexp.MustCompile("(?i)^([0-9]*)(k|m|g|t|p|e|b|s)?$")
 
-// DeviceClass maps between device-classes and volume groups.
+// ThinPoolConfig holds the configuration of thin pool in a volume group
+type ThinPoolConfig struct {
+	// Name of thinpool
+	Name string `json:"name"`
+	// OverprovisionRatio signifies the upper bound multiplier for allowing logical volume creation in this pool
+	OverprovisionRatio float64 `json:"overprovision-ratio"`
+}
+
+// DeviceClass maps between device-classes and target for logical volume creation
+// current targets are VolumeGroup for thick-lv and ThinPool for thin-lv
 type DeviceClass struct {
 	// Name for the device-class name
 	Name string `json:"name"`
@@ -36,6 +51,10 @@ type DeviceClass struct {
 	StripeSize string `json:"stripe-size"`
 	// LVCreateOptions are extra arguments to pass to lvcreate
 	LVCreateOptions []string `json:"lvcreate-options"`
+	// Type is the name of logical volume target, supports 'thick' (default) or 'thin' currently
+	Type DeviceType `json:"type"`
+	// ThinPoolConfig holds the configuration for thinpool in this volume group corresponding to the device-class
+	ThinPoolConfig *ThinPoolConfig `json:"thin-pool"`
 }
 
 // GetSpare returns spare in bytes for the device-class
@@ -72,11 +91,41 @@ func ValidateDeviceClasses(deviceClasses []*DeviceClass) error {
 		if dcNames[dc.Name] {
 			return fmt.Errorf("duplicate device-class name: %s", dc.Name)
 		}
-		if vgNames[dc.VolumeGroup] {
-			return fmt.Errorf("duplicate volume group name: %s, %s", dc.Name, dc.VolumeGroup)
+
+		// validate Type of the device-class
+		switch dc.Type {
+		case "", TypeThick, TypeThin:
+		default:
+			return fmt.Errorf("target 'type' of device-class can be one of '%[1]s' or '%[2]s' or empty to default to '%[1]s'", TypeThick, TypeThin)
 		}
+
+		name := dc.VolumeGroup
+
+		// thinpool validation, ignore any thinpoolconfig if Type is not TypeThin
+		if dc.Type == TypeThin {
+
+			if dc.ThinPoolConfig == nil {
+				return fmt.Errorf("device class type is thin but thinpool config is empty: %s", dc.Name)
+			}
+
+			if len(dc.ThinPoolConfig.Name) == 0 {
+				return fmt.Errorf("thinpool name should not be empty: %s", dc.Name)
+			}
+
+			if dc.ThinPoolConfig.OverprovisionRatio < 1.0 {
+				return fmt.Errorf("overprovision ratio for thin pool %s in device class %s should be greater than 1.0", dc.ThinPoolConfig.Name, dc.Name)
+			}
+			// combination of volumegroup and thinpool should be unique across device classes
+			// so the key 'name' shouldn't appear twice to verify it's uniqueness
+			name = name + "/" + dc.ThinPoolConfig.Name
+		}
+
+		if vgNames[name] {
+			return fmt.Errorf("duplicate volumegroup/thinpool name: %s, %s", dc.Name, name)
+		}
+
 		dcNames[dc.Name] = true
-		vgNames[dc.VolumeGroup] = true
+		vgNames[name] = true
 		if dc.StripeSize != "" && !stripeSizeRegexp.MatchString(dc.StripeSize) {
 			return fmt.Errorf("stripe-size format is \"Size[k|UNIT]\": %s", dc.Name)
 		}
@@ -100,6 +149,10 @@ func NewDeviceClassManager(deviceClasses []*DeviceClass) *DeviceClassManager {
 	dcm.deviceClassByName = make(map[string]*DeviceClass)
 	dcm.deviceClassByVGName = make(map[string]*DeviceClass)
 	for _, dc := range deviceClasses {
+		// deviceclass target is thick lvs if type is not set
+		if dc.Type == "" {
+			dc.Type = TypeThick
+		}
 		if dc.Default {
 			dcm.defaultDeviceClass = dc
 		}
