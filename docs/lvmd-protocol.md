@@ -14,6 +14,7 @@
     - [LogicalVolume](#proto.LogicalVolume)
     - [RemoveLVRequest](#proto.RemoveLVRequest)
     - [ResizeLVRequest](#proto.ResizeLVRequest)
+    - [ThinPoolItem](#proto.ThinPoolItem)
     - [WatchItem](#proto.WatchItem)
     - [WatchResponse](#proto.WatchResponse)
   
@@ -193,17 +194,35 @@ The volume size will be set to exactly &#34;size_gb&#34;.
 
 
 
-<a name="proto.WatchItem"></a>
+<a name="proto.ThinPoolItem"></a>
 
-### WatchItem
-
+### ThinPoolItem
+Represents the details of thinpool.
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| free_bytes | [uint64](#uint64) |  | Free space of the volume group in bytes. |
+| data_percent | [double](#double) |  | Data percent occupied on the thinpool, used for monitoring. |
+| metadata_percent | [double](#double) |  | Metadata percent occupied on the thinpool, used for monitoring. |
+| overprovision_bytes | [uint64](#uint64) |  | Free space on the thinpool with overprovision, used for annotating node. |
+
+
+
+
+
+
+<a name="proto.WatchItem"></a>
+
+### WatchItem
+Represents the response corresponding to device class targets.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| free_bytes | [uint64](#uint64) |  | Free space in the device class. |
 | device_class | [string](#string) |  |  |
-| size_bytes | [uint64](#uint64) |  | Size of the volume group in bytes. |
+| size_bytes | [uint64](#uint64) |  | Size of device class in bytes. |
+| thin_pool | [ThinPoolItem](#proto.ThinPoolItem) |  |  |
 
 
 
