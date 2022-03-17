@@ -439,8 +439,23 @@ func (t *ThinPool) FindVolume(name string) (*LogicalVolume, error) {
 }
 
 // CreateVolume creates a thin volume from this pool.
-func (t *ThinPool) CreateVolume(name string, size uint64) (*LogicalVolume, error) {
-	if err := CallLVM("lvcreate", "-T", t.fullname, "-n", name, "-V", fmt.Sprintf("%vg", size>>30)); err != nil {
+func (t *ThinPool) CreateVolume(name string, size uint64, tags []string, stripe uint, stripeSize string, lvcreateOptions []string) (*LogicalVolume, error) {
+
+	lvcreateArgs := []string{"-T", t.FullName(), "-n", name, "-V", fmt.Sprintf("%vg", size>>30), "-W", "y", "-y"}
+	for _, tag := range tags {
+		lvcreateArgs = append(lvcreateArgs, "--addtag")
+		lvcreateArgs = append(lvcreateArgs, tag)
+	}
+	if stripe != 0 {
+		lvcreateArgs = append(lvcreateArgs, "-i", fmt.Sprintf("%d", stripe))
+
+		if stripeSize != "" {
+			lvcreateArgs = append(lvcreateArgs, "-I", stripeSize)
+		}
+	}
+	lvcreateArgs = append(lvcreateArgs, lvcreateOptions...)
+
+	if err := CallLVM("lvcreate", lvcreateArgs...); err != nil {
 		return nil, err
 	}
 	return t.vg.FindVolume(name)
