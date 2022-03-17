@@ -2,6 +2,8 @@ package lvmd
 
 import (
 	"context"
+	"fmt"
+	"math"
 	"sync"
 
 	"github.com/cybozu-go/log"
@@ -39,7 +41,27 @@ func (s *vgService) GetLVList(_ context.Context, req *proto.GetLVListRequest) (*
 	if err != nil {
 		return nil, err
 	}
-	lvs, err := vg.ListVolumes()
+
+	var lvs []*command.LogicalVolume
+
+	switch dc.Type {
+	case TypeThick:
+		// thick logicalvolumes
+		lvs, err = vg.ListVolumes()
+	case TypeThin:
+		var pool *command.ThinPool
+		pool, err = vg.FindPool(dc.ThinPoolConfig.Name)
+		if err != nil {
+			return nil, err
+		}
+		// thin logicalvolumes
+		lvs, err = pool.ListVolumes()
+	default:
+		// technically this block will not be hit however make sure we return error
+		// in such cases where deviceclass target is neither thick or thinpool
+		return nil, status.Error(codes.Internal, fmt.Sprintf("unsupported device class target: %s", dc.Type))
+	}
+
 	if err != nil {
 		log.Error("failed to list volumes", map[string]interface{}{
 			log.FnError: err,
@@ -47,15 +69,19 @@ func (s *vgService) GetLVList(_ context.Context, req *proto.GetLVListRequest) (*
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	vols := make([]*proto.LogicalVolume, len(lvs))
-	for i, lv := range lvs {
-		vols[i] = &proto.LogicalVolume{
+	vols := make([]*proto.LogicalVolume, 0, len(lvs))
+	for _, lv := range lvs {
+		if dc.Type == TypeThick && lv.IsThin() {
+			// do not send thin lvs if request is on TypeThick
+			continue
+		}
+		vols = append(vols, &proto.LogicalVolume{
 			Name:     lv.Name(),
 			SizeGb:   (lv.Size() + (1 << 30) - 1) >> 30,
 			DevMajor: lv.MajorNumber(),
 			DevMinor: lv.MinorNumber(),
 			Tags:     lv.Tags(),
-		}
+		})
 	}
 	return &proto.GetLVListResponse{Volumes: vols}, nil
 }
@@ -69,12 +95,38 @@ func (s *vgService) GetFreeBytes(_ context.Context, req *proto.GetFreeBytesReque
 	if err != nil {
 		return nil, err
 	}
-	vgFree, err := vg.Free()
-	if err != nil {
-		log.Error("failed to free VG", map[string]interface{}{
-			log.FnError: err,
-		})
-		return nil, status.Error(codes.Internal, err.Error())
+
+	var vgFree uint64
+	switch dc.Type {
+	case TypeThick:
+		vgFree, err = vg.Free()
+		if err != nil {
+			log.Error("failed to get free bytes", map[string]interface{}{
+				log.FnError: err,
+			})
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+	case TypeThin:
+		pool, err := vg.FindPool(dc.ThinPoolConfig.Name)
+		if err != nil {
+			log.Error("failed to get thinpool", map[string]interface{}{
+				log.FnError: err,
+			})
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+		tpu, err := pool.Free()
+		if err != nil {
+			log.Error("failed to get free bytes", map[string]interface{}{
+				log.FnError: err,
+			})
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+
+		// freebytes available in thinpool considering the overprovisionratio
+		vgFree = uint64(math.Floor(dc.ThinPoolConfig.OverprovisionRatio*float64(tpu.SizeBytes))) - tpu.VirtualBytes
+
+	default:
+		return nil, status.Error(codes.Internal, fmt.Sprintf("unsupported device class target: %s", dc.Type))
 	}
 
 	spare := dc.GetSpare()
@@ -111,14 +163,49 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 		if err != nil {
 			return err
 		}
-		if dc.Default {
-			res.FreeBytes = vgFree
+
+		switch dc.Type {
+		case TypeThick:
+			if dc.Default {
+				res.FreeBytes = vgFree
+			}
+			res.Items = append(res.Items, &proto.WatchItem{
+				DeviceClass: dc.Name,
+				FreeBytes:   vgFree,
+				SizeBytes:   vgSize,
+			})
+		case TypeThin:
+			tpi := &proto.ThinPoolItem{}
+			pool, err := vg.FindPool(dc.ThinPoolConfig.Name)
+			if err != nil {
+				return status.Error(codes.Internal, err.Error())
+			}
+			tpu, err := pool.Free()
+			if err != nil {
+				return status.Error(codes.Internal, err.Error())
+			}
+			opb := uint64(math.Floor(dc.ThinPoolConfig.OverprovisionRatio*float64(tpu.SizeBytes))) - tpu.VirtualBytes
+			if dc.Default {
+				// TODO (leelavg): remove this after removal of support for inline ephemeral volumes
+				res.FreeBytes = opb
+			}
+
+			// used for updating prometheus metrics
+			tpi.DataPercent = tpu.DataPercent
+			tpi.MetadataPercent = tpu.MetadataPercent
+
+			// used for annotating the node for capacity aware scheduling
+			tpi.OverprovisionBytes = opb
+
+			// include thinpoolitem in the response
+			res.Items = append(res.Items, &proto.WatchItem{
+				DeviceClass: dc.Name,
+				SizeBytes:   tpu.SizeBytes,
+				ThinPool:    tpi,
+			})
+		default:
+			return status.Error(codes.Internal, fmt.Sprintf("unsupported device class target: %s", dc.Type))
 		}
-		res.Items = append(res.Items, &proto.WatchItem{
-			DeviceClass: dc.Name,
-			FreeBytes:   vgFree,
-			SizeBytes:   vgSize,
-		})
 	}
 	return server.Send(res)
 }

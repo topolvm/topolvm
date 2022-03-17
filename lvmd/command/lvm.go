@@ -314,7 +314,7 @@ func (g *VolumeGroup) FindPool(name string) (*ThinPool, error) {
 			return pool, nil
 		}
 	}
-	return nil, fmt.Errorf("not found thin pool: %v", name)
+	return nil, ErrNotFound
 }
 
 // ListPools lists all thin pool volumes in this volume group.
@@ -352,6 +352,14 @@ type ThinPool struct {
 	name     string
 	vg       *VolumeGroup
 	size     uint64
+}
+
+// ThinPoolUsage holds current usage of lvm thin pool
+type ThinPoolUsage struct {
+	DataPercent     float64
+	MetadataPercent float64
+	VirtualBytes    uint64
+	SizeBytes       uint64
 }
 
 func fullName(name string, vg *VolumeGroup) string {
@@ -415,12 +423,70 @@ func (t *ThinPool) ListVolumes() ([]*LogicalVolume, error) {
 	return ret, nil
 }
 
+// FindVolume finds a named logical volume in this thin pool
+func (t *ThinPool) FindVolume(name string) (*LogicalVolume, error) {
+	volumes, err := t.vg.ListVolumes()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, volume := range volumes {
+		if volume.name == name && volume.pool != nil && *volume.pool == t.name {
+			return volume, nil
+		}
+	}
+	return nil, ErrNotFound
+}
+
 // CreateVolume creates a thin volume from this pool.
 func (t *ThinPool) CreateVolume(name string, size uint64) (*LogicalVolume, error) {
 	if err := CallLVM("lvcreate", "-T", t.fullname, "-n", name, "-V", fmt.Sprintf("%vg", size>>30)); err != nil {
 		return nil, err
 	}
 	return t.vg.FindVolume(name)
+}
+
+// Free on a thinpool returns used data, metadata percentages,
+// sum of virtualsizes of all thinlvs and size of thinpool
+func (t *ThinPool) Free() (*ThinPoolUsage, error) {
+	tpu := &ThinPoolUsage{}
+	infoList, err := parseOutput("lvs", "lv_size,data_percent,metadata_percent,pool_lv", "-S", fmt.Sprintf("lv_name=%s||pool_lv=%s", t.Name(), t.Name()))
+	if err != nil {
+		return nil, err
+	}
+
+	if len(infoList) < 1 {
+		return nil, errors.New("thin pool not found: " + t.FullName())
+	}
+
+	var virtualSize uint64
+	for _, info := range infoList {
+		if info["pool_lv"] == "" {
+			// thin pool
+			tpu.DataPercent, err = strconv.ParseFloat(info["data_percent"], 64)
+			if err != nil {
+				return nil, err
+			}
+			tpu.MetadataPercent, err = strconv.ParseFloat(info["metadata_percent"], 64)
+			if err != nil {
+				return nil, err
+			}
+			tpu.SizeBytes, err = strconv.ParseUint(info["lv_size"], 10, 64)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			// thin lv
+			lvSize, err := strconv.ParseUint(info["lv_size"], 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			virtualSize += lvSize
+		}
+	}
+
+	tpu.VirtualBytes = virtualSize
+	return tpu, nil
 }
 
 // LogicalVolume represents a logical volume.
