@@ -7,6 +7,8 @@ import (
 
 func TestValidateDeviceClasses(t *testing.T) {
 	stripe := uint(2)
+	opRatio := float64(10.0)
+	wrongOpRatio := float64(0.5)
 
 	cases := []struct {
 		deviceClasses []*DeviceClass
@@ -70,6 +72,101 @@ func TestValidateDeviceClasses(t *testing.T) {
 					Stripe:          &stripe,
 					StripeSize:      "4G",
 					LVCreateOptions: []string{"--mirrors=1"},
+				},
+			},
+			valid: true,
+		},
+		{
+			deviceClasses: []*DeviceClass{
+				{
+					// dev0 -> vg0/pool0
+					Name:        "dev0",
+					VolumeGroup: "vg0",
+					Default:     true,
+					Type:        TypeThin,
+					ThinPoolConfig: &ThinPoolConfig{
+						Name:               "pool0",
+						OverprovisionRatio: opRatio,
+					},
+				},
+				{
+					// dev1 -> vg0/pool1
+					// same volume group as in dev0
+					Name:        "dev1",
+					VolumeGroup: "vg0",
+					Type:        TypeThin,
+					ThinPoolConfig: &ThinPoolConfig{
+						Name:               "pool1",
+						OverprovisionRatio: opRatio,
+					},
+				},
+				{
+					// dev3 -> vg1/pool0
+					// different device-class and volumegroup but same thinpool
+					// name as in dev0
+					Name:        "dev3",
+					VolumeGroup: "vg1",
+					Type:        TypeThin,
+					ThinPoolConfig: &ThinPoolConfig{
+						Name:               "pool0",
+						OverprovisionRatio: opRatio,
+					},
+				},
+			},
+			valid: true,
+		},
+		{
+			deviceClasses: []*DeviceClass{
+				{
+					// dev0 -> vg0/pool0
+					Name:        "dev0",
+					VolumeGroup: "vg0",
+					Default:     true,
+					Type:        TypeThin,
+					ThinPoolConfig: &ThinPoolConfig{
+						Name:               "pool0",
+						OverprovisionRatio: opRatio,
+					},
+				},
+				{
+					// dev1 -> vg0
+					// same volume group as in dev0 with Type specified
+					Name:        "dev1",
+					VolumeGroup: "vg0",
+					Type:        TypeThick,
+				},
+				{
+					// dev2 -> vg1/pool0
+					// different vg and different pool
+					Name:        "dev2",
+					VolumeGroup: "vg1",
+					Type:        TypeThin,
+					ThinPoolConfig: &ThinPoolConfig{
+						Name:               "pool1",
+						OverprovisionRatio: opRatio,
+					},
+				},
+				{
+					// dev3 -> vg1
+					// same volume group as in dev2 with Type not specified
+					Name:        "dev3",
+					VolumeGroup: "vg1",
+				},
+			},
+			valid: true,
+		},
+		{
+			// ThinPoolConfig should be ignored if Type is TypeThick
+			deviceClasses: []*DeviceClass{
+				{
+					// dev0 -> vg0 since Type is TypeThick
+					Name:        "dev0",
+					VolumeGroup: "vg0",
+					Default:     true,
+					Type:        TypeThick,
+					ThinPoolConfig: &ThinPoolConfig{
+						Name: "pool0",
+					},
 				},
 			},
 			valid: true,
@@ -142,6 +239,137 @@ func TestValidateDeviceClasses(t *testing.T) {
 			},
 			valid: false,
 		},
+		{
+			deviceClasses: []*DeviceClass{
+				// effectively pointing to same volume group, since empty Type or
+				// TypeThick considers thick volume creation on volume group
+				{
+					// dev0 -> vg0
+					Name:        "dev0",
+					VolumeGroup: "vg0",
+					Default:     true,
+					Type:        TypeThick,
+					ThinPoolConfig: &ThinPoolConfig{
+						Name: "pool0",
+					},
+				},
+				{
+					// dev1 -> vg0
+					Name:        "dev1",
+					VolumeGroup: "vg0",
+					ThinPoolConfig: &ThinPoolConfig{
+						OverprovisionRatio: opRatio,
+					},
+				},
+			},
+			valid: false,
+		},
+		{
+			deviceClasses: []*DeviceClass{
+				// incomplete thinpool info, no OverprovisionRatio
+				{
+					Name:        "dev0",
+					VolumeGroup: "vg0",
+					Default:     true,
+					Type:        TypeThin,
+					ThinPoolConfig: &ThinPoolConfig{
+						Name: "pool0",
+					},
+				},
+			},
+			valid: false,
+		},
+		{
+			deviceClasses: []*DeviceClass{
+				// incomplete thinpool info, no thinpool Name
+				{
+					Name:        "dev0",
+					VolumeGroup: "vg0",
+					Default:     true,
+					Type:        TypeThin,
+					ThinPoolConfig: &ThinPoolConfig{
+						OverprovisionRatio: opRatio,
+					},
+				},
+			},
+			valid: false,
+		},
+		{
+			deviceClasses: []*DeviceClass{
+				// no thinpool info
+				{
+					Name:        "dev0",
+					VolumeGroup: "vg0",
+					Default:     true,
+					Type:        TypeThin,
+				},
+			},
+			valid: false,
+		},
+		{
+			deviceClasses: []*DeviceClass{
+				// overprovision ratio should be > 1.0
+				{
+					Name:        "dev0",
+					VolumeGroup: "vg0",
+					Default:     true,
+					Type:        TypeThin,
+					ThinPoolConfig: &ThinPoolConfig{
+						Name:               "pool0",
+						OverprovisionRatio: wrongOpRatio,
+					},
+				},
+			},
+			valid: false,
+		},
+		{
+			deviceClasses: []*DeviceClass{
+				// incorrect device-class target type
+				{
+					Name:        "dev0",
+					VolumeGroup: "vg0",
+					Default:     true,
+					Type:        DeviceType("dummy"),
+					ThinPoolConfig: &ThinPoolConfig{
+						Name:               "pool0",
+						OverprovisionRatio: wrongOpRatio,
+					},
+				},
+			},
+			valid: false,
+		},
+		{
+			deviceClasses: []*DeviceClass{
+				// duplicate thin pools
+				{
+					// dev0 -> vg0
+					Name:        "dev0",
+					VolumeGroup: "vg0",
+					Default:     true,
+				},
+				{
+					// dev1 -> vg0/pool0
+					Name:        "dev1",
+					VolumeGroup: "vg0",
+					Type:        TypeThin,
+					ThinPoolConfig: &ThinPoolConfig{
+						Name:               "pool0",
+						OverprovisionRatio: opRatio,
+					},
+				},
+				{
+					// dev2 -> vg0/pool0
+					Name:        "dev2",
+					VolumeGroup: "vg0",
+					Type:        TypeThin,
+					ThinPoolConfig: &ThinPoolConfig{
+						Name:               "pool0",
+						OverprovisionRatio: opRatio,
+					},
+				},
+			},
+			valid: false,
+		},
 	}
 
 	for i, c := range cases {
@@ -157,6 +385,7 @@ func TestValidateDeviceClasses(t *testing.T) {
 func TestDeviceClassManager(t *testing.T) {
 	spare50gb := uint64(50)
 	spare100gb := uint64(100)
+	opRatio := float64(10.0)
 	lvcreateOptions := []string{"--mirrors=1"}
 	deviceClasses := []*DeviceClass{
 		{
@@ -178,6 +407,17 @@ func TestDeviceClassManager(t *testing.T) {
 			Name:            "mirrors",
 			VolumeGroup:     "hdd1-vg",
 			LVCreateOptions: lvcreateOptions,
+		},
+		{
+			// dev0 -> vg0/pool0
+			Name:        "dev0",
+			VolumeGroup: "vg0",
+			SpareGB:     &spare100gb,
+			Type:        TypeThin,
+			ThinPoolConfig: &ThinPoolConfig{
+				Name:               "pool0",
+				OverprovisionRatio: opRatio,
+			},
 		},
 	}
 	manager := NewDeviceClassManager(deviceClasses)
@@ -227,5 +467,13 @@ func TestDeviceClassManager(t *testing.T) {
 	}
 	if dc.GetSpare() != defaultSpareGB<<30 {
 		t.Error("ssd's spare should be default")
+	}
+	if dc.Type != TypeThick {
+		t.Error("Default type should be TypeThick")
+	}
+
+	_, err = manager.DeviceClass("dev0")
+	if err != nil {
+		t.Fatal(err)
 	}
 }
