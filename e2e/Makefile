@@ -84,6 +84,12 @@ topolvm.img: $(GO_FILES)
 	mkdir -p /tmp/topolvm/scheduler
 	sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|topolvm-e2e-worker|" $< > $@
 
+.PHONY: prepare-namespace
+prepare-namespace:
+	$(KUBECTL) create namespace topolvm-system
+	$(KUBECTL) label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
+	$(KUBECTL) label namespace kube-system topolvm.cybozu.com/webhook=ignore
+
 .PHONY: launch-kind
 launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml
 	$(SUDO) rm -rf /tmp/topolvm/controller /tmp/topolvm/worker*
@@ -164,9 +170,7 @@ create-cluster: topolvm.img
 	$(MAKE) launch-kind
 	$(KIND) load image-archive --name=$(KIND_CLUSTER_NAME) $<
 	$(KUBECTL) apply -f https://github.com/jetstack/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
-	$(KUBECTL) create namespace topolvm-system
-	$(KUBECTL) label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
-	$(KUBECTL) label namespace kube-system topolvm.cybozu.com/webhook=ignore
+	$(MAKE) prepare-namespace
 	$(HELM) repo add jetstack https://charts.jetstack.io
 	$(HELM) repo update
 	$(HELM) dependency build ../charts/topolvm/
@@ -270,13 +274,11 @@ endif
 .PHONY: daemonset-lvmd/test
 daemonset-lvmd/test: topolvm.img
 	$(KUBECTL) apply -f https://github.com/jetstack/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
-	$(KUBECTL) create namespace topolvm-system
-	$(KUBECTL) label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
-	$(KUBECTL) label namespace kube-system topolvm.cybozu.com/webhook=ignore
+	$(MAKE) prepare-namespace
 	$(HELM) repo add jetstack https://charts.jetstack.io
 	$(HELM) repo update
 	$(HELM) dependency build ../charts/topolvm/
-	$(HELM) install --create-namespace --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE_LVMD) $(HELM_SKIP_NODE_FINALIZE_FLAG)
+	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE_LVMD) $(HELM_SKIP_NODE_FINALIZE_FLAG)
 	$(KUBECTL) apply -f manifests/common/
 	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) STORAGE_CAPACITY=$(STORAGE_CAPACITY) SKIP_NODE_FINALIZE=$(SKIP_NODE_FINALIZE) READ_WRITE_ONCE_POD=$(READ_WRITE_ONCE_POD) DAEMONSET_LVMD=true GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) --failFast -v .
 
