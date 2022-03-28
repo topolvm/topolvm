@@ -2,5 +2,7 @@
 target-branch: main
 validate-maintainers: false
 check-version-increment: false
+namespace: topolvm-system
+release-label: app.kubernetes.io/instance
 chart-repos:
   - jetstack=https://charts.jetstack.io
