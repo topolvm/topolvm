@@ -8,4 +8,9 @@ RUN apt-get update \
         xfsprogs \
     && rm -rf /var/lib/apt/lists/*
 
-COPY . /
+COPY tmpbin/* /
+
+RUN ln -sf hypertopolvm lvmd && \
+	ln -sf hypertopolvm topolvm-scheduler && \
+	ln -sf hypertopolvm topolvm-node && \
+	ln -sf hypertopolvm topolvm-controller

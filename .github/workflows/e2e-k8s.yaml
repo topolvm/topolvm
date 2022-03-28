@@ -33,6 +33,14 @@ jobs:
           key: go-${{ hashFiles('go.sum', 'Makefile') }}
           restore-keys: |
             go-
+      - name: cache e2e sidecar binaries
+        uses: actions/cache@v3
+        with:
+          path: |
+            e2e/tmpbin
+          key: e2e-sidecars-${{ hashFiles('csi-sidecars.mk') }}
+          restore-keys: |
+            e2e-sidecars-
       - run: make -C e2e setup
       - run: make -C e2e start-lvmd
       - run: make -C e2e test
