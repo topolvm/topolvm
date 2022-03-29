@@ -134,7 +134,10 @@ clean: ## Clean working directory.
 ##@ Build
 
 .PHONY: build
-build: build/hypertopolvm build/lvmd csi-sidecars ## Build binaries.
+build: build-topolvm csi-sidecars ## Build binaries.
+
+.PHONY: build-topolvm
+build-topolvm: build/hypertopolvm build/lvmd
 
 build/hypertopolvm: $(GO_FILES)
 	mkdir -p build
@@ -152,7 +155,7 @@ csi-sidecars: ## Build sidecar images.
 .PHONY: image
 image: ## Build topolvm images.
 	docker build --no-cache -t $(IMAGE_PREFIX)topolvm:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) .
-	docker build --no-cache -t $(IMAGE_PREFIX)topolvm-with-sidecar:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) -f Dockerfile.with-sidecar .
+	docker build --no-cache -t $(IMAGE_PREFIX)topolvm-with-sidecar:devel --build-arg IMAGE_PREFIX=$(IMAGE_PREFIX) -f Dockerfile.with-sidecar .
 
 .PHONY: tag
 tag: ## Tag topolvm images.

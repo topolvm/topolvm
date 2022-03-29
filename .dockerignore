@@ -1,5 +1,11 @@
-build
+.git
 bin
-include
-example
+build
+charts
+config
+deploy
+docs
 e2e
+example
+include
+testbin
