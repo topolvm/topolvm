@@ -1,3 +1,4 @@
+{{- if not .Values.webhook.caBundle }}
 {{- if not .Values.webhook.existingCertManagerIssuer }}
 # Generate a CA Certificate used to sign certificates for the webhook
 apiVersion: cert-manager.io/v1
@@ -50,3 +51,4 @@ spec:
     - key encipherment
     - server auth
     - client auth
+{{- end }}
