@@ -21,6 +21,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 	//+kubebuilder:scaffold:imports
@@ -58,13 +59,14 @@ func subMain() error {
 		return fmt.Errorf("invalid webhook port: %v", err)
 	}
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: config.metricsAddr,
-		LeaderElection:     true,
-		LeaderElectionID:   config.leaderElectionID,
-		Host:               hookHost,
-		Port:               hookPort,
-		CertDir:            config.certDir,
+		Scheme:                 scheme,
+		MetricsBindAddress:     config.metricsAddr,
+		HealthProbeBindAddress: config.healthAddr,
+		LeaderElection:         true,
+		LeaderElectionID:       config.leaderElectionID,
+		Host:                   hookHost,
+		Port:                   hookPort,
+		CertDir:                config.certDir,
 	})
 	if err != nil {
 		return err
@@ -76,6 +78,7 @@ func subMain() error {
 	wh := mgr.GetWebhookServer()
 	wh.Register("/pod/mutate", hook.PodMutator(mgr.GetClient(), mgr.GetAPIReader(), dec))
 	wh.Register("/pvc/mutate", hook.PVCMutator(mgr.GetClient(), mgr.GetAPIReader(), dec))
+	mgr.AddReadyzCheck("webhook", wh.StartedChecker())
 
 	// register controllers
 	nodecontroller := &controllers.NodeReconciler{
@@ -127,6 +130,13 @@ func subMain() error {
 	// because CSI sidecar containers choose a leader.
 	err = mgr.Add(runners.NewGRPCRunner(grpcServer, config.csiSocket, false))
 	if err != nil {
+		return err
+	}
+
+	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+		return err
+	}
+	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
 		return err
 	}
 
