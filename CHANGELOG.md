@@ -7,6 +7,19 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+### Fixed
+
+- Correct scoring calculation to match codebase (#443)
+
+### Doc
+
+- Design doc for thin logical volumes (#442)
+
+### Contributors
+
+- @awigen
+- @sp98
+
 ## [0.10.6] - 2022-03-03
 
 ### Added
