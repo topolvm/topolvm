@@ -2,6 +2,8 @@ package lvmd
 
 import (
 	"context"
+	"fmt"
+	"math"
 
 	"github.com/cybozu-go/log"
 	"github.com/topolvm/topolvm/lvmd/command"
@@ -41,12 +43,37 @@ func (s *lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*pr
 		return nil, err
 	}
 	requested := req.GetSizeGb() << 30
-	free, err := vg.Free()
-	if err != nil {
-		log.Error("failed to free VG", map[string]interface{}{
-			log.FnError: err,
-		})
-		return nil, status.Error(codes.Internal, err.Error())
+	free := uint64(0)
+	var pool *command.ThinPool
+	switch dc.Type {
+	case TypeThick:
+		free, err = vg.Free()
+		if err != nil {
+			log.Error("failed to get free bytes", map[string]interface{}{
+				log.FnError: err,
+			})
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+	case TypeThin:
+		pool, err = vg.FindPool(dc.ThinPoolConfig.Name)
+		if err != nil {
+			log.Error("failed to get thinpool", map[string]interface{}{
+				log.FnError: err,
+			})
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+		tpu, err := pool.Free()
+		if err != nil {
+			log.Error("failed to get free bytes", map[string]interface{}{
+				log.FnError: err,
+			})
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+		free = uint64(math.Floor(dc.ThinPoolConfig.OverprovisionRatio*float64(tpu.SizeBytes))) - tpu.VirtualBytes
+	default:
+		// technically this block will not be hit however make sure we return error
+		// in such cases where deviceclass target is neither thick or thinpool
+		return nil, status.Error(codes.Internal, fmt.Sprintf("unsupported device class target: %s", dc.Type))
 	}
 
 	if free < requested {
@@ -66,7 +93,16 @@ func (s *lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*pr
 		lvcreateOptions = dc.LVCreateOptions
 	}
 
-	lv, err := vg.CreateVolume(req.GetName(), requested, req.GetTags(), stripe, dc.StripeSize, lvcreateOptions)
+	var lv *command.LogicalVolume
+	switch dc.Type {
+	case TypeThick:
+		lv, err = vg.CreateVolume(req.GetName(), requested, req.GetTags(), stripe, dc.StripeSize, lvcreateOptions)
+	case TypeThin:
+		lv, err = pool.CreateVolume(req.GetName(), requested, req.GetTags(), stripe, dc.StripeSize, lvcreateOptions)
+	default:
+		return nil, status.Error(codes.Internal, fmt.Sprintf("unsupported device class target: %s", dc.Type))
+	}
+
 	if err != nil {
 		log.Error("failed to create volume", map[string]interface{}{
 			"name":      req.GetName(),
@@ -75,6 +111,7 @@ func (s *lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*pr
 		})
 		return nil, status.Error(codes.Internal, err.Error())
 	}
+
 	s.notify()
 
 	log.Info("created a new LV", map[string]interface{}{
@@ -101,6 +138,8 @@ func (s *lvService) RemoveLV(_ context.Context, req *proto.RemoveLVRequest) (*pr
 	if err != nil {
 		return nil, err
 	}
+	// ListVolumes on VolumeGroup or ThinPool returns ThinLogicalVolumes as well
+	// and no special handling for removal of LogicalVolume is needed
 	lvs, err := vg.ListVolumes()
 	if err != nil {
 		log.Error("failed to list volumes", map[string]interface{}{
@@ -142,6 +181,8 @@ func (s *lvService) ResizeLV(_ context.Context, req *proto.ResizeLVRequest) (*pr
 	if err != nil {
 		return nil, err
 	}
+	// FindVolume on VolumeGroup or ThinPool returns ThinLogicalVolumes as well
+	// and no special handling for resize of LogicalVolume is needed
 	lv, err := vg.FindVolume(req.GetName())
 	if err == command.ErrNotFound {
 		log.Error("logical volume is not found", map[string]interface{}{

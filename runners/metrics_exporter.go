@@ -19,15 +19,31 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
-const metricsNamespace = "topolvm"
+const (
+	metricsNamespace = "topolvm"
+
+	TypeThick = "thick"
+	TypeThin  = "thin"
+)
 
 var meLogger = ctrl.Log.WithName("runners").WithName("metrics_exporter")
 
 // NodeMetrics is a set of metrics of a TopoLVM Node.
 type NodeMetrics struct {
-	FreeBytes   uint64
-	SizeBytes   uint64
-	DeviceClass string
+	DataPercent        float64
+	MetadataPercent    float64
+	FreeBytes          uint64
+	SizeBytes          uint64
+	OverProvisionBytes uint64
+	DeviceClass        string
+	DeviceClassType    string
+}
+
+// thinPoolMetricsExporter is the subset of metricsExporter corresponding to the deviceclass target
+type thinPoolMetricsExporter struct {
+	tpSizeBytes     *prometheus.GaugeVec
+	dataPercent     *prometheus.GaugeVec
+	metadataPercent *prometheus.GaugeVec
 }
 
 type metricsExporter struct {
@@ -36,6 +52,7 @@ type metricsExporter struct {
 	vgService      proto.VGServiceClient
 	availableBytes *prometheus.GaugeVec
 	sizeBytes      *prometheus.GaugeVec
+	thinPool       *thinPoolMetricsExporter
 }
 
 var _ manager.LeaderElectionRunnable = &metricsExporter{}
@@ -43,6 +60,8 @@ var _ manager.LeaderElectionRunnable = &metricsExporter{}
 // NewMetricsExporter creates controller-runtime's manager.Runnable to run
 // a metrics exporter for a node.
 func NewMetricsExporter(conn *grpc.ClientConn, mgr manager.Manager, nodeName string) manager.Runnable {
+
+	// metrics available under volumegroup subsystem
 	availableBytes := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace:   metricsNamespace,
 		Subsystem:   "volumegroup",
@@ -61,12 +80,45 @@ func NewMetricsExporter(conn *grpc.ClientConn, mgr manager.Manager, nodeName str
 	}, []string{"device_class"})
 	metrics.Registry.MustRegister(sizeBytes)
 
+	// metrics available under thinpool subsystem
+	tpSizeBytes := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace:   metricsNamespace,
+		Subsystem:   "thinpool",
+		Name:        "size_bytes",
+		Help:        "LVM VG Thin Pool raw size bytes",
+		ConstLabels: prometheus.Labels{"node": nodeName},
+	}, []string{"device_class"})
+	metrics.Registry.MustRegister(tpSizeBytes)
+
+	dataPercent := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace:   metricsNamespace,
+		Subsystem:   "thinpool",
+		Name:        "data_percent",
+		Help:        "LVM VG Thin Pool data usage percent",
+		ConstLabels: prometheus.Labels{"node": nodeName},
+	}, []string{"device_class"})
+	metrics.Registry.MustRegister(dataPercent)
+
+	metadataPercent := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace:   metricsNamespace,
+		Subsystem:   "thinpool",
+		Name:        "metadata_percent",
+		Help:        "LVM VG Thin Pool metadata usage percent",
+		ConstLabels: prometheus.Labels{"node": nodeName},
+	}, []string{"device_class"})
+	metrics.Registry.MustRegister(metadataPercent)
+
 	return &metricsExporter{
 		client:         mgr.GetClient(),
 		nodeName:       nodeName,
 		vgService:      proto.NewVGServiceClient(conn),
 		availableBytes: availableBytes,
 		sizeBytes:      sizeBytes,
+		thinPool: &thinPoolMetricsExporter{
+			tpSizeBytes:     tpSizeBytes,
+			dataPercent:     dataPercent,
+			metadataPercent: metadataPercent,
+		},
 	}
 }
 
@@ -79,8 +131,16 @@ func (m *metricsExporter) Start(ctx context.Context) error {
 			case <-ctx.Done():
 				return
 			case met := <-metricsCh:
-				m.availableBytes.WithLabelValues(met.DeviceClass).Set(float64(met.FreeBytes))
-				m.sizeBytes.WithLabelValues(met.DeviceClass).Set(float64(met.SizeBytes))
+				if met.DeviceClassType == TypeThick {
+					// metrics for volumegroup subsystem
+					m.availableBytes.WithLabelValues(met.DeviceClass).Set(float64(met.FreeBytes))
+					m.sizeBytes.WithLabelValues(met.DeviceClass).Set(float64(met.SizeBytes))
+				} else if met.DeviceClassType == TypeThin {
+					// metrics for thinpool subsystem
+					m.thinPool.tpSizeBytes.WithLabelValues(met.DeviceClass).Set(float64(met.SizeBytes))
+					m.thinPool.dataPercent.WithLabelValues(met.DeviceClass).Set(float64(met.DataPercent))
+					m.thinPool.metadataPercent.WithLabelValues(met.DeviceClass).Set(float64(met.MetadataPercent))
+				}
 			}
 		}
 	}()
@@ -111,10 +171,21 @@ func (m *metricsExporter) updateNode(ctx context.Context, wc proto.VGService_Wat
 		}
 
 		for _, item := range res.Items {
-			ch <- NodeMetrics{
-				DeviceClass: item.DeviceClass,
-				FreeBytes:   item.FreeBytes,
-				SizeBytes:   item.SizeBytes,
+			if item.ThinPool != nil {
+				ch <- NodeMetrics{
+					DeviceClass:     item.DeviceClass,
+					SizeBytes:       item.SizeBytes,
+					DataPercent:     item.ThinPool.DataPercent,
+					MetadataPercent: item.ThinPool.MetadataPercent,
+					DeviceClassType: TypeThin,
+				}
+			} else {
+				ch <- NodeMetrics{
+					DeviceClass:     item.DeviceClass,
+					FreeBytes:       item.FreeBytes,
+					SizeBytes:       item.SizeBytes,
+					DeviceClassType: TypeThick,
+				}
 			}
 		}
 
@@ -143,7 +214,13 @@ func (m *metricsExporter) updateNode(ctx context.Context, wc proto.VGService_Wat
 
 		node2.Annotations[topolvm.CapacityKeyPrefix+topolvm.DefaultDeviceClassAnnotationName] = strconv.FormatUint(res.FreeBytes, 10)
 		for _, item := range res.Items {
-			node2.Annotations[topolvm.CapacityKeyPrefix+item.DeviceClass] = strconv.FormatUint(item.FreeBytes, 10)
+			var freeSize uint64
+			if item.ThinPool != nil {
+				freeSize = item.ThinPool.OverprovisionBytes
+			} else {
+				freeSize = item.FreeBytes
+			}
+			node2.Annotations[topolvm.CapacityKeyPrefix+item.DeviceClass] = strconv.FormatUint(freeSize, 10)
 		}
 		if err := m.client.Patch(ctx, node2, client.MergeFrom(&node)); err != nil {
 			return err

@@ -74,10 +74,19 @@ message WatchResponse {
     repeated WatchItem items = 2;
 }
 
+// Represents the details of thinpool.
+message ThinPoolItem {
+  double data_percent = 1; // Data percent occupied on the thinpool, used for monitoring.
+  double metadata_percent = 2; // Metadata percent occupied on the thinpool, used for monitoring.
+  uint64 overprovision_bytes = 3; // Free space on the thinpool with overprovision, used for annotating node.
+}
+
+// Represents the response corresponding to device class targets.
 message WatchItem {
-    uint64 free_bytes = 1;  // Free space of the volume group in bytes.
+    uint64 free_bytes = 1; // Free space in the device class.
     string device_class = 2;
-    uint64 size_bytes = 3;  // Size of the volume group in bytes.
+    uint64 size_bytes = 3; // Size of device class in bytes.
+    ThinPoolItem thin_pool = 4;
 }
 
 // Service to manage logical volumes of the volume group.

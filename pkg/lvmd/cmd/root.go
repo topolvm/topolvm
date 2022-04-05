@@ -77,12 +77,22 @@ func subMain() error {
 		return err
 	}
 	for _, dc := range config.DeviceClasses {
-		_, err := command.FindVolumeGroup(dc.VolumeGroup)
+		vg, err := command.FindVolumeGroup(dc.VolumeGroup)
 		if err != nil {
 			log.Error("Volume group not found:", map[string]interface{}{
 				"volume_group": dc.VolumeGroup,
 			})
 			return err
+		}
+
+		if dc.Type == lvmd.TypeThin {
+			_, err = vg.FindPool(dc.ThinPoolConfig.Name)
+			if err != nil {
+				log.Error("Thin pool not found:", map[string]interface{}{
+					"thinpool": dc.ThinPoolConfig.Name,
+				})
+				return err
+			}
 		}
 	}
 
