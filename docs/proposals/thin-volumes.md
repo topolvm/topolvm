@@ -145,7 +145,7 @@ message WatchResponse {
 - For thinpool targets:
     -  if the device-class having thinpool is default then `WatchResponse.free_bytes` will be same as `WatchItem.thin_pool.overprovision_bytes`.
     - `WatchItem.thin_pool` will have the values as stated in above listing
-    - `WatchItem.free_bytes` will be the calculated value of raw space usage of thinpool by using data, metadata percentages and size of thinpool.
+    - `WatchItem.free_bytes` will be empty for thinpool
 
 
 #### Monitoring thin-pools
@@ -171,7 +171,6 @@ message WatchResponse {
 ```
 - Topolvm will only monitor the thin-pools provided in the lvmd.yaml config file.
 - Below metrics will be available under `thinpool` subsystem for thinpool device-class targets
-    - `available_bytes`
     - `size_bytes`
     - `data_percent`
     - `metadata_percent`
