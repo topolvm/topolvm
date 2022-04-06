@@ -1,7 +1,11 @@
 name: "e2e-k8s-daemonset-lvmd"
 on:
   pull_request:
+    paths-ignore:
+      - "**/*.md"
   push:
+    paths-ignore:
+      - "**/*.md"
     branches:
       - "main"
 jobs:
