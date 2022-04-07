@@ -28,6 +28,15 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: "1.17"
+      - name: cache go dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-${{ hashFiles('go.sum', 'Makefile') }}
+          restore-keys: |
+            go-
       - run: make setup
       - run: make build/lvmd TOPOLVM_VERSION=${{ steps.check_version.outputs.version }}
       - run: tar czf lvmd-${{ steps.check_version.outputs.version }}.tar.gz -C ./build lvmd

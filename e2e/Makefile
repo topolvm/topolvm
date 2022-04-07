@@ -69,15 +69,10 @@ GO_FILES := $(shell find .. -prune -o -path ../e2e -prune -o -name '*.go' -print
 BACKING_STORE := ./build
 
 topolvm.img: $(GO_FILES)
-	rm -rf tmpbin
 	mkdir -p tmpbin
 	CGO_ENABLED=0 go build -o tmpbin/hypertopolvm ../pkg/hypertopolvm
-	ln -s hypertopolvm ./tmpbin/lvmd
-	ln -s hypertopolvm ./tmpbin/topolvm-scheduler
-	ln -s hypertopolvm ./tmpbin/topolvm-node
-	ln -s hypertopolvm ./tmpbin/topolvm-controller
 	$(MAKE) -f ../csi-sidecars.mk OUTPUT_DIR=tmpbin
-	docker build --no-cache --rm=false -f Dockerfile -t topolvm:dev tmpbin
+	docker build --no-cache --rm=false -f Dockerfile -t topolvm:dev .
 	docker save -o $@ topolvm:dev
 
 /tmp/topolvm/scheduler/scheduler-config.yaml: $(SCHEDULER_CONFIG)
@@ -186,7 +181,7 @@ clean: stop-lvmd
 	rm -rf \
 		topolvm.img \
 		build/ \
-		$(BACKING_STORE)/backing_store* \
+		tmpbin/ \
 		/tmp/topolvm/scheduler/scheduler-config.yaml
 
 .PHONY: setup

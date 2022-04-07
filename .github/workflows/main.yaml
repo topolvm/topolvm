@@ -1,7 +1,11 @@
 name: "Main"
 on:
   pull_request:
+    paths-ignore:
+      - "**/*.md"
   push:
+    paths-ignore:
+      - "**/*.md"
     branches:
       - "main"
 jobs:
@@ -13,11 +17,21 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: "1.17"
+      - name: cache go dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-${{ hashFiles('go.sum', 'Makefile') }}
+          restore-keys: |
+            go-
       - run: make setup
       - run: make check-uncommitted
       - run: make test
       - run: sudo -E env PATH=${PATH} go test -race -v ./lvmd ./driver ./filesystem
       - run: make image
+
   example:
     name: "example"
     runs-on: "ubuntu-18.04"
@@ -29,5 +43,14 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: "1.17"
+      - name: cache go dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-${{ hashFiles('go.sum', 'Makefile') }}
+          restore-keys: |
+            go-
       - run: make setup
       - run: make run BUILD_IMAGE=true
