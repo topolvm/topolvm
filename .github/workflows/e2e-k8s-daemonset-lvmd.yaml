@@ -3,9 +3,11 @@ on:
   pull_request:
     paths-ignore:
       - "**/*.md"
+      - "CODEOWNERS"
   push:
     paths-ignore:
       - "**/*.md"
+      - "CODEOWNERS"
     branches:
       - "main"
 jobs:
