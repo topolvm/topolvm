@@ -55,7 +55,7 @@ This repository contains these programs:
 - `lvmd`: gRPC service to manage LVM volumes.
 
 `lvmd` is a standalone program that should be run on Node OS as a systemd service.
-Other programs are packaged into [a container image](https://quay.io/organization/topolvm).
+Other programs are packaged into [a container image](https://github.com/orgs/topolvm/packages).
 
 Getting started
 ---------------
@@ -76,7 +76,7 @@ Documentation
 Docker images
 -------------
 
-Docker images are available on [Quay.io](https://quay.io/organization/topolvm)
+Docker images are available on [ghcr.io](https://github.com/orgs/topolvm/packages)
 
 [releases]: https://github.com/topolvm/topolvm/releases
 [CSI]: https://github.com/container-storage-interface/spec

@@ -23,9 +23,9 @@ $(KUBECTL):
 	chmod 755 $(KUBECTL)
 
 build/topolvm.img: $(GO_FILES)
-	$(MAKE) -C .. image IMAGE_PREFIX=quay.io/topolvm/
-	$(MAKE) -C .. tag IMAGE_PREFIX=quay.io/topolvm/ IMAGE_TAG=$(TOPOLVM_VERSION)
-	docker save -o $@ quay.io/topolvm/topolvm-with-sidecar:$(TOPOLVM_VERSION)
+	$(MAKE) -C .. image IMAGE_PREFIX=ghcr.io/topolvm/
+	$(MAKE) -C .. tag IMAGE_PREFIX=ghcr.io/topolvm/ IMAGE_TAG=$(TOPOLVM_VERSION)
+	docker save -o $@ ghcr.io/topolvm/topolvm-with-sidecar:$(TOPOLVM_VERSION)
 
 run:
 	$(MAKE) start-lvmd
