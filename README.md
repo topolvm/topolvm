@@ -76,7 +76,8 @@ Documentation
 Docker images
 -------------
 
-Docker images are available on [ghcr.io](https://github.com/orgs/topolvm/packages)
+Docker images are available on [ghcr.io](https://github.com/orgs/topolvm/packages)  
+**Please note that [the images on quay.io](https://quay.io/organization/topolvm) is currently deprecated and will no longer be available in the future.**
 
 [releases]: https://github.com/topolvm/topolvm/releases
 [CSI]: https://github.com/container-storage-interface/spec
