@@ -78,7 +78,6 @@ func subMain() error {
 	wh := mgr.GetWebhookServer()
 	wh.Register("/pod/mutate", hook.PodMutator(mgr.GetClient(), mgr.GetAPIReader(), dec))
 	wh.Register("/pvc/mutate", hook.PVCMutator(mgr.GetClient(), mgr.GetAPIReader(), dec))
-	mgr.AddReadyzCheck("webhook", wh.StartedChecker())
 
 	// register controllers
 	nodecontroller := &controllers.NodeReconciler{
@@ -137,6 +136,9 @@ func subMain() error {
 		return err
 	}
 	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+		return err
+	}
+	if err := mgr.AddReadyzCheck("webhook", wh.StartedChecker()); err != nil {
 		return err
 	}
 
