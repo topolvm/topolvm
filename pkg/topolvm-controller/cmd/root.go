@@ -14,6 +14,7 @@ import (
 var config struct {
 	csiSocket        string
 	metricsAddr      string
+	healthAddr       string
 	webhookAddr      string
 	certDir          string
 	leaderElectionID string
@@ -47,6 +48,7 @@ func init() {
 	fs := rootCmd.Flags()
 	fs.StringVar(&config.csiSocket, "csi-socket", topolvm.DefaultCSISocket, "UNIX domain socket filename for CSI")
 	fs.StringVar(&config.metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
+	fs.StringVar(&config.healthAddr, "health-probe-bind-address", ":8081", "The TCP address that the controller should bind to for serving health probes.")
 	fs.StringVar(&config.webhookAddr, "webhook-addr", ":9443", "Listen address for the webhook endpoint")
 	fs.StringVar(&config.certDir, "cert-dir", "", "certificate directory")
 	fs.StringVar(&config.leaderElectionID, "leader-election-id", "topolvm", "ID for leader election by controller-runtime")
