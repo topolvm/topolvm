@@ -44,10 +44,11 @@ run:
 	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f ./values.yaml
 	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/topolvm-controller
 	$(KUBECTL) apply -f podpvc.yaml
+	$(KUBECTL) wait --for=condition=ready --timeout=60s -n default pod -l app=example
 
 setup: $(KUBECTL)
 	$(SUDO) apt-get update
-	$(SUDO) apt-get install -y lvm2 xfsprogs
+	$(SUDO) apt-get install -y lvm2 xfsprogs thin-provisioning-tools
 	cd ..; $(MAKE) install-kind
 	mkdir -p $(BINDIR)
 	mkdir -p build
@@ -87,6 +88,7 @@ start-lvmd: $(TMPDIR)/lvmd/lvmd.yaml
 	truncate --size=20G $(BACKING_STORE)/backing_store; \
 	$(SUDO) losetup -f $(BACKING_STORE)/backing_store; \
 	$(SUDO) vgcreate -f -y myvg1 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store | cut -d: -f1); \
+	$(SUDO) lvcreate -T myvg1/thinpool -L 2G; \
 	$(SUDO) systemd-run --unit=lvmd.service $(shell pwd)/build/lvmd --config=$(TMPDIR)/lvmd/lvmd.yaml; \
 
 stop-lvmd:

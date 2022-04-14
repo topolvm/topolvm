@@ -138,9 +138,10 @@ func ValidateDeviceClasses(deviceClasses []*DeviceClass) error {
 
 // DeviceClassManager maps between device-classes and volume groups.
 type DeviceClassManager struct {
-	defaultDeviceClass  *DeviceClass
-	deviceClassByName   map[string]*DeviceClass
-	deviceClassByVGName map[string]*DeviceClass
+	defaultDeviceClass        *DeviceClass
+	deviceClassByName         map[string]*DeviceClass
+	deviceClassByVGName       map[string]*DeviceClass
+	deviceClassByThinPoolName map[string]*DeviceClass
 }
 
 // NewDeviceClassManager creates a new DeviceClassManager
@@ -148,16 +149,26 @@ func NewDeviceClassManager(deviceClasses []*DeviceClass) *DeviceClassManager {
 	dcm := DeviceClassManager{}
 	dcm.deviceClassByName = make(map[string]*DeviceClass)
 	dcm.deviceClassByVGName = make(map[string]*DeviceClass)
+	dcm.deviceClassByThinPoolName = make(map[string]*DeviceClass)
 	for _, dc := range deviceClasses {
-		// deviceclass target is thick lvs if type is not set
-		if dc.Type == "" {
-			dc.Type = TypeThick
-		}
 		if dc.Default {
 			dcm.defaultDeviceClass = dc
 		}
 		dcm.deviceClassByName[dc.Name] = dc
-		dcm.deviceClassByVGName[dc.VolumeGroup] = dc
+
+		// device-class has two targets and at a time it can only be in one of
+		// "deviceClassByVGName" or "deviceClassByThinPoolName" maps
+		switch dc.Type {
+		case "", TypeThick:
+			// device-class target is volumegroup and any logical volume referring to
+			// this device-class will have thick logical volumes
+			dc.Type = TypeThick
+			dcm.deviceClassByVGName[dc.VolumeGroup] = dc
+		case TypeThin:
+			// we can't store pool name alone as there can be of thinpool with same name
+			// but on a different vg, so combination of vg and thinpool should be unique
+			dcm.deviceClassByThinPoolName[dc.VolumeGroup+"/"+dc.ThinPoolConfig.Name] = dc
+		}
 	}
 	return &dcm
 }
@@ -176,6 +187,15 @@ func (m DeviceClassManager) DeviceClass(dcName string) (*DeviceClass, error) {
 // FindDeviceClassByVGName returns the device-class with the volume group name
 func (m DeviceClassManager) FindDeviceClassByVGName(vgName string) (*DeviceClass, error) {
 	if v, ok := m.deviceClassByVGName[vgName]; ok {
+		return v, nil
+	}
+	return nil, ErrNotFound
+}
+
+// FindDeviceClassByThinPoolName returns the device-class with volume group and pool combination
+func (m DeviceClassManager) FindDeviceClassByThinPoolName(vgName string, poolName string) (*DeviceClass, error) {
+	name := vgName + "/" + poolName
+	if v, ok := m.deviceClassByThinPoolName[name]; ok {
 		return v, nil
 	}
 	return nil, ErrNotFound
