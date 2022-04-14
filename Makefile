@@ -205,4 +205,4 @@ setup: ## Setup local environment.
 .PHONY: kind-node
 kind-node:
 	git clone --depth 1 https://github.com/kubernetes/kubernetes.git -b $(KIND_NODE_VERSION) /tmp/kind-node
-	$(BINDIR)/kind build node-image --kube-root /tmp/kind-node --image quay.io/topolvm/kind-node:$(KIND_NODE_VERSION)
+	$(BINDIR)/kind build node-image --kube-root /tmp/kind-node --image ghcr.io/topolvm/kind-node:$(KIND_NODE_VERSION)
