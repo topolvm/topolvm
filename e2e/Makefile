@@ -11,6 +11,7 @@ KUSTOMIZE_VERSION := v4.4.1
 
 BINDIR := $(shell pwd)/bin
 SUDO := sudo
+CURL := curl -sSLf
 KIND_CLUSTER_NAME := topolvm-e2e
 KIND := ../bin/kind
 KUBECTL := $(BINDIR)/kubectl
@@ -188,9 +189,9 @@ clean: stop-lvmd
 setup:
 	cd ..; $(MAKE) setup
 	mkdir -p $(BINDIR)
-	curl -o $(BINDIR)/kubectl -sfL https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl
+	$(CURL) -o $(BINDIR)/kubectl https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl
 	chmod a+x $(BINDIR)/kubectl
-	curl -sfL https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F$(KUSTOMIZE_VERSION)/kustomize_$(KUSTOMIZE_VERSION)_linux_amd64.tar.gz | tar zxf - -C $(BINDIR)
+	$(CURL) https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F$(KUSTOMIZE_VERSION)/kustomize_$(KUSTOMIZE_VERSION)_linux_amd64.tar.gz | tar zxf - -C $(BINDIR)
 
 .PHONY: daemonset-lvmd/create-vg
 daemonset-lvmd/create-vg:
@@ -233,9 +234,8 @@ daemonset-lvmd/setup-minikube:
 	mkdir -p $(BINDIR)
 	$(SUDO) apt-get update
 	DEBIAN_FRONTEND=noninteractive $(SUDO) apt-get install -y --no-install-recommends conntrack
-	curl -LO https://github.com/kubernetes/minikube/releases/download/$(MINIKUBE_VERSION)/minikube-linux-amd64
-	chmod a+x minikube-linux-amd64
-	mv minikube-linux-amd64 $(BINDIR)/minikube
+	$(CURL) -o $(BINDIR)/minikube https://github.com/kubernetes/minikube/releases/download/$(MINIKUBE_VERSION)/minikube-linux-amd64
+	chmod a+x $(BINDIR)/minikube
 
 # Setting scheduler.config causes kube-scheduler CLBO because specified yaml can not be read from the container.
 # To resolve this, kube-scheduler pod is patched on daemonset-lvmd/update-minikube-setting.
