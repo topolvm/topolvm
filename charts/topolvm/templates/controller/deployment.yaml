@@ -47,13 +47,16 @@ spec:
             - containerPort: 9808
               name: healthz
               protocol: TCP
+            - containerPort: 8081
+              name: readyz
+              protocol: TCP
             - containerPort: 8080
               name: metrics
               protocol: TCP
           readinessProbe:
             httpGet:
-              path: /metrics
-              port: metrics
+              path: /readyz
+              port: readyz
               scheme: HTTP
           livenessProbe:
             httpGet:
