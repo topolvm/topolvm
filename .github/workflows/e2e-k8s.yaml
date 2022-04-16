@@ -15,6 +15,7 @@ jobs:
     name: "e2e-k8s"
     runs-on: "ubuntu-18.04"
     strategy:
+      fail-fast: false
       matrix:
         kubernetes_versions: ["1.23.3", "1.22.2", "1.21.2"]
         test_scheduler_manifest: ["daemonset", "deployment"]
