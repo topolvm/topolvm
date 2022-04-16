@@ -17,7 +17,7 @@ CONTROLLER_GEN := $(BINDIR)/controller-gen
 STATICCHECK := $(BINDIR)/staticcheck
 NILERR := $(BINDIR)/nilerr
 PROTOC := PATH=$(BINDIR):$(PATH) $(BINDIR)/protoc -I=$(shell pwd)/include:.
-PACKAGES := unzip lvm2 xfsprogs
+PACKAGES := unzip lvm2 xfsprogs thin-provisioning-tools
 ENVTEST_ASSETS_DIR := $(shell pwd)/testbin
 
 GO_FILES=$(shell find -name '*.go' -not -name '*_test.go')
