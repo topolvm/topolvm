@@ -11,11 +11,13 @@ spec:
   {{- end }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: topolvm-node
+      app.kubernetes.io/component: node
+      {{ include "topolvm.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: topolvm-node
+        app.kubernetes.io/component: node
+        {{ include "topolvm.selectorLabels" . | nindent 8 }}
       {{- if and .Values.node.metrics.enabled .Values.node.metrics.annotations }}
       annotations: {{ toYaml .Values.node.metrics.annotations | nindent 8 }}
       {{- end }}

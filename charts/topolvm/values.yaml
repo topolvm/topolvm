@@ -396,15 +396,19 @@ controller:
 
   # controller.affinity -- Specify affinity.
   ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
-  affinity:
+  affinity: |
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         - labelSelector:
             matchExpressions:
+              - key: app.kubernetes.io/component
+                operator: In
+                values:
+                  - controller
               - key: app.kubernetes.io/name
                 operator: In
                 values:
-                  - topolvm-controller
+                  - {{ include "topolvm.name" . }}
           topologyKey: kubernetes.io/hostname
 
   # controller.tolerations -- Specify tolerations.

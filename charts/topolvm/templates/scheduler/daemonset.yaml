@@ -16,13 +16,15 @@ spec:
   {{- end }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: topolvm-scheduler
+      app.kubernetes.io/component: scheduler
+      {{ include "topolvm.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/scheduler/configmap.yaml") . | sha256sum }}
       labels:
-        app.kubernetes.io/name: topolvm-scheduler
+        app.kubernetes.io/component: scheduler
+        {{ include "topolvm.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.securityContext }}
       securityContext: {{ toYaml . | nindent 8 }}
