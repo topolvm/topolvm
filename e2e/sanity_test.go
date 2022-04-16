@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"path"
+	"time"
 
 	"github.com/kubernetes-csi/csi-test/v4/pkg/sanity"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"google.golang.org/grpc"
 	appsv1 "k8s.io/api/apps/v1"
 )
 
@@ -46,6 +48,7 @@ func testSanity() {
 	tc.StagingPath = path.Join(baseDir, "/node/stagingdir")
 	tc.TestVolumeSize = 1073741824
 	tc.IDGen = &sanity.DefaultIDGenerator{}
+	tc.DialOptions = append(tc.DialOptions, grpc.WithTimeout(5*time.Minute))
 	tc.CheckPath = func(path string) (sanity.PathKind, error) {
 		_, _, err := kubectl("exec", "-n", "topolvm-system", "daemonset/topolvm-node", "--", "test", "-f", path)
 		if err == nil {
