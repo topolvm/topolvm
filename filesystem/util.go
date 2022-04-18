@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"golang.org/x/sys/unix"
+	"k8s.io/utils/io"
 )
 
 const (
@@ -55,7 +56,7 @@ func IsMounted(device, target string) (bool, error) {
 		return false, err
 	}
 
-	data, err := os.ReadFile("/proc/mounts")
+	data, err := io.ConsistentRead("/proc/mounts", 3)
 	if err != nil {
 		return false, fmt.Errorf("could not read /proc/mounts: %v", err)
 	}
