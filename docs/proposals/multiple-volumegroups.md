@@ -105,7 +105,7 @@ volumeBindingMode: WaitForFirstConsumer
 ```
 
 This proposal requires launching TopoLVM components for each provisioner.
-Since `lvmd` is also launched per provisoner, it will continue to target only one volume group as before.
+Since `lvmd` is also launched per provisioner, it will continue to target only one volume group as before.
 
 Pros:
 - It doesn't require many changes to implement.
