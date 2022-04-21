@@ -6,6 +6,7 @@ CERT_MANAGER_VERSION := v1.7.0
 KIND_CLUSTER_NAME := topolvm-example
 
 SUDO := sudo
+CURL := curl -sSLf
 BINDIR := $(shell pwd)/bin
 TMPDIR := /tmp/topolvm
 HELM := $(BINDIR)/helm
@@ -19,7 +20,7 @@ BUILD_IMAGE := false
 
 $(KUBECTL):
 	mkdir -p $(BINDIR)
-	curl -sfL https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl -o $(KUBECTL)
+	$(CURL) https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl -o $(KUBECTL)
 	chmod 755 $(KUBECTL)
 
 build/topolvm.img: $(GO_FILES)
@@ -51,7 +52,7 @@ setup: $(KUBECTL)
 	cd ..; $(MAKE) install-kind
 	mkdir -p $(BINDIR)
 	mkdir -p build
-	curl -L -sS https://get.helm.sh/helm-v$(HELM_VERSION)-linux-amd64.tar.gz \
+	$(CURL) https://get.helm.sh/helm-v$(HELM_VERSION)-linux-amd64.tar.gz \
 	  | tar xvz -C $(BINDIR) --strip-components 1 linux-amd64/helm
 
 clean: stop-lvmd

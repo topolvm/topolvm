@@ -10,8 +10,8 @@ HELM_DOCS_VERSION=1.7.0
 YQ_VERSION=4.18.1
 GINKGO_VERSION := $(shell awk '/github.com\/onsi\/ginkgo/ {print substr($$2, 2)}' go.mod)
 
-SUDO=sudo
-CURL=curl -Lsf
+SUDO := sudo
+CURL := curl -sSLf
 BINDIR := $(shell pwd)/bin
 CONTROLLER_GEN := $(BINDIR)/controller-gen
 STATICCHECK := $(BINDIR)/staticcheck
@@ -181,7 +181,7 @@ tools: install-kind ## Install development tools.
 	GOBIN=$(BINDIR) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 	GOBIN=$(BINDIR) go install sigs.k8s.io/controller-tools/cmd/controller-gen@v$(CONTROLLER_TOOLS_VERSION)
 
-	curl -sfL -o protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-linux-x86_64.zip
+	$(CURL) -o protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-linux-x86_64.zip
 	unzip -o protoc.zip bin/protoc 'include/*'
 	rm -f protoc.zip
 	GOBIN=$(BINDIR) go install google.golang.org/protobuf/cmd/protoc-gen-go@v$(PROTOC_GEN_GO_VERSION)
@@ -191,9 +191,9 @@ tools: install-kind ## Install development tools.
 	GOBIN=$(BINDIR) go install github.com/onsi/ginkgo/ginkgo@v$(GINKGO_VERSION)
 
 	GOBIN=$(BINDIR) go install github.com/norwoodj/helm-docs/cmd/helm-docs@v$(HELM_DOCS_VERSION)
-	curl -L -sS https://get.helm.sh/helm-v$(HELM_VERSION)-linux-amd64.tar.gz \
+	$(CURL) https://get.helm.sh/helm-v$(HELM_VERSION)-linux-amd64.tar.gz \
 		| tar xvz -C $(BINDIR) --strip-components 1 linux-amd64/helm
-	wget https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_amd64 -O $(BINDIR)/yq \
+	$(CURL) https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_amd64 -o $(BINDIR)/yq \
 		&& chmod +x $(BINDIR)/yq
 
 .PHONY: setup

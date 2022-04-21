@@ -19,6 +19,8 @@ LIVENESSPROBE_SRC         = $(SRC_ROOT)/livenessprobe
 
 OUTPUT_DIR ?= .
 
+CURL := curl -sSLf
+
 build: $(CSI_SIDECARS)
 
 external-provisioner: $(OUTPUT_DIR)/.csi-provisioner-$(EXTERNAL_PROVISIONER_VERSION)
@@ -27,7 +29,7 @@ external-provisioner: $(OUTPUT_DIR)/.csi-provisioner-$(EXTERNAL_PROVISIONER_VERS
 $(OUTPUT_DIR)/.csi-provisioner-$(EXTERNAL_PROVISIONER_VERSION):
 	rm -rf $(EXTERNAL_PROVISIONER_SRC)
 	mkdir -p $(EXTERNAL_PROVISIONER_SRC)
-	curl -sSLf https://github.com/kubernetes-csi/external-provisioner/archive/v$(EXTERNAL_PROVISIONER_VERSION).tar.gz | \
+	$(CURL) https://github.com/kubernetes-csi/external-provisioner/archive/v$(EXTERNAL_PROVISIONER_VERSION).tar.gz | \
         tar zxf - --strip-components 1 -C $(EXTERNAL_PROVISIONER_SRC)
 	make -C $(EXTERNAL_PROVISIONER_SRC)
 	cp -f $(EXTERNAL_PROVISIONER_SRC)/bin/csi-provisioner $@
@@ -38,7 +40,7 @@ external-resizer: $(OUTPUT_DIR)/.csi-resizer-$(EXTERNAL_RESIZER_VERSION)
 $(OUTPUT_DIR)/.csi-resizer-$(EXTERNAL_RESIZER_VERSION):
 	rm -rf $(EXTERNAL_RESIZER_SRC)
 	mkdir -p $(EXTERNAL_RESIZER_SRC)
-	curl -sSLf https://github.com/kubernetes-csi/external-resizer/archive/v$(EXTERNAL_RESIZER_VERSION).tar.gz | \
+	$(CURL) https://github.com/kubernetes-csi/external-resizer/archive/v$(EXTERNAL_RESIZER_VERSION).tar.gz | \
         tar zxf - --strip-components 1 -C $(EXTERNAL_RESIZER_SRC)
 	make -C $(EXTERNAL_RESIZER_SRC)
 	cp -f $(EXTERNAL_RESIZER_SRC)/bin/csi-resizer $@
@@ -49,7 +51,7 @@ node-driver-registrar: $(OUTPUT_DIR)/.csi-node-driver-registrar-$(NODE_DRIVER_RE
 $(OUTPUT_DIR)/.csi-node-driver-registrar-$(NODE_DRIVER_REGISTRAR_VERSION):
 	rm -rf $(NODE_DRIVER_REGISTRAR_SRC)
 	mkdir -p $(NODE_DRIVER_REGISTRAR_SRC)
-	curl -sSLf https://github.com/kubernetes-csi/node-driver-registrar/archive/v$(NODE_DRIVER_REGISTRAR_VERSION).tar.gz | \
+	$(CURL) https://github.com/kubernetes-csi/node-driver-registrar/archive/v$(NODE_DRIVER_REGISTRAR_VERSION).tar.gz | \
         tar zxf - --strip-components 1 -C $(NODE_DRIVER_REGISTRAR_SRC)
 	make -C $(NODE_DRIVER_REGISTRAR_SRC)
 	cp -f $(NODE_DRIVER_REGISTRAR_SRC)/bin/csi-node-driver-registrar $@
@@ -60,7 +62,7 @@ livenessprobe: $(OUTPUT_DIR)/.livenessprobe-$(LIVENESSPROBE_VERSION)
 $(OUTPUT_DIR)/.livenessprobe-$(LIVENESSPROBE_VERSION):
 	rm -rf $(LIVENESSPROBE_SRC)
 	mkdir -p $(LIVENESSPROBE_SRC)
-	curl -sSLf https://github.com/kubernetes-csi/livenessprobe/archive/v$(LIVENESSPROBE_VERSION).tar.gz | \
+	$(CURL) https://github.com/kubernetes-csi/livenessprobe/archive/v$(LIVENESSPROBE_VERSION).tar.gz | \
         tar zxf - --strip-components 1 -C $(LIVENESSPROBE_SRC)
 	make -C $(LIVENESSPROBE_SRC)
 	cp -f $(LIVENESSPROBE_SRC)/bin/livenessprobe $@
