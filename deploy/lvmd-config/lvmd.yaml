@@ -4,3 +4,9 @@ device-classes:
     volume-group: myvg1
     default: true
     spare-gb: 10
+  - name: ssd-thin
+    volume-group: myvg1
+    type: thin
+    thin-pool:
+      name: thinpool
+      overprovision-ratio: 10.0

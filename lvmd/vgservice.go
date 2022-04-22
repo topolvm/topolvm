@@ -148,33 +148,19 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 	}
 	res := &proto.WatchResponse{}
 	for _, vg := range vgs {
-		vgFree, err := vg.Free()
+		pools, err := vg.ListPools()
 		if err != nil {
 			return status.Error(codes.Internal, err.Error())
-		}
-		vgSize, err := vg.Size()
-		if err != nil {
-			return status.Error(codes.Internal, err.Error())
-		}
-		dc, err := s.dcManager.FindDeviceClassByVGName(vg.Name())
-		if err == ErrNotFound {
-			continue
-		}
-		if err != nil {
-			return err
 		}
 
-		switch dc.Type {
-		case TypeThick:
-			if dc.Default {
-				res.FreeBytes = vgFree
+		for _, pool := range pools {
+			dc, err := s.dcManager.FindDeviceClassByThinPoolName(vg.Name(), pool.Name())
+			// we either get nil or ErrNotFound
+			if err == ErrNotFound {
+				continue
 			}
-			res.Items = append(res.Items, &proto.WatchItem{
-				DeviceClass: dc.Name,
-				FreeBytes:   vgFree,
-				SizeBytes:   vgSize,
-			})
-		case TypeThin:
+
+			// if we find a device class then it'll be a thin target
 			tpi := &proto.ThinPoolItem{}
 			pool, err := vg.FindPool(dc.ThinPoolConfig.Name)
 			if err != nil {
@@ -203,9 +189,29 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 				SizeBytes:   tpu.SizeBytes,
 				ThinPool:    tpi,
 			})
-		default:
-			return status.Error(codes.Internal, fmt.Sprintf("unsupported device class target: %s", dc.Type))
 		}
+
+		dc, err := s.dcManager.FindDeviceClassByVGName(vg.Name())
+		if err == ErrNotFound {
+			continue
+		}
+		vgFree, err := vg.Free()
+		if err != nil {
+			return status.Error(codes.Internal, err.Error())
+		}
+		vgSize, err := vg.Size()
+		if err != nil {
+			return status.Error(codes.Internal, err.Error())
+		}
+		if dc.Default {
+			res.FreeBytes = vgFree
+		}
+
+		res.Items = append(res.Items, &proto.WatchItem{
+			DeviceClass: dc.Name,
+			FreeBytes:   vgFree,
+			SizeBytes:   vgSize,
+		})
 	}
 	return server.Send(res)
 }

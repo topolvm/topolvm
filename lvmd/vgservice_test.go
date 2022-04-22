@@ -416,7 +416,7 @@ func TestVGService(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer CleanLoopbackVG(vgName, []string{loop1, loop2}, []string{vgName + "1", vgName + "2", vgName + "3"})
+	defer CleanLoopbackVG(vgName, []string{loop1, loop2, loop3}, []string{vgName + "1", vgName + "2", vgName + "3"})
 
 	vg, err := command.FindVolumeGroup(vgName)
 	if err != nil {
