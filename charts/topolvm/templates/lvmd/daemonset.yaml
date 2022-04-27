@@ -20,12 +20,14 @@ spec:
   selector:
     matchLabels:
       idx: {{ $lvmdidx | quote }}
-      app.kubernetes.io/name: topolvm-lvmd
+      app.kubernetes.io/component: lvmd
+      {{ include "topolvm.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
         idx: {{ $lvmdidx | quote }}
-        app.kubernetes.io/name: topolvm-lvmd
+        app.kubernetes.io/component: lvmd
+        {{ include "topolvm.selectorLabels" . | nindent 8 }}
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/lvmd/configmap.yaml") . | sha256sum }}
         {{- if and .Values.node.metrics.enabled .Values.node.metrics.annotations }}

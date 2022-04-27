@@ -9,6 +9,7 @@ spec:
   maxUnavailable: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: topolvm-scheduler
+      app.kubernetes.io/component: scheduler
+      {{ include "topolvm.selectorLabels" . | nindent 6 }}
 ---
 {{ end }}

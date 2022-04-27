@@ -13,7 +13,8 @@ spec:
   clusterIP: {{ . }}
   {{- end }}
   selector:
-    app.kubernetes.io/name: {{ template "topolvm.fullname" . }}-scheduler
+    app.kubernetes.io/component: scheduler
+    {{ include "topolvm.selectorLabels" . | nindent 4 }}
   ports:
     - protocol: TCP
       port: {{ .Values.scheduler.options.listen.port }}
