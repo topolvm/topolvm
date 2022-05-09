@@ -7,6 +7,30 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.11.1] - 2022-05-09
+
+### Changed
+
+- Modified to use ghcr.io as a container registry (#464)
+
+### Fixed
+
+- Modified to use k8s.io/utils/io.ConsistentRead (#465)
+- Set fail-fast option to false (#472)
+- Fix github user (#476)
+- fix: send correct proto.WatchResponse for thin and thick lvs (#467)
+- Fix sudo tests (#471)
+
+### Doc
+
+- nit: correct provisioner typo (#474)
+
+### Contributors
+
+- @bells17
+- @Yuggupta27
+- @leelavg
+
 ## [0.11.0] - 2022-04-14
 
 ### Added
@@ -453,7 +477,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.11.1...HEAD
+[0.11.1]: https://github.com/topolvm/topolvm/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/topolvm/topolvm/compare/v0.10.6...v0.11.0
 [0.10.6]: https://github.com/topolvm/topolvm/compare/v0.10.5...v0.10.6
 [0.10.5]: https://github.com/topolvm/topolvm/compare/v0.10.4...v0.10.5
