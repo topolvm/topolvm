@@ -148,6 +148,16 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 	}
 	res := &proto.WatchResponse{}
 	for _, vg := range vgs {
+
+		vgFree, err := vg.Free()
+		if err != nil {
+			return status.Error(codes.Internal, err.Error())
+		}
+		vgSize, err := vg.Size()
+		if err != nil {
+			return status.Error(codes.Internal, err.Error())
+		}
+
 		pools, err := vg.ListPools()
 		if err != nil {
 			return status.Error(codes.Internal, err.Error())
@@ -183,10 +193,14 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 			// used for annotating the node for capacity aware scheduling
 			tpi.OverprovisionBytes = opb
 
+			// size bytes of the thinpool
+			tpi.SizeBytes = tpu.SizeBytes
+
 			// include thinpoolitem in the response
 			res.Items = append(res.Items, &proto.WatchItem{
 				DeviceClass: dc.Name,
-				SizeBytes:   tpu.SizeBytes,
+				FreeBytes:   vgFree,
+				SizeBytes:   vgSize,
 				ThinPool:    tpi,
 			})
 		}
@@ -194,14 +208,6 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 		dc, err := s.dcManager.FindDeviceClassByVGName(vg.Name())
 		if err == ErrNotFound {
 			continue
-		}
-		vgFree, err := vg.Free()
-		if err != nil {
-			return status.Error(codes.Internal, err.Error())
-		}
-		vgSize, err := vg.Size()
-		if err != nil {
-			return status.Error(codes.Internal, err.Error())
 		}
 		if dc.Default {
 			res.FreeBytes = vgFree
