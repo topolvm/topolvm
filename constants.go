@@ -57,3 +57,8 @@ const CreatedbyLabelKey = "app.kubernetes.io/created-by"
 
 // Label value that indicates The controller/user who created this resource
 const CreatedbyLabelValue = "topolvm-controller"
+
+// Legacy
+
+// PVCFinalizer is the name of PVC finalizer of TopoLVM
+const LegacyPVCFinalizer = "topolvm.cybozu.com/pvc"
