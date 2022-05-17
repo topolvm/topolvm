@@ -57,7 +57,7 @@ func hasTopoLVMFinalizer(pvc *corev1.PersistentVolumeClaim) bool {
 }
 
 var _ = Describe("pvc mutation webhook", func() {
-	It("should not have topolvm.cybozu.com/pvc finalizer when not specified storageclass", func() {
+	It("should not have topolvm.io/pvc finalizer when not specified storageclass", func() {
 		pvcName := "empty-storageclass-pvc"
 		createPVC("", pvcName)
 		pvc, err := getPVC(pvcName)
@@ -66,7 +66,7 @@ var _ = Describe("pvc mutation webhook", func() {
 		Expect(hasFinalizer).Should(Equal(false), "finalizer should not be set for storageclass=%s", hostLocalStorageClassName)
 	})
 
-	It("should not have topolvm.cybozu.com/pvc finalizer when the specified StorageClass does not exist", func() {
+	It("should not have topolvm.io/pvc finalizer when the specified StorageClass does not exist", func() {
 		pvcName := "unexists-storageclass-pvc"
 		createPVC(missingStorageClassName, pvcName)
 		pvc, err := getPVC(pvcName)
@@ -75,7 +75,7 @@ var _ = Describe("pvc mutation webhook", func() {
 		Expect(hasFinalizer).Should(Equal(false), "finalizer should not be set for storageclass=%s", missingStorageClassName)
 	})
 
-	It("should not have topolvm.cybozu.com/pvc finalizer with storageclass host-local", func() {
+	It("should not have topolvm.io/pvc finalizer with storageclass host-local", func() {
 		pvcName := "host-local-pvc"
 		createPVC(hostLocalStorageClassName, pvcName)
 		pvc, err := getPVC(pvcName)
@@ -84,7 +84,7 @@ var _ = Describe("pvc mutation webhook", func() {
 		Expect(hasFinalizer).Should(Equal(false), "finalizer should not be set for storageclass=%s", hostLocalStorageClassName)
 	})
 
-	It("should have topolvm.cybozu.com/pvc finalizer with storageclass topolvm-provisioner", func() {
+	It("should have topolvm.io/pvc finalizer with storageclass topolvm-provisioner", func() {
 		pvcName := "topolvm-provisioner-pvc"
 		createPVC(topolvmProvisionerStorageClassName, pvcName)
 		pvc, err := getPVC(pvcName)
@@ -93,7 +93,7 @@ var _ = Describe("pvc mutation webhook", func() {
 		Expect(hasFinalizer).Should(Equal(true), "finalizer should be set for storageclass=%s", topolvmProvisionerStorageClassName)
 	})
 
-	It("should have topolvm.cybozu.com/pvc finalizer with storageclass topolvm-provisioner-immediate", func() {
+	It("should have topolvm.io/pvc finalizer with storageclass topolvm-provisioner-immediate", func() {
 		pvcName := "topolvm-provisioner-immediate-pvc"
 		createPVC(topolvmProvisionerImmediateStorageClassName, pvcName)
 		pvc, err := getPVC(pvcName)

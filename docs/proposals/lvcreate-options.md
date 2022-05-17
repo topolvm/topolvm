@@ -67,11 +67,11 @@ kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: topolvm-provisioner
-provisioner: topolvm.cybozu.com
+provisioner: topolvm.io
 parameters:
   "csi.storage.k8s.io/fstype": "xfs"
-  "topolvm.cybozu.com/device-class": "ssd"
-  "topolvm.cybozu.com/lvcreate-options": "--type raid10 --mirrors 2"
+  "topolvm.io/device-class": "ssd"
+  "topolvm.io/lvcreate-options": "--type raid10 --mirrors 2"
 volumeBindingMode: WaitForFirstConsumer
 allowVolumeExpansion: true
 ```

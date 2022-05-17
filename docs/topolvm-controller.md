@@ -23,15 +23,15 @@ Webhooks
 
 ### `/pod/mutate`
 
-Mutate new Pods to add `capacity.topolvm.cybozu.com/<device-class>` annotations to the pod
-and `topolvm.cybozu.com/capacity` resource request to its first container.
+Mutate new Pods to add `capacity.topolvm.io/<device-class>` annotations to the pod
+and `topolvm.io/capacity` resource request to its first container.
 These annotations and the resource request will be used by
 [`topolvm-scheduler`](./topolvm-scheduler.md) to filter and score Nodes.
 
 This hook handles two classes of pods. First, pods having at least one _unbound_
 PersistentVolumeClaim (PVC) for TopoLVM and _no_ bound PVC for TopoLVM. Second,
 pods which have at least one inline ephemeral volume which specify using the CSI driver
-type `topolvm.cybozu.com`.
+type `topolvm.io`.
 
 For both PVCs and inline ephemeral volumes,the requested storage size for the
 volume is calculated as follows:
@@ -48,10 +48,10 @@ kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: topolvm
-provisioner: topolvm.cybozu.com            # topolvm-scheduler works only for StorageClass with this provisioner.
+provisioner: topolvm.io            # topolvm-scheduler works only for StorageClass with this provisioner.
 parameters:
   "csi.storage.k8s.io/fstype": "xfs"
-  "topolvm.cybozu.com/device-class": "ssd"
+  "topolvm.io/device-class": "ssd"
 volumeBindingMode: WaitForFirstConsumer
 ---
 kind: PersistentVolumeClaim
@@ -87,25 +87,25 @@ spec:
       claimName: local-pvc1                # have the above PVC
 ```
 
-The hook inserts `capacity.topolvm.cybozu.com/<device-class>` to the annotations
-and `topolvm.cybozu.com/capacity` to the first container as follows:
+The hook inserts `capacity.topolvm.io/<device-class>` to the annotations
+and `topolvm.io/capacity` to the first container as follows:
 
 ```yaml
 metadata:
   annotations:
-    capacity.topolvm.cybozu.com/ssd: "1073741824"
+    capacity.topolvm.io/ssd: "1073741824"
 spec:
   containers:
   - name: testhttpd
     resources:
       limits:
-        topolvm.cybozu.com/capacity: "1"
+        topolvm.io/capacity: "1"
       requests:
-        topolvm.cybozu.com/capacity: "1"
+        topolvm.io/capacity: "1"
 ```
 
-If the specified StorageClass does not have `topolvm.cybozu.com/device-class` parameter,
-it will be annotated with `capacity.topolvm.cybozu.com/00default`.
+If the specified StorageClass does not have `topolvm.io/device-class` parameter,
+it will be annotated with `capacity.topolvm.io/00default`.
 
 Below is an example for TopoLVM inline ephemeral volumes:
 
@@ -126,22 +126,22 @@ spec:
   volumes:
   - name: my-volume
     csi:
-      driver: topolvm.cybozu.com
+      driver: topolvm.io
 ```
 
-The hook inserts `capacity.topolvm.cybozu.com/00default` to the annotations and
-`topolvm.cybozu.com/capacity` to the ubuntu container as follows:
+The hook inserts `capacity.topolvm.io/00default` to the annotations and
+`topolvm.io/capacity` to the ubuntu container as follows:
 
 ```yaml
 metadata:
   annotations:
-    capacity.topolvm.cybozu.com/00default: "1073741824"
+    capacity.topolvm.io/00default: "1073741824"
 spec:
   containers:
   - name: ubuntu
     resources:
       limits:
-        topolvm.cybozu.com/capacity: "1"
+        topolvm.io/capacity: "1"
 ```
 
 Inline ephemeral volume cannot specify arbitrarily device-class.
@@ -149,14 +149,14 @@ Therefore, `00default` is annotated to indicate the default device-class.
 
 ### `/pvc/mutate`
 
-Mutate new PVCs to add `topolvm.cybozu.com/pvc` finalizer.
+Mutate new PVCs to add `topolvm.io/pvc` finalizer.
 
 Controllers
 -----------
 
 ### Node finalizer
 
-`topolvm-metrics` adds `topolvm.cybozu.com/node` finalizer.
+`topolvm-metrics` adds `topolvm.io/node` finalizer.
 
 When a Node is being deleted, the controller deletes all PVCs and LogicalVolumes for TopoLVM
 on the deleting node. 

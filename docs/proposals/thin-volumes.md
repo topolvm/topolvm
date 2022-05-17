@@ -19,7 +19,7 @@ Thin provisioning will allow topolvm users to create thin logical volumes using 
 - Topolvm is **not** responsible for creating the thin-pools. Storage admin/operator has to create the thin-pools in advance while creating the volume groups.
 - Multiple device classes can be mapped to a single volume group having multiple thin pools. But each device class should map to a single thin pool within that volume group.
 - `lvmd.yaml` file should be updated to hold the mapping between device classes, volume group and thin pools.
-- For device classes mapped to thin pools, the node annotation `capacity.topolvm.cybozu.com/<device-class>` should be updated with respect to the thin pool size and overprovision ratio.
+- For device classes mapped to thin pools, the node annotation `capacity.topolvm.io/<device-class>` should be updated with respect to the thin pool size and overprovision ratio.
 - Metrics related to thin volume `data` and `metadata` parameters should be exported.
 
 
@@ -44,7 +44,7 @@ device-classes:
 ```
 - Above example shows two device classes; `ssd-thin` and `ssd`. Both use `myvg1` volume group.
 - `ssd-thin` has thin pool parameters.
-- Only thin logical volumes will be created when `ssd-thin` device class is selected by the user in the storageClass parameter `topolvm.cybozu.com/device-class`
+- Only thin logical volumes will be created when `ssd-thin` device class is selected by the user in the storageClass parameter `topolvm.io/device-class`
 - Only thick logical volumes will be created when user has specified `ssd` in the storageClass.
 
 #### API Changes
@@ -96,7 +96,7 @@ type DeviceClass struct {
 
 
 #### Selecting Thin-pool
-- The current behavior uses `topolvm.cybozu.com/device-class` parameter on the StorageClass to decide which volume group will be used.
+- The current behavior uses `topolvm.io/device-class` parameter on the StorageClass to decide which volume group will be used.
 - If `DeviceClass.Type` is `thin`, then thin volumes should be created using `DeviceClass.ThinPoolConfig.Name` thin-pool.
 - If `DeviceClass.Type` is `thick` or empty, then thick volumes should be created.
 
@@ -176,11 +176,11 @@ message WatchResponse {
     - `metadata_percent`
 
 #### Capacity awareness
-- Topolvm uses capacity awareness to ensure that new pod is created on the node where available capacity of the volume group is larger than the requested capacity. `capacity.topolvm.cybozu.com/<device-class>` annotation is added on each node which consists of the available capacity on the volume group.
+- Topolvm uses capacity awareness to ensure that new pod is created on the node where available capacity of the volume group is larger than the requested capacity. `capacity.topolvm.io/<device-class>` annotation is added on each node which consists of the available capacity on the volume group.
 - Creation of thin logical volumes doesn't update the available device class capacity until the user actually uses storage on the thin volumes.
 - So we need to ensure that all the thin logical volumes don't get created on the same node.
 - This can be done by using the `overprovisionRatio`
-- For device classes having thin pools, the value of `capacity.topolvm.cybozu.com/<device-class>` annotation will be calculated as:
+- For device classes having thin pools, the value of `capacity.topolvm.io/<device-class>` annotation will be calculated as:
   `(thin-pool-size * overprovisionedRatio)-(sum-of-all-thin-lv-virtual-sizes-in-thin-pool)`
 - Note: Available thin pool on the volume groups will be obtained from lvmd.yaml config file.
 

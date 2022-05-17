@@ -37,7 +37,7 @@ spec:
           {{- end }}
           command:
             - /topolvm-node
-            - --csi-socket={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
+            - --csi-socket={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.io/node/csi-topolvm.sock
             - --lvmd-socket={{ .Values.node.lvmdSocket }}
           ports:
             - name: healthz
@@ -67,7 +67,7 @@ spec:
             {{- toYaml .Values.node.volumeMounts.topolvmNode | nindent 12 }}
             {{- else }}
             - name: node-plugin-dir
-              mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/
+              mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.io/node/
             - name: lvmd-socket-dir
               mountPath: {{ dir .Values.node.lvmdSocket }}
             - name: pod-volumes-dir
@@ -89,13 +89,13 @@ spec:
           {{- end }}
           command:
             - /csi-node-driver-registrar
-            - --csi-address={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
-            - --kubelet-registration-path={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
+            - --csi-address={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.io/node/csi-topolvm.sock
+            - --kubelet-registration-path={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.io/node/csi-topolvm.sock
           livenessProbe:
             exec:
               command:
               - /csi-node-driver-registrar
-              - --kubelet-registration-path={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
+              - --kubelet-registration-path={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.io/node/csi-topolvm.sock
               - --mode=kubelet-registration-probe
             initialDelaySeconds: 3
           lifecycle:
@@ -104,10 +104,10 @@ spec:
                 command:
                 - /bin/sh
                 - -c
-                - rm -rf /registration/topolvm.cybozu.com /registration/topolvm.cybozu.com-reg.sock
+                - rm -rf /registration/topolvm.io /registration/topolvm.io-reg.sock
           volumeMounts:
             - name: node-plugin-dir
-              mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/
+              mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.io/node/
             - name: registration-dir
               mountPath: /registration
 
@@ -122,10 +122,10 @@ spec:
           {{- end }}
           command:
             - /livenessprobe
-            - --csi-address={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
+            - --csi-address={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.io/node/csi-topolvm.sock
           volumeMounts:
             - name: node-plugin-dir
-              mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/
+              mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.io/node/
 
       volumes:
         {{- if .Values.node.volumes }}
@@ -137,7 +137,7 @@ spec:
             type: Directory
         - name: node-plugin-dir
           hostPath:
-            path: {{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node
+            path: {{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.io/node
             type: DirectoryOrCreate
         - name: csi-plugin-dir
           hostPath:

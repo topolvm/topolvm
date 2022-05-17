@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.7.0
   creationTimestamp: null
-  name: logicalvolumes.topolvm.cybozu.com
+  name: logicalvolumes.topolvm.io
 spec:
-  group: topolvm.cybozu.com
+  group: topolvm.io
   names:
     kind: LogicalVolume
     listKind: LogicalVolumeList

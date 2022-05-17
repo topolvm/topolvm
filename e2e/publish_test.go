@@ -67,9 +67,9 @@ func testPublishVolume() {
 		conn *grpc.ClientConn
 	)
 
-	nodeSocket := "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/node/csi-topolvm.sock"
+	nodeSocket := "/tmp/topolvm/worker1/plugins/topolvm.io/node/csi-topolvm.sock"
 	if isDaemonsetLvmdEnvSet() {
-		nodeSocket = "/var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock"
+		nodeSocket = "/var/lib/kubelet/plugins/topolvm.io/node/csi-topolvm.sock"
 	}
 
 	var cc CleanupContext

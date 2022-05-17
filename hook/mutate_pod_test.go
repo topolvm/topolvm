@@ -252,7 +252,7 @@ var _ = Describe("pod mutation webhook", func() {
 				Name: "my-volume",
 				VolumeSource: corev1.VolumeSource{
 					CSI: &corev1.CSIVolumeSource{
-						Driver: "topolvm.cybozu.com",
+						Driver: "topolvm.io",
 						FSType: &fsType,
 						VolumeAttributes: map[string]string{
 							topolvm.EphemeralVolumeSizeKey: "2",
@@ -281,7 +281,7 @@ var _ = Describe("pod mutation webhook", func() {
 				Name: "my-volume",
 				VolumeSource: corev1.VolumeSource{
 					CSI: &corev1.CSIVolumeSource{
-						Driver: "topolvm.cybozu.com",
+						Driver: "topolvm.io",
 						FSType: &fsType,
 						// Intentionally do not define size.
 					},

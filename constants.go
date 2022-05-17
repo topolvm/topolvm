@@ -3,31 +3,31 @@ package topolvm
 import corev1 "k8s.io/api/core/v1"
 
 // CapacityKeyPrefix is the key prefix of Node annotation that represents VG free space.
-const CapacityKeyPrefix = "capacity.topolvm.cybozu.com/"
+const CapacityKeyPrefix = "capacity.topolvm.io/"
 
 // CapacityResource is the resource name of topolvm capacity.
-const CapacityResource = corev1.ResourceName("topolvm.cybozu.com/capacity")
+const CapacityResource = corev1.ResourceName("topolvm.io/capacity")
 
 // PluginName is the name of the CSI plugin.
-const PluginName = "topolvm.cybozu.com"
+const PluginName = "topolvm.io"
 
 // TopologyNodeKey is the key of topology that represents node name.
-const TopologyNodeKey = "topology.topolvm.cybozu.com/node"
+const TopologyNodeKey = "topology.topolvm.io/node"
 
 // DeviceClassKey is the key used in CSI volume create requests to specify a device-class.
-const DeviceClassKey = "topolvm.cybozu.com/device-class"
+const DeviceClassKey = "topolvm.io/device-class"
 
 // ResizeRequestedAtKey is the key of LogicalVolume that represents the timestamp of the resize request.
-const ResizeRequestedAtKey = "topolvm.cybozu.com/resize-requested-at"
+const ResizeRequestedAtKey = "topolvm.io/resize-requested-at"
 
 // LogicalVolumeFinalizer is the name of LogicalVolume finalizer
-const LogicalVolumeFinalizer = "topolvm.cybozu.com/logicalvolume"
+const LogicalVolumeFinalizer = "topolvm.io/logicalvolume"
 
 // NodeFinalizer is the name of Node finalizer of TopoLVM
-const NodeFinalizer = "topolvm.cybozu.com/node"
+const NodeFinalizer = "topolvm.io/node"
 
 // PVCFinalizer is the name of PVC finalizer of TopoLVM
-const PVCFinalizer = "topolvm.cybozu.com/pvc"
+const PVCFinalizer = "topolvm.io/pvc"
 
 // DefaultCSISocket is the default path of the CSI socket file.
 const DefaultCSISocket = "/run/topolvm/csi-topolvm.sock"
@@ -37,7 +37,7 @@ const DefaultLVMdSocket = "/run/topolvm/lvmd.sock"
 
 // EphemeralVolumeSizeKey is the key used to obtain ephemeral inline volume size
 // from the volume context
-const EphemeralVolumeSizeKey = "topolvm.cybozu.com/size"
+const EphemeralVolumeSizeKey = "topolvm.io/size"
 
 // DefaultDeviceClassAnnotationName is the part of annotation name for the default device-class.
 const DefaultDeviceClassAnnotationName = "00default"

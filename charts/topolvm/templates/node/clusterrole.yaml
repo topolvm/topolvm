@@ -8,7 +8,7 @@ rules:
   - apiGroups: [""]
     resources: ["nodes"]
     verbs: ["get", "list", "watch", "update", "patch"]
-  - apiGroups: ["topolvm.cybozu.com"]
+  - apiGroups: ["topolvm.io"]
     resources: ["logicalvolumes", "logicalvolumes/status"]
     verbs: ["get", "list", "watch", "create", "update", "delete", "patch"]
   - apiGroups: ["storage.k8s.io"]

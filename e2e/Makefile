@@ -83,8 +83,8 @@ topolvm.img: $(GO_FILES)
 .PHONY: prepare-namespace
 prepare-namespace:
 	$(KUBECTL) create namespace topolvm-system
-	$(KUBECTL) label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
-	$(KUBECTL) label namespace kube-system topolvm.cybozu.com/webhook=ignore
+	$(KUBECTL) label namespace topolvm-system topolvm.io/webhook=ignore
+	$(KUBECTL) label namespace kube-system topolvm.io/webhook=ignore
 
 .PHONY: launch-kind
 launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml

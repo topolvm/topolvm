@@ -91,12 +91,12 @@ free space in the LVM volume group in bytes.
 Node resource
 -------------
 
-`topolvm-node` adds `capacity.topolvm.cybozu.com/<device-class>` annotations
-for each device-class and `capacity.topolvm.cybozu.com/00default` annotation 
+`topolvm-node` adds `capacity.topolvm.io/<device-class>` annotations
+for each device-class and `capacity.topolvm.io/00default` annotation 
 for the default device-class to the corresponding `Node` resource of the running node.
 The value is the free storage capacity reported by `lvmd` in bytes.
 
-It also adds `topolvm.cybozu.com/node` finalizer to the `Node`.
+It also adds `topolvm.io/node` finalizer to the `Node`.
 The finalizer will be processed by [`topolvm-controller`](./topolvm-controller.md)
 to clean up PVCs and associated Pods bound to the node.
 

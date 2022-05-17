@@ -31,7 +31,7 @@ node:
         type: Directory
     - name: node-plugin-dir
       hostPath:
-        path: /var/lib/kubelet/plugins/topolvm.cybozu.com/node
+        path: /var/lib/kubelet/plugins/topolvm.io/node
         type: DirectoryOrCreate
     - name: csi-plugin-dir
       hostPath:

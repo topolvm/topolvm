@@ -24,20 +24,20 @@ kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: topolvm-provisioner
-provisioner: topolvm.cybozu.com
+provisioner: topolvm.io
 parameters:
   "csi.storage.k8s.io/fstype": "xfs"
-  "topolvm.cybozu.com/device-class": "ssd"
+  "topolvm.io/device-class": "ssd"
 volumeBindingMode: WaitForFirstConsumer
 allowVolumeExpansion: true
 ```
 
-`provisioner` must be `topolvm.cybozu.com`.
+`provisioner` must be `topolvm.io`.
 
 `parameters` are optional.
 To specify a filesystem type, give `csi.storage.k8s.io/fstype` parameter.
-To specify a device-class name to be used, give `topolvm.cybozu.com/device-class` parameter. 
-If no `topolvm.cybozu.com/device-class` is specified, the default device-class is used.
+To specify a device-class name to be used, give `topolvm.io/device-class` parameter. 
+If no `topolvm.io/device-class` is specified, the default device-class is used.
 
 Supported filesystems are: `ext4` and `xfs`.
 
@@ -137,19 +137,19 @@ spec:
   volumes:
   - name: my-volume
     csi:
-      driver: topolvm.cybozu.com
+      driver: topolvm.io
       fsType: xfs
       volumeAttributes:
-          topolvm.cybozu.com/size: "2"
+          topolvm.io/size: "2"
 ```
 
-`driver` must be `topolvm.cybozu.com`.
+`driver` must be `topolvm.io`.
 
 `fsType` is optional.  To specify a filesystem type, give
 `csi.storage.k8s.io/fstype` parameter. If no type is specified, the default
 of ext4 will be used.
 `volumeAttributes` are optional.  To specify a volume size, give
-`topolvm.cybozu.com/size` parameter. If no size is specified, the default of
+`topolvm.io/size` parameter. If no size is specified, the default of
 1 GiB will be used.
 
 Supported filesystems are: `ext4` and `xfs`.

@@ -17,7 +17,7 @@ rules:
   - apiGroups: ["storage.k8s.io"]
     resources: ["storageclasses","csidrivers"]
     verbs: ["get", "list", "watch"]
-  - apiGroups: ["topolvm.cybozu.com"]
+  - apiGroups: ["topolvm.io"]
     resources: ["logicalvolumes", "logicalvolumes/status"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 ---
