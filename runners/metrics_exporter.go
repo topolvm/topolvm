@@ -34,6 +34,7 @@ type NodeMetrics struct {
 	MetadataPercent    float64
 	FreeBytes          uint64
 	SizeBytes          uint64
+	ThinPoolSizeBytes  uint64
 	OverProvisionBytes uint64
 	DeviceClass        string
 	DeviceClassType    string
@@ -131,13 +132,14 @@ func (m *metricsExporter) Start(ctx context.Context) error {
 			case <-ctx.Done():
 				return
 			case met := <-metricsCh:
-				if met.DeviceClassType == TypeThick {
-					// metrics for volumegroup subsystem
-					m.availableBytes.WithLabelValues(met.DeviceClass).Set(float64(met.FreeBytes))
-					m.sizeBytes.WithLabelValues(met.DeviceClass).Set(float64(met.SizeBytes))
-				} else if met.DeviceClassType == TypeThin {
-					// metrics for thinpool subsystem
-					m.thinPool.tpSizeBytes.WithLabelValues(met.DeviceClass).Set(float64(met.SizeBytes))
+
+				// metrics for volumegroup subsystem, these are exported from thinpool type as well
+				m.availableBytes.WithLabelValues(met.DeviceClass).Set(float64(met.FreeBytes))
+				m.sizeBytes.WithLabelValues(met.DeviceClass).Set(float64(met.SizeBytes))
+
+				if met.DeviceClassType == TypeThin {
+					// metrics for thinpool subsystem exclusively
+					m.thinPool.tpSizeBytes.WithLabelValues(met.DeviceClass).Set(float64(met.ThinPoolSizeBytes))
 					m.thinPool.dataPercent.WithLabelValues(met.DeviceClass).Set(float64(met.DataPercent))
 					m.thinPool.metadataPercent.WithLabelValues(met.DeviceClass).Set(float64(met.MetadataPercent))
 				}
@@ -173,11 +175,13 @@ func (m *metricsExporter) updateNode(ctx context.Context, wc proto.VGService_Wat
 		for _, item := range res.Items {
 			if item.ThinPool != nil {
 				ch <- NodeMetrics{
-					DeviceClass:     item.DeviceClass,
-					SizeBytes:       item.SizeBytes,
-					DataPercent:     item.ThinPool.DataPercent,
-					MetadataPercent: item.ThinPool.MetadataPercent,
-					DeviceClassType: TypeThin,
+					DeviceClass:       item.DeviceClass,
+					FreeBytes:         item.FreeBytes,
+					SizeBytes:         item.SizeBytes,
+					ThinPoolSizeBytes: item.ThinPool.SizeBytes,
+					DataPercent:       item.ThinPool.DataPercent,
+					MetadataPercent:   item.ThinPool.MetadataPercent,
+					DeviceClassType:   TypeThin,
 				}
 			} else {
 				ch <- NodeMetrics{

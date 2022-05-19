@@ -205,6 +205,7 @@ Represents the details of thinpool.
 | data_percent | [double](#double) |  | Data percent occupied on the thinpool, used for monitoring. |
 | metadata_percent | [double](#double) |  | Metadata percent occupied on the thinpool, used for monitoring. |
 | overprovision_bytes | [uint64](#uint64) |  | Free space on the thinpool with overprovision, used for annotating node. |
+| size_bytes | [uint64](#uint64) |  | Physical data space size of the thinpool. |
 
 
 
@@ -219,9 +220,9 @@ Represents the response corresponding to device class targets.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| free_bytes | [uint64](#uint64) |  | Free space in the device class. |
+| free_bytes | [uint64](#uint64) |  | Free space in the volume group in bytes. |
 | device_class | [string](#string) |  |  |
-| size_bytes | [uint64](#uint64) |  | Size of device class in bytes. |
+| size_bytes | [uint64](#uint64) |  | Size of volume group in bytes. |
 | thin_pool | [ThinPoolItem](#proto.ThinPoolItem) |  |  |
 
 

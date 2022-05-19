@@ -79,13 +79,14 @@ message ThinPoolItem {
   double data_percent = 1; // Data percent occupied on the thinpool, used for monitoring.
   double metadata_percent = 2; // Metadata percent occupied on the thinpool, used for monitoring.
   uint64 overprovision_bytes = 3; // Free space on the thinpool with overprovision, used for annotating node.
+  uint64 size_bytes = 4; // Physical data space size of the thinpool.
 }
 
 // Represents the response corresponding to device class targets.
 message WatchItem {
-    uint64 free_bytes = 1; // Free space in the device class.
+    uint64 free_bytes = 1; // Free space in the volume group in bytes.
     string device_class = 2;
-    uint64 size_bytes = 3; // Size of device class in bytes.
+    uint64 size_bytes = 3; // Size of volume group in bytes.
     ThinPoolItem thin_pool = 4;
 }
 
