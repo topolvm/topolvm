@@ -22,7 +22,7 @@ jobs:
       - run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: "Export IMAGE_PREFIX"
         run: |
-          if [ "${{ secrets.IMAGE_PREFIX }}" != "" ]; then IMAGE_PREFIX=${{ secrets.IMAGE_PREFIX }}; else IMAGE_PREFIX=ghcr.io/topolvm/; fi
+          if [ "${{ secrets.IMAGE_PREFIX }}" != "" ]; then IMAGE_PREFIX=${{ secrets.IMAGE_PREFIX }}; else IMAGE_PREFIX=ghcr.io/${{ github.repository }}; fi
           echo "IMAGE_PREFIX=${IMAGE_PREFIX}" >> $GITHUB_ENV
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2

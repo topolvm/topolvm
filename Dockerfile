@@ -11,14 +11,15 @@ RUN touch csi/*.go lvmd/proto/*.go \
     && make build-topolvm TOPOLVM_VERSION=${TOPOLVM_VERSION}
 
 # TopoLVM container
-FROM ubuntu:18.04
+FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
-    && apt-get -y install --no-install-recommends \
-        btrfs-progs \
-        file \
-        xfsprogs \
+    && apt-get -y install \
+    btrfs-progs \
+    file \
+    xfsprogs \
+    lvm2 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build-env /workdir/build/hypertopolvm /hypertopolvm
