@@ -224,6 +224,15 @@ func (m *podMutator) requestedEphemeralCapacity(pod *corev1.Pod) (int64, error) 
 					return 0, err
 				}
 				total += volSize << 30
+			} else if volSizeStr, ok := vol.CSI.VolumeAttributes[topolvm.LegacyEphemeralVolumeSizeKey]; ok {
+				volSize, err := strconv.ParseInt(volSizeStr, 10, 64)
+				if err != nil {
+					pmLogger.Error(err, "Invalid volume size",
+						topolvm.LegacyEphemeralVolumeSizeKey, volSizeStr,
+					)
+					return 0, err
+				}
+				total += volSize << 30
 			} else {
 				total += topolvm.DefaultSize
 			}

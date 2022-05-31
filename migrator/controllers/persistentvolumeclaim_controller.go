@@ -21,9 +21,6 @@ type PersistentVolumeClaimReconciler struct {
 	APIReader client.Reader
 }
 
-//+kubebuilder:rbac:groups=core,resources=persistentvolumeclaims,verbs=get;list;watch;update
-//+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;delete
-
 func (r *PersistentVolumeClaimReconciler) RunOnce(ctx context.Context) error {
 	pvcs := &corev1.PersistentVolumeClaimList{}
 	err := r.List(ctx, pvcs)
@@ -87,8 +84,11 @@ func (r *PersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req ctr
 		log.V(6).Info("skipped updating finalizer", "name", pvc.Name)
 		return ctrl.Result{}, nil
 	}
-	if err := r.Update(ctx, pvc); err != nil {
-		log.Error(err, "failed to migrate finalizer", "name", pvc.Name)
+
+	pvc2 := pvc.DeepCopy()
+	pvc2.Finalizers = finalizers
+	if err := r.Update(ctx, pvc2); err != nil {
+		log.Error(err, "failed to migrate finalizer", "name", pvc2.Name)
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil

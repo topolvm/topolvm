@@ -48,7 +48,7 @@ kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: topolvm
-provisioner: topolvm.io            # topolvm-scheduler works only for StorageClass with this provisioner.
+provisioner: topolvm.io # topolvm-scheduler works only for StorageClass with this provisioner.
 parameters:
   "csi.storage.k8s.io/fstype": "xfs"
   "topolvm.io/device-class": "ssd"

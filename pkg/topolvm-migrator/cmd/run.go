@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	topolvmlegacyv1 "github.com/topolvm/topolvm/api/legacy/v1"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	"github.com/topolvm/topolvm/migrator/controllers"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -23,6 +24,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
+	utilruntime.Must(topolvmlegacyv1.AddToScheme(scheme))
 	utilruntime.Must(topolvmv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
@@ -62,14 +64,58 @@ func subMain() error {
 		Client:    mgr.GetClient(),
 		APIReader: mgr.GetAPIReader(),
 	}
-	if err := pvccontroller.RunOnce(ctx); err != nil {
-		setupLog.Error(err, "unable to run controller", "controller", "PersistentVolumeClaim")
-		return err
-	}
 	if err := pvccontroller.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PersistentVolumeClaim")
 		return err
 	}
+	go func() {
+		if ok := mgr.GetCache().WaitForCacheSync(ctx); !ok {
+			err := errors.New("failed to sync cache")
+			setupLog.Error(err, "failed to sync cache")
+		}
+
+		if err := pvccontroller.RunOnce(ctx); err != nil {
+			setupLog.Error(err, "unable to run once controller", "controller", "PersistentVolumeClaim")
+		}
+	}()
+
+	nodecontroller := &controllers.NodeReconciler{
+		Client:    mgr.GetClient(),
+		APIReader: mgr.GetAPIReader(),
+	}
+	if err := nodecontroller.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Node")
+		return err
+	}
+	go func() {
+		if ok := mgr.GetCache().WaitForCacheSync(ctx); !ok {
+			err := errors.New("failed to sync cache")
+			setupLog.Error(err, "failed to sync cache")
+		}
+
+		if err := nodecontroller.RunOnce(ctx); err != nil {
+			setupLog.Error(err, "unable to run once controller", "controller", "Node")
+		}
+	}()
+
+	logicalvolumecontroller := &controllers.LogicalVolumeReconciler{
+		Client:    mgr.GetClient(),
+		APIReader: mgr.GetAPIReader(),
+	}
+	if err := logicalvolumecontroller.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Node")
+		return err
+	}
+	go func() {
+		if ok := mgr.GetCache().WaitForCacheSync(ctx); !ok {
+			err := errors.New("failed to sync cache")
+			setupLog.Error(err, "failed to sync cache")
+		}
+
+		if err := logicalvolumecontroller.RunOnce(ctx); err != nil {
+			setupLog.Error(err, "unable to run once controller", "controller", "LogicalVolume")
+		}
+	}()
 
 	//+kubebuilder:scaffold:builder
 

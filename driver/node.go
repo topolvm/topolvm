@@ -112,7 +112,14 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 				if err != nil {
 					return nil, status.Errorf(codes.InvalidArgument, "Invalid size: %s", sizeStr)
 				}
+			} else if sizeStr, ok := volumeContext[topolvm.EphemeralVolumeSizeKey]; ok {
+				var err error
+				reqGb, err = strconv.ParseUint(sizeStr, 10, 64)
+				if err != nil {
+					return nil, status.Errorf(codes.InvalidArgument, "Invalid size: %s", sizeStr)
+				}
 			}
+
 			nodeLogger.Info("Processing ephemeral inline volume request", "reqGb", reqGb)
 			_, err := s.lvService.CreateLV(ctx, &proto.CreateLVRequest{
 				Name:        volumeID,
