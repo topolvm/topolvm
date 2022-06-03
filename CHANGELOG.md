@@ -7,6 +7,17 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.12.0] - 2022-06-03
+
+### Changed
+
+- Send VG metrics as part of ThinPool metrics (#481)
+  - **BREAKING**: `free_bytes` and `size_bytes` metrics report the VG's free space and size respectively even for thinpool.
+
+### Contributors
+
+- @leelavg
+
 ## [0.11.1] - 2022-05-09
 
 ### Changed
@@ -477,7 +488,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.11.1...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/topolvm/topolvm/compare/v0.11.1...v0.12.0
 [0.11.1]: https://github.com/topolvm/topolvm/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/topolvm/topolvm/compare/v0.10.6...v0.11.0
 [0.10.6]: https://github.com/topolvm/topolvm/compare/v0.10.5...v0.10.6
