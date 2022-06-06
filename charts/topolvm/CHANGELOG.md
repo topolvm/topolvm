@@ -7,6 +7,10 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [6.0.1] - 2022-06-06
+### Changed
+- appVersion was changed to 6.0.1.
+
 ## [6.0.0] - 2022-05-10
 
 ### Changed
@@ -137,7 +141,8 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v6.0.0...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v6.0.1...HEAD
+[6.0.1]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v6.0.0...topolvm-chart-v6.0.1
 [6.0.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v5.0.0...topolvm-chart-v6.0.0
 [5.0.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v4.0.3...topolvm-chart-v5.0.0
 [4.0.3]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v4.0.2...topolvm-chart-v4.0.3
