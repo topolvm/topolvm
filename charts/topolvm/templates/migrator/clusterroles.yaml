@@ -1,0 +1,25 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Release.Namespace }}:migrator
+  labels:
+  {{- include "topolvm.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch", "patch", "update"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "delete"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "update", "delete"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses","csidrivers"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["topolvm.io"]
+    resources: ["logicalvolumes", "logicalvolumes/status"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["topolvm.cybozu.com"]
+    resources: ["logicalvolumes", "logicalvolumes/status"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]

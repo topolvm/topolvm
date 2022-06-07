@@ -24,6 +24,8 @@ type NodeReconciler struct {
 }
 
 func (r *NodeReconciler) RunOnce(ctx context.Context) error {
+	log := crlog.FromContext(ctx).WithValues("controller", "Node")
+	log.Info("Start RunOnce")
 	nodes := &corev1.NodeList{}
 	err := r.List(ctx, nodes)
 	switch {
@@ -52,7 +54,8 @@ func (r *NodeReconciler) RunOnce(ctx context.Context) error {
 
 // Reconcile finalize Node
 func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := crlog.FromContext(ctx)
+	log := crlog.FromContext(ctx).WithValues("controller", "Node")
+	log.Info("Start Reconcile", "name", req.NamespacedName.Name)
 	node := &corev1.Node{}
 	err := r.Get(ctx, req.NamespacedName, node)
 	switch {
@@ -126,10 +129,10 @@ func migrateCapacity(r *NodeReconciler, node *corev1.Node) (*corev1.Node, error)
 	annotations := map[string]string{}
 
 	for key, val := range node.Annotations {
-		dc := strings.SplitAfter(key, topolvm.LegacyCapacityKeyPrefix)
-		if len(dc) == 1 && dc[0] != "" {
+		dc := strings.Split(key, "/")
+		if len(dc) == 2 && dc[0] == topolvm.LegacyCapacityKeyPrefix {
 			changed = true
-			annotations[fmt.Sprintf("%s%s", topolvm.CapacityKeyPrefix, dc)] = val
+			annotations[fmt.Sprintf("%s%s", topolvm.CapacityKeyPrefix, dc[1])] = val
 		} else {
 			annotations[key] = val
 		}

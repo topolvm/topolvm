@@ -1,0 +1,15 @@
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: leader-election:migrator
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "topolvm.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    namespace: {{ .Release.Namespace }}
+    name: {{ template "topolvm.fullname" . }}-migrator
+roleRef:
+  kind: Role
+  name: leader-election
+  apiGroup: rbac.authorization.k8s.io

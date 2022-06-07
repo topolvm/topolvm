@@ -489,3 +489,39 @@ priorityClass:
   name: topolvm
   # priorityClass.value  -- Specify priorityClass value.
   value: 1000000
+
+# migrator app
+migrator:
+  # migrator.replicaCount -- Number of replicas for Deployment.
+  replicaCount: 1
+
+  # migrator.minReadySeconds -- (int) Specify minReadySeconds on the Deployment.
+  minReadySeconds:  # 0
+
+  # migrator.updateStrategy -- Specify updateStrategy on the Deployment.
+  updateStrategy: {}
+  #  rollingUpdate:
+  #    maxUnavailable: 1
+  #  type: RollingUpdate
+
+  # migrator.terminationGracePeriodSeconds -- (int) Specify terminationGracePeriodSeconds on the Deployment.
+  terminationGracePeriodSeconds:  # 30
+
+  # migrator.securityContext. -- Container securityContext.
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+  securityContext:
+    # migrator.securityContext.enabled -- Enable securityContext.
+    enabled: false
+
+  # migrator.priorityClassName -- Specify priorityClassName on the Deployment.
+  priorityClassName:
+
+  # migrator.resources -- Specify resources.
+  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+  resources: {}
+  #  requests:
+  #    memory: "50Mi"
+  #    cpu: "50m"
+  #  limits:
+  #    memory: "200Mi"
+  #    cpu: "200m"

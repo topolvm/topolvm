@@ -24,6 +24,8 @@ type LogicalVolumeReconciler struct {
 }
 
 func (r *LogicalVolumeReconciler) RunOnce(ctx context.Context) error {
+	log := crlog.FromContext(ctx).WithValues("controller", "LogicalVolume")
+	log.Info("Start RunOnce")
 	lvs := &topolvmlegacyv1.LogicalVolumeList{}
 	err := r.List(ctx, lvs)
 	switch {
@@ -52,7 +54,8 @@ func (r *LogicalVolumeReconciler) RunOnce(ctx context.Context) error {
 
 // Reconcile finalize Node
 func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := crlog.FromContext(ctx)
+	log := crlog.FromContext(ctx).WithValues("controller", "LogicalVolume")
+	log.Info("Start Reconcile", "name", req.NamespacedName.Name, "namespace", req.NamespacedName.Namespace)
 	lv := &topolvmlegacyv1.LogicalVolume{}
 	err := r.Get(ctx, req.NamespacedName, lv)
 	switch {

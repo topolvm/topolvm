@@ -7,6 +7,7 @@ import (
 
 	lvmd "github.com/topolvm/topolvm/pkg/lvmd/cmd"
 	controller "github.com/topolvm/topolvm/pkg/topolvm-controller/cmd"
+	migrator "github.com/topolvm/topolvm/pkg/topolvm-migrator/cmd"
 	node "github.com/topolvm/topolvm/pkg/topolvm-node/cmd"
 	scheduler "github.com/topolvm/topolvm/pkg/topolvm-scheduler/cmd"
 )
@@ -18,6 +19,7 @@ COMMAND:
     topolvm-controller:  TopoLVM CSI controller service.
     topolvm-node:        TopoLVM CSI node service.
     topolvm-scheduler:   Scheduler extender.
+		topolvm-migrator:    TopoLVM migrator.
     lvmd:                gRPC service to manage LVM volumes.
 `)
 }
@@ -42,6 +44,8 @@ func main() {
 		node.Execute()
 	case "topolvm-controller":
 		controller.Execute()
+	case "topolvm-migrator":
+		migrator.Execute()
 	default:
 		usage()
 		os.Exit(1)

@@ -22,6 +22,8 @@ type PersistentVolumeClaimReconciler struct {
 }
 
 func (r *PersistentVolumeClaimReconciler) RunOnce(ctx context.Context) error {
+	log := crlog.FromContext(ctx).WithValues("controller", "PersistentVolumeClaim")
+	log.Info("Start RunOnce")
 	pvcs := &corev1.PersistentVolumeClaimList{}
 	err := r.List(ctx, pvcs)
 	switch {
@@ -50,7 +52,8 @@ func (r *PersistentVolumeClaimReconciler) RunOnce(ctx context.Context) error {
 
 // Reconcile finalize PVC
 func (r *PersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := crlog.FromContext(ctx)
+	log := crlog.FromContext(ctx).WithValues("controller", "PersistentVolumeClaim")
+	log.Info("Start Reconcile", "name", req.NamespacedName.Name, "namespace", req.NamespacedName.Namespace)
 	pvc := &corev1.PersistentVolumeClaim{}
 	err := r.Get(ctx, req.NamespacedName, pvc)
 	switch {

@@ -34,7 +34,6 @@ func init() {
 // Run builds and starts the manager with leader election.
 func subMain() error {
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&config.zapOpts)))
-
 	cfg, err := ctrl.GetConfig()
 	if err != nil {
 		return err
@@ -53,11 +52,6 @@ func subMain() error {
 	}
 
 	ctx := context.TODO()
-	if ok := mgr.GetCache().WaitForCacheSync(ctx); !ok {
-		err := errors.New("failed to sync cache")
-		setupLog.Error(err, "failed to sync cache")
-		return err
-	}
 
 	// register controllers
 	pvccontroller := &controllers.PersistentVolumeClaimReconciler{
