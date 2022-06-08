@@ -114,7 +114,7 @@ func testPublishVolume() {
 
 		var volumeID string
 		Eventually(func() error {
-			stdout, stderr, err := kubectl("get", "logicalvolume", name, "-o", "yaml")
+			stdout, stderr, err := kubectl("get", "logicalvolumes.topolvm.io", name, "-o", "yaml")
 			if err != nil {
 				return fmt.Errorf("failed to get logical volume. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
 			}
@@ -201,7 +201,7 @@ func testPublishVolume() {
 		cl.unregister(volumeID, mountTargetPath)
 
 		By("cleaning logicalvolume")
-		stdout, stderr, err := kubectl("delete", "logicalvolume", "csi-node-test-fs")
+		stdout, stderr, err := kubectl("delete", "logicalvolumes.topolvm.io", "csi-node-test-fs")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 	})
 
@@ -221,7 +221,7 @@ func testPublishVolume() {
 
 		var volumeID string
 		Eventually(func() error {
-			stdout, stderr, err := kubectl("get", "logicalvolume", name, "-o", "yaml")
+			stdout, stderr, err := kubectl("get", "logicalvolumes.topolvm.io", name, "-o", "yaml")
 			if err != nil {
 				return fmt.Errorf("failed to get logical volume. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
 			}
@@ -292,7 +292,7 @@ func testPublishVolume() {
 		cl.unregister(volumeID, deviceTargetPath)
 
 		By("cleaning logicalvolume")
-		stdout, stderr, err := kubectl("delete", "logicalvolume", "csi-node-test-block")
+		stdout, stderr, err := kubectl("delete", "logicalvolumes.topolvm.io", "csi-node-test-block")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 	})
 
@@ -368,7 +368,7 @@ func testPublishVolume() {
 
 		var volumeID string
 		Eventually(func() error {
-			stdout, stderr, err := kubectl("get", "logicalvolume", name, "-o", "yaml")
+			stdout, stderr, err := kubectl("get", "logicalvolumes.topolvm.io", name, "-o", "yaml")
 			if err != nil {
 				return fmt.Errorf("failed to get logical volume. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
 			}
@@ -412,7 +412,7 @@ func testPublishVolume() {
 		Expect(err).Should(HaveOccurred())
 
 		By("cleaning logicalvolume")
-		stdout, stderr, err := kubectl("delete", "logicalvolume", "csi-node-test-fs")
+		stdout, stderr, err := kubectl("delete", "logicalvolumes.topolvm.io", "csi-node-test-fs")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 	})
 }
