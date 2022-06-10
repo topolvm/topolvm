@@ -10,44 +10,19 @@ on:
       - "CODEOWNERS"
     branches:
       - "main"
+
 jobs:
-  e2e-k8s:
-    name: "e2e-k8s"
-    runs-on: "ubuntu-18.04"
-    strategy:
-      fail-fast: false
-      matrix:
-        kubernetes_versions: ["1.23.3", "1.22.2", "1.21.2"]
-        test_scheduler_manifest: ["daemonset", "deployment"]
-        storage_capacity: ["false", "true"]
-        skip_node_finalize: ["false", "true"]
-    env:
-      KUBERNETES_VERSION: ${{ matrix.kubernetes_versions }}
-      TEST_SCHEDULER_MANIFEST: ${{ matrix.test_scheduler_manifest }}
-      STORAGE_CAPACITY: ${{ matrix.storage_capacity }}
-      SKIP_NODE_FINALIZE: ${{ matrix.skip_node_finalize }}
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v2
-        with:
-          go-version: "1.17"
-      - name: cache go dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: go-${{ hashFiles('go.sum', 'Makefile') }}
-          restore-keys: |
-            go-
-      - name: cache e2e sidecar binaries
-        uses: actions/cache@v3
-        with:
-          path: |
-            e2e/tmpbin
-          key: e2e-sidecars-${{ hashFiles('csi-sidecars.mk') }}
-          restore-keys: |
-            e2e-sidecars-
-      - run: make -C e2e setup
-      - run: make -C e2e start-lvmd
-      - run: make -C e2e test
+  scheduler-manifest:
+    uses: ./.github/workflows/e2e-k8s-workflow.yaml
+    with:
+      test_scheduler_manifest: '["daemonset", "deployment"]'
+
+  storage-capacity:
+    uses: ./.github/workflows/e2e-k8s-workflow.yaml
+    with:
+      storage_capacity: '["false", "true"]'
+
+  skip-node-finalize:
+    uses: ./.github/workflows/e2e-k8s-workflow.yaml
+    with:
+      skip_node_finalize: '["false", "true"]'
