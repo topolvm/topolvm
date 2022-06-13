@@ -1,4 +1,6 @@
-{{ if and .Values.scheduler.enabled .Values.scheduler.podDisruptionBudget.enabled }}
+{{ if and .Values.scheduler.enabled
+  .Values.scheduler.podDisruptionBudget.enabled
+  (eq (lower .Values.scheduler.type) "deployment") }}
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
