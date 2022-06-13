@@ -12,17 +12,20 @@ on:
       - "main"
 
 jobs:
+  default:
+    uses: ./.github/workflows/e2e-k8s-workflow.yaml
+
   scheduler-manifest:
     uses: ./.github/workflows/e2e-k8s-workflow.yaml
     with:
-      test_scheduler_manifest: '["daemonset", "deployment"]'
+      test_scheduler_manifest: "deployment"
 
   storage-capacity:
     uses: ./.github/workflows/e2e-k8s-workflow.yaml
     with:
-      storage_capacity: '["false", "true"]'
+      storage_capacity: "true"
 
   skip-node-finalize:
     uses: ./.github/workflows/e2e-k8s-workflow.yaml
     with:
-      skip_node_finalize: '["false", "true"]'
+      skip_node_finalize: "true"
