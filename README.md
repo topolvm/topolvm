@@ -85,6 +85,5 @@ Docker images are available on [ghcr.io](https://github.com/orgs/topolvm/package
 
 Deprecated features
 -------------------
-- TopoLVM currently supports [Ephemeral inline volume](https://kubernetes.io/docs/concepts/storage/volumes/#csi-ephemeral-volumes), but it has a limitation that capacity tracking is not supported.
-As of kubernetes 1.21, [Generic ephemeral volume](https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/#generic-ephemeral-volumes) is introduced and it has no such limitation. So we will replace CSI ephemeral volume with Generic ephemeral volume, and deprecate CSI ephemeral volume.
+
 - TopoLVM currently uses [Pod security policy](https://kubernetes.io/docs/concepts/policy/pod-security-policy/), but it has been deprecated since Kubernetes 1.21, and will be deleted in Kubernetes 1.25. So it is also deprecated in TopoLVM.

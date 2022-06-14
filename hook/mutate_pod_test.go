@@ -9,6 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -244,18 +245,23 @@ var _ = Describe("pod mutation webhook", func() {
 		Expect(capacity).Should(Equal(strconv.Itoa(4 << 30)))
 	})
 
-	It("should mutate pod with TopoLVM inline ephemeral volume.", func() {
+	It("should mutate pod with generic ephemeral volume.", func() {
 		pod := testPod()
-		fsType := "xfs"
 		pod.Spec.Volumes = []corev1.Volume{
 			{
 				Name: "my-volume",
 				VolumeSource: corev1.VolumeSource{
-					CSI: &corev1.CSIVolumeSource{
-						Driver: "topolvm.cybozu.com",
-						FSType: &fsType,
-						VolumeAttributes: map[string]string{
-							topolvm.EphemeralVolumeSizeKey: "2",
+					Ephemeral: &corev1.EphemeralVolumeSource{
+						VolumeClaimTemplate: &corev1.PersistentVolumeClaimTemplate{
+							Spec: corev1.PersistentVolumeClaimSpec{
+								AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+								StorageClassName: pointer.String(topolvmProvisionerStorageClassName),
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": *resource.NewQuantity(100<<30, resource.DecimalSI),
+									},
+								},
+							},
 						},
 					},
 				},
@@ -267,37 +273,10 @@ var _ = Describe("pod mutation webhook", func() {
 		pod = getPod()
 		request := pod.Spec.Containers[0].Resources.Requests[topolvm.CapacityResource]
 		limit := pod.Spec.Containers[0].Resources.Limits[topolvm.CapacityResource]
-		capacity := pod.Annotations[topolvm.CapacityKeyPrefix+topolvm.DefaultDeviceClassAnnotationName]
+		capacity := pod.Annotations[topolvm.CapacityKeyPrefix+"ssd"]
 		Expect(request.Value()).Should(BeNumerically("==", 1))
 		Expect(limit.Value()).Should(BeNumerically("==", 1))
-		Expect(capacity).Should(Equal(strconv.Itoa(2 << 30)))
-	})
-
-	It("should mutate pod with TopoLVM inline ephemeral volume when volume size is not explicitly specified.", func() {
-		pod := testPod()
-		fsType := "xfs"
-		pod.Spec.Volumes = []corev1.Volume{
-			{
-				Name: "my-volume",
-				VolumeSource: corev1.VolumeSource{
-					CSI: &corev1.CSIVolumeSource{
-						Driver: "topolvm.cybozu.com",
-						FSType: &fsType,
-						// Intentionally do not define size.
-					},
-				},
-			},
-		}
-		err := k8sClient.Create(testCtx, pod)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		pod = getPod()
-		request := pod.Spec.Containers[0].Resources.Requests[topolvm.CapacityResource]
-		limit := pod.Spec.Containers[0].Resources.Limits[topolvm.CapacityResource]
-		capacity := pod.Annotations[topolvm.CapacityKeyPrefix+topolvm.DefaultDeviceClassAnnotationName]
-		Expect(request.Value()).Should(BeNumerically("==", 1))
-		Expect(limit.Value()).Should(BeNumerically("==", 1))
-		Expect(capacity).Should(Equal(strconv.Itoa(1 << 30)))
+		Expect(capacity).Should(Equal(strconv.Itoa(100 << 30)))
 	})
 
 	It("should keep existing resources", func() {
@@ -338,12 +317,6 @@ var _ = Describe("pod mutation webhook", func() {
 		pod.Spec.Volumes = []corev1.Volume{
 			{
 				Name: "vol1",
-				VolumeSource: corev1.VolumeSource{
-					PersistentVolumeClaim: pvcSource("pvc1"),
-				},
-			},
-			{
-				Name: "vol2",
 				VolumeSource: corev1.VolumeSource{
 					PersistentVolumeClaim: pvcSource("bound-pvc"),
 				},

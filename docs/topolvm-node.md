@@ -31,41 +31,6 @@ If its response is succeeded, `topolvm-node` set `logicalvolume.status.volumeID`
 When a `LogicalVolume` resource is being deleted, `topolvm-node` sends
 a `RemoveLV` request to `lvmd`.
 
-Inline ephemeral volume provisioning (**deprecated**)
-------------------------------------
-
-`topolvm-node` manages [inline ephemeral volumes](https://kubernetes-csi.github.io/docs/ephemeral-local-volumes.html) through special handling in the
-processing of `NodePublishVolumeRequest` and `NodeUnpublishVolumeRequest`. For volumes
-backed by PVCs, `topolvm-node` manages creation and deletion of LVMs via
-watches on `LogicalVolume` as explained above. However, for inline ephmeral
-volumes, the only CSI calls which will occur for the volume are
-`NodePublishVolume` and `NodeUnPublishVolume`. `topolvm-node` must
-create and delete the volumes in response to these calls.
-
-### Create an inline ephemeral volume
-
-Since `NodePublishVolumeRequest` and `NodeUnPublishVolumeRequest` are made for
-all volumes, `topolvm-node` must determine if the calls are for ephemeral
-inline volumes. It does so when processing a `NodePublishVolumeRequest`
-by examining the `VolumeContext` map which is passed by the CSI driver to
-`NodePublishVolume`.
-
-If the `VolumeContext` has `csi.storage.k8s.io/ephemeral`
-set to `true`, then `topolvm-node` recognizes this as a request to publish
-an inline ephmeral volume. Since there is no PVC in this case, `topolvm-node`
-must create the LVM while processing this request. It does so by sending the
-`CreateLV` request to `lvmd`. To facilitate identifying ephemeral volumes when
-processing `NodeUnpublishVolume`, the `Tags` field set to `[ephemeral]` in
-the `CreateLV` request.
-
-### Delete an inline ephemeral volume
-
-When the csi driver calls `NodeUnpublishVolume`, `topolvm-node` determines
-if the request is for an ephemeral volume by checking for the presence of
-the tag `ephemeral` on the volume. If and only if the tag is present,
-`topolvm-node` sends a `RemoveLV` request to `lvmd`. Otherwise, it will
-rely on the Finalizer logic to handle deletion of the LVM.
-
 Prometheus metrics
 ------------------
 

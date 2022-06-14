@@ -35,17 +35,13 @@ const DefaultCSISocket = "/run/topolvm/csi-topolvm.sock"
 // DefaultLVMdSocket is the default path of the lvmd socket file.
 const DefaultLVMdSocket = "/run/topolvm/lvmd.sock"
 
-// EphemeralVolumeSizeKey is the key used to obtain ephemeral inline volume size
-// from the volume context
-const EphemeralVolumeSizeKey = "topolvm.cybozu.com/size"
-
 // DefaultDeviceClassAnnotationName is the part of annotation name for the default device-class.
 const DefaultDeviceClassAnnotationName = "00default"
 
 // DefaultDeviceClassName is the name for the default device-class.
 const DefaultDeviceClassName = ""
 
-// DefaultSizeGb is the default size in GiB for  volumes (PVC or inline ephemeral volumes) w/o capacity requests.
+// DefaultSizeGb is the default size in GiB for  volumes (PVC or generic ephemeral volumes) w/o capacity requests.
 const DefaultSizeGb = 1
 
 // DefaultSize is DefaultSizeGb in bytes

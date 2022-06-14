@@ -33,9 +33,6 @@ var nodeCapacityPVCYAML []byte
 //go:embed testdata/e2e/node-capacity-pvc2.yaml
 var nodeCapacityPVC2YAML []byte
 
-//go:embed testdata/e2e/ephemeral-volume-pod.yaml
-var ephemeralVolumePodYAML []byte
-
 func testE2E() {
 	testNamespacePrefix := "e2etest-"
 	var ns string
@@ -568,67 +565,6 @@ func testE2E() {
 		Expect(pod.Spec.NodeName).To(Equal(""))
 	})
 
-	It("should mount inline ephemeral volumes backed by LVMs to the pod and delete LVMs when pod is deleted", func() {
-		By("reading current count of LVMs")
-		baseLvmCount, err := countLVMs()
-		Expect(err).ShouldNot(HaveOccurred())
-
-		By("deploying Pod with a TopoLVM inline ephemeral volume")
-		stdout, stderr, err := kubectlWithInput(ephemeralVolumePodYAML, "apply", "-n", ns, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-
-		By("confirming that the specified mountpoints exist in the Pod")
-		Eventually(func() error {
-			err := verifyMountExists(ns, "ubuntu", "/test1")
-			if err != nil {
-				return err
-			}
-
-			err = verifyMountExists(ns, "ubuntu", "/test2")
-			if err != nil {
-				return err
-			}
-			return nil
-		}).Should(Succeed())
-
-		// 2086912 is the number of 1k blocks to expect for a xfs volume
-		// formatted from a raw 2 Gi block device
-		verifyMountProperties(ns, "ubuntu", "/test1", "xfs", 2086912)
-
-		// 999320 is the number of 1k blocks to expect for an ext4 volume
-		// formatted from a raw 1 Gi block device
-		verifyMountProperties(ns, "ubuntu", "/test2", "ext4", 999320)
-
-		By("writing file under /test1")
-		writePath := "/test1/bootstrap.log"
-		stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "cp", "/var/log/bootstrap.log", writePath)
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "sync")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "cat", writePath)
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		Expect(strings.TrimSpace(string(stdout))).ShouldNot(BeEmpty())
-
-		By("confirming the mounted dir permission is 2777")
-		stdout, stderr, err = kubectl("exec", "-n", ns, "ubuntu", "--", "stat", "/test1", "-c", "'%a'")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		Expect(strings.TrimSpace(string(stdout))).To(Equal("'2777'"))
-
-		By("confirming two LVMs were created")
-		postCreateLvmCount, err := countLVMs()
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(postCreateLvmCount).To(Equal(baseLvmCount + 2))
-
-		By("deleting the Pod")
-		stdout, stderr, err = kubectlWithInput(ephemeralVolumePodYAML, "delete", "-n", ns, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-
-		By("verifying that the two LVMs were removed")
-		postDeleteLvmCount, err := countLVMs()
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(postDeleteLvmCount).To(Equal(baseLvmCount))
-	})
-
 	It("should resize filesystem", func() {
 		By("deploying Pod with PVC")
 		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1, "topolvm-provisioner"))
@@ -825,24 +761,6 @@ func verifyMountExists(ns string, pod string, mount string) error {
 		return fmt.Errorf("failed to check mount point. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
 	}
 	return nil
-}
-
-func verifyMountProperties(ns string, pod string, mount string, fsType string, size int) {
-	By(fmt.Sprintf("verifying that %s is mounted as type %s", mount, fsType))
-
-	stdout, stderr, err := kubectl("exec", "-n", ns, pod, "grep", mount, "/proc/mounts")
-	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-	mountFields := strings.Fields(string(stdout))
-	Expect(mountFields[2]).To(Equal(fsType))
-
-	By(fmt.Sprintf("verifying that the volume mounted at %s has the correct size", mount))
-	stdout, stderr, err = kubectl("exec", "-n", ns, pod, "--", "df", "--output=size", mount)
-	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-
-	dfFields := strings.Fields(string(stdout))
-	volSize, err := strconv.Atoi(dfFields[1])
-	Expect(err).ShouldNot(HaveOccurred())
-	Expect(volSize).To(Equal(size))
 }
 
 func waitCreatingDefaultSA(ns string) error {
