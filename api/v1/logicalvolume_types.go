@@ -18,6 +18,17 @@ type LogicalVolumeSpec struct {
 	NodeName    string            `json:"nodeName"`
 	Size        resource.Quantity `json:"size"`
 	DeviceClass string            `json:"deviceClass,omitempty"`
+
+	// 'source' specifies the logicalvolume name of the source; if present.
+	// This field is populated only when LogicalVolume has a source.
+	// +kubebuilder:validation:Optional
+	Source string `json:"source,omitempty"`
+
+	//'accessType' specifies how the user intends to consume the snapshot logical volume.
+	// Set to "ro" when creating a snapshot and to "rw" when restoring a snapshot or creating a clone.
+	// This field is populated only when LogicalVolume has a source.
+	// +kubebuilder:validation:Optional
+	AccessType string `json:"accessType,omitempty"`
 }
 
 // LogicalVolumeStatus defines the observed state of LogicalVolume
@@ -46,6 +57,9 @@ type LogicalVolume struct {
 // IsCompatibleWith returns true if the LogicalVolume is compatible.
 func (lv *LogicalVolume) IsCompatibleWith(lv2 *LogicalVolume) bool {
 	if lv.Spec.Name != lv2.Spec.Name {
+		return false
+	}
+	if lv.Spec.Source != lv2.Spec.Source {
 		return false
 	}
 	if lv.Spec.Size.Cmp(lv2.Spec.Size) != 0 {
