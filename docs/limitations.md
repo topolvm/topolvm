@@ -31,6 +31,13 @@ Therefore, when multiple pods requesting TopoLVM volumes are created at once, th
 Note that pod scheduling is also affected by the amount of CPU and memory.
 Because of this, this problem may not be observable.
 
+Snapshots should be created only for a `BOUND` PVC
+-------------------------
+Snapshot are currently supported only for thin volumes and is an experimental feature because CSI Sanity is skipped.
+The LVM snapshots are required to be provisioned on the same node as the source logical volume. Therefore, the source PVC must be provisioned before the target so that scheduling decisions can be taken accordingly.
+
+Note: Currently, support for snapshot creation is available only for thinly-provisioned volumes.
+
 CSI ephemeral volumes may leave orphaned logical volumes
 -------------------------
 
