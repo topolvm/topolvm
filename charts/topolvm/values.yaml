@@ -22,6 +22,10 @@ image:
     # If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used.
     csiResizer:  # k8s.gcr.io/sig-storage/csi-resizer:v1.2.0
 
+    # image.csi.csiSnapshotter -- Specify csi-snapshot image.
+    # If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used.
+    csiSnapshotter:  # k8s.gcr.io/sig-storage/csi-snapshotter:v5.0.1
+
     # image.csi.livenessProbe -- Specify livenessprobe image.
     # If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used.
     livenessProbe:  # k8s.gcr.io/sig-storage/livenessprobe:v2.3.0
@@ -489,3 +493,7 @@ priorityClass:
   name: topolvm
   # priorityClass.value  -- Specify priorityClass value.
   value: 1000000
+
+snapshot:
+  # snapshot.enabled -- Turn on the snapshot feature.
+  enabled: true
