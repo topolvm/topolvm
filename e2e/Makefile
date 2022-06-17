@@ -33,6 +33,9 @@ HELM_VALUES_FILE := manifests/values/daemonset-scheduler.yaml
 ifeq ($(TEST_SCHEDULER_MANIFEST),deployment)
 HELM_VALUES_FILE := manifests/values/deployment-scheduler.yaml
 endif
+ifeq ($(STORAGE_CAPACITY),true)
+HELM_VALUES_FILE := manifests/values/storage-capacity.yaml
+endif
 
 KIND_CONFIG="topolvm-cluster.yaml"
 MINIKUBE_FEATURE_GATES=""
@@ -41,12 +44,7 @@ KIND_CONFIG="topolvm-cluster-single-writer.yaml"
 MINIKUBE_FEATURE_GATES="ReadWriteOncePod=true"
 endif
 
-ifeq ($(STORAGE_CAPACITY),true)
 HELM_VALUES_FILE_LVMD := manifests/values/daemonset-lvmd-storage-capacity.yaml
-HELM_VALUES_FILE := manifests/values/storage-capacity.yaml
-else
-HELM_VALUES_FILE_LVMD := manifests/values/daemonset-lvmd.yaml
-endif
 
 ifeq ($(SKIP_NODE_FINALIZE),true)
 HELM_SKIP_NODE_FINALIZE_FLAG := --set controller.nodeFinalize.skipped=true
@@ -237,17 +235,13 @@ daemonset-lvmd/setup-minikube:
 	$(CURL) -o $(BINDIR)/minikube https://github.com/kubernetes/minikube/releases/download/$(MINIKUBE_VERSION)/minikube-linux-amd64
 	chmod a+x $(BINDIR)/minikube
 
-# Setting scheduler.config causes kube-scheduler CLBO because specified yaml can not be read from the container.
-# To resolve this, kube-scheduler pod is patched on daemonset-lvmd/update-minikube-setting.
 .PHONY: daemonset-lvmd/launch-minikube
 daemonset-lvmd/launch-minikube:
+	@if [ "$(STORAGE_CAPACITY)" = false ]; then echo "Only storage capacity mode is supported."; exit 1; fi
 	$(SUDO) -E $(BINDIR)/minikube start \
 		--vm-driver=none \
 		--kubernetes-version=v$(KUBERNETES_VERSION) \
 		--extra-config=kubelet.read-only-port=10255 \
-		$(if $(findstring false,$(STORAGE_CAPACITY)), \
-		--extra-config=scheduler.config=/var/lib/scheduler/scheduler-config.yaml \
-		) \
 		--feature-gates=$(MINIKUBE_FEATURE_GATES)
 	$(SUDO) chown -R $$USER $$HOME/.kube $(MINIKUBE_HOME)/.minikube
 	$(SUDO) chmod -R a+r $$HOME/.kube $(MINIKUBE_HOME)/.minikube
@@ -256,15 +250,6 @@ daemonset-lvmd/launch-minikube:
 .PHONY: daemonset-lvmd/delete-minikube
 daemonset-lvmd/delete-minikube:
 	$(SUDO) -E $(BINDIR)/minikube delete || true
-
-# Set scheduler configs manually because minikube can't edit scheduler configs.
-.PHONY: daemonset-lvmd/update-minikube-setting
-daemonset-lvmd/update-minikube-setting: daemonset-lvmd/delete-minikube daemonset-lvmd/launch-minikube
-ifneq ($(STORAGE_CAPACITY),true)
-	$(SUDO) mkdir -p /var/lib/scheduler
-	$(SUDO) sh -c 'sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|127.0.0.1|" $(SCHEDULER_DEPLOYMENT_CONFIG) > /var/lib/scheduler/scheduler-config.yaml'
-	$(SUDO) manifests/kube-scheduler/patch.sh
-endif
 
 .PHONY: daemonset-lvmd/test
 daemonset-lvmd/test: topolvm.img

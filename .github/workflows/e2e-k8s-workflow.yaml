@@ -1,18 +1,16 @@
-name: "e2e-k8s-daemonset-lvmd"
 on:
-  pull_request:
-    paths-ignore:
-      - "**/*.md"
-      - "CODEOWNERS"
-  push:
-    paths-ignore:
-      - "**/*.md"
-      - "CODEOWNERS"
-    branches:
-      - "main"
+  workflow_call:
+    inputs:
+      test_scheduler_manifest:
+        default: "daemonset"
+        type: string
+      skip_node_finalize:
+        default: "false"
+        type: string
+
 jobs:
-  e2e-k8s-daemonset-lvmd:
-    name: "e2e-k8s-daemonset-lvmd"
+  e2e-k8s:
+    name: "e2e-k8s"
     runs-on: "ubuntu-18.04"
     strategy:
       fail-fast: false
@@ -20,7 +18,8 @@ jobs:
         kubernetes_versions: ["1.23.3", "1.22.2", "1.21.2"]
     env:
       KUBERNETES_VERSION: ${{ matrix.kubernetes_versions }}
-      STORAGE_CAPACITY: "true"
+      TEST_SCHEDULER_MANIFEST: ${{ inputs.test_scheduler_manifest }}
+      SKIP_NODE_FINALIZE: ${{ inputs.skip_node_finalize }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
@@ -44,7 +43,5 @@ jobs:
           restore-keys: |
             e2e-sidecars-
       - run: make -C e2e setup
-      - run: make -C e2e daemonset-lvmd/create-vg
-      - run: make -C e2e daemonset-lvmd/setup-minikube
-      - run: make -C e2e daemonset-lvmd/launch-minikube
-      - run: make -C e2e daemonset-lvmd/test
+      - run: make -C e2e start-lvmd
+      - run: make -C e2e test
