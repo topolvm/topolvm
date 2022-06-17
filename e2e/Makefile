@@ -173,7 +173,7 @@ create-cluster: topolvm.img
 .PHONY: test
 test: create-cluster
 	$(KUBECTL) apply -f manifests/common/
-	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) STORAGE_CAPACITY=$(STORAGE_CAPACITY) SKIP_NODE_FINALIZE=$(SKIP_NODE_FINALIZE) READ_WRITE_ONCE_POD=$(READ_WRITE_ONCE_POD) GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) --failFast -v .
+	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) STORAGE_CAPACITY=$(STORAGE_CAPACITY) SKIP_NODE_FINALIZE=$(SKIP_NODE_FINALIZE) READ_WRITE_ONCE_POD=$(READ_WRITE_ONCE_POD) GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) -skip='snapshot' -skip='CreateSnapshot' -skip='DeleteSnapshot' --failFast -v .
 
 .PHONY: clean
 clean: stop-lvmd
@@ -260,7 +260,7 @@ daemonset-lvmd/test: topolvm.img
 	$(HELM) dependency build ../charts/topolvm/
 	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE_LVMD) $(HELM_SKIP_NODE_FINALIZE_FLAG)
 	$(KUBECTL) apply -f manifests/common/
-	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) STORAGE_CAPACITY=$(STORAGE_CAPACITY) SKIP_NODE_FINALIZE=$(SKIP_NODE_FINALIZE) READ_WRITE_ONCE_POD=$(READ_WRITE_ONCE_POD) DAEMONSET_LVMD=true GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) --failFast -v .
+	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) STORAGE_CAPACITY=$(STORAGE_CAPACITY) SKIP_NODE_FINALIZE=$(SKIP_NODE_FINALIZE) READ_WRITE_ONCE_POD=$(READ_WRITE_ONCE_POD) DAEMONSET_LVMD=true GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) -skip='snapshot' -skip='CreateSnapshot' -skip='DeleteSnapshot' --failFast -v .
 
 .PHONY: daemonset-lvmd/clean
 daemonset-lvmd/clean: daemonset-lvmd/delete-minikube daemonset-lvmd/remove-vg

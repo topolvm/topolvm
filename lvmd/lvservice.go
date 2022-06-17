@@ -172,6 +172,108 @@ func (s *lvService) RemoveLV(_ context.Context, req *proto.RemoveLVRequest) (*pr
 	return &proto.Empty{}, nil
 }
 
+func (s *lvService) CreateLVSnapshot(_ context.Context, req *proto.CreateLVSnapshotRequest) (*proto.CreateLVSnapshotResponse, error) {
+	var snapType string
+	dc, err := s.mapper.DeviceClass(req.DeviceClass)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
+	}
+
+	switch dc.Type {
+	case TypeThin:
+		snapType = "thin-snapshot"
+	case TypeThick:
+		return nil, status.Error(codes.Unimplemented, "device class is not thin. Thick snapshots are not implemented yet")
+	default:
+		return nil, status.Errorf(codes.InvalidArgument, "invalid device class type %v", string(dc.Type))
+	}
+
+	vg, err := command.FindVolumeGroup(dc.VolumeGroup)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch the source logical volume
+	sourceVolume := req.GetSourceVolume()
+	sourceLV, err := vg.FindVolume(sourceVolume)
+	if err == command.ErrNotFound {
+		log.Error("source logical volume is not found", map[string]interface{}{
+			log.FnError: err,
+			"name":      sourceVolume,
+		})
+		return nil, status.Errorf(codes.NotFound, "source logical volume %s is not found", sourceVolume)
+	}
+	if err != nil {
+		log.Error("failed to find source volume", map[string]interface{}{
+			log.FnError: err,
+			"name":      sourceVolume,
+		})
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	var requested uint64
+	if sourceLV.IsThin() {
+		// In case of thin-snapshots, the size is the same as the source volume.
+		requested = sourceLV.Size()
+	} else {
+		return nil, status.Error(codes.Unimplemented, "snapshot can be created for only thin volumes")
+	}
+
+	log.Info("lvservice req", map[string]interface{}{
+		"name":       req.Name,
+		"requested":  requested,
+		"sourceVol":  sourceVolume,
+		"snapType":   snapType,
+		"accessType": req.GetAccessType(),
+	})
+	// Create snapshot lv
+	snapLV, err := sourceLV.Snapshot(req.GetName(), requested, req.GetTags())
+	if err != nil {
+		log.Error("failed to create snapshot volume", map[string]interface{}{
+			log.FnError: err,
+			"name":      req.GetName(),
+		})
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	// If source volume is thin, activate the thin snapshot lv with accessmode.
+	if err := snapLV.Activate(req.AccessType); err != nil {
+		log.Error("failed to activate snap volume, deleting snapshot", map[string]interface{}{
+			log.FnError: err,
+			"name":      req.GetName(),
+		})
+		err := snapLV.Remove()
+		if err != nil {
+			log.Error("failed to delete snapshot", map[string]interface{}{
+				log.FnError: err,
+				"name":      snapLV.Name(),
+			})
+		} else {
+			log.Info("deleted a snapshot", map[string]interface{}{
+				"name": req.GetName(),
+			})
+		}
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	s.notify()
+
+	log.Info("created a new snapshot LV", map[string]interface{}{
+		"name":       req.GetName(),
+		"size":       requested,
+		"accessType": req.AccessType,
+		"sourceID":   sourceVolume,
+	})
+
+	return &proto.CreateLVSnapshotResponse{
+		Snapshot: &proto.LogicalVolume{
+			Name:     snapLV.Name(),
+			SizeGb:   snapLV.Size() >> 30,
+			DevMajor: snapLV.MajorNumber(),
+			DevMinor: snapLV.MinorNumber(),
+		},
+	}, nil
+}
+
 func (s *lvService) ResizeLV(_ context.Context, req *proto.ResizeLVRequest) (*proto.Empty, error) {
 	dc, err := s.mapper.DeviceClass(req.DeviceClass)
 	if err != nil {

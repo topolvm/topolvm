@@ -365,3 +365,32 @@ See [podpvc.yaml](../example/podpvc.yaml) for how to use TopoLVM provisioner.
 [cert-manager]: https://github.com/jetstack/cert-manager
 [topolvm-scheduler]: ../docs/topolvm-scheduler.md
 [topolvm-controller]: ../docs/topolvm-controller.md
+
+## How to use snapshot
+
+To create VolumeSnapshots, please follow [snapshot controller deployment](https://github.com/kubernetes-csi/external-snapshotter#usage) to install snapshot controller. Do this once per cluster.
+Refer to the [kubernetes guide](https://kubernetes.io/docs/concepts/storage/volume-snapshots/) for VolumeSnapshot creation.
+
+`VolumeSnapshotClass` example:
+
+```yaml
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: csi-topolvm-snapclass
+driver: topolvm.cybozu.com
+deletionPolicy: Delete
+```
+
+`VolumeSnapshot` example:
+
+```yaml
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshot
+metadata:
+  name: new-snapshot
+spec:
+  volumeSnapshotClassName: csi-topolvm-snapclass
+  source:
+    persistentVolumeClaimName: snapshot-pvc
+```

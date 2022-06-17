@@ -606,7 +606,7 @@ func (l *LogicalVolume) Tags() []string {
 // If this is a thin-provisioning volume, snapshots can be
 // created unconditionally.  Else, snapshots can be created
 // only for non-snapshot volumes.
-func (l *LogicalVolume) Snapshot(name string, cowSize uint64) (*LogicalVolume, error) {
+func (l *LogicalVolume) Snapshot(name string, cowSize uint64, tags []string) (*LogicalVolume, error) {
 	if l.pool == nil {
 		if l.IsSnapshot() {
 			return nil, fmt.Errorf("snapshot of snapshot")
@@ -643,15 +643,36 @@ func (l *LogicalVolume) Snapshot(name string, cowSize uint64) (*LogicalVolume, e
 	}
 
 	var lvcreateArgs []string
+
 	if _, err := os.Stat("/run/systemd/system"); err != nil {
 		lvcreateArgs = []string{"-s", "-n", name, l.fullname}
 	} else {
 		lvcreateArgs = []string{"-s", "-k", "n", "-n", name, l.fullname}
 	}
+	for _, tag := range tags {
+		lvcreateArgs = append(lvcreateArgs, "--addtag")
+		lvcreateArgs = append(lvcreateArgs, tag)
+	}
 	if err := CallLVM("lvcreate", lvcreateArgs...); err != nil {
 		return nil, err
 	}
 	return l.vg.FindVolume(name)
+}
+
+// Activate activates the logical volume for desired access.
+func (l *LogicalVolume) Activate(access string) error {
+	var lvchangeArgs []string
+	switch access {
+	case "ro":
+		lvchangeArgs = []string{"-p", "r", l.path}
+	case "rw":
+		lvchangeArgs = []string{"-a", "y", "-K", l.path}
+	default:
+		return fmt.Errorf("unknown access: %s for LogicalVolume %s", access, l.fullname)
+	}
+	err := CallLVM("lvchange", lvchangeArgs...)
+
+	return err
 }
 
 // Resize this volume.

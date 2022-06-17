@@ -247,4 +247,114 @@ func TestLVService(t *testing.T) {
 	if err != command.ErrNotFound {
 		t.Error("unexpected error: ", err)
 	}
+
+	// thin snapshots validation
+
+	// create sourceVolume
+	count = 0
+	res, err = lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
+		Name:        "sourceVol",
+		DeviceClass: thindev,
+		SizeGb:      1,
+		Tags:        []string{"testtag1", "testtag2"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Errorf("is not notified: %d", count)
+	}
+	if res.GetVolume().GetName() != "sourceVol" {
+		t.Errorf(`res.Volume.Name != "sourceVol": %s`, res.GetVolume().GetName())
+	}
+	if res.GetVolume().GetSizeGb() != 1 {
+		t.Errorf(`res.Volume.SizeGb != 1: %d`, res.GetVolume().GetSizeGb())
+	}
+	err = exec.Command("lvs", vg.Name()+"/sourceVol").Run()
+	if err != nil {
+		t.Error("failed to create logical volume")
+	}
+	lv, err = pool.FindVolume("sourceVol")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if lv.Tags()[0] != "testtag1" {
+		t.Errorf(`testtag1 not present on volume`)
+	}
+	if lv.Tags()[1] != "testtag2" {
+		t.Errorf(`testtag1 not present on volume`)
+	}
+
+	// create snapshot of sourceVol
+
+	var snapRes *proto.CreateLVSnapshotResponse
+	snapRes, err = lvService.CreateLVSnapshot(context.Background(), &proto.CreateLVSnapshotRequest{
+		Name:         "snap1",
+		DeviceClass:  thindev,
+		SourceVolume: "sourceVol",
+		AccessType:   "ro",
+		Tags:         []string{"testsnaptag1", "testsnaptag2"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 2 {
+		t.Errorf("is not notified: %d", count)
+	}
+	if snapRes.GetSnapshot().GetName() != "snap1" {
+		t.Errorf(`res.Volume.Name != "snap1": %s`, res.GetVolume().GetName())
+	}
+	if res.GetVolume().GetSizeGb() != 1 {
+		t.Errorf(`res.Volume.SizeGb != 1: %d`, res.GetVolume().GetSizeGb())
+	}
+	err = exec.Command("lvs", vg.Name()+"/snap1").Run()
+	if err != nil {
+		t.Error("failed to create logical volume")
+	}
+	lv, err = pool.FindVolume("snap1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if lv.Tags()[0] != "testsnaptag1" {
+		t.Errorf(`testsnaptag1 not present on snapshot`)
+	}
+	if lv.Tags()[1] != "testsnaptag2" {
+		t.Errorf(`testsnaptag1 not present on snapshot`)
+	}
+
+	// restore the created snapshot to a new logical volume.
+
+	snapRes, err = lvService.CreateLVSnapshot(context.Background(), &proto.CreateLVSnapshotRequest{
+		Name:         "restoredsnap1",
+		DeviceClass:  thindev,
+		SourceVolume: "sourceVol",
+		AccessType:   "rw",
+		Tags:         []string{"testrestoretag1", "testrestoretag2"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 3 {
+		t.Errorf("is not notified: %d", count)
+	}
+	if snapRes.GetSnapshot().GetName() != "restoredsnap1" {
+		t.Errorf(`res.Volume.Name != "restoredsnap1": %s`, res.GetVolume().GetName())
+	}
+	if res.GetVolume().GetSizeGb() != 1 {
+		t.Errorf(`res.Volume.SizeGb != 1: %d`, res.GetVolume().GetSizeGb())
+	}
+	err = exec.Command("lvs", vg.Name()+"/restoredsnap1").Run()
+	if err != nil {
+		t.Error("failed to create logical volume")
+	}
+	lv, err = pool.FindVolume("restoredsnap1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if lv.Tags()[0] != "testrestoretag1" {
+		t.Errorf(`testsnaptag1 not present on snapshot`)
+	}
+	if lv.Tags()[1] != "testrestoretag2" {
+		t.Errorf(`testsnaptag1 not present on snapshot`)
+	}
 }

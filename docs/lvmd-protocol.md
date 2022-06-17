@@ -6,6 +6,8 @@
 - [lvmd/proto/lvmd.proto](#lvmd/proto/lvmd.proto)
     - [CreateLVRequest](#proto.CreateLVRequest)
     - [CreateLVResponse](#proto.CreateLVResponse)
+    - [CreateLVSnapshotRequest](#proto.CreateLVSnapshotRequest)
+    - [CreateLVSnapshotResponse](#proto.CreateLVSnapshotResponse)
     - [Empty](#proto.Empty)
     - [GetFreeBytesRequest](#proto.GetFreeBytesRequest)
     - [GetFreeBytesResponse](#proto.GetFreeBytesResponse)
@@ -63,6 +65,41 @@ Represents the response of CreateLV.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | volume | [LogicalVolume](#proto.LogicalVolume) |  | Information of the created volume. |
+
+
+
+
+
+
+<a name="proto.CreateLVSnapshotRequest"></a>
+
+### CreateLVSnapshotRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| name | [string](#string) |  | The logical volume name. |
+| tags | [string](#string) | repeated | Tags to add to the volume during creation |
+| device_class | [string](#string) |  |  |
+| source_volume | [string](#string) |  | Source lv of snapshot. |
+| size_gb | [uint64](#uint64) |  | Volume size in GiB. |
+| access_type | [string](#string) |  | Access type of snapshot |
+
+
+
+
+
+
+<a name="proto.CreateLVSnapshotResponse"></a>
+
+### CreateLVSnapshotResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| snapshot | [LogicalVolume](#proto.LogicalVolume) |  | Information of the created snapshot lv. |
 
 
 
@@ -262,6 +299,7 @@ Service to manage logical volumes of the volume group.
 | CreateLV | [CreateLVRequest](#proto.CreateLVRequest) | [CreateLVResponse](#proto.CreateLVResponse) | Create a logical volume. |
 | RemoveLV | [RemoveLVRequest](#proto.RemoveLVRequest) | [Empty](#proto.Empty) | Remove a logical volume. |
 | ResizeLV | [ResizeLVRequest](#proto.ResizeLVRequest) | [Empty](#proto.Empty) | Resize a logical volume. |
+| CreateLVSnapshot | [CreateLVSnapshotRequest](#proto.CreateLVSnapshotRequest) | [CreateLVSnapshotResponse](#proto.CreateLVSnapshotResponse) |  |
 
 
 <a name="proto.VGService"></a>
