@@ -82,13 +82,13 @@ spec:
     - mountPath: /test1
       name: my-volume
   volumes:
-  - name: my-volume
-      ephemeral:
-        volumeClaimTemplate:
-          spec:
-            accessModes:
-            - ReadWriteOnce
-            resources:
-              requests:
-                storage: 1Gi
-            storageClassName: topolvm-provisioner
+  - name: my-volume"
+    ephemeral:
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+          - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi
+          storageClassName: topolvm-provisioner
