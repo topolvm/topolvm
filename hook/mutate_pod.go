@@ -66,7 +66,7 @@ func (m *podMutator) Handle(ctx context.Context, req admission.Request) admissio
 
 	capacities, err := m.volumesCapacity(ctx, pod)
 	if err != nil {
-		pmLogger.Error(err, "requestedPVCCapacity failed")
+		pmLogger.Error(err, "volumesCapacity failed")
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
