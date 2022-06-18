@@ -124,7 +124,7 @@ spec:
     - mountPath: /test1
       name: my-volume
   volumes:
-    - name: my-volume
+  - name: my-volume
       ephemeral:
         volumeClaimTemplate:
           spec:
