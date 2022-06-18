@@ -41,7 +41,7 @@ const DefaultDeviceClassAnnotationName = "00default"
 // DefaultDeviceClassName is the name for the default device-class.
 const DefaultDeviceClassName = ""
 
-// DefaultSizeGb is the default size in GiB for  volumes (PVC or generic ephemeral volumes) w/o capacity requests.
+// DefaultSizeGb is the default size in GiB for volumes (PVC or generic ephemeral volumes) w/o capacity requests.
 const DefaultSizeGb = 1
 
 // DefaultSize is DefaultSizeGb in bytes
