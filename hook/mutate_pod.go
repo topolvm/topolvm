@@ -223,14 +223,14 @@ func (m *podMutator) ephemeralCapacity(
 	vol corev1.Volume,
 	targetSC targetSC,
 ) (string, int64, error) {
-	pvcTemplate := vol.Ephemeral.VolumeClaimTemplate
-	if pvcTemplate.Spec.StorageClassName == nil {
+	volumeClaimTemplate := vol.Ephemeral.VolumeClaimTemplate
+	if volumeClaimTemplate.Spec.StorageClassName == nil {
 		// empty class name may appear when DefaultStorageClass admission plugin
 		// is turned off, or there are no default StorageClass.
 		// https://kubernetes.io/docs/concepts/storage/persistent-volumes/#class-1
 		return "", 0, nil
 	}
-	sc, err := targetSC.Get(ctx, *pvcTemplate.Spec.StorageClassName)
+	sc, err := targetSC.Get(ctx, *volumeClaimTemplate.Spec.StorageClassName)
 	if err != nil {
 		return "", 0, err
 	}
@@ -239,7 +239,7 @@ func (m *podMutator) ephemeralCapacity(
 	}
 
 	var requested int64 = topolvm.DefaultSize
-	if req, ok := pvcTemplate.Spec.Resources.Requests[corev1.ResourceStorage]; ok {
+	if req, ok := volumeClaimTemplate.Spec.Resources.Requests[corev1.ResourceStorage]; ok {
 		if req.Value() > topolvm.DefaultSize {
 			requested = ((req.Value()-1)>>30 + 1) << 30
 		}
