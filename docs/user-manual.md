@@ -114,6 +114,51 @@ To reboot a node without removing volumes, follow these steps:
 3. Run `kubectl uncordon NODE` after the node comes back online.
 4. After reboot, Pods will be rescheduled to the same node because PVCs remain intact.
 
+### Generic Ephemeral Volume
+
+TopoLVM supports the Generic Ephemeral Volume feature.  
+You can use Generic Ephemeral Volumes with TopoLVM like following:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod-ephemeral
+  namespace: default
+  labels:
+    app.kubernetes.io/name: my-pod-ephemeral
+    app: example
+spec:
+  containers:
+  - name: ubuntu
+    image: quay.io/cybozu/ubuntu:20.04
+    command: ["/usr/local/bin/pause"]
+    volumeMounts:
+    - mountPath: /test1
+      name: my-volume
+  volumes:
+  - name: my-volume
+    ephemeral:
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+          - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi
+          storageClassName: topolvm-provisioner
+```
+
+By using the Generic Ephemeral Volume function, you can use any CSI driver in the container to utilize the temporary volume.  
+TopoLVM schedules also based on the capacity used by the Generic Ephemeral Volumes.  
+When using Generic Ephemeral Volumes, the following processing is performed:
+
+- When applying a Pod with a Generic Ephemeral Volume, the ephemeralController in kube-controller-manager creates a PVC for the Generic Ephemeral Volume(that is, it works the same as creating a regular PVC).
+- When the pod with a Generic Ephemeral Volume is deleted, the PVC is also deleted at the same time because if PVC is created as a Generic Ephemeral Volume, the PVC's OwnerReference is set to the Pod associated.
+- Since the deletion of PVs and real volumes associated with PVCs depends on ReclaimPolicy setting of StorageClass, StorageClass used in Generic Ephemeral Volume must be set to `reclaimPolicy=Delete` if you want to delete PVs and real volumes associated when delete the Pod.
+
+You can find out more about Generic Ephemeral Volume feature [here](https://github.com/kubernetes/enhancements/tree/master/keps/sig-storage/1698-generic-ephemeral-volumes).
+
 Other documents
 ---------------
 
