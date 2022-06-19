@@ -21,7 +21,7 @@ const nsHookTest = "hook-test"
 var podWithPVCYAML []byte
 
 //go:embed testdata/hook/generic-ephemeral-volume.yaml
-var genericEphemeralVolumeYAML []byte
+var hookGenericEphemeralVolumeYAML []byte
 
 func hasTopoLVMFinalizer(pvc *corev1.PersistentVolumeClaim) bool {
 	for _, fin := range pvc.Finalizers {
@@ -122,7 +122,7 @@ func testHook() {
 		}
 
 		By("creating pod with TopoLVM generic ephemeral volumes")
-		stdout, stderr, err := kubectlWithInput(genericEphemeralVolumeYAML, "-n", nsHookTest, "apply", "-f", "-")
+		stdout, stderr, err := kubectlWithInput(hookGenericEphemeralVolumeYAML, "-n", nsHookTest, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		By("checking pod is annotated with topolvm.cybozu.com/capacity")

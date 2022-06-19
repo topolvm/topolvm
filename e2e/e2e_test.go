@@ -33,6 +33,9 @@ var nodeCapacityPVCYAML []byte
 //go:embed testdata/e2e/node-capacity-pvc2.yaml
 var nodeCapacityPVC2YAML []byte
 
+//go:embed testdata/hook/generic-ephemeral-volume.yaml
+var e2eGenericEphemeralVolumeYAML []byte
+
 func testE2E() {
 	testNamespacePrefix := "e2etest-"
 	var ns string
@@ -159,6 +162,76 @@ func testE2E() {
 		By("confirming that the lv correspond to LogicalVolume is deleted")
 		Eventually(func() error {
 			return checkLVIsDeletedInLVM(volName)
+		}).Should(Succeed())
+	})
+
+	It("should use Generic Ephemeral Volume", func() {
+		By("deploying a Pod with Generic Ephemeral Volume")
+		stdout, stderr, err := kubectlWithInput(e2eGenericEphemeralVolumeYAML, "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("confirming the Pod is deployed")
+		Eventually(func() error {
+			stdout, stderr, err = kubectl("get", "-n", ns, "pod", "testhttpd", "-o", "json")
+			if err != nil {
+				return fmt.Errorf("failed to get PVC. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+
+			var pod corev1.Pod
+			err = json.Unmarshal(stdout, &pod)
+			if err != nil {
+				return fmt.Errorf("failed to unmarshal Pod. stdout: %s, err: %v", stdout, err)
+			}
+			if pod.Status.Phase != corev1.PodRunning {
+				return errors.New("Pod is not running")
+			}
+			return nil
+		}).Should(Succeed())
+
+		By("confirming the PVC is bound")
+		Eventually(func() error {
+			stdout, stderr, err = kubectl("get", "-n", ns, "pvc", "testhttpd-generic-ephemeral-volume1", "-o", "json")
+			if err != nil {
+				return fmt.Errorf("failed to get PVC. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+
+			var pvc corev1.PersistentVolumeClaim
+			err = json.Unmarshal(stdout, &pvc)
+			if err != nil {
+				return fmt.Errorf("failed to unmarshal PVC. stdout: %s, err: %v", stdout, err)
+			}
+			if pvc.Status.Phase != corev1.ClaimBound {
+				return errors.New("PVC is not bound")
+			}
+			return nil
+		}).Should(Succeed())
+
+		By("deleting the Pod with Generic Ephemeral Volume")
+		stdout, stderr, err = kubectlWithInput(e2eGenericEphemeralVolumeYAML, "delete", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("confirming the Pod is deleted")
+		Eventually(func() error {
+			stdout, stderr, err = kubectl("get", "-n", ns, "pod", "testhttpd")
+			if err != nil {
+				if strings.Contains(string(stderr), "not found") {
+					return nil
+				}
+				return err
+			}
+			return errors.New("the Pod exists")
+		}).Should(Succeed())
+
+		By("confirming the PVC is deleted")
+		Eventually(func() error {
+			stdout, stderr, err = kubectl("get", "-n", ns, "pvc", "testhttpd-generic-ephemeral-volume1")
+			if err != nil {
+				if strings.Contains(string(stderr), "not found") {
+					return nil
+				}
+				return err
+			}
+			return errors.New("the PVC exists")
 		}).Should(Succeed())
 	})
 
