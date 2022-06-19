@@ -318,6 +318,12 @@ var _ = Describe("pod mutation webhook", func() {
 			{
 				Name: "vol1",
 				VolumeSource: corev1.VolumeSource{
+					PersistentVolumeClaim: pvcSource("pvc1"),
+				},
+			},
+			{
+				Name: "vol2",
+				VolumeSource: corev1.VolumeSource{
 					PersistentVolumeClaim: pvcSource("bound-pvc"),
 				},
 			},

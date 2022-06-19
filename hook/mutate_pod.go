@@ -133,9 +133,13 @@ func (m *podMutator) volumesCapacity(ctx context.Context, pod *corev1.Pod) (map[
 	for _, vol := range pod.Spec.Volumes {
 		switch {
 		case vol.PersistentVolumeClaim != nil:
-			dc, requested, err := m.pvcCapacity(ctx, pod, vol, targetSC)
+			dc, requested, isAlreadyBound, err := m.pvcCapacity(ctx, pod, vol, targetSC)
 			if err != nil {
 				return nil, err
+			}
+			if isAlreadyBound {
+				// If there is a TopoLVM volume that has been bound, scheduling will not be performed because the node to be scheduled is already fixed.
+				return nil, nil
 			}
 			if len(dc) == 0 {
 				continue
@@ -162,7 +166,7 @@ func (m *podMutator) pvcCapacity(
 	pod *corev1.Pod,
 	vol corev1.Volume,
 	targetSC targetSC,
-) (string, int64, error) {
+) (string, int64, bool, error) {
 	pvcName := vol.PersistentVolumeClaim.ClaimName
 	name := types.NamespacedName{
 		Namespace: pod.Namespace,
@@ -177,31 +181,31 @@ func (m *podMutator) pvcCapacity(
 				"namespace", pod.Namespace,
 				"pvc", pvcName,
 			)
-			return "", 0, err
+			return "", 0, false, err
 		}
 		// Pods should be created even if their PVCs do not exist yet.
 		// TopoLVM does not care about such pods after they are created, though.
-		return "", 0, nil
+		return "", 0, false, nil
 	}
 
 	if pvc.Spec.StorageClassName == nil {
 		// empty class name may appear when DefaultStorageClass admission plugin
 		// is turned off, or there are no default StorageClass.
 		// https://kubernetes.io/docs/concepts/storage/persistent-volumes/#class-1
-		return "", 0, nil
+		return "", 0, false, nil
 	}
 	sc, err := targetSC.Get(ctx, *pvc.Spec.StorageClassName)
 	if err != nil {
-		return "", 0, err
+		return "", 0, false, err
 	}
 	if sc == nil {
-		return "", 0, nil
+		return "", 0, false, nil
 	}
 
 	// If the Pod has a bound PVC of TopoLVM, the pod will be scheduled
 	// to the node of the existing PV.
 	if pvc.Status.Phase != corev1.ClaimPending {
-		return "", 0, nil
+		return "", 0, true, nil
 	}
 
 	var requested int64 = topolvm.DefaultSize
@@ -214,7 +218,7 @@ func (m *podMutator) pvcCapacity(
 	if !ok {
 		dc = topolvm.DefaultDeviceClassAnnotationName
 	}
-	return dc, requested, nil
+	return dc, requested, false, nil
 }
 
 func (m *podMutator) ephemeralCapacity(
