@@ -1,4 +1,4 @@
-name: "Lint and Test Charts"
+name: "Lint Charts"
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
       - "ct.yaml"
 
 jobs:
-  lint-test:
+  lint:
     runs-on: "ubuntu-18.04"
 
     steps:
@@ -33,7 +33,7 @@ jobs:
 
       - name: "Setup Tools"
         run: |
-          make -C e2e setup
+          make tools
 
       - name: "Run helm-docs"
         run: ./bin/helm-docs && git diff --no-patch --exit-code
@@ -55,13 +55,3 @@ jobs:
 
       - name: "Run chart-testing (lint)"
         run: ct lint --config ct.yaml
-
-      - name: "Setup kind"
-        run: |
-          make -C e2e start-lvmd
-          make -C e2e launch-kind
-          make -C e2e apply-certmanager
-          make -C e2e prepare-namespace
-
-      - name: "Run chart-testing (install)"
-        run: ct install --config ct.yaml
