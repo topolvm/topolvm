@@ -7,9 +7,23 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [7.0.0] - 2022-06-20
+### Changed
+- Disable a PDB for daemonset scheduler (#491)
+- appVersion was changed to 0.13.0.
+
+### Added
+- Add support for creation of thin-snapshots (#463)
+  - **BREAKING**: As of the release, the helm chart requires appVersion 0.13.0 or higher.
+
+### Contributors
+- @pluser
+- @Yuggupta27
+- @nbalacha
+
 ## [6.0.1] - 2022-06-06
 ### Changed
-- appVersion was changed to 6.0.1.
+- appVersion was changed to 0.12.0.
 
 ## [6.0.0] - 2022-05-10
 
@@ -141,7 +155,8 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v6.0.1...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v7.0.0...HEAD
+[7.0.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v6.0.1...topolvm-chart-v7.0.0
 [6.0.1]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v6.0.0...topolvm-chart-v6.0.1
 [6.0.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v5.0.0...topolvm-chart-v6.0.0
 [5.0.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v4.0.3...topolvm-chart-v5.0.0
