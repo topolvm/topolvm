@@ -58,13 +58,10 @@ jobs:
 
       - name: "Setup kind"
         run: |
-          make -C e2e daemonset-lvmd/create-vg
-          make -C e2e daemonset-lvmd/setup-minikube
-          make -C e2e daemonset-lvmd/update-minikube-setting
+          make -C e2e start-lvmd
+          make -C e2e launch-kind
+          make -C e2e apply-certmanager
           make -C e2e prepare-namespace
-
-      - name: "Apply cert-manager CRDs"
-        run: kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.7.0/cert-manager.crds.yaml
 
       - name: "Run chart-testing (install)"
         run: ct install --config ct.yaml
