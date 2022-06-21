@@ -165,8 +165,8 @@ func testE2E() {
 		}).Should(Succeed())
 	})
 
-	It("should use Generic Ephemeral Volume", func() {
-		By("deploying a Pod with Generic Ephemeral Volume")
+	It("should use generic ephemeral volumes", func() {
+		By("deploying a Pod with a generic ephemeral volume")
 		stdout, stderr, err := kubectlWithInput(e2eGenericEphemeralVolumeYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
@@ -206,7 +206,7 @@ func testE2E() {
 			return nil
 		}).Should(Succeed())
 
-		By("deleting the Pod with Generic Ephemeral Volume")
+		By("deleting the Pod with a generic ephemeral volume")
 		stdout, stderr, err = kubectlWithInput(e2eGenericEphemeralVolumeYAML, "delete", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
