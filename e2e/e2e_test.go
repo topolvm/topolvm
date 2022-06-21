@@ -33,7 +33,7 @@ var nodeCapacityPVCYAML []byte
 //go:embed testdata/e2e/node-capacity-pvc2.yaml
 var nodeCapacityPVC2YAML []byte
 
-//go:embed testdata/hook/generic-ephemeral-volume.yaml
+//go:embed testdata/e2e/generic-ephemeral-volume.yaml
 var e2eGenericEphemeralVolumeYAML []byte
 
 func testE2E() {
