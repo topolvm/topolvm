@@ -150,7 +150,7 @@ spec:
 ```
 
 By using the Generic Ephemeral Volume function, you can use any CSI driver in the container to utilize the temporary volume.  
-TopoLVM schedules also based on the capacity used by the Generic Ephemeral Volumes.  
+TopoLVM also schedules based on the capacity used by the Generic Ephemeral Volumes.  
 When using Generic Ephemeral Volumes, the following processing is performed:
 
 - When applying a Pod with a Generic Ephemeral Volume, the ephemeralController in kube-controller-manager creates a PVC for the Generic Ephemeral Volume(that is, it works the same as creating a regular PVC).
