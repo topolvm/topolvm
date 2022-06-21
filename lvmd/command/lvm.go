@@ -43,6 +43,8 @@ func wrapExecCommand(cmd string, args ...string) *exec.Cmd {
 func CallLVM(cmd string, args ...string) error {
 	args = append([]string{cmd}, args...)
 	c := wrapExecCommand(lvm, args...)
+	c.Env = os.Environ()
+	c.Env = append(c.Env, "LC_ALL=C")
 	log.Info("invoking LVM command", map[string]interface{}{
 		"args": args,
 	})
