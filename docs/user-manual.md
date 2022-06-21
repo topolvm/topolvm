@@ -114,7 +114,7 @@ To reboot a node without removing volumes, follow these steps:
 3. Run `kubectl uncordon NODE` after the node comes back online.
 4. After reboot, Pods will be rescheduled to the same node because PVCs remain intact.
 
-### Generic Ephemeral Volume
+## Generic ephemeral volumes
 
 TopoLVM supports the Generic Ephemeral Volume feature.  
 You can use Generic Ephemeral Volumes with TopoLVM like the following:
