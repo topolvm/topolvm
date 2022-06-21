@@ -11,6 +11,7 @@ For deployment, please read [../deploy/README.md](../deploy/README.md).
 - [Node maintenance](#node-maintenance)
   - [Retiring nodes](#retiring-nodes)
   - [Rebooting nodes](#rebooting-nodes)
+- [Generic ephemeral volumes](#generic-ephemeral-volumes)
 - [Other documents](#other-documents)
 
 StorageClass
@@ -114,7 +115,8 @@ To reboot a node without removing volumes, follow these steps:
 3. Run `kubectl uncordon NODE` after the node comes back online.
 4. After reboot, Pods will be rescheduled to the same node because PVCs remain intact.
 
-## Generic ephemeral volumes
+Generic ephemeral volumes
+----------------
 
 TopoLVM supports the generic ephemeral volume feature.  
 You can use generic ephemeral volumes with TopoLVM like the following:
