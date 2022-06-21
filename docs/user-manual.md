@@ -117,7 +117,7 @@ To reboot a node without removing volumes, follow these steps:
 ### Generic Ephemeral Volume
 
 TopoLVM supports the Generic Ephemeral Volume feature.  
-You can use Generic Ephemeral Volumes with TopoLVM like following:
+You can use Generic Ephemeral Volumes with TopoLVM like the following:
 
 ```yaml
 apiVersion: v1
