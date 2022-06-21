@@ -155,7 +155,7 @@ When using Generic Ephemeral Volumes, the following processing is performed:
 
 - When applying a Pod with a Generic Ephemeral Volume, the ephemeralController in kube-controller-manager creates a PVC for the Generic Ephemeral Volume (that is, it works the same as creating a regular PVC).
 - When the pod with a Generic Ephemeral Volume is deleted, the PVC is also deleted at the same time because if PVC is created as a Generic Ephemeral Volume, the PVC's OwnerReference is set to the Pod associated.
-- Since the deletion of PVs and real volumes associated with PVCs depends on ReclaimPolicy setting of StorageClass, StorageClass used in Generic Ephemeral Volume must be set to `reclaimPolicy=Delete` if you want to delete PVs and real volumes associated when delete the Pod.
+- Since the deletion of PVs and real volumes associated with PVCs depends on ReclaimPolicy setting of StorageClass, StorageClass used in Generic Ephemeral Volume must be set to `reclaimPolicy=Delete` if you want to delete PVs and real volumes associated when deleting the Pod.
 
 You can find out more about Generic Ephemeral Volume feature [here](https://github.com/kubernetes/enhancements/tree/master/keps/sig-storage/1698-generic-ephemeral-volumes).
 
