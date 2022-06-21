@@ -314,6 +314,11 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	if err := vg.Update(); err != nil {
+		t.Fatal(err)
+	}
+
 	freeBytes, err := vg.Free()
 	if err != nil {
 		t.Fatal(err)
