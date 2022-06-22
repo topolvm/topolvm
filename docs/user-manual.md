@@ -11,7 +11,7 @@ For deployment, please read [../deploy/README.md](../deploy/README.md).
 - [Node maintenance](#node-maintenance)
   - [Retiring nodes](#retiring-nodes)
   - [Rebooting nodes](#rebooting-nodes)
-- [Inline Ephemeral Volumes (**deprecated**)](#inline-ephemeral-volumes-deprecated)
+- [Generic ephemeral volumes](#generic-ephemeral-volumes)
 - [Other documents](#other-documents)
 
 StorageClass
@@ -92,7 +92,7 @@ Node maintenance
 ----------------
 
 These steps only apply when using the TopoLVM storage class and PVCs. If
-only inline ephemeral volumes are used, these steps are not necessary.
+only generic ephemeral volumes are used, these steps are not necessary.
 
 ### Retiring nodes
 
@@ -115,47 +115,51 @@ To reboot a node without removing volumes, follow these steps:
 3. Run `kubectl uncordon NODE` after the node comes back online.
 4. After reboot, Pods will be rescheduled to the same node because PVCs remain intact.
 
-Inline Ephemeral Volumes (**deprecated**)
-------------------------
+Generic ephemeral volumes
+----------------
 
-An example use of a TopoLVM inline ephemeral volume is as follows:
+TopoLVM supports the generic ephemeral volume feature.  
+You can use generic ephemeral volumes with TopoLVM like the following:
 
 ```yaml
 apiVersion: v1
 kind: Pod
 metadata:
-  name: ubuntu
+  name: my-pod-ephemeral
+  namespace: default
   labels:
-    app.kubernetes.io/name: ubuntu
+    app.kubernetes.io/name: my-pod-ephemeral
+    app: example
 spec:
   containers:
   - name: ubuntu
-    image: nginx4
+    image: quay.io/cybozu/ubuntu:20.04
+    command: ["/usr/local/bin/pause"]
     volumeMounts:
     - mountPath: /test1
       name: my-volume
   volumes:
   - name: my-volume
-    csi:
-      driver: topolvm.cybozu.com
-      fsType: xfs
-      volumeAttributes:
-          topolvm.cybozu.com/size: "2"
+    ephemeral:
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+          - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi
+          storageClassName: topolvm-provisioner
 ```
 
-`driver` must be `topolvm.cybozu.com`.
+By using the generic ephemeral volume function, you can use any CSI driver in the container to utilize the temporary volume.  
+TopoLVM also schedules based on the capacity used by the generic ephemeral volumes.  
+When using generic ephemeral volumes, the following processing is performed:
 
-`fsType` is optional.  To specify a filesystem type, give
-`csi.storage.k8s.io/fstype` parameter. If no type is specified, the default
-of ext4 will be used.
-`volumeAttributes` are optional.  To specify a volume size, give
-`topolvm.cybozu.com/size` parameter. If no size is specified, the default of
-1 GiB will be used.
+- When applying a Pod with a generic ephemeral volume, the ephemeralController in kube-controller-manager creates a PVC for the generic ephemeral volume (that is, it works the same as creating a regular PVC).
+- When the pod with a generic ephemeral volume is deleted, the PVC is also deleted at the same time because if PVC is created as a generic ephemeral volume, the PVC's OwnerReference is set to the Pod associated.
+- Since the deletion of PVs and real volumes associated with PVCs depends on ReclaimPolicy setting of StorageClass, StorageClass used in generic ephemeral volume must be set to `reclaimPolicy=Delete` if you want to delete PVs and real volumes associated when deleting the Pod.
 
-Supported filesystems are: `ext4` and `xfs`.
-
-It is not possible to specify the device-class for inline ephemeral volumes.
-Inline ephemeral volumes are always created on the default device-class.
+You can find out more about generic ephemeral volume feature [here](https://github.com/kubernetes/enhancements/tree/master/keps/sig-storage/1698-generic-ephemeral-volumes).
 
 Other documents
 ---------------

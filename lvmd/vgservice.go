@@ -180,17 +180,13 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 			if err != nil {
 				return status.Error(codes.Internal, err.Error())
 			}
-			opb := uint64(math.Floor(dc.ThinPoolConfig.OverprovisionRatio*float64(tpu.SizeBytes))) - tpu.VirtualBytes
-			if dc.Default {
-				// TODO (leelavg): remove this after removal of support for inline ephemeral volumes
-				res.FreeBytes = opb
-			}
 
 			// used for updating prometheus metrics
 			tpi.DataPercent = tpu.DataPercent
 			tpi.MetadataPercent = tpu.MetadataPercent
 
 			// used for annotating the node for capacity aware scheduling
+			opb := uint64(math.Floor(dc.ThinPoolConfig.OverprovisionRatio*float64(tpu.SizeBytes))) - tpu.VirtualBytes
 			tpi.OverprovisionBytes = opb
 
 			// size bytes of the thinpool

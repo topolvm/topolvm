@@ -64,26 +64,13 @@ func (m *podMutator) Handle(ctx context.Context, req admission.Request) admissio
 		pod.Namespace = req.Namespace
 	}
 
-	pvcCapacities, err := m.requestedPVCCapacity(ctx, pod)
+	capacities, err := m.volumesCapacity(ctx, pod)
 	if err != nil {
-		pmLogger.Error(err, "requestedPVCCapacity failed")
+		pmLogger.Error(err, "volumesCapacity failed")
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
-	ephemeralCapacity, err := m.requestedEphemeralCapacity(pod)
-	if err != nil {
-		pmLogger.Error(err, "requestedEphemeralCapacity failed")
-		return admission.Errored(http.StatusInternalServerError, err)
-	}
-
-	if ephemeralCapacity != 0 {
-		if pvcCapacities == nil {
-			pvcCapacities = make(map[string]int64)
-		}
-		pvcCapacities[topolvm.DefaultDeviceClassAnnotationName] += ephemeralCapacity
-	}
-
-	if len(pvcCapacities) == 0 {
+	if len(capacities) == 0 {
 		return admission.Allowed("no request for TopoLVM")
 	}
 
@@ -101,7 +88,7 @@ func (m *podMutator) Handle(ctx context.Context, req admission.Request) admissio
 	if pod.Annotations == nil {
 		pod.Annotations = make(map[string]string)
 	}
-	for dc, capacity := range pvcCapacities {
+	for dc, capacity := range capacities {
 		pod.Annotations[topolvm.CapacityKeyPrefix+dc] = strconv.FormatInt(capacity, 10)
 	}
 
@@ -140,94 +127,130 @@ func (t *targetSC) Get(ctx context.Context, name string) (*storagev1.StorageClas
 	return &sc, nil
 }
 
-func (m *podMutator) requestedPVCCapacity(ctx context.Context, pod *corev1.Pod) (map[string]int64, error) {
+func (m *podMutator) volumesCapacity(ctx context.Context, pod *corev1.Pod) (map[string]int64, error) {
 	targetSC := targetSC{m.getter, map[string]*storagev1.StorageClass{}}
 	capacities := make(map[string]int64)
 	for _, vol := range pod.Spec.Volumes {
-		if vol.PersistentVolumeClaim == nil {
-			// CSI volume type does not support direct reference from Pod
-			// and may only be referenced in a Pod via a PersistentVolumeClaim
-			// https://kubernetes.io/docs/concepts/storage/volumes/#csi
-			continue
-		}
-		pvcName := vol.PersistentVolumeClaim.ClaimName
-		name := types.NamespacedName{
-			Namespace: pod.Namespace,
-			Name:      pvcName,
-		}
-
-		var pvc corev1.PersistentVolumeClaim
-		if err := m.getter.Get(ctx, name, &pvc); err != nil {
-			if !apierrs.IsNotFound(err) {
-				pmLogger.Error(err, "failed to get pvc",
-					"pod", pod.Name,
-					"namespace", pod.Namespace,
-					"pvc", pvcName,
-				)
+		switch {
+		case vol.PersistentVolumeClaim != nil:
+			dc, requested, isAlreadyBound, err := m.pvcCapacity(ctx, pod, vol, targetSC)
+			if err != nil {
 				return nil, err
 			}
-			// Pods should be created even if their PVCs do not exist yet.
-			// TopoLVM does not care about such pods after they are created, though.
-			continue
-		}
-
-		if pvc.Spec.StorageClassName == nil {
-			// empty class name may appear when DefaultStorageClass admission plugin
-			// is turned off, or there are no default StorageClass.
-			// https://kubernetes.io/docs/concepts/storage/persistent-volumes/#class-1
-			continue
-		}
-		sc, err := targetSC.Get(ctx, *pvc.Spec.StorageClassName)
-		if err != nil {
-			return nil, err
-		}
-		if sc == nil {
-			continue
-		}
-
-		// If the Pod has a bound PVC of TopoLVM, the pod will be scheduled
-		// to the node of the existing PV.
-		if pvc.Status.Phase != corev1.ClaimPending {
-			return nil, nil
-		}
-
-		var requested int64 = topolvm.DefaultSize
-		if req, ok := pvc.Spec.Resources.Requests[corev1.ResourceStorage]; ok {
-			if req.Value() > topolvm.DefaultSize {
-				requested = ((req.Value()-1)>>30 + 1) << 30
+			if isAlreadyBound {
+				// If there is a TopoLVM volume that has been bound, scheduling will not be performed because the node to be scheduled is already fixed.
+				return nil, nil
 			}
+			if len(dc) == 0 {
+				continue
+			}
+			capacities[dc] += requested
+		case vol.Ephemeral != nil && vol.Ephemeral.VolumeClaimTemplate != nil:
+			dc, requested, err := m.ephemeralCapacity(ctx, pod, vol, targetSC)
+			if err != nil {
+				return nil, err
+			}
+			if len(dc) == 0 {
+				continue
+			}
+			capacities[dc] += requested
+		default:
+			continue
 		}
-		dc, ok := sc.Parameters[topolvm.DeviceClassKey]
-		if !ok {
-			dc = topolvm.DefaultDeviceClassAnnotationName
-		}
-
-		capacities[dc] += requested
 	}
 	return capacities, nil
 }
 
-func (m *podMutator) requestedEphemeralCapacity(pod *corev1.Pod) (int64, error) {
-	var total int64
-	for _, vol := range pod.Spec.Volumes {
-		if vol.CSI == nil {
-			// We only want to look at CSI volumes
-			continue
+func (m *podMutator) pvcCapacity(
+	ctx context.Context,
+	pod *corev1.Pod,
+	vol corev1.Volume,
+	targetSC targetSC,
+) (string, int64, bool, error) {
+	pvcName := vol.PersistentVolumeClaim.ClaimName
+	name := types.NamespacedName{
+		Namespace: pod.Namespace,
+		Name:      pvcName,
+	}
+
+	var pvc corev1.PersistentVolumeClaim
+	if err := m.getter.Get(ctx, name, &pvc); err != nil {
+		if !apierrs.IsNotFound(err) {
+			pmLogger.Error(err, "failed to get pvc",
+				"pod", pod.Name,
+				"namespace", pod.Namespace,
+				"pvc", pvcName,
+			)
+			return "", 0, false, err
 		}
-		if vol.CSI.Driver == topolvm.PluginName {
-			if volSizeStr, ok := vol.CSI.VolumeAttributes[topolvm.EphemeralVolumeSizeKey]; ok {
-				volSize, err := strconv.ParseInt(volSizeStr, 10, 64)
-				if err != nil {
-					pmLogger.Error(err, "Invalid volume size",
-						topolvm.EphemeralVolumeSizeKey, volSizeStr,
-					)
-					return 0, err
-				}
-				total += volSize << 30
-			} else {
-				total += topolvm.DefaultSize
-			}
+		// Pods should be created even if their PVCs do not exist yet.
+		// TopoLVM does not care about such pods after they are created, though.
+		return "", 0, false, nil
+	}
+
+	if pvc.Spec.StorageClassName == nil {
+		// empty class name may appear when DefaultStorageClass admission plugin
+		// is turned off, or there are no default StorageClass.
+		// https://kubernetes.io/docs/concepts/storage/persistent-volumes/#class-1
+		return "", 0, false, nil
+	}
+	sc, err := targetSC.Get(ctx, *pvc.Spec.StorageClassName)
+	if err != nil {
+		return "", 0, false, err
+	}
+	if sc == nil {
+		return "", 0, false, nil
+	}
+
+	// If the Pod has a bound PVC of TopoLVM, the pod will be scheduled
+	// to the node of the existing PV.
+	if pvc.Status.Phase != corev1.ClaimPending {
+		return "", 0, true, nil
+	}
+
+	var requested int64 = topolvm.DefaultSize
+	if req, ok := pvc.Spec.Resources.Requests[corev1.ResourceStorage]; ok {
+		if req.Value() > topolvm.DefaultSize {
+			requested = ((req.Value()-1)>>30 + 1) << 30
 		}
 	}
-	return total, nil
+	dc, ok := sc.Parameters[topolvm.DeviceClassKey]
+	if !ok {
+		dc = topolvm.DefaultDeviceClassAnnotationName
+	}
+	return dc, requested, false, nil
+}
+
+func (m *podMutator) ephemeralCapacity(
+	ctx context.Context,
+	pod *corev1.Pod,
+	vol corev1.Volume,
+	targetSC targetSC,
+) (string, int64, error) {
+	volumeClaimTemplate := vol.Ephemeral.VolumeClaimTemplate
+	if volumeClaimTemplate.Spec.StorageClassName == nil {
+		// empty class name may appear when DefaultStorageClass admission plugin
+		// is turned off, or there are no default StorageClass.
+		// https://kubernetes.io/docs/concepts/storage/persistent-volumes/#class-1
+		return "", 0, nil
+	}
+	sc, err := targetSC.Get(ctx, *volumeClaimTemplate.Spec.StorageClassName)
+	if err != nil {
+		return "", 0, err
+	}
+	if sc == nil {
+		return "", 0, nil
+	}
+
+	var requested int64 = topolvm.DefaultSize
+	if req, ok := volumeClaimTemplate.Spec.Resources.Requests[corev1.ResourceStorage]; ok {
+		if req.Value() > topolvm.DefaultSize {
+			requested = ((req.Value()-1)>>30 + 1) << 30
+		}
+	}
+	dc, ok := sc.Parameters[topolvm.DeviceClassKey]
+	if !ok {
+		dc = topolvm.DefaultDeviceClassAnnotationName
+	}
+	return dc, requested, nil
 }

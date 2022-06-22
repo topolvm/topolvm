@@ -30,10 +30,9 @@ These annotations and the resource request will be used by
 
 This hook handles two classes of pods. First, pods having at least one _unbound_
 PersistentVolumeClaim (PVC) for TopoLVM and _no_ bound PVC for TopoLVM. Second,
-pods which have at least one inline ephemeral volume which specify using the CSI driver
-type `topolvm.cybozu.com`.
+pods which have at least one generic ephemeral volume which specify using the StorageClass of TopoLVM.
 
-For both PVCs and inline ephemeral volumes,the requested storage size for the
+For both PVCs and generic ephemeral volumes, the requested storage size for the
 volume is calculated as follows:
 - if the volume has no storage request, the size will be treated as 1 GiB.
 - if the volume has storage request, the size will be rounded up to GiB unit.
@@ -107,9 +106,10 @@ spec:
 If the specified StorageClass does not have `topolvm.cybozu.com/device-class` parameter,
 it will be annotated with `capacity.topolvm.cybozu.com/00default`.
 
-Below is an example for TopoLVM inline ephemeral volumes:
+Below is an example for TopoLVM generic ephemeral volumes:
 
 ```yaml
+apiVersion: v1
 kind: Pod
 metadata:
   name: ubuntu
@@ -125,27 +125,33 @@ spec:
       name: my-volume
   volumes:
   - name: my-volume
-    csi:
-      driver: topolvm.cybozu.com
+      ephemeral:
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+            - ReadWriteOnce
+            resources:
+              requests:
+                storage: 1Gi
+            storageClassName: topolvm # reference the above StorageClass
 ```
 
-The hook inserts `capacity.topolvm.cybozu.com/00default` to the annotations and
-`topolvm.cybozu.com/capacity` to the ubuntu container as follows:
+The hook inserts `capacity.topolvm.cybozu.com/<device-class>` to the annotations
+and `topolvm.cybozu.com/capacity` to the first container as follows:
 
 ```yaml
 metadata:
   annotations:
-    capacity.topolvm.cybozu.com/00default: "1073741824"
+    capacity.topolvm.cybozu.com/ssd: "1073741824"
 spec:
   containers:
   - name: ubuntu
     resources:
       limits:
         topolvm.cybozu.com/capacity: "1"
+      requests:
+        topolvm.cybozu.com/capacity: "1"
 ```
-
-Inline ephemeral volume cannot specify arbitrarily device-class.
-Therefore, `00default` is annotated to indicate the default device-class.
 
 ### `/pvc/mutate`
 
