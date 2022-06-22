@@ -44,6 +44,7 @@ run:
 	$(HELM) dependency build ../charts/topolvm/
 	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f ./values.yaml
 	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/topolvm-controller
+	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system certificate/topolvm-mutatingwebhook
 	$(KUBECTL) apply -f podpvc.yaml
 	$(KUBECTL) wait --for=condition=ready --timeout=60s -n default pod -l app=example
 
