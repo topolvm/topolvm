@@ -114,6 +114,15 @@ func FindVolumeGroup(name string) (*VolumeGroup, error) {
 	return nil, ErrNotFound
 }
 
+func SearchVolumeGroupList(vgs []*VolumeGroup, name string) (*VolumeGroup, error) {
+	for _, vg := range vgs {
+		if vg.state.name == name {
+			return vg, nil
+		}
+	}
+	return nil, ErrNotFound
+}
+
 func filter_lv(vg_name string, lvs []lv) []lv {
 	var filtered []lv
 	for _, l := range lvs {
