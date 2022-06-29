@@ -38,10 +38,6 @@ jobs:
       - name: "Run helm-docs"
         run: ./bin/helm-docs && git diff --no-patch --exit-code
 
-      - uses: actions/setup-python@v2
-        with:
-          python-version: "3.10"
-
       - name: "Set up chart-testing"
         uses: helm/chart-testing-action@v2.2.0
 
