@@ -363,7 +363,7 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	testp2.Remove()
 
 	t.Run("thinpool-stripe-raid", func(t *testing.T) {
-		t.Skip("investigae support of striped and raid for thinlvs")
+		t.Skip("investigate support of striped and raid for thinlvs")
 		// TODO (leelavg):
 		// 1. confirm that stripe, stripesize and raid isn't possible on thin lv
 		// 2. if above is true, enforce some sensible defaults during validation of deviceclass
