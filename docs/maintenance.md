@@ -19,19 +19,21 @@ First of all, we should have a look at the release notes in the order below.
     - Choose the next version and check the [release note](https://kubernetes.io/docs/setup/release/notes/). e.g. 1.17, 1.18, 1.19 -> 1.18, 1.19, 1.20
     - Read the [release note](https://github.com/kubernetes-sigs/controller-runtime/releases), and check which version is compatible with the Kubernetes versions.
     - Read the [kubebuilder go.mod](https://github.com/kubernetes-sigs/kubebuilder/blob/master/go.mod), and check the controller-tools version corresponding to controller-runtime.
-3. CSI spec
+1. CSI spec
     - Read the [release note](https://github.com/container-storage-interface/spec/releases) and check all the changes from the current version to the latest.
     - Basically, CSI spec should NOT be upgraded aggressively in this task.
     Upgrade the CSI version only if new features we should cover are introduced in newer versions, or the Kubernetes versions TopoLVM is going to support does not support the current CSI version.
     - For updating CSI spec, please remove `csi.proto` file then run `make generate`.
-4. CSI sidecars
+1. CSI sidecars
     - TopoLVM does not use all the sidecars listed [here](https://kubernetes-csi.github.io/docs/sidecar-containers.html).
       Have a look at `csi-sidecars.mk` first and understand what sidecars are actually being used.
     - Check the release pages of the sidecars under [kubernetes-csi](https://github.com/kubernetes-csi) one by one and choose the latest version for each sidecar which satisfies both "Minimal Kubernetes version" and "Supported CSI spec versions".
       DO NOT follow the "Status and Releases" tables in this [page](https://kubernetes-csi.github.io/docs/sidecar-containers.html) and the README.md files in the sidecar repositories because they are sometimes not updated properly.
     - Read the change logs which are linked from the release pages.
-    - Confirm diffs of RBAC between published in upstream and `deploy/manifests/base/controller.yaml`. And update it if required.
-5. Depending tools
+    - Confirm diffs of RBAC between published in upstream and follows. And update it if required.
+      - `charts/topolvm/templates/controller/clusterroles.yaml`
+      - `charts/topolvm/templates/controller/roles.yaml`
+1. Depending tools
     - They does not depend on other software, use latest versions.
       - [helm](https://github.com/helm/helm/releases)
       - [helm-docs](github.com/norwoodj/helm-docs/releases)
@@ -39,11 +41,11 @@ First of all, we should have a look at the release notes in the order below.
     - They depend on kubernetes, use appropriate version associating to minimal supported kubernetes version by TopoLVM.
       - [kind](https://github.com/kubernetes-sigs/kind/releases)
       - [minikube](https://github.com/kubernetes/minikube/releases)
-6. Depending modules
-  - Read [kubernetes go.mod](https://github.com/kubernetes/kubernetes/blob/master/go.mod), and update the `prometheus/*` and `grpc` modules.
-  - Read [csi-test go.mod](https://github.com/kubernetes-csi/csi-test/blob/master/go.mod), and update the `ginkgo` and `gomega` modules.
-7. Update upstream information
-  - Visit [the upstream web page](https://kubernetes-csi.github.io/docs/drivers.html) to check current TopoLVM information. If some information is old, create PR to update the information.
+1. Depending modules
+    - Read [kubernetes go.mod](https://github.com/kubernetes/kubernetes/blob/master/go.mod), and update the `prometheus/*` and `grpc` modules.
+    - Read [csi-test go.mod](https://github.com/kubernetes-csi/csi-test/blob/master/go.mod), and update the `ginkgo` and `gomega` modules.
+1. Update upstream information
+    - Visit [the upstream web page](https://kubernetes-csi.github.io/docs/drivers.html) to check current TopoLVM information. If some information is old, create PR to update the information.
 
 Please write down to the Github issue of this task what kinds of changes we find in the release note and what we are going to do and NOT going to do to address the changes.
 The format is up to you, but this is very important to keep track of what changes are made in this task, so please do not forget to do it.
