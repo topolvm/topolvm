@@ -12,13 +12,13 @@ metadata:
     {{- include "topolvm.labels" . | nindent 4 }}
 webhooks:
   {{- if .Values.webhook.pvcMutatingWebhook.enabled }}
-  - name: pvc-hook.topolvm.cybozu.com
+  - name: pvc-hook.topolvm.io
     admissionReviewVersions:
       - "v1"
       - "v1beta1"
     namespaceSelector:
       matchExpressions:
-        - key: topolvm.cybozu.com/webhook
+        - key: topolvm.io/webhook
           operator: NotIn
           values: ["ignore"]
     failurePolicy: Fail
@@ -39,13 +39,13 @@ webhooks:
     sideEffects: None
   {{- end }}
   {{- if .Values.webhook.podMutatingWebhook.enabled }}
-  - name: pod-hook.topolvm.cybozu.com
+  - name: pod-hook.topolvm.io
     admissionReviewVersions:
       - "v1"
       - "v1beta1"
     namespaceSelector:
       matchExpressions:
-        - key: topolvm.cybozu.com/webhook
+        - key: topolvm.io/webhook
           operator: NotIn
           values: ["ignore"]
     failurePolicy: Fail

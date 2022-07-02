@@ -5,7 +5,7 @@ metadata:
   name: logicalvolume-viewer-role
 rules:
 - apiGroups:
-  - topolvm.cybozu.com
+  - topolvm.io
   resources:
   - logicalvolumes
   verbs:
@@ -13,7 +13,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - topolvm.cybozu.com
+  - topolvm.io
   resources:
   - logicalvolumes/status
   verbs:

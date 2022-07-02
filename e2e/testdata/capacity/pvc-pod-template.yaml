@@ -31,4 +31,4 @@ spec:
       persistentVolumeClaim:
         claimName: %s
   nodeSelector:
-    topology.topolvm.cybozu.com/node: %s
+    topology.topolvm.io/node: %s

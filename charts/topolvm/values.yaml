@@ -278,7 +278,7 @@ node:
   #      type: Directory
   #  - name: node-plugin-dir
   #    hostPath:
-  #      path: /var/lib/kubelet/plugins/topolvm.cybozu.com/node
+  #      path: /var/lib/kubelet/plugins/topolvm.io/node
   #      type: DirectoryOrCreate
   #  - name: csi-plugin-dir
   #    hostPath:
@@ -297,7 +297,7 @@ node:
     # node.volumeMounts.topolvmNode -- Specify volumes.
     topolvmNode: []
     # - name: node-plugin-dir
-    #   mountPath: /var/lib/kubelet/plugins/topolvm.cybozu.com/node
+    #   mountPath: /var/lib/kubelet/plugins/topolvm.io/node
     # - name: csi-plugin-dir
     #   mountPath: /var/lib/kubelet/plugins/kubernetes.io/csi
     #   mountPropagation: "Bidirectional"
@@ -451,7 +451,7 @@ storageClasses:
       # enables CSI drivers to expand volumes. This feature is available for Kubernetes 1.16 and later releases.
       allowVolumeExpansion: true
       additionalParameters: {}
-      # "topolvm.cybozu.com/device-class": "ssd"
+      # "topolvm.io/device-class": "ssd"
 
 webhook:
   # webhook.caBundle -- Specify the certificate to be used for AdmissionWebhook.
@@ -497,3 +497,39 @@ priorityClass:
 snapshot:
   # snapshot.enabled -- Turn on the snapshot feature.
   enabled: true
+
+# migrator app
+migrator:
+  # migrator.replicaCount -- Number of replicas for Deployment.
+  replicaCount: 1
+
+  # migrator.minReadySeconds -- (int) Specify minReadySeconds on the Deployment.
+  minReadySeconds:  # 0
+
+  # migrator.updateStrategy -- Specify updateStrategy on the Deployment.
+  updateStrategy: {}
+  #  rollingUpdate:
+  #    maxUnavailable: 1
+  #  type: RollingUpdate
+
+  # migrator.terminationGracePeriodSeconds -- (int) Specify terminationGracePeriodSeconds on the Deployment.
+  terminationGracePeriodSeconds:  # 30
+
+  # migrator.securityContext. -- Container securityContext.
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+  securityContext:
+    # migrator.securityContext.enabled -- Enable securityContext.
+    enabled: false
+
+  # migrator.priorityClassName -- Specify priorityClassName on the Deployment.
+  priorityClassName:
+
+  # migrator.resources -- Specify resources.
+  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+  resources: {}
+  #  requests:
+  #    memory: "50Mi"
+  #    cpu: "50m"
+  #  limits:
+  #    memory: "200Mi"
+  #    cpu: "200m"

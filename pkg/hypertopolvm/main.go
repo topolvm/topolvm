@@ -18,6 +18,7 @@ COMMAND:
     topolvm-controller:  TopoLVM CSI controller service.
     topolvm-node:        TopoLVM CSI node service.
     topolvm-scheduler:   Scheduler extender.
+		topolvm-migrator:    TopoLVM migrator.
     lvmd:                gRPC service to manage LVM volumes.
 `)
 }

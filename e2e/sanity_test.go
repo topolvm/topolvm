@@ -12,9 +12,9 @@ import (
 )
 
 func testSanity() {
-	baseDir := "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/"
+	baseDir := "/tmp/topolvm/worker1/plugins/topolvm.io/"
 	if isDaemonsetLvmdEnvSet() {
-		baseDir = "/var/lib/kubelet/plugins/topolvm.cybozu.com/"
+		baseDir = "/var/lib/kubelet/plugins/topolvm.io/"
 	}
 
 	It("should add node selector to node DaemonSet for CSI test", func() {

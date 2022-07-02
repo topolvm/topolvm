@@ -28,8 +28,8 @@ type LogicalVolumeReconciler struct {
 	lvService proto.LVServiceClient
 }
 
-//+kubebuilder:rbac:groups=topolvm.cybozu.com,resources=logicalvolumes,verbs=get;list;watch;update;patch
-//+kubebuilder:rbac:groups=topolvm.cybozu.com,resources=logicalvolumes/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=topolvm.io,resources=logicalvolumes,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups=topolvm.io,resources=logicalvolumes/status,verbs=get;update;patch
 
 // NewLogicalVolumeReconciler returns LogicalVolumeReconciler with creating lvService and vgService.
 func NewLogicalVolumeReconciler(client client.Client, nodeName string, conn *grpc.ClientConn) *LogicalVolumeReconciler {

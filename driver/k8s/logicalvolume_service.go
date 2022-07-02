@@ -86,7 +86,7 @@ func (v *volumeGetter) Get(ctx context.Context, volumeID string) (*topolvmv1.Log
 	return foundLv, nil
 }
 
-//+kubebuilder:rbac:groups=topolvm.cybozu.com,resources=logicalvolumes,verbs=get;list;watch;create;delete
+//+kubebuilder:rbac:groups=topolvm.io,resources=logicalvolumes,verbs=get;list;watch;create;delete
 //+kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch
 
 // NewLogicalVolumeService returns LogicalVolumeService.
@@ -118,7 +118,7 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, dc, name,
 		lv = &topolvmv1.LogicalVolume{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "LogicalVolume",
-				APIVersion: "topolvm.cybozu.com/v1",
+				APIVersion: "topolvm.io/v1",
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
@@ -136,7 +136,7 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, dc, name,
 		lv = &topolvmv1.LogicalVolume{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "LogicalVolume",
-				APIVersion: "topolvm.cybozu.com/v1",
+				APIVersion: "topolvm.io/v1",
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
@@ -228,7 +228,7 @@ func (s *LogicalVolumeService) CreateSnapshot(ctx context.Context, node, dc, sou
 	snapshotLV := &topolvmv1.LogicalVolume{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "LogicalVolume",
-			APIVersion: "topolvm.cybozu.com/v1",
+			APIVersion: "topolvm.io/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: sname,
