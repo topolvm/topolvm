@@ -12,18 +12,18 @@ import (
 )
 
 var config struct {
-	metricsAddr      string
-	healthAddr       string
-	certDir          string
-	leaderElectionID string
-	zapOpts          zap.Options
+	nodeName    string
+	metricsAddr string
+	healthAddr  string
+	certDir     string
+	zapOpts     zap.Options
 }
 
 var rootCmd = &cobra.Command{
-	Use:     "topolvm-migrator",
+	Use:     "topolvm-migrator-node",
 	Version: topolvm.Version,
-	Short:   "TopoLVM CSI migrator",
-	Long:    `topolvm-migrator provides a function to migration from legacy to new resources for TopoLVM.`,
+	Short:   "TopoLVM CSI node migrator",
+	Long:    `topolvm-migrator-node provides a function to migration from legacy to new resources for TopoLVM.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 		return subMain()
@@ -41,10 +41,10 @@ func Execute() {
 
 func init() {
 	fs := rootCmd.Flags()
+	fs.StringVar(&config.nodeName, "node-name", "", "The target node name.")
 	fs.StringVar(&config.metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
-	fs.StringVar(&config.healthAddr, "health-probe-bind-address", ":8081", "The TCP address that the controller should bind to for serving health probes.")
+	fs.StringVar(&config.healthAddr, "health-probe-bind-address", ":8081", "The TCP address that the migration should bind to for serving health probes.")
 	fs.StringVar(&config.certDir, "cert-dir", "", "certificate directory")
-	fs.StringVar(&config.leaderElectionID, "leader-election-id", "topolvm", "ID for leader election by controller-runtime")
 
 	goflags := flag.NewFlagSet("klog", flag.ExitOnError)
 	klog.InitFlags(goflags)

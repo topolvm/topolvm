@@ -21,10 +21,10 @@ const TopologyNodeKey = "topology.topolvm.io/node" // DONE ドライバー内部
 const DeviceClassKey = "topolvm.io/device-class" // TODO can not update StorageClass parameters
 
 // ResizeRequestedAtKey is the key of LogicalVolume that represents the timestamp of the resize request.
-const ResizeRequestedAtKey = "topolvm.io/resize-requested-at" // DONE LogicalVolumeリソースのアノテーションなのでリソースごとアップデートする
+const ResizeRequestedAtKey = "topolvm.io/resize-requested-at" // DONE
 
 // LogicalVolumeFinalizer is the name of LogicalVolume finalizer
-const LogicalVolumeFinalizer = "topolvm.io/logicalvolume" // DONE LogicalVolumeリソースのfinalizerなのでリソースごとアップデートする
+const LogicalVolumeFinalizer = "topolvm.io/logicalvolume" // DONE
 
 // NodeFinalizer is the name of Node finalizer of TopoLVM
 const NodeFinalizer = "topolvm.io/node" // DONE
@@ -60,19 +60,19 @@ const CreatedbyLabelValue = "topolvm-controller"
 // Legacy
 
 // LegacyCapacityKeyPrefix is the key prefix of Node annotation that represents VG free space.
-const LegacyCapacityKeyPrefix = "capacity.topolvm.cybozu/" // TODO podはhookでmutateされるだけなので不要そう
-
-// LegacyResizeRequestedAtKey is the key of LogicalVolume that represents the timestamp of the resize request.
-const LegacyResizeRequestedAtKey = "topolvm.io/resize-requested-at"
-
-// LegacyLogicalVolumeFinalizer is the name of LogicalVolume finalizer
-const LegacyLogicalVolumeFinalizer = "topolvm.io/logicalvolume"
+const LegacyCapacityKeyPrefix = "capacity.topolvm.cybozu.com/" // TODO podはhookでmutateされるだけなので不要そう
 
 // LegacyTopologyNodeKey is the key of topology that represents node name.
 const LegacyTopologyNodeKey = "topology.topolvm.cybozu.com/node"
 
-// PVCFinalizer is the name of PVC finalizer of TopoLVM
-const LegacyPVCFinalizer = "topolvm.cybozu.com/pvc"
+// LegacyResizeRequestedAtKey is the key of LogicalVolume that represents the timestamp of the resize request.
+const LegacyResizeRequestedAtKey = "topolvm.cybozu.com/resize-requested-at"
+
+// LegacyLogicalVolumeFinalizer is the name of LogicalVolume finalizer
+const LegacyLogicalVolumeFinalizer = "topolvm.cybozu.com/logicalvolume"
 
 // LegacyNodeFinalizer is the name of Node finalizer of TopoLVM
 const LegacyNodeFinalizer = "topolvm.cybozu.com/node"
+
+// PVCFinalizer is the name of PVC finalizer of TopoLVM
+const LegacyPVCFinalizer = "topolvm.cybozu.com/pvc"

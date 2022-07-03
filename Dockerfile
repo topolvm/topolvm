@@ -27,7 +27,8 @@ RUN ln -s hypertopolvm /lvmd \
     && ln -s hypertopolvm /topolvm-scheduler \
     && ln -s hypertopolvm /topolvm-node \
     && ln -s hypertopolvm /topolvm-controller \
-    && ln -s hypertopolvm /topolvm-migrator
+    && ln -s hypertopolvm /topolvm-migrator-controller \
+    && ln -s hypertopolvm /topolvm-migrator-node
 
 COPY --from=build-env /workdir/LICENSE /LICENSE
 

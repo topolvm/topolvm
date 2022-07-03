@@ -9,7 +9,6 @@ import (
 	"github.com/topolvm/topolvm"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -23,39 +22,10 @@ type NodeReconciler struct {
 	APIReader client.Reader
 }
 
-func (r *NodeReconciler) RunOnce(ctx context.Context) error {
-	log := crlog.FromContext(ctx).WithValues("controller", "Node")
-	log.Info("Start RunOnce")
-	nodes := &corev1.NodeList{}
-	err := r.List(ctx, nodes)
-	switch {
-	case err == nil:
-	case apierrors.IsNotFound(err):
-		return nil
-	default:
-		return err
-	}
-
-	for _, node := range nodes.Items {
-		_, err := r.Reconcile(ctx, ctrl.Request{
-			NamespacedName: types.NamespacedName{
-				Namespace: node.Namespace,
-				Name:      node.Name,
-			},
-		})
-
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 // Reconcile finalize Node
 func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := crlog.FromContext(ctx).WithValues("controller", "Node")
-	log.Info("Start Reconcile", "name", req.NamespacedName.Name)
+	log := crlog.FromContext(ctx).WithValues("controller", "Node", "name", req.NamespacedName.Name)
+	log.Info("Start Reconcile")
 	node := &corev1.Node{}
 	err := r.Get(ctx, req.NamespacedName, node)
 	switch {
@@ -85,13 +55,13 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 
 	if !changed {
-		log.Info("skip migration", "name", node.Name)
+		log.Info("skip migration")
 		return ctrl.Result{}, nil
 	}
 
-	log.Info("migrate node", "name", node.Name)
+	log.Info("migrate node")
 	if err := r.Update(ctx, newNode); err != nil {
-		log.Error(err, "failed to migrate finalizer", "name", node.Name)
+		log.Error(err, "failed to migrate finalizer")
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
@@ -130,7 +100,7 @@ func migrateCapacity(r *NodeReconciler, node *corev1.Node) (*corev1.Node, error)
 
 	for key, val := range node.Annotations {
 		dc := strings.Split(key, "/")
-		if len(dc) == 2 && dc[0] == topolvm.LegacyCapacityKeyPrefix {
+		if len(dc) == 2 && dc[0]+"/" == topolvm.LegacyCapacityKeyPrefix {
 			changed = true
 			annotations[fmt.Sprintf("%s%s", topolvm.CapacityKeyPrefix, dc[1])] = val
 		} else {
@@ -157,6 +127,6 @@ func (r *NodeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 	return ctrl.NewControllerManagedBy(mgr).
 		WithEventFilter(pred).
-		For(&corev1.PersistentVolumeClaim{}).
+		For(&corev1.Node{}).
 		Complete(r)
 }

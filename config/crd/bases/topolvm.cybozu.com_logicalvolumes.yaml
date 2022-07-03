@@ -36,6 +36,12 @@ spec:
           spec:
             description: LogicalVolumeSpec defines the desired state of LogicalVolume
             properties:
+              accessType:
+                description: '''accessType'' specifies how the user intends to consume
+                  the snapshot logical volume. Set to "ro" when creating a snapshot
+                  and to "rw" when restoring a snapshot or creating a clone. This
+                  field is populated only when LogicalVolume has a source.'
+                type: string
               deviceClass:
                 type: string
               name:
@@ -48,6 +54,11 @@ spec:
                 - type: string
                 pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                 x-kubernetes-int-or-string: true
+              source:
+                description: '''source'' specifies the logicalvolume name of the source;
+                  if present. This field is populated only when LogicalVolume has
+                  a source.'
+                type: string
             required:
             - name
             - nodeName

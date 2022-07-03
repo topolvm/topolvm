@@ -7,6 +7,8 @@ import (
 
 	lvmd "github.com/topolvm/topolvm/pkg/lvmd/cmd"
 	controller "github.com/topolvm/topolvm/pkg/topolvm-controller/cmd"
+	migratorController "github.com/topolvm/topolvm/pkg/topolvm-migrator-controller/cmd"
+	migratorNode "github.com/topolvm/topolvm/pkg/topolvm-migrator-node/cmd"
 	node "github.com/topolvm/topolvm/pkg/topolvm-node/cmd"
 	scheduler "github.com/topolvm/topolvm/pkg/topolvm-scheduler/cmd"
 )
@@ -15,11 +17,12 @@ func usage() {
 	io.WriteString(os.Stderr, `Usage: hypertopolvm COMMAND [ARGS ...]
 
 COMMAND:
-    topolvm-controller:  TopoLVM CSI controller service.
-    topolvm-node:        TopoLVM CSI node service.
-    topolvm-scheduler:   Scheduler extender.
-		topolvm-migrator:    TopoLVM migrator.
-    lvmd:                gRPC service to manage LVM volumes.
+    topolvm-controller:           TopoLVM CSI controller service.
+    topolvm-node:                 TopoLVM CSI node service.
+    topolvm-scheduler:            Scheduler extender.
+		topolvm-migrator-controller:  TopoLVM controller migrator.
+		topolvm-migrator-node:        TopoLVM node migrator.
+    lvmd:                         gRPC service to manage LVM volumes.
 `)
 }
 
@@ -43,6 +46,10 @@ func main() {
 		node.Execute()
 	case "topolvm-controller":
 		controller.Execute()
+	case "topolvm-migrator-controller":
+		migratorController.Execute()
+	case "topolvm-migrator-node":
+		migratorNode.Execute()
 	default:
 		usage()
 		os.Exit(1)

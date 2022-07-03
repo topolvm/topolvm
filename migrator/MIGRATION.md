@@ -12,3 +12,8 @@ TODO
 6. force update topolvm StorageClasses
 7. check topolvm PVCs and Pods
 8. create some new topolvm PVCs
+
+## マイグレーション手順
+
+1. 既存のTopoLVMのpodを停止する
+2. migratorを含めた新たなpodを起動する
