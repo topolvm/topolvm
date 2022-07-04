@@ -308,27 +308,9 @@ func (s *nodeService) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 		if err != nil {
 			return unpublishResp, err
 		}
-		volume, err := s.getLvFromContext(ctx, topolvm.DefaultDeviceClassName, volID)
-		if err != nil {
-			return nil, err
-		}
-		if volume != nil && s.isEphemeralVolume(volume) {
-			if _, err = s.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: volID, DeviceClass: topolvm.DefaultDeviceClassName}); err != nil {
-				return nil, status.Errorf(codes.Internal, "failed to remove LV for %s: %v", volID, err)
-			}
-		}
 		return &csi.NodeUnpublishVolumeResponse{}, nil
 	}
 	return s.nodeUnpublishBlockVolume(req)
-}
-
-func (s *nodeService) isEphemeralVolume(volume *proto.LogicalVolume) bool {
-	for _, tag := range volume.GetTags() {
-		if tag == "ephemeral" {
-			return true
-		}
-	}
-	return false
 }
 
 func (s *nodeService) nodeUnpublishFilesystemVolume(req *csi.NodeUnpublishVolumeRequest, device string) (*csi.NodeUnpublishVolumeResponse, error) {
