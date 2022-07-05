@@ -14,6 +14,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
+const (
+	annBetaStorageProvisioner = "volume.beta.kubernetes.io/storage-provisioner"
+	annStorageProvisioner     = "volume.kubernetes.io/storage-provisioner"
+)
+
 // PersistentVolumeClaimReconciler reconciles a PersistentVolumeClaim object
 type PersistentVolumeClaimReconciler struct {
 	client.Client
@@ -41,6 +46,7 @@ func (r *PersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, nil
 	}
 
+	var changed bool
 	finalizers := []string{}
 	var found bool
 	for _, f := range pvc.Finalizers {
@@ -56,9 +62,22 @@ func (r *PersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req ctr
 	if !found {
 		finalizers = append(finalizers, topolvm.PVCFinalizer)
 	}
-	if reflect.DeepEqual(finalizers, pvc.Finalizers) {
-		log.V(6).Info("skipped updating finalizer")
-		return ctrl.Result{}, nil
+	if !reflect.DeepEqual(finalizers, pvc.Finalizers) {
+		changed = true
+	}
+
+	if pvc.Annotations[annStorageProvisioner] == topolvm.LegacyPluginName {
+		pvc.Annotations[annStorageProvisioner] = topolvm.PluginName
+		changed = true
+	}
+	if pvc.Annotations[annBetaStorageProvisioner] == topolvm.LegacyPluginName {
+		pvc.Annotations[annBetaStorageProvisioner] = topolvm.PluginName
+		changed = true
+	}
+
+	if !changed {
+		log.V(6).Info("skipped updating")
+		return ctrl.Result{}, err
 	}
 
 	pvc2 := pvc.DeepCopy()

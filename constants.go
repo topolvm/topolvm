@@ -59,6 +59,8 @@ const CreatedbyLabelValue = "topolvm-controller"
 
 // Legacy
 
+const LegacyPluginName = "topolvm.cybozu.com" // DONE 対応不要
+
 // LegacyCapacityKeyPrefix is the key prefix of Node annotation that represents VG free space.
 const LegacyCapacityKeyPrefix = "capacity.topolvm.cybozu.com/" // TODO podはhookでmutateされるだけなので不要そう
 

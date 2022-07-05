@@ -124,11 +124,11 @@ func generateNewLogicalVolume(lv *topolvmlegacyv1.LogicalVolume) *topolvmv1.Logi
 func (r *LogicalVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	pred := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			return filter(e.Object.(*topolvmlegacyv1.LogicalVolume), r.NodeName)
+			return filterLogicalVolume(e.Object.(*topolvmlegacyv1.LogicalVolume), r.NodeName)
 		},
 		DeleteFunc: func(event.DeleteEvent) bool { return false },
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return filter(e.ObjectNew.(*topolvmlegacyv1.LogicalVolume), r.NodeName)
+			return filterLogicalVolume(e.ObjectNew.(*topolvmlegacyv1.LogicalVolume), r.NodeName)
 		},
 		GenericFunc: func(event.GenericEvent) bool { return false },
 	}
@@ -138,7 +138,7 @@ func (r *LogicalVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func filter(lv *topolvmlegacyv1.LogicalVolume, nodename string) bool {
+func filterLogicalVolume(lv *topolvmlegacyv1.LogicalVolume, nodename string) bool {
 	if lv == nil {
 		return false
 	}

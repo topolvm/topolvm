@@ -15,5 +15,18 @@ TODO
 
 ## マイグレーション手順
 
+1. TopoLVMのPVCへの操作を停止してもらう
 1. 既存のTopoLVMのpodを停止する
-2. migratorを含めた新たなpodを起動する
+1. KubeSchedulerConfigurationを手動でアップデートする
+1. StorageClassを作り直す
+1. migratorを含めた新たなpodを起動する
+1. migrate結果を確認する(node/pvc/logicalvolume)
+1. TopoLVMのPVCへの操作を再開する
+
+
+## FAQ
+
+1. podがスケジュールできない
+
+PodのCapacityKeyPrefixが古い可能性あり
+Podを再作成すればOKと思われる
