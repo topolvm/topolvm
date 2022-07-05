@@ -7,6 +7,16 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.14.1] - 2022-07-05
+
+### Fixed
+
+- mount: remove new UUID generation (#522)
+
+### Contributors
+
+- @Yuggupta27
+
 ## [0.14.0] - 2022-07-04
 
 ### Added
@@ -523,7 +533,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.14.0...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.14.1...HEAD
+[0.14.1]: https://github.com/topolvm/topolvm/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/topolvm/topolvm/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/topolvm/topolvm/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/topolvm/topolvm/compare/v0.11.1...v0.12.0
