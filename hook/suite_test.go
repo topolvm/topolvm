@@ -36,15 +36,14 @@ var testEnv *envtest.Environment
 var testCtx, testCancel = context.WithCancel(context.Background())
 
 const (
+	emptyStorageClassName                       = ""
 	topolvmProvisionerStorageClassName          = "topolvm-provisioner"
 	topolvmProvisioner2StorageClassName         = "topolvm-provisioner2"
 	topolvmProvisioner3StorageClassName         = "topolvm-provisioner3"
 	topolvmProvisionerImmediateStorageClassName = "topolvm-provisioner-immediate"
 	hostLocalStorageClassName                   = "host-local"
 	missingStorageClassName                     = "missing-storageclass"
-)
 
-var (
 	podMutatingWebhookPath = "/pod/mutate"
 	pvcMutatingWebhookPath = "/pvc/mutate"
 )
@@ -149,7 +148,7 @@ var _ = BeforeSuite(func() {
 						FailurePolicy:           &failPolicy,
 						ClientConfig: admissionv1.WebhookClientConfig{
 							Service: &admissionv1.ServiceReference{
-								Path: &podMutatingWebhookPath,
+								Path: strPtr(podMutatingWebhookPath),
 							},
 						},
 						Rules: []admissionv1.RuleWithOperations{
@@ -172,7 +171,7 @@ var _ = BeforeSuite(func() {
 						FailurePolicy:           &failPolicy,
 						ClientConfig: admissionv1.WebhookClientConfig{
 							Service: &admissionv1.ServiceReference{
-								Path: &pvcMutatingWebhookPath,
+								Path: strPtr(pvcMutatingWebhookPath),
 							},
 						},
 						Rules: []admissionv1.RuleWithOperations{
