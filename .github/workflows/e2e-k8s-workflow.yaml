@@ -22,7 +22,7 @@ jobs:
       SKIP_NODE_FINALIZE: ${{ inputs.skip_node_finalize }}
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@v3
         with:
           go-version: "1.17"
       - name: cache go dependencies
