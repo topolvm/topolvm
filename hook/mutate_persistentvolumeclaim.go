@@ -48,6 +48,13 @@ func (m *persistentVolumeClaimMutator) Handle(ctx context.Context, req admission
 		return admission.Allowed("no request for TopoLVM")
 	}
 
+	// A PVC is allowed to set `.spec.storageClassName` equal to "" (empty string) to bound it
+	// to a PV with no storage class. We have nothing to do with such PVCs.
+	// cf. https://kubernetes.io/docs/concepts/storage/persistent-volumes/#class-1
+	if *pvc.Spec.StorageClassName == "" {
+		return admission.Allowed("no request for TopoLVM")
+	}
+
 	var sc storagev1.StorageClass
 	err = m.getter.Get(ctx, types.NamespacedName{Name: *pvc.Spec.StorageClassName}, &sc)
 	switch {
