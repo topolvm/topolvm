@@ -1,6 +1,6 @@
 {{- if and .Values.podSecurityPolicy.create .Values.lvmd.managed }}
 ---
-apiVersion: policy/v1beta1
+apiVersion: policy/v1
 kind: PodSecurityPolicy
 metadata:
   name: {{ template "topolvm.fullname" . }}-lvmd
