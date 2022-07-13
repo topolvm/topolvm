@@ -1,3 +1,6 @@
+image:
+  tag: migrator
+
 controller:
   replicaCount: 1
 
@@ -27,3 +30,6 @@ storageClasses:
       allowVolumeExpansion: true
       additionalParameters:
         "topolvm.cybozu.com/device-class": "ssd-thin"
+
+migrator:
+  enabled: true

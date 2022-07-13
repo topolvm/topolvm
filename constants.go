@@ -67,6 +67,9 @@ const LegacyCapacityKeyPrefix = "capacity.topolvm.cybozu.com/" // TODO podはhoo
 // LegacyTopologyNodeKey is the key of topology that represents node name.
 const LegacyTopologyNodeKey = "topology.topolvm.cybozu.com/node"
 
+// LegacyDeviceClassKey is the key used in CSI volume create requests to specify a device-class.
+const LegacyDeviceClassKey = "topolvm.cybozu.com/device-class"
+
 // LegacyResizeRequestedAtKey is the key of LogicalVolume that represents the timestamp of the resize request.
 const LegacyResizeRequestedAtKey = "topolvm.cybozu.com/resize-requested-at"
 

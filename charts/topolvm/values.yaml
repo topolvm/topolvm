@@ -437,6 +437,7 @@ controller:
 storageClasses:
   - name: topolvm-provisioner  # Defines name of storage classe.
     storageClass:
+      provisioner: "" # default: topolvm.io
       # Supported filesystems are: ext4, xfs, and btrfs.
       fsType: xfs
       # reclaimPolicy
@@ -500,36 +501,72 @@ snapshot:
 
 # migrator app
 migrator:
-  # migrator.replicaCount -- Number of replicas for Deployment.
-  replicaCount: 1
+  # migrator.enabled -- Install migrator together.
+  enabled: false
 
-  # migrator.minReadySeconds -- (int) Specify minReadySeconds on the Deployment.
-  minReadySeconds:  # 0
+  controller:
+    # migrator.controller.replicaCount -- Number of replicas for Deployment.
+    replicaCount: 1
 
-  # migrator.updateStrategy -- Specify updateStrategy on the Deployment.
-  updateStrategy: {}
-  #  rollingUpdate:
-  #    maxUnavailable: 1
-  #  type: RollingUpdate
+    # migrator.controller.minReadySeconds -- (int) Specify minReadySeconds on the Deployment.
+    minReadySeconds:  # 0
 
-  # migrator.terminationGracePeriodSeconds -- (int) Specify terminationGracePeriodSeconds on the Deployment.
-  terminationGracePeriodSeconds:  # 30
+    # migrator.controller.updateStrategy -- Specify updateStrategy on the Deployment.
+    updateStrategy: {}
+    #  rollingUpdate:
+    #    maxUnavailable: 1
+    #  type: RollingUpdate
 
-  # migrator.securityContext. -- Container securityContext.
-  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
-  securityContext:
-    # migrator.securityContext.enabled -- Enable securityContext.
-    enabled: false
+    # migrator.controller.terminationGracePeriodSeconds -- (int) Specify terminationGracePeriodSeconds on the Deployment.
+    terminationGracePeriodSeconds:  # 30
 
-  # migrator.priorityClassName -- Specify priorityClassName on the Deployment.
-  priorityClassName:
+    # migrator.controller.securityContext. -- Container securityContext.
+    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+    securityContext:
+      # migrator.controller.securityContext.enabled -- Enable securityContext.
+      enabled: false
 
-  # migrator.resources -- Specify resources.
-  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
-  resources: {}
-  #  requests:
-  #    memory: "50Mi"
-  #    cpu: "50m"
-  #  limits:
-  #    memory: "200Mi"
-  #    cpu: "200m"
+    # migrator.controller.priorityClassName -- Specify priorityClassName on the Deployment.
+    priorityClassName:
+
+    # migrator.controller.resources -- Specify resources.
+    ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+    resources: {}
+    #  requests:
+    #    memory: "50Mi"
+    #    cpu: "50m"
+    #  limits:
+    #    memory: "200Mi"
+    #    cpu: "200m"
+
+  node:
+    # migrator.node.minReadySeconds -- (int) Specify minReadySeconds on the Deployment.
+    minReadySeconds:  # 0
+
+    # migrator.node.updateStrategy -- Specify updateStrategy on the Deployment.
+    updateStrategy: {}
+    #  rollingUpdate:
+    #    maxUnavailable: 1
+    #  type: RollingUpdate
+
+    # migrator.node.terminationGracePeriodSeconds -- (int) Specify terminationGracePeriodSeconds on the Deployment.
+    terminationGracePeriodSeconds:  # 30
+
+    # migrator.node.securityContext. -- Container securityContext.
+    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+    securityContext:
+      # migrator.node.securityContext.enabled -- Enable securityContext.
+      enabled: false
+
+    # migrator.node.priorityClassName -- Specify priorityClassName on the Deployment.
+    priorityClassName:
+
+    # migrator.node.resources -- Specify resources.
+    ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+    resources: {}
+    #  requests:
+    #    memory: "50Mi"
+    #    cpu: "50m"
+    #  limits:
+    #    memory: "200Mi"
+    #    cpu: "200m"

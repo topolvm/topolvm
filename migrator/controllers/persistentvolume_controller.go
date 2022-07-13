@@ -2,9 +2,8 @@ package controllers
 
 import (
 	"context"
-	"math/rand"
-	"strconv"
-	"time"
+	"encoding/json"
+	"strings"
 
 	"github.com/go-logr/logr"
 	"github.com/topolvm/topolvm"
@@ -23,11 +22,8 @@ const (
 	AnnDynamicallyProvisioned = "pv.kubernetes.io/provisioned-by"
 	provisionerIDKey          = "storage.kubernetes.io/csiProvisionerIdentity"
 
-	ANNPVMigrate = topolvm.PluginName + "pv-migrate"
-
-	MigrateStatusUpdateRetaintPolicy = "retained"
-	MigrateStatusDeletePV            = "deleted" // どのように再開するの？
-	MigrateStatusComplete            = "complete"
+	ANNPVOriginalPolicy = topolvm.PluginName + "/pv-migrate-original-policy"
+	ANNPVProtection     = topolvm.PluginName + "/pv-migrate-protection"
 )
 
 // PersistentVolumeReconciler reconciles a PersistentVolume object
@@ -52,7 +48,7 @@ func (r *PersistentVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
-	if pv.Spec.CSI.Driver != topolvm.LegacyPluginName {
+	if !filterPV(pv) {
 		return ctrl.Result{}, nil
 	}
 
@@ -63,65 +59,55 @@ func (r *PersistentVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	return r.reconcile(ctx, log, pv)
 }
 
-// TODO 途中でエラーになった際の処理再開をどうするか検討する
 func (r *PersistentVolumeReconciler) reconcile(ctx context.Context, log logr.Logger, pv *corev1.PersistentVolume) (ctrl.Result, error) {
-	// 1. save original pv copy
-	pvcopy := copyPV(pv)
+	log.Info("start migration")
+	pvcopy := migratePV(pv)
 
-	// 2. change reclaim policy to Retain if needed
-	if pv.Spec.PersistentVolumeReclaimPolicy == corev1.PersistentVolumeReclaimDelete {
-		pv2 := pv.DeepCopy()
+	// step1: update PV
+	pv2 := pv.DeepCopy()
+	var changed bool
+	if pv2.Spec.PersistentVolumeReclaimPolicy != corev1.PersistentVolumeReclaimRetain {
+		pv2.Annotations[ANNPVOriginalPolicy] = string(pv2.Spec.PersistentVolumeReclaimPolicy)
 		pv2.Spec.PersistentVolumeReclaimPolicy = corev1.PersistentVolumeReclaimRetain
-		pv2.Annotations[ANNPVMigrate] = MigrateStatusUpdateRetaintPolicy
+		changed = true
+	}
+
+	if !changed {
+		log.Info("skip update pv")
+	} else {
+		log.Info("update pv")
 		if err := r.Update(ctx, pv2); err != nil {
-			log.Error(err, "failed to update reclaim policy")
+			log.Error(err, "failed to update PV")
 			return ctrl.Result{}, err
 		}
-		pv = pv2
-	}
 
-	// 3. delete pv
-	name := types.NamespacedName{Name: pv.Name}
-	needDeleteFinalizer := contain(pv.Finalizers, PVProtectionFinalizer)
-	if err := r.Delete(ctx, pv); err != nil {
-		log.Error(err, "failed to delete pv")
-		return ctrl.Result{}, err
-	}
-
-	// 4. delete pv finalizer if needed
-	if needDeleteFinalizer {
-		pv = &corev1.PersistentVolume{}
-		err := r.Get(ctx, name, pv)
+		pv2 = &corev1.PersistentVolume{}
+		err := r.Get(ctx, types.NamespacedName{Name: pv.Name}, pv2)
 		switch {
 		case err == nil:
 		case apierrors.IsNotFound(err):
-			// TODO not foundでれば削除されているということなので次に行く
-			goto Recreate
+			return ctrl.Result{}, nil
 		default:
-			log.Error(err, "failed to get pv")
-			return ctrl.Result{}, err
-		}
-
-		var finalizer []string
-		for _, v := range pv.Finalizers {
-			if v != PVProtectionFinalizer {
-				finalizer = append(finalizer, v)
-			}
-		}
-		pv2 := pv.DeepCopy()
-		pv2.Finalizers = finalizer
-		if err := r.Update(ctx, pv2); err != nil {
-			log.Error(err, "failed to update finalizer")
 			return ctrl.Result{}, err
 		}
 	}
 
-Recreate:
-	// 5. recreate pv
-	if err := r.Create(ctx, pvcopy); err != nil {
-		log.Error(err, "failed to recreate pv")
+	// step2: delete PV
+	log.Info("delete pv")
+	if err := r.Delete(ctx, pv2, client.GracePeriodSeconds(0)); err != nil {
+		log.Error(err, "failed to delete PV")
 		return ctrl.Result{}, err
 	}
+
+	// step3: re-create PV
+	log.Info("re-create pv")
+	if err := r.Create(ctx, pvcopy); err != nil {
+		data, _ := json.Marshal(pvcopy)
+		log.Error(err, "failed to re-create PV", "PersistentVolume", data)
+		return ctrl.Result{}, err
+	}
+
+	log.Info("complete migration")
 	return ctrl.Result{}, nil
 }
 
@@ -150,29 +136,57 @@ func filterPV(pv *corev1.PersistentVolume) bool {
 	if pv.Spec.CSI == nil || pv.Spec.CSI.Driver != topolvm.LegacyPluginName {
 		return false
 	}
-	return pv.Annotations[ANNPVMigrate] != MigrateStatusComplete
+	return true
 }
 
-func contain(list []string, target string) bool {
-	for _, v := range list {
-		if v == target {
-			return true
-		}
-	}
-	return false
-}
-
-func copyPV(pv *corev1.PersistentVolume) *corev1.PersistentVolume {
+func migratePV(pv *corev1.PersistentVolume) *corev1.PersistentVolume {
 	pv2 := pv.DeepCopy()
+	pv2.ResourceVersion = ""
+	pv2.UID = ""
 	pv2.Annotations[AnnDynamicallyProvisioned] = topolvm.PluginName
 	pv2.Spec.CSI.Driver = topolvm.PluginName
-	pv2.Spec.CSI.Driver = topolvm.PluginName
-	pv2.Spec.CSI.VolumeAttributes[provisionerIDKey] = identity(topolvm.PluginName)
-	pv2.Annotations[ANNPVMigrate] = MigrateStatusComplete
+	pv2.Spec.CSI.VolumeAttributes[provisionerIDKey] = identity(pv2.Spec.CSI.VolumeAttributes[provisionerIDKey])
+
+	if original, ok := pv2.Annotations[ANNPVOriginalPolicy]; ok {
+		pv2.Spec.PersistentVolumeReclaimPolicy = corev1.PersistentVolumeReclaimPolicy(original)
+		delete(pv2.Annotations, ANNPVOriginalPolicy)
+	}
+
+	var found bool
+	for _, f := range pv2.Finalizers {
+		if f == PVProtectionFinalizer {
+			found = true
+		}
+	}
+	if _, ok := pv2.Annotations[ANNPVProtection]; ok {
+		delete(pv2.Annotations, ANNPVProtection)
+		if !found {
+			pv2.Finalizers = append(pv2.Finalizers, PVProtectionFinalizer)
+		}
+	}
+
+	if pv2.Spec.NodeAffinity != nil && pv2.Spec.NodeAffinity.Required != nil {
+		nodeSelectorTerms := []corev1.NodeSelectorTerm{}
+		for _, term := range pv2.Spec.NodeAffinity.Required.NodeSelectorTerms {
+			matchExpressions := []corev1.NodeSelectorRequirement{}
+			for _, e := range term.MatchExpressions {
+				if e.Key == topolvm.LegacyTopologyNodeKey {
+					e.Key = topolvm.TopologyNodeKey
+				}
+				matchExpressions = append(matchExpressions, e)
+			}
+			term.MatchExpressions = matchExpressions
+			nodeSelectorTerms = append(nodeSelectorTerms, term)
+		}
+		pv2.Spec.NodeAffinity.Required.NodeSelectorTerms = nodeSelectorTerms
+	}
 	return pv2
 }
 
-func identity(provisionerName string) string {
-	timeStamp := time.Now().UnixNano() / int64(time.Millisecond)
-	return strconv.FormatInt(timeStamp, 10) + "-" + strconv.Itoa(rand.Intn(10000)) + "-" + provisionerName
+func identity(original string) string {
+	names := strings.Split(original, topolvm.LegacyPluginName)
+	if len(names) != 2 {
+		return original
+	}
+	return names[0] + topolvm.PluginName
 }

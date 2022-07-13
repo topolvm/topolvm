@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/topolvm/topolvm"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -45,6 +46,10 @@ func init() {
 	fs.StringVar(&config.metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	fs.StringVar(&config.healthAddr, "health-probe-bind-address", ":8081", "The TCP address that the migration should bind to for serving health probes.")
 	fs.StringVar(&config.certDir, "cert-dir", "", "certificate directory")
+	fs.String("nodename", "", "The resource name of the running node")
+
+	viper.BindEnv("nodename", "NODE_NAME")
+	viper.BindPFlag("nodename", fs.Lookup("nodename"))
 
 	goflags := flag.NewFlagSet("klog", flag.ExitOnError)
 	klog.InitFlags(goflags)

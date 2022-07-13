@@ -40,8 +40,7 @@ func subMain() error {
 		Scheme:                 scheme,
 		MetricsBindAddress:     config.metricsAddr,
 		HealthProbeBindAddress: config.healthAddr,
-		LeaderElection:         true,
-		LeaderElectionID:       config.leaderElectionID,
+		LeaderElection:         false,
 		CertDir:                config.certDir,
 	})
 	if err != nil {
@@ -64,6 +63,24 @@ func subMain() error {
 	}
 	if err := nodecontroller.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Node")
+		return err
+	}
+
+	pvcontroller := &controllers.PersistentVolumeReconciler{
+		Client:    mgr.GetClient(),
+		APIReader: mgr.GetAPIReader(),
+	}
+	if err := pvcontroller.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "PersistentVolume")
+		return err
+	}
+
+	sccontroller := &controllers.StorageClassReconciler{
+		Client:    mgr.GetClient(),
+		APIReader: mgr.GetAPIReader(),
+	}
+	if err := sccontroller.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "StorageClass")
 		return err
 	}
 

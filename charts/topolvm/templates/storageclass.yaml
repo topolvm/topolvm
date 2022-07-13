@@ -17,7 +17,11 @@ metadata:
     {{- end }}
   labels:
     {{- include "topolvm.labels" . | nindent 4 }}
+{{- if $val.storageClass.provisioner }}
+provisioner: {{ $val.storageClass.provisioner }}
+{{- else }}
 provisioner: topolvm.io
+{{- end }}
 parameters:
   "csi.storage.k8s.io/fstype": {{ $val.storageClass.fsType | quote }}
   {{- with $val.storageClass.additionalParameters }}

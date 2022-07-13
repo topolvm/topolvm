@@ -96,6 +96,20 @@ var _ = BeforeSuite(func() {
 	err = logicalvolumecontroller.SetupWithManager(mgr)
 	Expect(err).ToNot(HaveOccurred())
 
+	pvcontroller := &PersistentVolumeReconciler{
+		Client:    mgr.GetClient(),
+		APIReader: mgr.GetAPIReader(),
+	}
+	err = pvcontroller.SetupWithManager(mgr)
+	Expect(err).ToNot(HaveOccurred())
+
+	scController := &StorageClassReconciler{
+		Client:    mgr.GetClient(),
+		APIReader: mgr.GetAPIReader(),
+	}
+	err = scController.SetupWithManager(mgr)
+	Expect(err).ToNot(HaveOccurred())
+
 	go func() {
 		err = mgr.Start(testCtx)
 		if err != nil {
