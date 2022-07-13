@@ -18,12 +18,10 @@ import (
 )
 
 const (
-	PVProtectionFinalizer     = "kubernetes.io/pv-protection"
 	AnnDynamicallyProvisioned = "pv.kubernetes.io/provisioned-by"
 	provisionerIDKey          = "storage.kubernetes.io/csiProvisionerIdentity"
 
 	ANNPVOriginalPolicy = topolvm.PluginName + "/pv-migrate-original-policy"
-	ANNPVProtection     = topolvm.PluginName + "/pv-migrate-protection"
 )
 
 // PersistentVolumeReconciler reconciles a PersistentVolume object
@@ -94,9 +92,27 @@ func (r *PersistentVolumeReconciler) reconcile(ctx context.Context, log logr.Log
 
 	// step2: delete PV
 	log.Info("delete pv")
-	if err := r.Delete(ctx, pv2, client.GracePeriodSeconds(0)); err != nil {
+	if err := r.Delete(ctx, pv2); err != nil {
 		log.Error(err, "failed to delete PV")
 		return ctrl.Result{}, err
+	}
+
+LOOP:
+	for {
+		pv2 = &corev1.PersistentVolume{}
+		err := r.Get(ctx, types.NamespacedName{Name: pv.Name}, pv2)
+		switch {
+		case err == nil:
+		case apierrors.IsNotFound(err):
+			break LOOP
+		default:
+			log.Error(err, "failed to get PV")
+		}
+
+		pv2.Finalizers = []string{}
+		if err := r.Update(ctx, pv2); err != nil {
+			log.Error(err, "failed to remove finalziers")
+		}
 	}
 
 	// step3: re-create PV
@@ -150,19 +166,6 @@ func migratePV(pv *corev1.PersistentVolume) *corev1.PersistentVolume {
 	if original, ok := pv2.Annotations[ANNPVOriginalPolicy]; ok {
 		pv2.Spec.PersistentVolumeReclaimPolicy = corev1.PersistentVolumeReclaimPolicy(original)
 		delete(pv2.Annotations, ANNPVOriginalPolicy)
-	}
-
-	var found bool
-	for _, f := range pv2.Finalizers {
-		if f == PVProtectionFinalizer {
-			found = true
-		}
-	}
-	if _, ok := pv2.Annotations[ANNPVProtection]; ok {
-		delete(pv2.Annotations, ANNPVProtection)
-		if !found {
-			pv2.Finalizers = append(pv2.Finalizers, PVProtectionFinalizer)
-		}
 	}
 
 	if pv2.Spec.NodeAffinity != nil && pv2.Spec.NodeAffinity.Required != nil {

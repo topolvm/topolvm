@@ -49,21 +49,24 @@ migrate:
 	$(KIND) load image-archive --name=$(KIND_CLUSTER_NAME) ../../example/build/topolvm.img
 	$(HELM) repo update
 	$(HELM) dependency build ../../charts/topolvm/
-	# $(HELM) upgrade --namespace=topolvm-system topolvm ../../charts/topolvm/ -f ./values-migrator.yaml
-	# $(KUBECTL) apply -f ../../charts/topolvm/crds/topolvm.io_logicalvolumes.yaml
-	# $(KUBECTL) -n topolvm-system delete pod -l app.kubernetes.io/component=controller
-	# $(KUBECTL) -n topolvm-system delete pod -l app.kubernetes.io/component=node
+	$(HELM) upgrade --namespace=topolvm-system topolvm ../../charts/topolvm/ -f ./values-migrator.yaml
+	$(KUBECTL) apply -f ../../charts/topolvm/crds/topolvm.io_logicalvolumes.yaml
+	$(KUBECTL) -n topolvm-system delete pod -l app.kubernetes.io/component=controller
+	$(KUBECTL) -n topolvm-system delete pod -l app.kubernetes.io/component=node
 	# $(KUBECTL) wait --for=condition=ready --timeout=180s -n topolvm-system pod -l app.kubernetes.io/component=controller
 	# $(KUBECTL) wait --for=condition=ready --timeout=180s -n topolvm-system pod -l app.kubernetes.io/component=node
 
 	rm $(TMPDIR)/scheduler/scheduler-config.yaml
 	cp scheduler-config.yaml $(TMPDIR)/scheduler/scheduler-config.yaml
-	# $(KUBECTL) -n kube-system delete pod -l component=kube-scheduler
-	docker exec -it topolvm-migrator-control-plane systemctl restart kubelet
 	docker exec -it topolvm-migrator-control-plane mv /etc/kubernetes/manifests/kube-scheduler.yaml /etc/kubernetes
-	$(KUBECTL) -n kube-system delete pod -l component=kube-scheduler
 	sleep 15
 	docker exec -it topolvm-migrator-control-plane mv /etc/kubernetes/kube-scheduler.yaml /etc/kubernetes/manifests/
+	sleep 5
+	docker exec -it topolvm-migrator-control-plane systemctl restart kubelet
+	docker exec -it topolvm-migrator-control-plane mv /etc/kubernetes/manifests/kube-scheduler.yaml /etc/kubernetes
+	sleep 15
+	docker exec -it topolvm-migrator-control-plane mv /etc/kubernetes/kube-scheduler.yaml /etc/kubernetes/manifests/
+	sleep 5
 	docker exec -it topolvm-migrator-control-plane systemctl restart kubelet
 	# $(KUBECTL) -n kube-system delete pod -l component=kube-scheduler
 	# $(KUBECTL) wait --for=condition=ready --timeout=120s -n kube-system pod -l component=kube-scheduler
