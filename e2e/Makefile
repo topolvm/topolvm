@@ -5,9 +5,9 @@ STORAGE_CAPACITY ?= false
 SKIP_NODE_FINALIZE ?= false
 
 ## Dependency versions
-MINIKUBE_VERSION := v1.25.1
+MINIKUBE_VERSION := v1.26.0
 CERT_MANAGER_VERSION := v1.7.0
-KUSTOMIZE_VERSION := v4.4.1
+KUSTOMIZE_VERSION := v4.5.5
 
 BINDIR := $(shell pwd)/bin
 SUDO := sudo

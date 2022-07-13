@@ -3,10 +3,10 @@
 CONTROLLER_RUNTIME_VERSION=$(shell awk '/sigs\.k8s\.io\/controller-runtime/ {print substr($$2, 2)}' go.mod)
 CONTROLLER_TOOLS_VERSION=$(shell awk '/sigs\.k8s\.io\/controller-tools/ {print substr($$2, 2)}' go.mod)
 CSI_VERSION=1.6.0
-PROTOC_VERSION=3.19.3
-KIND_VERSION=v0.11.1
-HELM_VERSION=3.8.0
-HELM_DOCS_VERSION=1.7.0
+PROTOC_VERSION=21.2
+KIND_VERSION=v0.14.0
+HELM_VERSION=3.9.0
+HELM_DOCS_VERSION=1.11.0
 YQ_VERSION=4.18.1
 GINKGO_VERSION := $(shell awk '/github.com\/onsi\/ginkgo/ {print substr($$2, 2)}' go.mod)
 
