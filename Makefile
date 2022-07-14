@@ -30,11 +30,7 @@ BUILD_TARGET=hypertopolvm
 TOPOLVM_VERSION ?= devel
 IMAGE_TAG ?= latest
 
-## for custom build kind node
-## ignore if you do not need a custom image
-KIND_NODE_VERSION=v1.21.1
-
-ENVTEST_KUBERNETES_VERSION=1.23
+ENVTEST_KUBERNETES_VERSION=1.24
 
 PROTOC_GEN_GO_VERSION := $(shell awk '/google.golang.org\/protobuf/ {print substr($$2, 2)}' go.mod)
 PROTOC_GEN_DOC_VERSION := $(shell awk '/github.com\/pseudomuto\/protoc-gen-doc/ {print substr($$2, 2)}' go.mod)
@@ -201,8 +197,3 @@ setup: ## Setup local environment.
 	$(SUDO) apt-get update
 	$(SUDO) apt-get -y install --no-install-recommends $(PACKAGES)
 	$(MAKE) tools
-
-.PHONY: kind-node
-kind-node:
-	git clone --depth 1 https://github.com/kubernetes/kubernetes.git -b $(KIND_NODE_VERSION) /tmp/kind-node
-	$(BINDIR)/kind build node-image --kube-root /tmp/kind-node --image ghcr.io/topolvm/kind-node:$(KIND_NODE_VERSION)

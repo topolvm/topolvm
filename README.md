@@ -20,7 +20,7 @@ Join our community on Slack: [Invitation link](https://join.slack.com/t/topolvm/
 Supported environments
 ----------------------
 
-- Kubernetes: 1.23, 1.22, 1.21
+- Kubernetes: 1.24, 1.23, 1.22
 - Node OS: Linux with LVM2 (*1)
 - Filesystems: ext4, xfs, btrfs(experimental)
 
