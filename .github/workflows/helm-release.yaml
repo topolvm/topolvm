@@ -16,16 +16,12 @@ jobs:
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
-      - name: "Get Helm version"
-        id: helm_version
-        run: |
-          HELM_VERSION=$(awk -F= '/^HELM_VERSION/ { print $2 }' Makefile)
-          echo "::set-output name=value::${HELM_VERSION}"
-
+      # This version is written in `charts/topolvm/README.md`,
+      # so do not update it if not necessary.
       - name: "Install Helm"
         uses: azure/setup-helm@v3
         with:
-          version: "v${{ steps.helm_version.value }}"
+          version: "v3.5.0"
 
       # Add depending repository for helm to avoid the error below.
       # `Error: no repository definition for https://charts.jetstack.io`
