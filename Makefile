@@ -7,7 +7,6 @@ PROTOC_VERSION=21.2
 KIND_VERSION=v0.14.0
 HELM_VERSION=3.9.0
 HELM_DOCS_VERSION=1.11.0
-YQ_VERSION=4.18.1
 GINKGO_VERSION := $(shell awk '/github.com\/onsi\/ginkgo/ {print substr($$2, 2)}' go.mod)
 
 SUDO := sudo
@@ -91,7 +90,6 @@ manifests: ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefin
 		webhook \
 		paths="./api/...;./controllers;./hook;./driver/k8s;./pkg/..." \
 		output:crd:artifacts:config=config/crd/bases
-	$(BINDIR)/yq eval 'del(.status)' config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml > charts/topolvm/crds/topolvm.cybozu.com_logicalvolumes.yaml
 
 .PHONY: generate
 generate: $(PROTOBUF_GEN) ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -189,8 +187,6 @@ tools: install-kind ## Install development tools.
 	GOBIN=$(BINDIR) go install github.com/norwoodj/helm-docs/cmd/helm-docs@v$(HELM_DOCS_VERSION)
 	$(CURL) https://get.helm.sh/helm-v$(HELM_VERSION)-linux-amd64.tar.gz \
 		| tar xvz -C $(BINDIR) --strip-components 1 linux-amd64/helm
-	$(CURL) https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_amd64 -o $(BINDIR)/yq \
-		&& chmod +x $(BINDIR)/yq
 
 .PHONY: setup
 setup: ## Setup local environment.
