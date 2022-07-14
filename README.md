@@ -22,7 +22,7 @@ Supported environments
 
 - Kubernetes: 1.23, 1.22, 1.21
 - Node OS: Linux with LVM2 (*1)
-- Filesystems: ext4, xfs
+- Filesystems: ext4, xfs, btrfs(experimental)
 
 *1 The host's Linux Kernel must be v4.9 or later which supports `rmapbt` and `reflink`, if you use xfs filesystem with an official docker image.
 
