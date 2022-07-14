@@ -83,7 +83,7 @@ func commonAfterEach(cc CleanupContext) {
 				return err
 			}
 			if diff := cmp.Diff(cc.CapacityAnnotations, capacitiesAfter); diff != "" {
-				return fmt.Errorf("capacities on nodes should be same before and after the test: diff=%q", diff)
+				return fmt.Errorf("capacities on nodes should be same before and after the test: diff=%s", diff)
 			}
 			return nil
 		}).Should(Succeed())
