@@ -75,6 +75,8 @@ scheduler:
           - matchExpressions:
               - key: node-role.kubernetes.io/control-plane
                 operator: Exists
+          # node-role.kubernetes.io/master label is not used in k8s 1.24+.
+          # TODO: remove this when minimum supported version becomes 1.24.
           - matchExpressions:
               - key: node-role.kubernetes.io/master
                 operator: Exists
@@ -90,6 +92,9 @@ scheduler:
       operator: Exists
     - key: node-role.kubernetes.io/control-plane
       effect: NoSchedule
+    # node-role.kubernetes.io/master taint will not be used in k8s 1.25+.
+    # cf. https://github.com/kubernetes/enhancements/blob/master/keps/sig-cluster-lifecycle/kubeadm/2067-rename-master-label-taint/README.md
+    # TODO: remove this when minimum supported version becomes 1.25.
     - key: node-role.kubernetes.io/master
       effect: NoSchedule
 
