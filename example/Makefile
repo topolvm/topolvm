@@ -35,7 +35,7 @@ run:
 		$(MAKE) build/topolvm.img; \
 		$(KIND) load image-archive --name=$(KIND_CLUSTER_NAME) build/topolvm.img; \
 	fi
-	$(KUBECTL) apply -f https://github.com/jetstack/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
+	$(KUBECTL) apply -f https://github.com/cert-manager/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
 	$(KUBECTL) create namespace topolvm-system
 	$(KUBECTL) label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
 	$(KUBECTL) label namespace kube-system topolvm.cybozu.com/webhook=ignore

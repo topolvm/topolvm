@@ -65,9 +65,9 @@ prepare-namespace:
 	$(KUBECTL) label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
 	$(KUBECTL) label namespace kube-system topolvm.cybozu.com/webhook=ignore
 
-.PHONY: apply-certmanager
-apply-certmanager:
-	$(KUBECTL) apply -f https://github.com/jetstack/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
+.PHONY: apply-certmanager-crds
+apply-certmanager-crds:
+	$(KUBECTL) apply -f https://github.com/cert-manager/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
 
 .PHONY: launch-kind
 launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml
@@ -147,7 +147,7 @@ stop-lvmd:
 create-cluster: topolvm.img
 	$(MAKE) shutdown-kind
 	$(MAKE) launch-kind
-	$(MAKE) apply-certmanager
+	$(MAKE) apply-certmanager-crds
 	$(MAKE) prepare-namespace
 	$(KIND) load image-archive --name=$(KIND_CLUSTER_NAME) $<
 	$(HELM) repo add jetstack https://charts.jetstack.io
@@ -245,7 +245,7 @@ daemonset-lvmd/delete-minikube:
 
 .PHONY: daemonset-lvmd/test
 daemonset-lvmd/test: topolvm.img
-	$(MAKE) apply-certmanager
+	$(MAKE) apply-certmanager-crds
 	$(MAKE) prepare-namespace
 	$(HELM) repo add jetstack https://charts.jetstack.io
 	$(HELM) repo update
