@@ -14,7 +14,6 @@ CURL := curl -sSLf
 BINDIR := $(shell pwd)/bin
 CONTROLLER_GEN := $(BINDIR)/controller-gen
 STATICCHECK := $(BINDIR)/staticcheck
-NILERR := $(BINDIR)/nilerr
 PROTOC := PATH=$(BINDIR):$(PATH) $(BINDIR)/protoc -I=$(shell pwd)/include:.
 PACKAGES := unzip lvm2 xfsprogs thin-provisioning-tools
 ENVTEST_ASSETS_DIR := $(shell pwd)/testbin
@@ -107,7 +106,6 @@ check-uncommitted: ## Check if latest generated artifacts are committed.
 lint: ## Run lint
 	test -z "$$(gofmt -s -l . | grep -vE '^vendor|^api/v1/zz_generated.deepcopy.go' | tee /dev/stderr)"
 	$(STATICCHECK) ./...
-	test -z "$$($(NILERR) ./... 2>&1 | tee /dev/stderr)"
 	go vet ./...
 	test -z "$$(go vet ./... | grep -v '^vendor' | tee /dev/stderr)"
 
@@ -170,7 +168,6 @@ install-kind:
 .PHONY: tools
 tools: install-kind ## Install development tools.
 	GOBIN=$(BINDIR) go install honnef.co/go/tools/cmd/staticcheck@latest
-	GOBIN=$(BINDIR) go install github.com/gostaticanalysis/nilerr/cmd/nilerr@latest
 	# Follow the official documentation to install the `latest` version, because explicitly specifying the version will get an error.
 	GOBIN=$(BINDIR) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 	GOBIN=$(BINDIR) go install sigs.k8s.io/controller-tools/cmd/controller-gen@v$(CONTROLLER_TOOLS_VERSION)
