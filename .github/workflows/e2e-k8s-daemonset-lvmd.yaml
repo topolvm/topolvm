@@ -43,6 +43,26 @@ jobs:
           key: e2e-sidecars-${{ hashFiles('csi-sidecars.mk') }}
           restore-keys: |
             e2e-sidecars-
+      - name: install dependencies of minikube
+        run: |
+          # These tools are required to use minikube for Kubernetes v1.24+
+          git clone -n https://github.com/Mirantis/cri-dockerd
+          CRI_DOCKERD_VERSION="v0.2.3"
+          cd cri-dockerd
+          git checkout ${CRI_DOCKERD_VERSION}
+          mkdir bin
+          go get && go build -o bin/cri-dockerd
+          mkdir -p /usr/local/bin
+          sudo install -o root -g root -m 0755 bin/cri-dockerd /usr/local/bin/cri-dockerd
+          sudo cp -a packaging/systemd/* /etc/systemd/system
+          sudo sed -i -e 's,/usr/bin/cri-dockerd,/usr/local/bin/cri-dockerd,' /etc/systemd/system/cri-docker.service
+          sudo systemctl daemon-reload
+          sudo systemctl enable cri-docker.service
+          sudo systemctl enable --now cri-docker.socket
+
+          CRICTL_VERSION="v1.24.2"
+          curl -L https://github.com/kubernetes-sigs/cri-tools/releases/download/$CRICTL_VERSION/crictl-${CRICTL_VERSION}-linux-amd64.tar.gz --output crictl-${CRICTL_VERSION}-linux-amd64.tar.gz
+          sudo tar zxvf crictl-$CRICTL_VERSION-linux-amd64.tar.gz -C /usr/local/bin
       - run: make -C e2e setup
       - run: make -C e2e daemonset-lvmd/create-vg
       - run: make -C e2e daemonset-lvmd/setup-minikube
