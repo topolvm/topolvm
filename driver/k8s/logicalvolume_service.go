@@ -338,7 +338,7 @@ func (s *LogicalVolumeService) UpdateSpecSize(ctx context.Context, volumeID stri
 		if lv.Annotations == nil {
 			lv.Annotations = make(map[string]string)
 		}
-		lv.Annotations[topolvm.ResizeRequestedAtKey] = time.Now().UTC().String()
+		lv.Annotations[topolvm.GetResizeRequestedAtKey()] = time.Now().UTC().String()
 
 		if err := s.writer.Update(ctx, lv); err != nil {
 			if apierrors.IsConflict(err) {

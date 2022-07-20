@@ -56,7 +56,7 @@ func commonBeforeEach() CleanupContext {
 	cc.LvmCount, err = countLVMs()
 	ExpectWithOffset(1, err).ShouldNot(HaveOccurred())
 
-	cc.CapacityAnnotations, err = getNodeAnnotationMapWithPrefix(topolvm.CapacityKeyPrefix)
+	cc.CapacityAnnotations, err = getNodeAnnotationMapWithPrefix(topolvm.GetCapacityKeyPrefix())
 	ExpectWithOffset(1, err).ShouldNot(HaveOccurred())
 
 	return cc
@@ -78,7 +78,7 @@ func commonAfterEach(cc CleanupContext) {
 				return fmt.Errorf("stdout=%s, stderr=%s", stdout, stderr)
 			}
 
-			capacitiesAfter, err := getNodeAnnotationMapWithPrefix(topolvm.CapacityKeyPrefix)
+			capacitiesAfter, err := getNodeAnnotationMapWithPrefix(topolvm.GetCapacityKeyPrefix())
 			if err != nil {
 				return err
 			}

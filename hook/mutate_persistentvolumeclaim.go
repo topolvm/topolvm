@@ -59,16 +59,16 @@ func (m *persistentVolumeClaimMutator) Handle(ctx context.Context, req admission
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
-	if sc.Provisioner != topolvm.PluginName {
+	if sc.Provisioner != topolvm.GetPluginName() {
 		return admission.Allowed("no request for TopoLVM")
 	}
 
-	if controllerutil.ContainsFinalizer(pvc, topolvm.PVCFinalizer) {
+	if controllerutil.ContainsFinalizer(pvc, topolvm.GetPVCFinalizer()) {
 		return admission.Allowed("already added finalizer")
 	}
 
 	pvcPatch := pvc.DeepCopy()
-	pvcPatch.Finalizers = append(pvcPatch.Finalizers, topolvm.PVCFinalizer)
+	pvcPatch.Finalizers = append(pvcPatch.Finalizers, topolvm.GetPVCFinalizer())
 	marshaled, err := json.Marshal(pvcPatch)
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)

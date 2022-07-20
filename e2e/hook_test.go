@@ -25,7 +25,7 @@ var hookGenericEphemeralVolumeYAML []byte
 
 func hasTopoLVMFinalizer(pvc *corev1.PersistentVolumeClaim) bool {
 	for _, fin := range pvc.Finalizers {
-		if fin == topolvm.PVCFinalizer {
+		if fin == topolvm.GetPVCFinalizer() {
 			return true
 		}
 	}
@@ -81,16 +81,16 @@ func testHook() {
 			}
 
 			resources := pod.Spec.Containers[0].Resources
-			_, ok := resources.Limits[topolvm.CapacityResource]
+			_, ok := resources.Limits[topolvm.GetCapacityResource()]
 			if !ok {
 				return errors.New("resources.Limits is not mutated")
 			}
-			_, ok = resources.Requests[topolvm.CapacityResource]
+			_, ok = resources.Requests[topolvm.GetCapacityResource()]
 			if !ok {
 				return errors.New("resources.Requests is not mutated")
 			}
 
-			capacity, ok := pod.Annotations[topolvm.CapacityKeyPrefix+"ssd"]
+			capacity, ok := pod.Annotations[topolvm.GetCapacityKeyPrefix()+"ssd"]
 			if !ok {
 				return errors.New("not annotated")
 			}
@@ -139,16 +139,16 @@ func testHook() {
 			}
 
 			resources := pod.Spec.Containers[0].Resources
-			_, ok := resources.Limits[topolvm.CapacityResource]
+			_, ok := resources.Limits[topolvm.GetCapacityResource()]
 			if !ok {
 				return errors.New("resources.Limits is not mutated")
 			}
-			_, ok = resources.Requests[topolvm.CapacityResource]
+			_, ok = resources.Requests[topolvm.GetCapacityResource()]
 			if !ok {
 				return errors.New("resources.Requests is not mutated")
 			}
 
-			capacity, ok := pod.Annotations[topolvm.CapacityKeyPrefix+"ssd"]
+			capacity, ok := pod.Annotations[topolvm.GetCapacityKeyPrefix()+"ssd"]
 			if !ok {
 				return errors.New("not annotated")
 			}

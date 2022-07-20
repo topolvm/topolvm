@@ -39,9 +39,9 @@ func TestScoreNodes(t *testing.T) {
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
-				topolvm.CapacityKeyPrefix + "ssd":  "64",
-				topolvm.CapacityKeyPrefix + "hdd1": "64",
-				topolvm.CapacityKeyPrefix + "hdd2": "64",
+				topolvm.GetCapacityKeyPrefix() + "ssd":  "64",
+				topolvm.GetCapacityKeyPrefix() + "hdd1": "64",
+				topolvm.GetCapacityKeyPrefix() + "hdd2": "64",
 			},
 		},
 	}
@@ -56,7 +56,7 @@ func TestScoreNodes(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "10.1.1.3",
 				Annotations: map[string]string{
-					topolvm.CapacityKeyPrefix + "ssd": "foo",
+					topolvm.GetCapacityKeyPrefix() + "ssd": "foo",
 				},
 			},
 		},
