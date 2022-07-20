@@ -412,7 +412,7 @@ func testE2E() {
 			}).Should(Succeed())
 
 			By("confirming that the logical volume was scheduled onto the node with max capacity")
-			stdout, stderr, err = kubectl("get", "-n", "topolvm-system", "logicalvolumes.topolvm.io", volumeName, "-o", "json")
+			stdout, stderr, err = kubectl("get", "-n", "topolvm-system", "logicalvolumes", volumeName, "-o", "json")
 			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 			var lv topolvmv1.LogicalVolume
@@ -457,7 +457,7 @@ func testE2E() {
 		}).Should(Succeed())
 
 		By("getting node name of which volume is created")
-		stdout, stderr, err = kubectl("get", "-n", "topolvm-system", "logicalvolumes.topolvm.io", volumeName, "-o", "json")
+		stdout, stderr, err = kubectl("get", "-n", "topolvm-system", "logicalvolumes", volumeName, "-o", "json")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		var lv topolvmv1.LogicalVolume
@@ -864,7 +864,7 @@ func waitCreatingPodWithPVC(podName, ns string) (string, error) {
 }
 
 func checkLVIsRegisteredInLVM(volName string) error {
-	stdout, stderr, err := kubectl("get", "logicalvolumes.topolvm.io", "-n", "topolvm-system", volName, "-o=template", "--template={{.metadata.uid}}")
+	stdout, stderr, err := kubectl("get", "logicalvolumes", "-n", "topolvm-system", volName, "-o=template", "--template={{.metadata.uid}}")
 	if err != nil {
 		return fmt.Errorf("err=%v, stdout=%s, stderr=%s", err, stdout, stderr)
 	}

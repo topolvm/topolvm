@@ -50,7 +50,7 @@ func testLVCreateOptions() {
 			}
 			volumeName := strings.TrimSpace(string(stdout))
 
-			stdout, stderr, err = kubectl("get", "logicalvolumes.topolvm.io", "-n", "topolvm-system", volumeName, "-o=template", "--template={{.metadata.uid}}")
+			stdout, stderr, err = kubectl("get", "logicalvolumes", "-n", "topolvm-system", volumeName, "-o=template", "--template={{.metadata.uid}}")
 			if err != nil {
 				return fmt.Errorf("failed to get logicalvolume. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
 			}
