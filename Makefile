@@ -44,6 +44,23 @@ PROTOC_GEN_GO_GRPC_VERSION := $(shell awk '/google.golang.org\/grpc\/cmd\/protoc
 SHELL = /bin/bash
 .SHELLFLAGS = -e -o pipefail -c
 
+define CRD_TEMPLATE
+{{ if .Values.useLegacyName }}{{ else }}
+%s
+{{ end }}
+
+endef
+export CRD_TEMPLATE
+
+define LEGACY_CRD_TEMPLATE
+{{ if .Values.useLegacyName }}
+%s
+{{ end }}
+
+endef
+export LEGACY_CRD_TEMPLATE
+
+
 ##@ General
 
 # The help target prints out all targets with their descriptions organized
@@ -88,19 +105,24 @@ PROTOBUF_GEN = csi/csi.pb.go csi/csi_grpc.pb.go \
 	lvmd/proto/lvmd.pb.go lvmd/proto/lvmd_grpc.pb.go docs/lvmd-protocol.md
 
 .PHONY: manifests
-manifests: ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+manifests: generate-legacy-api ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) \
 		crd:crdVersions=v1 \
 		rbac:roleName=topolvm-controller \
 		webhook \
 		paths="./api/...;./controllers;./hook;./driver/k8s;./pkg/..." \
 		output:crd:artifacts:config=config/crd/bases
-	$(BINDIR)/yq eval 'del(.status)' config/crd/bases/topolvm.io_logicalvolumes.yaml > charts/topolvm/crds/topolvm.io_logicalvolumes.yaml
-	$(BINDIR)/yq eval 'del(.status)' config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml > charts/topolvm/crds/topolvm.cybozu.com_logicalvolumes.yaml
+	$(BINDIR)/yq eval 'del(.status)' config/crd/bases/topolvm.io_logicalvolumes.yaml | xargs -d"	" printf "$$CRD_TEMPLATE" > charts/topolvm/templates/crds/topolvm.io_logicalvolumes.yaml
+	$(BINDIR)/yq eval 'del(.status)' config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml | xargs -d"	" printf "$$LEGACY_CRD_TEMPLATE" > charts/topolvm/templates/crds/topolvm.cybozu.com_logicalvolumes.yaml
 
 .PHONY: generate
 generate: $(PROTOBUF_GEN) ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="./hack/boilerplate.go.txt" paths="./api/..."
+
+.PHONY: generate
+generate-legacy-api: ## Generate legacy api code.
+	cp -r api/v1/* api/legacy/v1
+	sed -i -e 's/topolvm.io/topolvm.cybozu.com/g' api/legacy/v1/groupversion_info.go
 
 .PHONY: check-uncommitted
 check-uncommitted: ## Check if latest generated artifacts are committed.

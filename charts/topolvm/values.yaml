@@ -1,3 +1,6 @@
+# useLegacyName -- If true, using the legacy plugin name (topolvm.cybozy.com).
+useLegacyName: false
+
 image:
   # image.repository -- TopoLVM image repository to use.
   repository: ghcr.io/topolvm/topolvm-with-sidecar
@@ -437,7 +440,6 @@ controller:
 storageClasses:
   - name: topolvm-provisioner  # Defines name of storage classe.
     storageClass:
-      provisioner: "" # default: topolvm.io
       # Supported filesystems are: ext4, xfs, and btrfs.
       fsType: xfs
       # reclaimPolicy
