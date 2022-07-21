@@ -1,4 +1,4 @@
-domain: topolvm.io
+domain: io
 layout:
 - go.kubebuilder.io/v3
 projectName: topolvm
@@ -7,7 +7,7 @@ resources:
 - api:
     crdVersion: v1
   controller: true
-  domain: topolvm.io
+  domain: io
   group: topolvm
   kind: LogicalVolume
   path: github.com/topolvm/topolvm/api/v1
