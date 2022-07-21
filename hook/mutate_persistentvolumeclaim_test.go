@@ -22,14 +22,12 @@ func setupMutatePVCResources() {
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
-func createPVC(sc string, pvcName string) {
+func createPVC(sc *string, pvcName string) {
 	pvc := &corev1.PersistentVolumeClaim{}
 	pvc.Namespace = mutatePVCNamespace
 	pvc.Name = pvcName
 	pvc.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-	if sc != "" {
-		pvc.Spec.StorageClassName = strPtr(sc)
-	}
+	pvc.Spec.StorageClassName = sc
 	pvc.Spec.Resources.Requests = corev1.ResourceList{
 		"storage": *resource.NewQuantity(10<<30, resource.DecimalSI),
 	}
@@ -57,18 +55,27 @@ func hasTopoLVMFinalizer(pvc *corev1.PersistentVolumeClaim) bool {
 }
 
 var _ = Describe("pvc mutation webhook", func() {
-	It("should not have topolvm.io/pvc finalizer when not specified storageclass", func() {
-		pvcName := "empty-storageclass-pvc"
-		createPVC("", pvcName)
+	It("should not have topolvm.io/pvc finalizer when no storageclass specified", func() {
+		pvcName := "no-storageclass-pvc"
+		createPVC(nil, pvcName)
 		pvc, err := getPVC(pvcName)
 		Expect(err).ShouldNot(HaveOccurred())
 		hasFinalizer := hasTopoLVMFinalizer(pvc)
-		Expect(hasFinalizer).Should(Equal(false), "finalizer should not be set for storageclass=%s", hostLocalStorageClassName)
+		Expect(hasFinalizer).Should(Equal(false), "finalizer should not be set when no storageclass specified")
+	})
+
+	It("should not have topolvm.io/pvc finalizer when storageClassName is empty string", func() {
+		pvcName := "empty-storageclass-pvc"
+		createPVC(strPtr(emptyStorageClassName), pvcName)
+		pvc, err := getPVC(pvcName)
+		Expect(err).ShouldNot(HaveOccurred())
+		hasFinalizer := hasTopoLVMFinalizer(pvc)
+		Expect(hasFinalizer).Should(Equal(false), "finalizer should not be set for storageclass=%s", emptyStorageClassName)
 	})
 
 	It("should not have topolvm.io/pvc finalizer when the specified StorageClass does not exist", func() {
 		pvcName := "unexists-storageclass-pvc"
-		createPVC(missingStorageClassName, pvcName)
+		createPVC(strPtr(missingStorageClassName), pvcName)
 		pvc, err := getPVC(pvcName)
 		Expect(err).ShouldNot(HaveOccurred())
 		hasFinalizer := hasTopoLVMFinalizer(pvc)
@@ -77,7 +84,7 @@ var _ = Describe("pvc mutation webhook", func() {
 
 	It("should not have topolvm.io/pvc finalizer with storageclass host-local", func() {
 		pvcName := "host-local-pvc"
-		createPVC(hostLocalStorageClassName, pvcName)
+		createPVC(strPtr(hostLocalStorageClassName), pvcName)
 		pvc, err := getPVC(pvcName)
 		Expect(err).ShouldNot(HaveOccurred())
 		hasFinalizer := hasTopoLVMFinalizer(pvc)
@@ -86,7 +93,7 @@ var _ = Describe("pvc mutation webhook", func() {
 
 	It("should have topolvm.io/pvc finalizer with storageclass topolvm-provisioner", func() {
 		pvcName := "topolvm-provisioner-pvc"
-		createPVC(topolvmProvisionerStorageClassName, pvcName)
+		createPVC(strPtr(topolvmProvisionerStorageClassName), pvcName)
 		pvc, err := getPVC(pvcName)
 		Expect(err).ShouldNot(HaveOccurred())
 		hasFinalizer := hasTopoLVMFinalizer(pvc)
@@ -95,7 +102,7 @@ var _ = Describe("pvc mutation webhook", func() {
 
 	It("should have topolvm.io/pvc finalizer with storageclass topolvm-provisioner-immediate", func() {
 		pvcName := "topolvm-provisioner-immediate-pvc"
-		createPVC(topolvmProvisionerImmediateStorageClassName, pvcName)
+		createPVC(strPtr(topolvmProvisionerImmediateStorageClassName), pvcName)
 		pvc, err := getPVC(pvcName)
 		Expect(err).ShouldNot(HaveOccurred())
 		hasFinalizer := hasTopoLVMFinalizer(pvc)

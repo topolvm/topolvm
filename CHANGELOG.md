@@ -7,6 +7,40 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.14.1] - 2022-07-05
+
+### Fixed
+
+- mount: remove new UUID generation (#522)
+
+### Contributors
+
+- @Yuggupta27
+
+## [0.14.0] - 2022-07-04
+
+### Added
+
+- Add support to create PVC-PVC Clones for thin volumes (#498)
+- automate adding items to project (#504)
+- Update github-actions automatically (#505)
+- Add Nithya Balachandran as a reviewer (#506)
+
+### Changed
+
+- Removed: Inline Ephemeral Volume (#494)
+  - **BREAKING**: Inline Ephemeral Volume is no longer supported.
+- example: wait for topolvm controller mutating webhook to become ready (#500)
+- update how to maintain sidecar's RBAC (#508)
+- example: retry applying sample pods and pvcs manifest (#509)
+- Remove setup-python (#510)
+- Remove inline ephemeral volume logic (#519)
+
+### Contributors
+
+- @bells17
+- @Yuggupta27
+
 ## [0.13.0] - 2022-06-20
 
 ### Added
@@ -499,7 +533,9 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.13.0...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.14.1...HEAD
+[0.14.1]: https://github.com/topolvm/topolvm/compare/v0.14.0...v0.14.1
+[0.14.0]: https://github.com/topolvm/topolvm/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/topolvm/topolvm/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/topolvm/topolvm/compare/v0.11.1...v0.12.0
 [0.11.1]: https://github.com/topolvm/topolvm/compare/v0.11.0...v0.11.1
