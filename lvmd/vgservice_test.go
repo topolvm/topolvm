@@ -10,6 +10,7 @@ import (
 
 	"github.com/topolvm/topolvm/lvmd/command"
 	"github.com/topolvm/topolvm/lvmd/proto"
+	"github.com/topolvm/topolvm/lvmd/testutils"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -404,24 +405,24 @@ func TestVGService(t *testing.T) {
 	}
 
 	vgName := "test_vgservice"
-	loop1, err := MakeLoopbackDevice(vgName + "1")
+	loop1, err := testutils.MakeLoopbackDevice(vgName + "1")
 	if err != nil {
 		t.Fatal(err)
 	}
-	loop2, err := MakeLoopbackDevice(vgName + "2")
+	loop2, err := testutils.MakeLoopbackDevice(vgName + "2")
 	if err != nil {
 		t.Fatal(err)
 	}
-	loop3, err := MakeLoopbackDevice(vgName + "3")
+	loop3, err := testutils.MakeLoopbackDevice(vgName + "3")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = MakeLoopbackVG(vgName, loop1, loop2, loop3)
+	err = testutils.MakeLoopbackVG(vgName, loop1, loop2, loop3)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer CleanLoopbackVG(vgName, []string{loop1, loop2, loop3}, []string{vgName + "1", vgName + "2", vgName + "3"})
+	defer testutils.CleanLoopbackVG(vgName, []string{loop1, loop2, loop3}, []string{vgName + "1", vgName + "2", vgName + "3"})
 
 	vg, err := command.FindVolumeGroup(vgName)
 	if err != nil {

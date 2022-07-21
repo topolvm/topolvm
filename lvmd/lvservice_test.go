@@ -8,6 +8,7 @@ import (
 
 	"github.com/topolvm/topolvm/lvmd/command"
 	"github.com/topolvm/topolvm/lvmd/proto"
+	"github.com/topolvm/topolvm/lvmd/testutils"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -19,16 +20,16 @@ func TestLVService(t *testing.T) {
 	}
 
 	vgName := "test_lvservice"
-	loop, err := MakeLoopbackDevice(vgName)
+	loop, err := testutils.MakeLoopbackDevice(vgName)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = MakeLoopbackVG(vgName, loop)
+	err = testutils.MakeLoopbackVG(vgName, loop)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer CleanLoopbackVG(vgName, []string{loop}, []string{vgName})
+	defer testutils.CleanLoopbackVG(vgName, []string{loop}, []string{vgName})
 
 	vg, err := command.FindVolumeGroup(vgName)
 	if err != nil {
