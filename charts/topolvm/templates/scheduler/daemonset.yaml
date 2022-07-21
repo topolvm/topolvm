@@ -45,6 +45,11 @@ spec:
           command:
             - /topolvm-scheduler
             - --config=/etc/topolvm/scheduler-options.yaml
+          {{ if .Values.useLegacyName }}
+          env:
+            - name: USE_LEGACY_PLUGIN_NAME
+              value: "true"
+          {{ end }}
           livenessProbe:
             httpGet:
               host: {{ .Values.scheduler.options.listen.host }}

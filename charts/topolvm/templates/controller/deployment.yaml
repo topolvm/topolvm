@@ -42,6 +42,11 @@ spec:
             {{- if .Values.controller.nodeFinalize.skipped }}
             - --skip-node-finalize
             {{- end }}
+          {{ if .Values.useLegacyName }}
+          env:
+            - name: USE_LEGACY_PLUGIN_NAME
+              value: "true"
+          {{ end }}
           ports:
             - containerPort: 9443
               name: webhook

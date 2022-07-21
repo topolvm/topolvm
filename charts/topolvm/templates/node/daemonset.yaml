@@ -62,6 +62,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            {{ if .Values.useLegacyName }}
+            - name: USE_LEGACY_PLUGIN_NAME
+              value: "true"
+            {{ end }}
           volumeMounts:
             {{- if .Values.node.volumeMounts.topolvmNode }}
             {{- toYaml .Values.node.volumeMounts.topolvmNode | nindent 12 }}
