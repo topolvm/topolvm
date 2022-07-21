@@ -90,16 +90,19 @@ manifests: ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefin
 		paths="./api/...;./controllers;./hook;./driver/k8s;./pkg/..." \
 		output:crd:artifacts:config=config/crd/bases
 
-.PHONY: generate
-generate: $(PROTOBUF_GEN) ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+.PHONY: generate-api ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+generate-api: 
 	$(CONTROLLER_GEN) object:headerFile="./hack/boilerplate.go.txt" paths="./api/..."
 
-.PHONY: check-uncommitted
-check-uncommitted: ## Check if latest generated artifacts are committed.
-	$(MAKE) manifests
-	find . -name "*.pb.go" -delete
-	$(MAKE) generate
+.PHONY: generate-helm-docs
+generate-helm-docs:
 	./bin/helm-docs -c charts/topolvm/
+
+.PHONY: generate
+generate: $(PROTOBUF_GEN) manifests generate-api generate-helm-docs
+
+.PHONY: check-uncommitted
+check-uncommitted: generate ## Check if latest generated artifacts are committed.
 	git diff --exit-code --name-only
 
 .PHONY: lint
