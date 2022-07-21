@@ -49,7 +49,7 @@ func testCleanup() {
 			for _, node := range nodes.Items {
 				topolvmFinalize := false
 				for _, fn := range node.Finalizers {
-					if fn == topolvm.NodeFinalizer {
+					if fn == topolvm.GetNodeFinalizer() {
 						topolvmFinalize = true
 					}
 				}

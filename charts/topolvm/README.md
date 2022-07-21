@@ -124,13 +124,6 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | lvmd.updateStrategy | object | `{}` | Specify updateStrategy. |
 | lvmd.volumeMounts | list | `[]` | Specify volumeMounts. |
 | lvmd.volumes | list | `[]` | Specify volumes. |
-| migrator.minReadySeconds | int | `nil` | Specify minReadySeconds on the Deployment. |
-| migrator.priorityClassName | string | `nil` | Specify priorityClassName on the Deployment. |
-| migrator.replicaCount | int | `1` | Number of replicas for Deployment. |
-| migrator.resources | object | `{}` | Specify resources. |
-| migrator.securityContext.enabled | bool | `false` | Enable securityContext. |
-| migrator.terminationGracePeriodSeconds | int | `nil` | Specify terminationGracePeriodSeconds on the Deployment. |
-| migrator.updateStrategy | object | `{}` | Specify updateStrategy on the Deployment. |
 | node.kubeletWorkDirectory | string | `"/var/lib/kubelet"` | Specify the work directory of Kubelet on the host. For example, on microk8s it needs to be set to `/var/snap/microk8s/common/var/lib/kubelet` |
 | node.lvmdSocket | string | `"/run/topolvm/lvmd.sock"` | Specify the socket to be used for communication with lvmd. |
 | node.metrics.annotations | object | `{"prometheus.io/port":"metrics"}` | Annotations for Scrape used by Prometheus. |
@@ -177,6 +170,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | securityContext.runAsUser | int | `10000` | Specify runAsUser. |
 | snapshot.enabled | bool | `true` | Turn on the snapshot feature. |
 | storageClasses | list | `[{"name":"topolvm-provisioner","storageClass":{"additionalParameters":{},"allowVolumeExpansion":true,"annotations":{},"fsType":"xfs","isDefaultClass":false,"reclaimPolicy":null,"volumeBindingMode":"WaitForFirstConsumer"}}]` | Whether to create storageclass(s) ref: https://kubernetes.io/docs/concepts/storage/storage-classes/ |
+| useLegacyName | bool | `false` | If true, using the legacy plugin name (topolvm.cybozy.com). |
 | webhook.caBundle | string | `nil` | Specify the certificate to be used for AdmissionWebhook. |
 | webhook.existingCertManagerIssuer | object | `{}` | Specify the cert-manager issuer to be used for AdmissionWebhook. |
 | webhook.podMutatingWebhook.enabled | bool | `true` | Enable Pod MutatingWebhook. |
