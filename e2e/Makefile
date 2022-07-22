@@ -1,13 +1,13 @@
 # parameters
-KUBERNETES_VERSION ?= 1.23.3
+KUBERNETES_VERSION ?= 1.24.2
 TEST_SCHEDULER_MANIFEST ?= daemonset
 STORAGE_CAPACITY ?= false
 SKIP_NODE_FINALIZE ?= false
 
 ## Dependency versions
-MINIKUBE_VERSION := v1.25.1
+MINIKUBE_VERSION := v1.26.0
 CERT_MANAGER_VERSION := v1.7.0
-KUSTOMIZE_VERSION := v4.4.1
+KUSTOMIZE_VERSION := v4.5.5
 
 BINDIR := $(shell pwd)/bin
 SUDO := sudo
@@ -21,11 +21,6 @@ GINKGO := ../bin/ginkgo
 MINIKUBE_HOME = $(BINDIR)
 export MINIKUBE_HOME
 
-READ_WRITE_ONCE_POD=true
-ifeq ($(KUBERNETES_VERSION),1.21.2)
-READ_WRITE_ONCE_POD=false
-endif
-
 KIND_NODE_IMAGE=kindest/node:v$(KUBERNETES_VERSION)
 export TEST_KUBERNETES_VERSION=$(shell echo $(KUBERNETES_VERSION) | grep -o '^[0-9]*\.[0-9]*')
 
@@ -38,11 +33,7 @@ HELM_VALUES_FILE := manifests/values/storage-capacity.yaml
 endif
 
 KIND_CONFIG="topolvm-cluster.yaml"
-MINIKUBE_FEATURE_GATES=""
-ifneq ($(KUBERNETES_VERSION),1.21.2)
-KIND_CONFIG="topolvm-cluster-single-writer.yaml"
 MINIKUBE_FEATURE_GATES="ReadWriteOncePod=true"
-endif
 
 HELM_VALUES_FILE_LVMD := manifests/values/daemonset-lvmd-storage-capacity.yaml
 
@@ -52,17 +43,7 @@ else
 HELM_SKIP_NODE_FINALIZE_FLAG :=
 endif
 
-ifeq ($(KUBERNETES_VERSION),1.21.2)
-SCHEDULER_CONFIG := scheduler-config-v1beta1-$(TEST_SCHEDULER_MANIFEST).yaml
-else
-SCHEDULER_CONFIG := scheduler-config-v1beta2-$(TEST_SCHEDULER_MANIFEST).yaml
-endif
-
-ifeq ($(KUBERNETES_VERSION),1.21.2)
-SCHEDULER_DEPLOYMENT_CONFIG := scheduler-config-v1beta1-deployment.yaml
-else
-SCHEDULER_DEPLOYMENT_CONFIG := scheduler-config-v1beta2-deployment.yaml
-endif
+SCHEDULER_CONFIG := scheduler-config-$(TEST_SCHEDULER_MANIFEST).yaml
 
 GO_FILES := $(shell find .. -path ../e2e -prune -o -name '*.go' -print)
 BACKING_STORE := ./build
@@ -84,9 +65,9 @@ prepare-namespace:
 	$(KUBECTL) label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
 	$(KUBECTL) label namespace kube-system topolvm.cybozu.com/webhook=ignore
 
-.PHONY: apply-certmanager
-apply-certmanager:
-	$(KUBECTL) apply -f https://github.com/jetstack/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
+.PHONY: apply-certmanager-crds
+apply-certmanager-crds:
+	$(KUBECTL) apply -f https://github.com/cert-manager/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
 
 .PHONY: launch-kind
 launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml
@@ -166,7 +147,7 @@ stop-lvmd:
 create-cluster: topolvm.img
 	$(MAKE) shutdown-kind
 	$(MAKE) launch-kind
-	$(MAKE) apply-certmanager
+	$(MAKE) apply-certmanager-crds
 	$(MAKE) prepare-namespace
 	$(KIND) load image-archive --name=$(KIND_CLUSTER_NAME) $<
 	$(HELM) repo add jetstack https://charts.jetstack.io
@@ -177,7 +158,14 @@ create-cluster: topolvm.img
 .PHONY: test
 test: create-cluster
 	$(KUBECTL) apply -f manifests/common/
-	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) STORAGE_CAPACITY=$(STORAGE_CAPACITY) SKIP_NODE_FINALIZE=$(SKIP_NODE_FINALIZE) READ_WRITE_ONCE_POD=$(READ_WRITE_ONCE_POD) GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) -skip='snapshot' -skip='CreateSnapshot' -skip='DeleteSnapshot' -skip='source volume' --failFast -v .
+	$(SUDO) -E env \
+	PATH=${PATH} \
+	E2ETEST=1 \
+	BINDIR=$(BINDIR) \
+	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
+	SKIP_NODE_FINALIZE=$(SKIP_NODE_FINALIZE) \
+	GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn \
+	$(GINKGO) -skip='snapshot' -skip='CreateSnapshot' -skip='DeleteSnapshot' -skip='source volume' --failFast -v .
 
 .PHONY: clean
 clean: stop-lvmd
@@ -257,14 +245,22 @@ daemonset-lvmd/delete-minikube:
 
 .PHONY: daemonset-lvmd/test
 daemonset-lvmd/test: topolvm.img
-	$(MAKE) apply-certmanager
+	$(MAKE) apply-certmanager-crds
 	$(MAKE) prepare-namespace
 	$(HELM) repo add jetstack https://charts.jetstack.io
 	$(HELM) repo update
 	$(HELM) dependency build ../charts/topolvm/
 	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE_LVMD) $(HELM_SKIP_NODE_FINALIZE_FLAG)
 	$(KUBECTL) apply -f manifests/common/
-	$(SUDO) -E env PATH=${PATH} E2ETEST=1 BINDIR=$(BINDIR) STORAGE_CAPACITY=$(STORAGE_CAPACITY) SKIP_NODE_FINALIZE=$(SKIP_NODE_FINALIZE) READ_WRITE_ONCE_POD=$(READ_WRITE_ONCE_POD) DAEMONSET_LVMD=true GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn $(GINKGO) -skip='snapshot' -skip='CreateSnapshot' -skip='DeleteSnapshot'  -skip='source volume' --failFast -v .
+	$(SUDO) -E env \
+	PATH=${PATH} \
+	E2ETEST=1 \
+	BINDIR=$(BINDIR) \
+	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
+	SKIP_NODE_FINALIZE=$(SKIP_NODE_FINALIZE) \
+	DAEMONSET_LVMD=true \
+	GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn \
+	$(GINKGO) -skip='snapshot' -skip='CreateSnapshot' -skip='DeleteSnapshot'  -skip='source volume' --failFast -v .
 
 .PHONY: daemonset-lvmd/clean
 daemonset-lvmd/clean: daemonset-lvmd/delete-minikube daemonset-lvmd/remove-vg

@@ -88,10 +88,6 @@ func skipIfDaemonsetLvmd() {
 	}
 }
 
-func isReadWriteOncePod() bool {
-	return os.Getenv("READ_WRITE_ONCE_POD") == "true"
-}
-
 func getDaemonsetLvmdNodeName() string {
 	stdout, stderr, err := kubectl("get", "nodes", "-o=json")
 	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)

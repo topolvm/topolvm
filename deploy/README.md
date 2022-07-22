@@ -318,11 +318,11 @@ And then copy the [deploy/scheduler-config](./scheduler-config) directory to the
 If you are installing your cluster from scratch with `kubeadm`, you can use the following configuration:
 
 ```yaml
-apiVersion: kubeadm.k8s.io/v1beta2
+apiVersion: kubeadm.k8s.io/v1beta3
 kind: ClusterConfiguration
 metadata:
   name: config
-kubernetesVersion: v1.23.3
+kubernetesVersion: v1.24.2
 scheduler:
   extraVolumes:
     - name: "config"

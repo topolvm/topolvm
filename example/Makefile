@@ -1,5 +1,5 @@
-KUBERNETES_VERSION := 1.23.3
-HELM_VERSION := 3.8.0
+KUBERNETES_VERSION := 1.24.2
+HELM_VERSION := 3.9.0
 TOPOLVM_VERSION := 0.14.1
 CERT_MANAGER_VERSION := v1.7.0
 
@@ -35,7 +35,7 @@ run:
 		$(MAKE) build/topolvm.img; \
 		$(KIND) load image-archive --name=$(KIND_CLUSTER_NAME) build/topolvm.img; \
 	fi
-	$(KUBECTL) apply -f https://github.com/jetstack/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
+	$(KUBECTL) apply -f https://github.com/cert-manager/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
 	$(KUBECTL) create namespace topolvm-system
 	$(KUBECTL) label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
 	$(KUBECTL) label namespace kube-system topolvm.cybozu.com/webhook=ignore

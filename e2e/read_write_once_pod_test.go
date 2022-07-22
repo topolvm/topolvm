@@ -33,11 +33,6 @@ func testReadWriteOncePod() {
 	})
 
 	It("should not schedule pods if the pods will use the PVC that is already used from another pod and an access mode of the PVC is ReadWriteOncePod", func() {
-		if !isReadWriteOncePod() {
-			Skip("This test run when only enable the ReadWriteOncePod feature gate")
-			return
-		}
-
 		podName := "testpod-1"
 		pvcName := "testpod"
 		size := "5Gi"

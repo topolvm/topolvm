@@ -16,10 +16,12 @@ jobs:
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
+      # This version is written in `charts/topolvm/README.md`,
+      # so do not update it if not necessary.
       - name: "Install Helm"
         uses: azure/setup-helm@v3
         with:
-          version: "v3.8.0"
+          version: "v3.5.0"
 
       # Add depending repository for helm to avoid the error below.
       # `Error: no repository definition for https://charts.jetstack.io`

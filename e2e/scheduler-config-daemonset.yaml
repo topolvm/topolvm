@@ -1,11 +1,12 @@
-apiVersion: kubescheduler.config.k8s.io/v1beta1
+# TODO: migrate to v1beta3 when we drop support for Kubernetes 1.22
+apiVersion: kubescheduler.config.k8s.io/v1beta2
 kind: KubeSchedulerConfiguration
 leaderElection:
   leaderElect: true
 clientConnection:
   kubeconfig: /etc/kubernetes/scheduler.conf
 extenders:
-- urlPrefix: "http://@DEPLOYMENT_SCHEDULER_HOST@:30251"
+- urlPrefix: "http://127.0.0.1:9251"
   filterVerb: "predicate"
   prioritizeVerb: "prioritize"
   nodeCacheCapable: false
