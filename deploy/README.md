@@ -184,7 +184,7 @@ In this case, you can set the `scheduler.type=deployment` in the Helm Chart valu
 
 This way, `topolvm-scheduler` is exposed by LoadBalancer service.
 
-Then edit `urlPrefix` in [scheduler-config-v1beta1.yaml](./scheduler-config/scheduler-config-v1beta1.yaml) for K8s 1.19 or later, to specify the LoadBalancer address.
+Then edit `urlPrefix` in [scheduler-config-v1beta1.yaml](./scheduler-config/scheduler-config-v1beta2.yaml) for K8s 1.19 or later, to specify the LoadBalancer address.
 
 #### OPTIONAL: tune the node scoring
 
