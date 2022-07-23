@@ -7,6 +7,7 @@ PROTOC_VERSION=21.2
 KIND_VERSION=v0.14.0
 HELM_VERSION=3.9.0
 HELM_DOCS_VERSION=1.11.0
+YQ_VERSION=4.18.1
 GINKGO_VERSION := $(shell awk '/github.com\/onsi\/ginkgo/ {print substr($$2, 2)}' go.mod)
 
 SUDO := sudo
@@ -37,6 +38,22 @@ PROTOC_GEN_GO_GRPC_VERSION := $(shell awk '/google.golang.org\/grpc\/cmd\/protoc
 # Set the shell used to bash for better error handling.
 SHELL = /bin/bash
 .SHELLFLAGS = -e -o pipefail -c
+
+define CRD_TEMPLATE
+{{ if .Values.useLegacyName }}{{ else }}
+%s
+{{ end }}
+
+endef
+export CRD_TEMPLATE
+
+define LEGACY_CRD_TEMPLATE
+{{ if .Values.useLegacyName }}
+%s
+{{ end }}
+
+endef
+export LEGACY_CRD_TEMPLATE
 
 ##@ General
 
@@ -82,17 +99,25 @@ PROTOBUF_GEN = csi/csi.pb.go csi/csi_grpc.pb.go \
 	lvmd/proto/lvmd.pb.go lvmd/proto/lvmd_grpc.pb.go docs/lvmd-protocol.md
 
 .PHONY: manifests
-manifests: ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+manifests: generate-legacy-api ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) \
 		crd:crdVersions=v1 \
 		rbac:roleName=topolvm-controller \
 		webhook \
 		paths="./api/...;./controllers;./hook;./driver/k8s;./pkg/..." \
 		output:crd:artifacts:config=config/crd/bases
+	$(BINDIR)/yq eval 'del(.status)' config/crd/bases/topolvm.io_logicalvolumes.yaml | xargs -d"	" printf "$$CRD_TEMPLATE" > charts/topolvm/templates/crds/topolvm.io_logicalvolumes.yaml
+	$(BINDIR)/yq eval 'del(.status)' config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml | xargs -d"	" printf "$$LEGACY_CRD_TEMPLATE" > charts/topolvm/templates/crds/topolvm.cybozu.com_logicalvolumes.yaml
 
 .PHONY: generate-api ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 generate-api: 
 	$(CONTROLLER_GEN) object:headerFile="./hack/boilerplate.go.txt" paths="./api/..."
+
+.PHONY: generate-legacy-api
+generate-legacy-api: ## Generate legacy api code.
+	mkdir -p api/legacy/v1
+	cp -r api/v1/* api/legacy/v1
+	sed -i -e 's/topolvm.io/topolvm.cybozu.com/g' api/legacy/v1/groupversion_info.go
 
 .PHONY: generate-helm-docs
 generate-helm-docs:
@@ -187,6 +212,8 @@ tools: install-kind ## Install development tools.
 	GOBIN=$(BINDIR) go install github.com/norwoodj/helm-docs/cmd/helm-docs@v$(HELM_DOCS_VERSION)
 	$(CURL) https://get.helm.sh/helm-v$(HELM_VERSION)-linux-amd64.tar.gz \
 		| tar xvz -C $(BINDIR) --strip-components 1 linux-amd64/helm
+	$(CURL) https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_amd64 -o $(BINDIR)/yq \
+		&& chmod +x $(BINDIR)/yq
 
 .PHONY: setup
 setup: ## Setup local environment.

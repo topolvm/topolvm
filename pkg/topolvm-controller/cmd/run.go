@@ -107,7 +107,7 @@ func subMain() error {
 		defer cancel()
 
 		var drv storagev1.CSIDriver
-		return mgr.GetAPIReader().Get(ctx, types.NamespacedName{Name: topolvm.PluginName}, &drv)
+		return mgr.GetAPIReader().Get(ctx, types.NamespacedName{Name: topolvm.GetPluginName()}, &drv)
 	}
 	checker := runners.NewChecker(check, 1*time.Minute)
 	if err := mgr.Add(checker); err != nil {

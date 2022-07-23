@@ -86,7 +86,7 @@ func (v *volumeGetter) Get(ctx context.Context, volumeID string) (*topolvmv1.Log
 	return foundLv, nil
 }
 
-//+kubebuilder:rbac:groups=topolvm.cybozu.com,resources=logicalvolumes,verbs=get;list;watch;create;delete
+//+kubebuilder:rbac:groups=topolvm.io,resources=logicalvolumes,verbs=get;list;watch;create;delete
 //+kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch
 
 // NewLogicalVolumeService returns LogicalVolumeService.
@@ -116,10 +116,6 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, dc, name,
 	// if the create volume request has no source, proceed with regular lv creation.
 	if sourceName == "" {
 		lv = &topolvmv1.LogicalVolume{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "LogicalVolume",
-				APIVersion: "topolvm.cybozu.com/v1",
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
 			},
@@ -134,10 +130,6 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, dc, name,
 	} else {
 		// On the other hand, if a volume has a datasource, create a thin snapshot of the source volume with READ-WRITE access.
 		lv = &topolvmv1.LogicalVolume{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "LogicalVolume",
-				APIVersion: "topolvm.cybozu.com/v1",
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
 			},
@@ -226,10 +218,6 @@ func (s *LogicalVolumeService) DeleteVolume(ctx context.Context, volumeID string
 func (s *LogicalVolumeService) CreateSnapshot(ctx context.Context, node, dc, sourceVol, sname, accessType string, snapSize resource.Quantity) (string, error) {
 	logger.Info("CreateSnapshot called", "name", sname)
 	snapshotLV := &topolvmv1.LogicalVolume{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "LogicalVolume",
-			APIVersion: "topolvm.cybozu.com/v1",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: sname,
 		},
@@ -338,7 +326,7 @@ func (s *LogicalVolumeService) UpdateSpecSize(ctx context.Context, volumeID stri
 		if lv.Annotations == nil {
 			lv.Annotations = make(map[string]string)
 		}
-		lv.Annotations[topolvm.ResizeRequestedAtKey] = time.Now().UTC().String()
+		lv.Annotations[topolvm.GetResizeRequestedAtKey()] = time.Now().UTC().String()
 
 		if err := s.writer.Update(ctx, lv); err != nil {
 			if apierrors.IsConflict(err) {

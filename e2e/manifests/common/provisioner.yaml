@@ -9,44 +9,44 @@ kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: topolvm-provisioner-immediate
-provisioner: topolvm.cybozu.com
+provisioner: topolvm.io
 volumeBindingMode: Immediate
 parameters:
-  "topolvm.cybozu.com/device-class": "ssd"
+  "topolvm.io/device-class": "ssd"
 ---
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: topolvm-provisioner2
-provisioner: topolvm.cybozu.com
+provisioner: topolvm.io
 volumeBindingMode: WaitForFirstConsumer
 parameters:
-  "topolvm.cybozu.com/device-class": "hdd1"
+  "topolvm.io/device-class": "hdd1"
 ---
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: topolvm-provisioner3
-provisioner: topolvm.cybozu.com
+provisioner: topolvm.io
 volumeBindingMode: WaitForFirstConsumer
 parameters:
-  "topolvm.cybozu.com/device-class": "hdd2"
+  "topolvm.io/device-class": "hdd2"
 ---
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: topolvm-provisioner-default
-provisioner: topolvm.cybozu.com
+provisioner: topolvm.io
 volumeBindingMode: WaitForFirstConsumer
 ---
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: topolvm-provisioner-mount-option
-provisioner: topolvm.cybozu.com
+provisioner: topolvm.io
 parameters:
   "csi.storage.k8s.io/fstype": "ext4"
-  "topolvm.cybozu.com/device-class": "ssd"
+  "topolvm.io/device-class": "ssd"
 volumeBindingMode: WaitForFirstConsumer
 allowVolumeExpansion: true
 mountOptions:
@@ -56,9 +56,9 @@ kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: topolvm-provisioner-not-found-device
-provisioner: topolvm.cybozu.com
+provisioner: topolvm.io
 parameters:
-  "topolvm.cybozu.com/device-class": "not-found-device"
+  "topolvm.io/device-class": "not-found-device"
 volumeBindingMode: WaitForFirstConsumer
 allowVolumeExpansion: true
 ---
@@ -66,9 +66,9 @@ kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: topolvm-provisioner-raid
-provisioner: topolvm.cybozu.com
+provisioner: topolvm.io
 parameters:
-  "topolvm.cybozu.com/device-class": "raid"
+  "topolvm.io/device-class": "raid"
 ---
 apiVersion: v1
 kind: PersistentVolume

@@ -362,7 +362,7 @@ func testE2E() {
 					if node.Name == "topolvm-e2e-control-plane" {
 						continue
 					}
-					strCap, ok := node.Annotations[topolvm.CapacityKeyPrefix+"ssd"]
+					strCap, ok := node.Annotations[topolvm.GetCapacityKeyPrefix()+"ssd"]
 					if !ok {
 						return fmt.Errorf("capacity is not annotated: %s", node.Name)
 					}
@@ -589,7 +589,7 @@ func testE2E() {
 				continue
 			}
 
-			strCap, ok := node.Annotations[topolvm.CapacityKeyPrefix+"ssd"]
+			strCap, ok := node.Annotations[topolvm.GetCapacityKeyPrefix()+"ssd"]
 			Expect(ok).To(Equal(true), "capacity is not annotated: "+node.Name)
 			capacity, err := strconv.Atoi(strCap)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -864,7 +864,7 @@ func waitCreatingPodWithPVC(podName, ns string) (string, error) {
 }
 
 func checkLVIsRegisteredInLVM(volName string) error {
-	stdout, stderr, err := kubectl("get", "logicalvolume", "-n", "topolvm-system", volName, "-o=template", "--template={{.metadata.uid}}")
+	stdout, stderr, err := kubectl("get", "logicalvolumes", "-n", "topolvm-system", volName, "-o=template", "--template={{.metadata.uid}}")
 	if err != nil {
 		return fmt.Errorf("err=%v, stdout=%s, stderr=%s", err, stdout, stderr)
 	}

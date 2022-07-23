@@ -60,3 +60,10 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Plugin Name.
+*/}}
+{{- define "topolvm.pluginName" -}}
+{{ if .Values.useLegacyName }}topolvm.cybozu.com{{ else }}topolvm.io{{ end }}
+{{- end }} 

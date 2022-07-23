@@ -207,16 +207,16 @@ func (m *metricsExporter) updateNode(ctx context.Context, wc proto.VGService_Wat
 
 		var hasFinalizer bool
 		for _, fin := range node.Finalizers {
-			if fin == topolvm.NodeFinalizer {
+			if fin == topolvm.GetNodeFinalizer() {
 				hasFinalizer = true
 				break
 			}
 		}
 		if !hasFinalizer {
-			node2.Finalizers = append(node2.Finalizers, topolvm.NodeFinalizer)
+			node2.Finalizers = append(node2.Finalizers, topolvm.GetNodeFinalizer())
 		}
 
-		node2.Annotations[topolvm.CapacityKeyPrefix+topolvm.DefaultDeviceClassAnnotationName] = strconv.FormatUint(res.FreeBytes, 10)
+		node2.Annotations[topolvm.GetCapacityKeyPrefix()+topolvm.DefaultDeviceClassAnnotationName] = strconv.FormatUint(res.FreeBytes, 10)
 		for _, item := range res.Items {
 			var freeSize uint64
 			if item.ThinPool != nil {
@@ -224,7 +224,7 @@ func (m *metricsExporter) updateNode(ctx context.Context, wc proto.VGService_Wat
 			} else {
 				freeSize = item.FreeBytes
 			}
-			node2.Annotations[topolvm.CapacityKeyPrefix+item.DeviceClass] = strconv.FormatUint(freeSize, 10)
+			node2.Annotations[topolvm.GetCapacityKeyPrefix()+item.DeviceClass] = strconv.FormatUint(freeSize, 10)
 		}
 		if err := m.client.Patch(ctx, node2, client.MergeFrom(&node)); err != nil {
 			return err

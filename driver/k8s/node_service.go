@@ -39,7 +39,7 @@ func (s NodeService) extractCapacityFromAnnotation(node *corev1.Node, deviceClas
 	if deviceClass == topolvm.DefaultDeviceClassName {
 		deviceClass = topolvm.DefaultDeviceClassAnnotationName
 	}
-	c, ok := node.Annotations[topolvm.CapacityKeyPrefix+deviceClass]
+	c, ok := node.Annotations[topolvm.GetCapacityKeyPrefix()+deviceClass]
 	if !ok {
 		return 0, ErrDeviceClassNotFound
 	}
@@ -65,7 +65,7 @@ func (s NodeService) GetCapacityByTopologyLabel(ctx context.Context, topology, d
 	}
 
 	for _, node := range nl.Items {
-		if v, ok := node.Labels[topolvm.TopologyNodeKey]; ok {
+		if v, ok := node.Labels[topolvm.GetTopologyNodeKey()]; ok {
 			if v != topology {
 				continue
 			}

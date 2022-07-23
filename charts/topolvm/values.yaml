@@ -1,3 +1,6 @@
+# useLegacyName -- If true, using the legacy plugin name (topolvm.cybozy.com).
+useLegacyName: false
+
 image:
   # image.repository -- TopoLVM image repository to use.
   repository: ghcr.io/topolvm/topolvm-with-sidecar
@@ -283,7 +286,7 @@ node:
   #      type: Directory
   #  - name: node-plugin-dir
   #    hostPath:
-  #      path: /var/lib/kubelet/plugins/topolvm.cybozu.com/node
+  #      path: /var/lib/kubelet/plugins/topolvm.io/node
   #      type: DirectoryOrCreate
   #  - name: csi-plugin-dir
   #    hostPath:
@@ -302,7 +305,7 @@ node:
     # node.volumeMounts.topolvmNode -- Specify volumes.
     topolvmNode: []
     # - name: node-plugin-dir
-    #   mountPath: /var/lib/kubelet/plugins/topolvm.cybozu.com/node
+    #   mountPath: /var/lib/kubelet/plugins/topolvm.io/node
     # - name: csi-plugin-dir
     #   mountPath: /var/lib/kubelet/plugins/kubernetes.io/csi
     #   mountPropagation: "Bidirectional"
@@ -456,7 +459,7 @@ storageClasses:
       # enables CSI drivers to expand volumes. This feature is available for Kubernetes 1.16 and later releases.
       allowVolumeExpansion: true
       additionalParameters: {}
-      # "topolvm.cybozu.com/device-class": "ssd"
+      # "topolvm.io/device-class": "ssd"
 
 webhook:
   # webhook.caBundle -- Specify the certificate to be used for AdmissionWebhook.

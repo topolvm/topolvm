@@ -37,7 +37,7 @@ spec:
           {{- end }}
           command:
             - /topolvm-node
-            - --csi-socket={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
+            - --csi-socket={{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/csi-topolvm.sock
             - --lvmd-socket={{ .Values.node.lvmdSocket }}
           ports:
             - name: healthz
@@ -62,12 +62,16 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            {{ if .Values.useLegacyName }}
+            - name: USE_LEGACY_PLUGIN_NAME
+              value: "true"
+            {{ end }}
           volumeMounts:
             {{- if .Values.node.volumeMounts.topolvmNode }}
             {{- toYaml .Values.node.volumeMounts.topolvmNode | nindent 12 }}
             {{- else }}
             - name: node-plugin-dir
-              mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/
+              mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/
             - name: lvmd-socket-dir
               mountPath: {{ dir .Values.node.lvmdSocket }}
             - name: pod-volumes-dir
@@ -89,13 +93,13 @@ spec:
           {{- end }}
           command:
             - /csi-node-driver-registrar
-            - --csi-address={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
-            - --kubelet-registration-path={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
+            - --csi-address={{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/csi-topolvm.sock
+            - --kubelet-registration-path={{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/csi-topolvm.sock
           livenessProbe:
             exec:
               command:
               - /csi-node-driver-registrar
-              - --kubelet-registration-path={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
+              - --kubelet-registration-path={{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/csi-topolvm.sock
               - --mode=kubelet-registration-probe
             initialDelaySeconds: 3
           lifecycle:
@@ -104,10 +108,10 @@ spec:
                 command:
                 - /bin/sh
                 - -c
-                - rm -rf /registration/topolvm.cybozu.com /registration/topolvm.cybozu.com-reg.sock
+                - rm -rf /registration/{{ include "topolvm.pluginName" . }} /registration/{{ include "topolvm.pluginName" . }}-reg.sock
           volumeMounts:
             - name: node-plugin-dir
-              mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/
+              mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/
             - name: registration-dir
               mountPath: /registration
 
@@ -122,10 +126,10 @@ spec:
           {{- end }}
           command:
             - /livenessprobe
-            - --csi-address={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
+            - --csi-address={{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/csi-topolvm.sock
           volumeMounts:
             - name: node-plugin-dir
-              mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/
+              mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/
 
       volumes:
         {{- if .Values.node.volumes }}
@@ -137,7 +141,7 @@ spec:
             type: Directory
         - name: node-plugin-dir
           hostPath:
-            path: {{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node
+            path: {{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node
             type: DirectoryOrCreate
         - name: csi-plugin-dir
           hostPath:

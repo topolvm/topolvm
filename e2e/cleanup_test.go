@@ -49,7 +49,7 @@ func testCleanup() {
 			for _, node := range nodes.Items {
 				topolvmFinalize := false
 				for _, fn := range node.Finalizers {
-					if fn == topolvm.NodeFinalizer {
+					if fn == topolvm.GetNodeFinalizer() {
 						topolvmFinalize = true
 					}
 				}
@@ -130,7 +130,7 @@ func testCleanup() {
 		}
 		Expect(targetPVC).ShouldNot(BeNil())
 
-		stdout, stderr, err = kubectl("get", "logicalvolume", "-o=json")
+		stdout, stderr, err = kubectl("get", "logicalvolumes", "-o=json")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 		var logicalVolumeList topolvmv1.LogicalVolumeList
 		err = json.Unmarshal(stdout, &logicalVolumeList)
@@ -248,7 +248,7 @@ func testCleanup() {
 		By("confirming logicalvolumes are deleted")
 		Eventually(func() error {
 			for _, lv := range targetLVs {
-				_, _, err := kubectl("get", "logicalvolume", lv.Name)
+				_, _, err := kubectl("get", "logicalvolumes", lv.Name)
 				if err == nil {
 					return fmt.Errorf("logicalvolume still exists: %s", lv.Name)
 				}
@@ -263,7 +263,7 @@ func testCleanup() {
 		}
 		Eventually(func() error {
 			for _, lv := range targetLVs {
-				_, _, err := kubectl("get", "logicalvolume", lv.Name)
+				_, _, err := kubectl("get", "logicalvolumes", lv.Name)
 				if err != nil {
 					return fmt.Errorf("error getting logicalvolume (which should still exist): %s", lv.Name)
 				}

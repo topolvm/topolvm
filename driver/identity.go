@@ -32,7 +32,7 @@ type identityService struct {
 func (s identityService) GetPluginInfo(ctx context.Context, req *csi.GetPluginInfoRequest) (*csi.GetPluginInfoResponse, error) {
 	idLogger.Info("GetPluginInfo", "req", req.String())
 	return &csi.GetPluginInfoResponse{
-		Name:          topolvm.PluginName,
+		Name:          topolvm.GetPluginName(),
 		VendorVersion: topolvm.Version,
 	}, nil
 }

@@ -25,7 +25,7 @@ var hookGenericEphemeralVolumeYAML []byte
 
 func hasTopoLVMFinalizer(pvc *corev1.PersistentVolumeClaim) bool {
 	for _, fin := range pvc.Finalizers {
-		if fin == topolvm.PVCFinalizer {
+		if fin == topolvm.GetPVCFinalizer() {
 			return true
 		}
 	}
@@ -81,16 +81,16 @@ func testHook() {
 			}
 
 			resources := pod.Spec.Containers[0].Resources
-			_, ok := resources.Limits[topolvm.CapacityResource]
+			_, ok := resources.Limits[topolvm.GetCapacityResource()]
 			if !ok {
 				return errors.New("resources.Limits is not mutated")
 			}
-			_, ok = resources.Requests[topolvm.CapacityResource]
+			_, ok = resources.Requests[topolvm.GetCapacityResource()]
 			if !ok {
 				return errors.New("resources.Requests is not mutated")
 			}
 
-			capacity, ok := pod.Annotations[topolvm.CapacityKeyPrefix+"ssd"]
+			capacity, ok := pod.Annotations[topolvm.GetCapacityKeyPrefix()+"ssd"]
 			if !ok {
 				return errors.New("not annotated")
 			}
@@ -125,7 +125,7 @@ func testHook() {
 		stdout, stderr, err := kubectlWithInput(hookGenericEphemeralVolumeYAML, "-n", nsHookTest, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
-		By("checking pod is annotated with topolvm.cybozu.com/capacity")
+		By("checking pod is annotated with topolvm.io/capacity")
 		Eventually(func() error {
 			result, stderr, err := kubectl("get", "-n", nsHookTest, "pods/testhttpd", "-o=json")
 			if err != nil {
@@ -139,16 +139,16 @@ func testHook() {
 			}
 
 			resources := pod.Spec.Containers[0].Resources
-			_, ok := resources.Limits[topolvm.CapacityResource]
+			_, ok := resources.Limits[topolvm.GetCapacityResource()]
 			if !ok {
 				return errors.New("resources.Limits is not mutated")
 			}
-			_, ok = resources.Requests[topolvm.CapacityResource]
+			_, ok = resources.Requests[topolvm.GetCapacityResource()]
 			if !ok {
 				return errors.New("resources.Requests is not mutated")
 			}
 
-			capacity, ok := pod.Annotations[topolvm.CapacityKeyPrefix+"ssd"]
+			capacity, ok := pod.Annotations[topolvm.GetCapacityKeyPrefix()+"ssd"]
 			if !ok {
 				return errors.New("not annotated")
 			}

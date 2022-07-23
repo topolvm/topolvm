@@ -47,7 +47,7 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	needFinalize := false
 	for _, fin := range node.Finalizers {
-		if fin == topolvm.NodeFinalizer {
+		if fin == topolvm.GetNodeFinalizer() {
 			needFinalize = true
 			break
 		}
@@ -63,7 +63,7 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	node2 := node.DeepCopy()
 	finalizers := node2.Finalizers[:0]
 	for _, fin := range node.Finalizers {
-		if fin == topolvm.NodeFinalizer {
+		if fin == topolvm.GetNodeFinalizer() {
 			continue
 		}
 		finalizers = append(finalizers, fin)
@@ -87,7 +87,7 @@ func (r *NodeReconciler) targetStorageClasses(ctx context.Context) (map[string]b
 
 	targets := make(map[string]bool)
 	for _, sc := range scl.Items {
-		if sc.Provisioner != topolvm.PluginName {
+		if sc.Provisioner != topolvm.GetPluginName() {
 			continue
 		}
 		targets[sc.Name] = true
@@ -150,7 +150,7 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 func (r *NodeReconciler) cleanupLogicalVolume(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) error {
 	finExists := false
 	for _, fin := range lv.Finalizers {
-		if fin == topolvm.LogicalVolumeFinalizer {
+		if fin == topolvm.GetLogicalVolumeFinalizer() {
 			finExists = true
 			break
 		}
@@ -160,7 +160,7 @@ func (r *NodeReconciler) cleanupLogicalVolume(ctx context.Context, log logr.Logg
 		lv2 := lv.DeepCopy()
 		var finalizers []string
 		for _, fin := range lv2.Finalizers {
-			if fin == topolvm.LogicalVolumeFinalizer {
+			if fin == topolvm.GetLogicalVolumeFinalizer() {
 				continue
 			}
 			finalizers = append(finalizers, fin)

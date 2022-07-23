@@ -132,7 +132,7 @@ func checkFunc(conn *grpc.ClientConn, r client.Reader) func() error {
 		}
 
 		var drv storagev1.CSIDriver
-		return r.Get(ctx, types.NamespacedName{Name: topolvm.PluginName}, &drv)
+		return r.Get(ctx, types.NamespacedName{Name: topolvm.GetPluginName()}, &drv)
 	}
 }
 

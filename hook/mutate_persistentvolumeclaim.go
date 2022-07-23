@@ -32,7 +32,7 @@ func PVCMutator(r client.Reader, apiReader client.Reader, dec *admission.Decoder
 	}
 }
 
-//+kubebuilder:webhook:failurePolicy=fail,matchPolicy=equivalent,groups=core,resources=persistentvolumeclaims,verbs=create,versions=v1,name=pvc-hook.topolvm.cybozu.com,path=/pvc/mutate,mutating=true,sideEffects=none,admissionReviewVersions={v1,v1beta1}
+//+kubebuilder:webhook:failurePolicy=fail,matchPolicy=equivalent,groups=core,resources=persistentvolumeclaims,verbs=create,versions=v1,name=pvc-hook.topolvm.io,path=/pvc/mutate,mutating=true,sideEffects=none,admissionReviewVersions={v1,v1beta1}
 //+kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=get;list;watch
 
 // Handle implements admission.Handler interface.
@@ -66,16 +66,16 @@ func (m *persistentVolumeClaimMutator) Handle(ctx context.Context, req admission
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
-	if sc.Provisioner != topolvm.PluginName {
+	if sc.Provisioner != topolvm.GetPluginName() {
 		return admission.Allowed("no request for TopoLVM")
 	}
 
-	if controllerutil.ContainsFinalizer(pvc, topolvm.PVCFinalizer) {
+	if controllerutil.ContainsFinalizer(pvc, topolvm.GetPVCFinalizer()) {
 		return admission.Allowed("already added finalizer")
 	}
 
 	pvcPatch := pvc.DeepCopy()
-	pvcPatch.Finalizers = append(pvcPatch.Finalizers, topolvm.PVCFinalizer)
+	pvcPatch.Finalizers = append(pvcPatch.Finalizers, topolvm.GetPVCFinalizer())
 	marshaled, err := json.Marshal(pvcPatch)
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
