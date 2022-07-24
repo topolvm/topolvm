@@ -44,6 +44,7 @@ run:
 	$(HELM) dependency build ../charts/topolvm/
 	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f ./values.yaml
 	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/topolvm-controller
+	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system -l="app.kubernetes.io/component=controller,app.kubernetes.io/name=topolvm" pod
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system certificate/topolvm-mutatingwebhook
 	timeout 120 sh -c "until $(KUBECTL) apply -f podpvc.yaml; do sleep 10; done"
 	$(KUBECTL) wait --for=condition=ready --timeout=60s -n default pod -l app=example
@@ -60,7 +61,7 @@ setup: $(KUBECTL)
 clean: stop-lvmd
 	rm -rf bin/ build/
 
-$(TMPDIR)/scheduler/scheduler-config.yaml: ../deploy/scheduler-config/scheduler-config-v1beta2.yaml
+$(TMPDIR)/scheduler/scheduler-config.yaml: ../deploy/scheduler-config/scheduler-config.yaml
 	mkdir -p $(TMPDIR)/scheduler
 	cp $< $@
 
