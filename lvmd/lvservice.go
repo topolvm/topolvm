@@ -140,15 +140,7 @@ func (s *lvService) RemoveLV(_ context.Context, req *proto.RemoveLVRequest) (*pr
 	}
 	// ListVolumes on VolumeGroup or ThinPool returns ThinLogicalVolumes as well
 	// and no special handling for removal of LogicalVolume is needed
-	lvs, err := vg.ListVolumes()
-	if err != nil {
-		log.Error("failed to list volumes", map[string]interface{}{
-			log.FnError: err,
-		})
-		return nil, status.Error(codes.Internal, err.Error())
-	}
-
-	for _, lv := range lvs {
+	for _, lv := range vg.ListVolumes() {
 		if lv.Name() != req.GetName() {
 			continue
 		}

@@ -3,12 +3,9 @@ package command
 import (
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/cybozu-go/log"
@@ -43,6 +40,8 @@ func wrapExecCommand(cmd string, args ...string) *exec.Cmd {
 func CallLVM(cmd string, args ...string) error {
 	args = append([]string{cmd}, args...)
 	c := wrapExecCommand(lvm, args...)
+	c.Env = os.Environ()
+	c.Env = append(c.Env, "LC_ALL=C")
 	log.Info("invoking LVM command", map[string]interface{}{
 		"args": args,
 	})
@@ -53,117 +52,41 @@ func CallLVM(cmd string, args ...string) error {
 // LVInfo is a map of lv attributes to values.
 type LVInfo map[string]string
 
-func parseOneLine(line string) LVInfo {
-	ret := LVInfo{}
-	line = strings.TrimSpace(line)
-	for _, token := range strings.Split(line, " ") {
-		if len(token) == 0 {
-			continue
-		}
-		// assume token is "k=v"
-		kv := strings.Split(token, "=")
-		k, v := kv[0], kv[1]
-		// k[5:] removes "LVM2_" prefix.
-		k = strings.ToLower(k[5:])
-		// assume v is 'some-value'
-		v = strings.Trim(v, "'")
-		ret[k] = v
-	}
-	return ret
-}
-
-// parseLines parses output from lvm.
-func parseLines(output string) []LVInfo {
-	ret := []LVInfo{}
-	lines := strings.Split(string(output), "\n")
-	for _, line := range lines {
-		if len(line) == 0 {
-			continue
-		}
-		info := parseOneLine(line)
-		ret = append(ret, info)
-	}
-	return ret
-}
-
-// parseOutput calls lvm family and parses output from it.
-//
-// cmd is a command name of lvm family.
-// fields are comma separated field names.
-// args is optional arguments for lvm command.
-func parseOutput(cmd, fields string, args ...string) ([]LVInfo, error) {
-	arg := []string{
-		cmd, "-o", fields,
-		"--noheadings", "--separator= ",
-		"--units=b", "--nosuffix",
-		"--unbuffered", "--nameprefixes",
-	}
-	arg = append(arg, args...)
-	c := wrapExecCommand(lvm, arg...)
-	c.Stderr = os.Stderr
-	stdout, err := c.StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-	if err := c.Start(); err != nil {
-		return nil, err
-	}
-	out, err := io.ReadAll(stdout)
-	if err != nil {
-		return nil, err
-	}
-	if err := c.Wait(); err != nil {
-		return nil, err
-	}
-	return parseLines(string(out)), nil
-}
-
 // VolumeGroup represents a volume group of linux lvm.
 type VolumeGroup struct {
-	name string
+	state vg
+	lvs   []lv
+}
+
+func (g *VolumeGroup) Update() error {
+	vgs, lvs, err := getLVMState()
+	if err != nil {
+		return err
+	}
+	for _, vg := range vgs {
+		if vg.name == g.Name() {
+			g.state = vg
+			break
+		}
+	}
+
+	g.lvs = filter_lv(g.Name(), lvs)
+	return nil
 }
 
 // Name returns the volume group name.
 func (g *VolumeGroup) Name() string {
-	return g.name
+	return g.state.name
 }
 
 // Size returns the capacity of the volume group in bytes.
 func (g *VolumeGroup) Size() (uint64, error) {
-	infoList, err := parseOutput("vgs", "vg_size", g.name)
-	if err != nil {
-		return 0, err
-	}
-
-	if len(infoList) != 1 {
-		return 0, errors.New("volume group not found: " + g.name)
-	}
-
-	info := infoList[0]
-	vgSize, err := strconv.ParseUint(info["vg_size"], 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	return vgSize, nil
+	return g.state.size, nil
 }
 
 // Free returns the free space of the volume group in bytes.
 func (g *VolumeGroup) Free() (uint64, error) {
-	infoList, err := parseOutput("vgs", "vg_free", g.name)
-	if err != nil {
-		return 0, err
-	}
-
-	if len(infoList) != 1 {
-		return 0, errors.New("volume group not found: " + g.name)
-	}
-
-	info := infoList[0]
-	vgFree, err := strconv.ParseUint(info["vg_free"], 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	return vgFree, nil
+	return g.state.free, nil
 }
 
 // CreateVolumeGroup calls "vgcreate" to create a volume group.
@@ -191,26 +114,42 @@ func FindVolumeGroup(name string) (*VolumeGroup, error) {
 	return nil, ErrNotFound
 }
 
+func SearchVolumeGroupList(vgs []*VolumeGroup, name string) (*VolumeGroup, error) {
+	for _, vg := range vgs {
+		if vg.state.name == name {
+			return vg, nil
+		}
+	}
+	return nil, ErrNotFound
+}
+
+func filter_lv(vg_name string, lvs []lv) []lv {
+	var filtered []lv
+	for _, l := range lvs {
+		if l.vgName == vg_name {
+			filtered = append(filtered, l)
+		}
+	}
+	return filtered
+}
+
 // ListVolumeGroups lists all volume groups.
 func ListVolumeGroups() ([]*VolumeGroup, error) {
-	infoList, err := parseOutput("vgs", "vg_name")
+	vgs, lvs, err := getLVMState()
 	if err != nil {
 		return nil, err
 	}
+
 	groups := []*VolumeGroup{}
-	for _, info := range infoList {
-		groups = append(groups, &VolumeGroup{info["vg_name"]})
+	for _, vg := range vgs {
+		groups = append(groups, &VolumeGroup{vg, filter_lv(vg.name, lvs)})
 	}
 	return groups, nil
 }
 
 // FindVolume finds a named logical volume in this volume group.
 func (g *VolumeGroup) FindVolume(name string) (*LogicalVolume, error) {
-	volumes, err := g.ListVolumes()
-	if err != nil {
-		return nil, err
-	}
-	for _, volume := range volumes {
+	for _, volume := range g.ListVolumes() {
 		if volume.Name() == name {
 			return volume, nil
 		}
@@ -219,61 +158,42 @@ func (g *VolumeGroup) FindVolume(name string) (*LogicalVolume, error) {
 }
 
 // ListVolumes lists all logical volumes in this volume group.
-func (g *VolumeGroup) ListVolumes() ([]*LogicalVolume, error) {
-	infoList, err := parseOutput(
-		"lvs",
-		"lv_name,lv_path,lv_size,lv_kernel_major,lv_kernel_minor,origin,origin_size,pool_lv,thin_count,lv_tags",
-		g.Name())
-	if err != nil {
-		return nil, err
-	}
+func (g *VolumeGroup) ListVolumes() []*LogicalVolume {
 	var ret []*LogicalVolume
-	lvNameSet := make(map[string]struct{})
-	for _, info := range infoList {
-		if len(info["thin_count"]) > 0 {
-			continue
-		}
-		// Avoid listing duplicate LVs divided with segments
-		if _, ok := lvNameSet[info["lv_name"]]; ok {
-			continue
-		}
-		lvNameSet[info["lv_name"]] = struct{}{}
-		size, err := strconv.ParseUint(info["lv_size"], 10, 64)
-		if err != nil {
-			return nil, err
-		}
-		var origin *string
-		if len(info["origin"]) > 0 {
-			originName := info["origin"]
-			origin = &originName
-		}
-		var pool *string
-		if len(info["pool_lv"]) > 0 {
-			poolLv := info["pool_lv"]
-			pool = &poolLv
-		}
-		if origin != nil && pool == nil {
-			// this volume is a snapshot, but not a thin volume.
-			size, err = strconv.ParseUint(info["origin_size"], 10, 64)
-			if err != nil {
-				return nil, err
+
+	for i, lv := range g.lvs {
+		if !lv.isThinPool() {
+			size := lv.size
+
+			var origin *string
+			if len(lv.origin) > 0 {
+				origin = &g.lvs[i].origin
 			}
+
+			var pool *string
+			if len(lv.poolLV) > 0 {
+				pool = &g.lvs[i].poolLV
+			}
+
+			if origin != nil && pool == nil {
+				// this volume is a snapshot, but not a thin volume.
+				size = lv.originSize
+			}
+
+			ret = append(ret, newLogicalVolume(
+				lv.name,
+				lv.path,
+				g,
+				size,
+				origin,
+				pool,
+				uint32(lv.major),
+				uint32(lv.minor),
+				lv.tags,
+			))
 		}
-		major, _ := strconv.ParseUint(info["lv_kernel_major"], 10, 32)
-		minor, _ := strconv.ParseUint(info["lv_kernel_minor"], 10, 32)
-		ret = append(ret, newLogicalVolume(
-			info["lv_name"],
-			info["lv_path"],
-			g,
-			size,
-			origin,
-			pool,
-			uint32(major),
-			uint32(minor),
-			strings.Split(info["lv_tags"], ","),
-		))
 	}
-	return ret, nil
+	return ret
 }
 
 // CreateVolume creates logical volume in this volume group.
@@ -300,16 +220,16 @@ func (g *VolumeGroup) CreateVolume(name string, size uint64, tags []string, stri
 	if err := CallLVM("lvcreate", lvcreateArgs...); err != nil {
 		return nil, err
 	}
+	if err := g.Update(); err != nil {
+		return nil, err
+	}
+
 	return g.FindVolume(name)
 }
 
 // FindPool finds a named thin pool in this volume group.
 func (g *VolumeGroup) FindPool(name string) (*ThinPool, error) {
-	pools, err := g.ListPools()
-	if err != nil {
-		return nil, err
-	}
-	for _, pool := range pools {
+	for _, pool := range g.ListPools() {
 		if pool.Name() == name {
 			return pool, nil
 		}
@@ -318,23 +238,14 @@ func (g *VolumeGroup) FindPool(name string) (*ThinPool, error) {
 }
 
 // ListPools lists all thin pool volumes in this volume group.
-func (g *VolumeGroup) ListPools() ([]*ThinPool, error) {
-	infoList, err := parseOutput("lvs", "lv_name,lv_size,thin_count", g.Name())
-	if err != nil {
-		return nil, err
-	}
+func (g *VolumeGroup) ListPools() []*ThinPool {
 	ret := []*ThinPool{}
-	for _, info := range infoList {
-		if len(info["thin_count"]) == 0 {
-			continue
+	for _, lv := range g.lvs {
+		if lv.isThinPool() {
+			ret = append(ret, newThinPool(lv.name, g, lv))
 		}
-		lvSize, err := strconv.ParseUint(info["lv_size"], 10, 64)
-		if err != nil {
-			return nil, err
-		}
-		ret = append(ret, newThinPool(info["lv_name"], g, lvSize))
 	}
-	return ret, nil
+	return ret
 }
 
 // CreatePool creates a pool for thin-provisioning volumes.
@@ -343,15 +254,16 @@ func (g *VolumeGroup) CreatePool(name string, size uint64) (*ThinPool, error) {
 		"--size", fmt.Sprintf("%vg", size>>30)); err != nil {
 		return nil, err
 	}
+	if err := g.Update(); err != nil {
+		return nil, err
+	}
 	return g.FindPool(name)
 }
 
 // ThinPool represents a lvm thin pool.
 type ThinPool struct {
-	fullname string
-	name     string
-	vg       *VolumeGroup
-	size     uint64
+	vg    *VolumeGroup
+	state lv
 }
 
 // ThinPoolUsage holds current usage of lvm thin pool
@@ -366,24 +278,21 @@ func fullName(name string, vg *VolumeGroup) string {
 	return fmt.Sprintf("%v/%v", vg.Name(), name)
 }
 
-func newThinPool(name string, vg *VolumeGroup, size uint64) *ThinPool {
-	fullname := fullName(name, vg)
+func newThinPool(name string, vg *VolumeGroup, lvm_lv lv) *ThinPool {
 	return &ThinPool{
-		fullname,
-		name,
 		vg,
-		size,
+		lvm_lv,
 	}
 }
 
 // Name returns thin pool name.
 func (t *ThinPool) Name() string {
-	return t.name
+	return t.state.name
 }
 
 // FullName returns a VG prefixed name.
 func (t *ThinPool) FullName() string {
-	return t.fullname
+	return t.state.fullName
 }
 
 // VG returns a volume group in which the thin pool is.
@@ -393,45 +302,35 @@ func (t *ThinPool) VG() *VolumeGroup {
 
 // Size returns a size of the thin pool.
 func (t *ThinPool) Size() uint64 {
-	return t.size
+	return t.state.size
 }
 
 // Resize the thin pool capacity.
 func (t *ThinPool) Resize(newSize uint64) error {
-	if t.size == newSize {
+	if t.state.size == newSize {
 		return nil
 	}
-	if err := CallLVM("lvresize", "-f", "-L", fmt.Sprintf("%vb", newSize), t.fullname); err != nil {
+	if err := CallLVM("lvresize", "-f", "-L", fmt.Sprintf("%vb", newSize), t.state.fullName); err != nil {
 		return err
 	}
-	t.size = newSize
-	return nil
+	return t.vg.Update()
 }
 
 // ListVolumes lists all volumes in this thin pool.
-func (t *ThinPool) ListVolumes() ([]*LogicalVolume, error) {
-	volumes, err := t.vg.ListVolumes()
-	if err != nil {
-		return nil, err
-	}
+func (t *ThinPool) ListVolumes() []*LogicalVolume {
 	ret := []*LogicalVolume{}
-	for _, volume := range volumes {
-		if volume.pool != nil && *volume.pool == t.name {
+	for _, volume := range t.vg.ListVolumes() {
+		if volume.pool != nil && *volume.pool == t.state.name {
 			ret = append(ret, volume)
 		}
 	}
-	return ret, nil
+	return ret
 }
 
 // FindVolume finds a named logical volume in this thin pool
 func (t *ThinPool) FindVolume(name string) (*LogicalVolume, error) {
-	volumes, err := t.vg.ListVolumes()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, volume := range volumes {
-		if volume.name == name && volume.pool != nil && *volume.pool == t.name {
+	for _, volume := range t.vg.ListVolumes() {
+		if volume.name == name && volume.pool != nil && *volume.pool == t.state.name {
 			return volume, nil
 		}
 	}
@@ -458,6 +357,9 @@ func (t *ThinPool) CreateVolume(name string, size uint64, tags []string, stripe 
 	if err := CallLVM("lvcreate", lvcreateArgs...); err != nil {
 		return nil, err
 	}
+	if err := t.vg.Update(); err != nil {
+		return nil, err
+	}
 	return t.vg.FindVolume(name)
 }
 
@@ -465,42 +367,15 @@ func (t *ThinPool) CreateVolume(name string, size uint64, tags []string, stripe 
 // sum of virtualsizes of all thinlvs and size of thinpool
 func (t *ThinPool) Free() (*ThinPoolUsage, error) {
 	tpu := &ThinPoolUsage{}
-	infoList, err := parseOutput("lvs", "lv_size,data_percent,metadata_percent,pool_lv", "-S", fmt.Sprintf("lv_name=%s||pool_lv=%s", t.Name(), t.Name()))
-	if err != nil {
-		return nil, err
-	}
+	tpu.DataPercent = t.state.dataPercent
+	tpu.MetadataPercent = t.state.metaDataPercent
+	tpu.SizeBytes = t.state.size
 
-	if len(infoList) < 1 {
-		return nil, errors.New("thin pool not found: " + t.FullName())
-	}
-
-	var virtualSize uint64
-	for _, info := range infoList {
-		if info["pool_lv"] == "" {
-			// thin pool
-			tpu.DataPercent, err = strconv.ParseFloat(info["data_percent"], 64)
-			if err != nil {
-				return nil, err
-			}
-			tpu.MetadataPercent, err = strconv.ParseFloat(info["metadata_percent"], 64)
-			if err != nil {
-				return nil, err
-			}
-			tpu.SizeBytes, err = strconv.ParseUint(info["lv_size"], 10, 64)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			// thin lv
-			lvSize, err := strconv.ParseUint(info["lv_size"], 10, 64)
-			if err != nil {
-				return nil, err
-			}
-			virtualSize += lvSize
+	for _, l := range t.vg.lvs {
+		if l.poolLV == t.state.name {
+			tpu.VirtualBytes += l.size
 		}
 	}
-
-	tpu.VirtualBytes = virtualSize
 	return tpu, nil
 }
 
@@ -631,6 +506,11 @@ func (l *LogicalVolume) Snapshot(name string, cowSize uint64, tags []string) (*L
 		}
 
 		time.Sleep(2 * time.Second)
+
+		if err := l.vg.Update(); err != nil {
+			return nil, err
+		}
+
 		snapLV, err := l.vg.FindVolume(name)
 		if err != nil {
 			return nil, err
@@ -656,6 +536,10 @@ func (l *LogicalVolume) Snapshot(name string, cowSize uint64, tags []string) (*L
 	if err := CallLVM("lvcreate", lvcreateArgs...); err != nil {
 		return nil, err
 	}
+	if err := l.vg.Update(); err != nil {
+		return nil, err
+	}
+
 	return l.vg.FindVolume(name)
 }
 
@@ -687,13 +571,19 @@ func (l *LogicalVolume) Resize(newSize uint64) error {
 	if err := CallLVM("lvresize", "-L", fmt.Sprintf("%vb", newSize), l.fullname); err != nil {
 		return err
 	}
-	l.size = newSize
+	if err := l.vg.Update(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // Remove this volume.
 func (l *LogicalVolume) Remove() error {
-	return CallLVM("lvremove", "-f", l.path)
+	if err := CallLVM("lvremove", "-f", l.path); err != nil {
+		return err
+	}
+	return l.vg.Update()
 }
 
 // Rename this volume.

@@ -76,8 +76,15 @@ func subMain() error {
 	if err != nil {
 		return err
 	}
+
+	vgs, err := command.ListVolumeGroups()
+	if err != nil {
+		log.Error("Error while retrieving volume groups", map[string]interface{}{})
+		return err
+	}
+
 	for _, dc := range config.DeviceClasses {
-		vg, err := command.FindVolumeGroup(dc.VolumeGroup)
+		vg, err := command.SearchVolumeGroupList(vgs, dc.VolumeGroup)
 		if err != nil {
 			log.Error("Volume group not found:", map[string]interface{}{
 				"volume_group": dc.VolumeGroup,

@@ -47,7 +47,7 @@ func (s *vgService) GetLVList(_ context.Context, req *proto.GetLVListRequest) (*
 	switch dc.Type {
 	case TypeThick:
 		// thick logicalvolumes
-		lvs, err = vg.ListVolumes()
+		lvs = vg.ListVolumes()
 	case TypeThin:
 		var pool *command.ThinPool
 		pool, err = vg.FindPool(dc.ThinPoolConfig.Name)
@@ -55,18 +55,11 @@ func (s *vgService) GetLVList(_ context.Context, req *proto.GetLVListRequest) (*
 			return nil, err
 		}
 		// thin logicalvolumes
-		lvs, err = pool.ListVolumes()
+		lvs = pool.ListVolumes()
 	default:
 		// technically this block will not be hit however make sure we return error
 		// in such cases where deviceclass target is neither thick or thinpool
 		return nil, status.Error(codes.Internal, fmt.Sprintf("unsupported device class target: %s", dc.Type))
-	}
-
-	if err != nil {
-		log.Error("failed to list volumes", map[string]interface{}{
-			log.FnError: err,
-		})
-		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	vols := make([]*proto.LogicalVolume, 0, len(lvs))
@@ -158,12 +151,7 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 			return status.Error(codes.Internal, err.Error())
 		}
 
-		pools, err := vg.ListPools()
-		if err != nil {
-			return status.Error(codes.Internal, err.Error())
-		}
-
-		for _, pool := range pools {
+		for _, pool := range vg.ListPools() {
 			dc, err := s.dcManager.FindDeviceClassByThinPoolName(vg.Name(), pool.Name())
 			// we either get nil or ErrNotFound
 			if err == ErrNotFound {
