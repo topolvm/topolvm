@@ -144,7 +144,7 @@ If you are already using TopoLVM with the group name `topolvm.cybozu.com` and wa
 1. Perform the migration work for each resource as mentioned in the chapter `Changes to topolvm.io`.
 1. Please migrate while confirming that the pod using the updated resource (e.g. Persistent Volume) continues to operate without problems.
 1. If the migration of various data is successful, restart the stopped pod.
-1. Create PersistentVolume using StorageClass with the group name of `topolvm.io` set to` provisioner`  and check if mount to Pod succeeds
+1. Create PersistentVolume using StorageClass with the group name of `topolvm.io` set to` provisioner` and check if mount to Pod succeeds
 
 ## NOTE
 
