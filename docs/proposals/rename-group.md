@@ -127,7 +127,7 @@ Automatically generating the API and CRD of `topolvm.cybozu.com` based on the AP
 Since this change was released, users of TopoLVM with the group name `topolvm.cybozu.com` will need to take the following actions when upgrading the helm chart.
 
 - Set the `.Values.useLegacyName `variable to` true` in `values.yaml` in the helm chart
-- If there is a part of the `values.yaml` in the helm chart that uses the string `topolvm.cybozu.com`, change it to` topolvm.io`
+- If there is a part of the `values.yaml` in the helm chart that uses the string `topolvm.cybozu.com`, change it to `topolvm.io`
 
 If you upgrade the helm chart without taking above actions, it is possible that TopoLVM related resources will be deleted.
 
