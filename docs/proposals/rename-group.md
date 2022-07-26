@@ -137,9 +137,9 @@ If you are already using TopoLVM with the group name `topolvm.cybozu.com` and wa
 
 1. Avoid booting pods using TopoLVM volumes during migration
 1. Temporarily stop the following pods:
-  - topolvm-controller
-  - topolvm-node
-  - topolvm-scheduler
+   - topolvm-controller
+   - topolvm-node
+   - topolvm-scheduler
 1. Manually install the CRD for `topolvm.io`
 1. Perform the migration work for each resource as mentioned in the chapter `Changes to topolvm.io`.
 1. Please migrate while confirming that the pod using the updated resource (e.g. Persistent Volume) continues to operate without problems.
