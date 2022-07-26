@@ -120,7 +120,7 @@ If you are going to set the following variables, you may need to set them approp
 
 #### Automatic generation for API and CRD
 
-Automatically generating the API and CRD of `topolvm.cybozu.com` based on the API and CRD of` topolvm.io`.
+Automatically generating the API and CRD of `topolvm.cybozu.com` based on the API and CRD of `topolvm.io`.
 
 ### Things to be done by users of topolvm.cybozu.com for upgrading the helm chart
 
