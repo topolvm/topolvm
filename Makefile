@@ -40,7 +40,7 @@ SHELL = /bin/bash
 .SHELLFLAGS = -e -o pipefail -c
 
 define CRD_TEMPLATE
-{{ if .Values.useLegacyName }}{{ else }}
+{{ if not .Values.useLegacyName }}
 %s
 {{ end }}
 
