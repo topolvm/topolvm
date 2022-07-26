@@ -109,7 +109,7 @@ We will make the following changes to allow users to continue to use `topolvm.cy
 
 #### Group name setting in helm chart
 
-Add the `.Values.useLegacyName` variable to the helm chart and set this variable to` true` to set the installation manifest to use `topolvm.cybozu.com`.
+Add the `.Values.useLegacyName` variable to the helm chart and set this variable to `true` to set the installation manifest to use `topolvm.cybozu.com`.
 If the `.Values.useLegacyName` variable is not set to` true`, the group name will be `topolvm.io`.
 
 If you have set the following variables, you may need to set them appropriately to use `topolvm.io` or` topolvm.cybozu.com` in the variables.
