@@ -29,6 +29,7 @@ func GetCapacityResource() corev1.ResourceName {
 	return corev1.ResourceName(fmt.Sprintf("%s/capacity", GetPluginName()))
 }
 
+// TopologyNodeKey returns the key of topology that represents node name.
 func GetTopologyNodeKey() string {
 	return fmt.Sprintf("topology.%s/node", GetPluginName())
 }
