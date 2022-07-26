@@ -6,7 +6,8 @@ Change `topolvm.cybozu.com` used in the CRD and plugin name of TopoLVM to `topol
 
 ## Motivation
 
-TODO
+We thinking donate the TopoLVM project to CNCF in the future.
+That's why we'll remove the strings that "cybozy.com" from your project.
 
 ### Goals
 
