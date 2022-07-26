@@ -96,7 +96,7 @@ Modify each PersistentVolume resource in TopoLVM as follows:
 - Change the value of the `.spec.csi.driver` field to` topolvm.io`
 - Change the string `topolvm.cybozu.com` in the value of the `.spec.csi.volumeAttributes ["storage.kubernetes.io/csiProvisionerIdentity "]` field to` topolvm.io`
 
-**Since it is not possible to change the above fields of the PersistentVolume resource, it is necessary to recreate the resource when migrating the group name. Also, if `.spec.persistentVolumeReclaimPolicy = Delete` is set, there is a risk of deleting the actual LVM volume, so it is recommended to temporarily change it to` Retain` and then delete it.**
+**Since it is not possible to change the above fields of the PersistentVolume resource, it is necessary to recreate the resource when migrating the group name. Also, if `.spec.persistentVolumeReclaimPolicy = Delete` is set, there is a risk of deleting the actual LVM volume, so it is recommended to temporarily change it to `Retain` and then delete it.**
 
 ### Enable the use of topolvm.cybozu.com
 
