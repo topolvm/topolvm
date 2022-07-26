@@ -2,7 +2,7 @@
 
 ## Summary
 
-Change topolvm.cybozu.com used in the CRD and plugin name of TopoLVM to topolvm.io.
+Change `topolvm.cybozu.com` used in the CRD and plugin name of TopoLVM to `topolvm.io`.
 
 ## Motivation
 
