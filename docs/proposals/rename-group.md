@@ -105,7 +105,7 @@ We will make the following changes to allow users to continue to use `topolvm.cy
 #### Addition of group name setting function
 
 - If you set the `USE_LEGACY_PLUGIN_NAME` environment variable, the group name `topolvm.cybozu.com` will be used
-- If the `USE_LEGACY_PLUGIN_NAME` environment variable is not set, the group name` topolvm.io` will be used
+- If the `USE_LEGACY_PLUGIN_NAME` environment variable is not set, the group name `topolvm.io` will be used
 
 #### Group name setting in helm chart
 
