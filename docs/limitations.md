@@ -38,12 +38,6 @@ The LVM snapshots are required to be provisioned on the same node as the source 
 
 Note: Currently, support for snapshot creation is available only for thinly-provisioned volumes.
 
-CSI ephemeral volumes may leave orphaned logical volumes
--------------------------
-
-The logical volume created by CSI ephemeral volumes may be left behind by restarting the node.
-This problem is because the kubelet on the restarted node may fail to remove the logical volume through the CSI driver when pods are removed.
-
 Use lvcreate-options at your own risk
 -------------------------------------------
 
