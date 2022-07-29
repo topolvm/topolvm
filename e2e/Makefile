@@ -140,6 +140,14 @@ start-lvmd:
 			$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_4 | cut -d: -f1); \
 	done
 
+	# Create thin-p Volume Groups and thinpool
+	for i in $$(seq 3); do \
+		truncate --size=5G $(BACKING_STORE)/backing_store$${i}_5; \
+		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$${i}_5; \
+		$(SUDO) vgcreate -y node$${i}-myvg4 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_5 | cut -d: -f1); \
+		$(SUDO) lvcreate -T -n pool0 -L 4G node$${i}-myvg4; \
+	done
+
 	for i in $$(seq 3); do \
 		$(SUDO) systemd-run --unit=lvmd$$i.service $(shell pwd)/build/lvmd --config=$(shell pwd)/lvmd$$i.yaml; \
 	done
@@ -149,11 +157,11 @@ stop-lvmd:
 	$(MAKE) shutdown-kind
 	for i in $$(seq 3); do \
 		if systemctl is-active -q lvmd$$i.service; then $(SUDO) systemctl stop lvmd$$i.service; fi; \
-		for j in $$(seq 4); do \
-			# We have only 3 VGs per node, but 4 PVs, since node{i}-myvg3 uses both \
+		for j in $$(seq 5); do \
+			# We have only 4 VGs per node, but 5 PVs, since node{i}-myvg3 uses both \
 			# backing_store{i}_3 and backing_store{i}_4. \
 			# I.e. there is no node{i}-myvg4. \
-			if [ "$${j}" -ne 4 ]; then \
+			if [ "$${j}" -ne 5 ]; then \
 				$(SUDO) vgremove -ffy node$${i}-myvg$${j}; \
 			fi; \
 			$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_$${j} | cut -d: -f1); \
@@ -217,13 +225,20 @@ daemonset-lvmd/create-vg:
 	$(SUDO) vgcreate -y node-myvg4 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_4 | cut -d: -f1) \
 		$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_5 | cut -d: -f1)
 
+	# Create Volume Group for thinpool
+	truncate --size=5G $(BACKING_STORE)/backing_store_lvmd_6
+	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_6
+	$(SUDO) vgcreate -y node-myvg5 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_6 | cut -d: -f1)
+	$(SUDO) lvcreate -T -n pool0 -L 4G node-myvg5
+
+
 .PHONY: daemonset-lvmd/remove-vg
 daemonset-lvmd/remove-vg:
-	for i in $$(seq 5); do \
-		# We have only 4 VGs, but 5 PVs, since node-myvg4 uses both \
+	for i in $$(seq 6); do \
+		# We have only 5 VGs, but 6 PVs, since node-myvg4 uses both \
 		# backing_store_lvmd_4 and backing_store_lvmd_5. \
 		# I.e. there is no node-myvg5. \
-		if [ "$${i}" -ne 5 ]; then \
+		if [ "$${i}" -ne 6 ]; then \
 			$(SUDO) vgremove -ffy node-myvg$${i}; \
 		fi; \
 		$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_$${i} | cut -d: -f1); \
