@@ -184,7 +184,7 @@ In this case, you can set the `scheduler.type=deployment` in the Helm Chart valu
 
 This way, `topolvm-scheduler` is exposed by LoadBalancer service.
 
-Then edit `urlPrefix` in [scheduler-config-v1beta1.yaml](./scheduler-config/scheduler-config-v1beta2.yaml) for K8s 1.19 or later, to specify the LoadBalancer address.
+Then edit `urlPrefix` in [scheduler-config-v1beta2.yaml](./scheduler-config/scheduler-config-v1beta2.yaml), to specify the LoadBalancer address.
 
 #### OPTIONAL: tune the node scoring
 
@@ -205,7 +205,7 @@ divisors:
   hdd: 10
 ```
 
-Besides, the scoring weight can be passed to kube-scheduler via [scheduler-config-v1beta1.yaml](./scheduler-config/scheduler-config-v1beta1.yaml). Almost all scoring algorithms in kube-scheduler are weighted as `"weight": 1`. So if you want to give a priority to the scoring by `topolvm-scheduler`, you have to set the weight as a value larger than one like as follows:
+Besides, the scoring weight can be passed to kube-scheduler via [scheduler-config-v1beta2.yaml](./scheduler-config/scheduler-config-v1beta2.yaml). Almost all scoring algorithms in kube-scheduler are weighted as `"weight": 1`. So if you want to give a priority to the scoring by `topolvm-scheduler`, you have to set the weight as a value larger than one like as follows:
 
 ```yaml
 apiVersion: kubescheduler.config.k8s.io/v1beta2
@@ -308,7 +308,7 @@ helm upgrade --namespace=topolvm-system -f values.yaml -i topolvm topolvm/topolv
 First you need to choose an appropriate `KubeSchedulerConfiguration` YAML file according to your Kubernetes version.
 
 ```console
-cp ./deploy/scheduler-config/scheduler-config-v1beta1.yaml ./deploy/scheduler-config/scheduler-config.yaml
+cp ./deploy/scheduler-config/scheduler-config-v1beta2.yaml ./deploy/scheduler-config/scheduler-config.yaml
 ```
 
 And then copy the [deploy/scheduler-config](./scheduler-config) directory to the hosts where `kube-scheduler`s run.
