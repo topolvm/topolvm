@@ -21,15 +21,6 @@ var podWithPVCYAML []byte
 //go:embed testdata/hook/generic-ephemeral-volume.yaml
 var hookGenericEphemeralVolumeYAML []byte
 
-func hasTopoLVMFinalizer(pvc *corev1.PersistentVolumeClaim) bool {
-	for _, fin := range pvc.Finalizers {
-		if fin == topolvm.PVCFinalizer {
-			return true
-		}
-	}
-	return false
-}
-
 func testHook() {
 	var cc CleanupContext
 	BeforeEach(func() {
@@ -91,19 +82,6 @@ func testHook() {
 
 			return nil
 		}).Should(Succeed())
-
-		By("checking pvc has TopoLVM finalizer")
-		result, stderr, err := kubectl("get", "-n", nsHookTest, "pvc", "-o=json")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", result, stderr)
-
-		var pvcList corev1.PersistentVolumeClaimList
-		err = json.Unmarshal(result, &pvcList)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		for _, pvc := range pvcList.Items {
-			hasFinalizer := hasTopoLVMFinalizer(&pvc)
-			Expect(hasFinalizer).Should(Equal(true), "finalizer is not set: pvc=%s", pvc.Name)
-		}
 	})
 
 	It("should test hooks for generic ephemeral volumes", func() {

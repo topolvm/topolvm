@@ -173,7 +173,6 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | webhook.caBundle | string | `nil` | Specify the certificate to be used for AdmissionWebhook. |
 | webhook.existingCertManagerIssuer | object | `{}` | Specify the cert-manager issuer to be used for AdmissionWebhook. |
 | webhook.podMutatingWebhook.enabled | bool | `true` | Enable Pod MutatingWebhook. |
-| webhook.pvcMutatingWebhook.enabled | bool | `true` | Enable PVC MutatingWebhook. |
 
 ## Generate Manifests
 
