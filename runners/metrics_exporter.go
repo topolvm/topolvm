@@ -42,9 +42,10 @@ type NodeMetrics struct {
 
 // thinPoolMetricsExporter is the subset of metricsExporter corresponding to the deviceclass target
 type thinPoolMetricsExporter struct {
-	tpSizeBytes     *prometheus.GaugeVec
-	dataPercent     *prometheus.GaugeVec
-	metadataPercent *prometheus.GaugeVec
+	tpSizeBytes      *prometheus.GaugeVec
+	dataPercent      *prometheus.GaugeVec
+	metadataPercent  *prometheus.GaugeVec
+	opAvailableBytes *prometheus.GaugeVec
 }
 
 type metricsExporter struct {
@@ -109,6 +110,15 @@ func NewMetricsExporter(conn *grpc.ClientConn, mgr manager.Manager, nodeName str
 	}, []string{"device_class"})
 	metrics.Registry.MustRegister(metadataPercent)
 
+	opAvailableBytes := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace:   metricsNamespace,
+		Subsystem:   "thinpool",
+		Name:        "overprovisioned_available",
+		Help:        "LVM VG Thin Pool bytes available with overprovisioning",
+		ConstLabels: prometheus.Labels{"node": nodeName},
+	}, []string{"device_class"})
+	metrics.Registry.MustRegister(opAvailableBytes)
+
 	return &metricsExporter{
 		client:         mgr.GetClient(),
 		nodeName:       nodeName,
@@ -116,9 +126,10 @@ func NewMetricsExporter(conn *grpc.ClientConn, mgr manager.Manager, nodeName str
 		availableBytes: availableBytes,
 		sizeBytes:      sizeBytes,
 		thinPool: &thinPoolMetricsExporter{
-			tpSizeBytes:     tpSizeBytes,
-			dataPercent:     dataPercent,
-			metadataPercent: metadataPercent,
+			tpSizeBytes:      tpSizeBytes,
+			dataPercent:      dataPercent,
+			metadataPercent:  metadataPercent,
+			opAvailableBytes: opAvailableBytes,
 		},
 	}
 }
@@ -142,6 +153,7 @@ func (m *metricsExporter) Start(ctx context.Context) error {
 					m.thinPool.tpSizeBytes.WithLabelValues(met.DeviceClass).Set(float64(met.ThinPoolSizeBytes))
 					m.thinPool.dataPercent.WithLabelValues(met.DeviceClass).Set(float64(met.DataPercent))
 					m.thinPool.metadataPercent.WithLabelValues(met.DeviceClass).Set(float64(met.MetadataPercent))
+					m.thinPool.opAvailableBytes.WithLabelValues(met.DeviceClass).Set(float64(met.OverProvisionBytes))
 				}
 			}
 		}
@@ -175,13 +187,14 @@ func (m *metricsExporter) updateNode(ctx context.Context, wc proto.VGService_Wat
 		for _, item := range res.Items {
 			if item.ThinPool != nil {
 				ch <- NodeMetrics{
-					DeviceClass:       item.DeviceClass,
-					FreeBytes:         item.FreeBytes,
-					SizeBytes:         item.SizeBytes,
-					ThinPoolSizeBytes: item.ThinPool.SizeBytes,
-					DataPercent:       item.ThinPool.DataPercent,
-					MetadataPercent:   item.ThinPool.MetadataPercent,
-					DeviceClassType:   TypeThin,
+					DeviceClass:        item.DeviceClass,
+					FreeBytes:          item.FreeBytes,
+					SizeBytes:          item.SizeBytes,
+					ThinPoolSizeBytes:  item.ThinPool.SizeBytes,
+					DataPercent:        item.ThinPool.DataPercent,
+					MetadataPercent:    item.ThinPool.MetadataPercent,
+					DeviceClassType:    TypeThin,
+					OverProvisionBytes: item.ThinPool.OverprovisionBytes,
 				}
 			} else {
 				ch <- NodeMetrics{
