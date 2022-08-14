@@ -23,6 +23,7 @@ Supported environments
 - Kubernetes: 1.24, 1.23, 1.22
 - Node OS: Linux with LVM2 (*1)
 - Filesystems: ext4, xfs, btrfs(experimental)
+- lvm version 2.02.163 or later (adds JSON output support)
 
 *1 The host's Linux Kernel must be v4.9 or later which supports `rmapbt` and `reflink`, if you use xfs filesystem with an official docker image.
 
@@ -31,7 +32,6 @@ Features
 
 - [Dynamic provisioning](https://kubernetes-csi.github.io/docs/external-provisioner.html): Volumes are created dynamically when `PersistentVolumeClaim` objects are created.
 - [Raw block volume](https://kubernetes-csi.github.io/docs/raw-block.html): Volumes are available as block devices inside containers.
-- [Ephemeral inline volume](https://kubernetes.io/docs/concepts/storage/volumes/#csi-ephemeral-volumes) (**deprecated**): Volumes can be directly embedded in the Pod specification.
 - [Topology](https://kubernetes-csi.github.io/docs/topology.html): TopoLVM uses CSI topology feature to schedule Pod to Node where LVM volume exists.
 - Extended scheduler: TopoLVM extends the general Pod scheduler to prioritize Nodes having larger storage capacity.
 - Volume metrics: Usage stats are exported as Prometheus metrics from `kubelet`.

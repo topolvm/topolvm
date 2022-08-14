@@ -472,9 +472,6 @@ webhook:
   podMutatingWebhook:
     # webhook.podMutatingWebhook.enabled -- Enable Pod MutatingWebhook.
     enabled: true
-  pvcMutatingWebhook:
-    # webhook.pvcMutatingWebhook.enabled -- Enable PVC MutatingWebhook.
-    enabled: true
 
 # Container Security Context
 # ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/

@@ -1,4 +1,4 @@
-package lvmd
+package testutils
 
 import (
 	"bytes"
@@ -42,6 +42,18 @@ func MakeLoopbackVG(name string, devices ...string) error {
 	out, err := exec.Command("vgcreate", args...).CombinedOutput()
 	if err != nil {
 		log.Error("failed to vgcreate", map[string]interface{}{
+			"output": string(out),
+		})
+		return err
+	}
+	return nil
+}
+
+func MakeLoopbackLV(name string, vg string) error {
+	args := []string{"-L1G", "-n", name, vg}
+	out, err := exec.Command("lvcreate", args...).CombinedOutput()
+	if err != nil {
+		log.Error("failed lvcreate", map[string]interface{}{
 			"output": string(out),
 		})
 		return err

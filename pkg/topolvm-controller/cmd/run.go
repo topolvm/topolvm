@@ -79,7 +79,6 @@ func subMain() error {
 	dec, _ := admission.NewDecoder(scheme)
 	wh := mgr.GetWebhookServer()
 	wh.Register("/pod/mutate", hook.PodMutator(mgr.GetClient(), mgr.GetAPIReader(), dec))
-	wh.Register("/pvc/mutate", hook.PVCMutator(mgr.GetClient(), mgr.GetAPIReader(), dec))
 
 	// register controllers
 	nodecontroller := &controllers.NodeReconciler{
@@ -92,8 +91,7 @@ func subMain() error {
 	}
 
 	pvccontroller := &controllers.PersistentVolumeClaimReconciler{
-		Client:    mgr.GetClient(),
-		APIReader: mgr.GetAPIReader(),
+		Client: mgr.GetClient(),
 	}
 	if err := pvccontroller.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PersistentVolumeClaim")

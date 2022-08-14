@@ -5,9 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
-	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -23,15 +21,6 @@ var podWithPVCYAML []byte
 //go:embed testdata/hook/generic-ephemeral-volume.yaml
 var hookGenericEphemeralVolumeYAML []byte
 
-func hasTopoLVMFinalizer(pvc *corev1.PersistentVolumeClaim) bool {
-	for _, fin := range pvc.Finalizers {
-		if fin == topolvm.GetPVCFinalizer() {
-			return true
-		}
-	}
-	return false
-}
-
 func testHook() {
 	var cc CleanupContext
 	BeforeEach(func() {
@@ -45,20 +34,13 @@ func testHook() {
 
 	It("should test hooks", func() {
 		By("creating pod with TopoLVM PVC")
-		const minVerDryRun int64 = 18
-		kubernetesVersionStr := os.Getenv("TEST_KUBERNETES_VERSION")
-		kubernetesVersion := strings.Split(kubernetesVersionStr, ".")
-		Expect(len(kubernetesVersion)).To(Equal(2))
-		kubernetesMinorVersion, err := strconv.ParseInt(kubernetesVersion[1], 10, 64)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		if kubernetesMinorVersion < minVerDryRun {
-			stdout, stderr, err := kubectlWithInput(podWithPVCYAML, "-n", nsHookTest, "apply", "-f", "-", "--server-dry-run")
-			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		} else {
+		Eventually(func() error {
 			stdout, stderr, err := kubectlWithInput(podWithPVCYAML, "-n", nsHookTest, "apply", "-f", "-", "--dry-run=server")
-			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		}
+			if err != nil {
+				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, stdout, stderr)
+			}
+			return nil
+		}).Should(Succeed())
 
 		stdout, stderr, err := kubectlWithInput(podWithPVCYAML, "-n", nsHookTest, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
@@ -100,19 +82,6 @@ func testHook() {
 
 			return nil
 		}).Should(Succeed())
-
-		By("checking pvc has TopoLVM finalizer")
-		result, stderr, err := kubectl("get", "-n", nsHookTest, "pvc", "-o=json")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", result, stderr)
-
-		var pvcList corev1.PersistentVolumeClaimList
-		err = json.Unmarshal(result, &pvcList)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		for _, pvc := range pvcList.Items {
-			hasFinalizer := hasTopoLVMFinalizer(&pvc)
-			Expect(hasFinalizer).Should(Equal(true), "finalizer is not set: pvc=%s", pvc.Name)
-		}
 	})
 
 	It("should test hooks for generic ephemeral volumes", func() {

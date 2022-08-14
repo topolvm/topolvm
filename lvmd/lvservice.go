@@ -140,15 +140,7 @@ func (s *lvService) RemoveLV(_ context.Context, req *proto.RemoveLVRequest) (*pr
 	}
 	// ListVolumes on VolumeGroup or ThinPool returns ThinLogicalVolumes as well
 	// and no special handling for removal of LogicalVolume is needed
-	lvs, err := vg.ListVolumes()
-	if err != nil {
-		log.Error("failed to list volumes", map[string]interface{}{
-			log.FnError: err,
-		})
-		return nil, status.Error(codes.Internal, err.Error())
-	}
-
-	for _, lv := range lvs {
+	for _, lv := range vg.ListVolumes() {
 		if lv.Name() != req.GetName() {
 			continue
 		}
@@ -314,14 +306,39 @@ func (s *lvService) ResizeLV(_ context.Context, req *proto.ResizeLVRequest) (*pr
 		return nil, status.Error(codes.OutOfRange, "shrinking volume size is not allowed")
 	}
 
-	free, err := vg.Free()
-	if err != nil {
-		log.Error("failed to free VG", map[string]interface{}{
-			log.FnError: err,
-			"name":      req.GetName(),
-		})
-		return nil, status.Error(codes.Internal, err.Error())
+	free := uint64(0)
+	var pool *command.ThinPool
+	switch dc.Type {
+	case TypeThick:
+		free, err = vg.Free()
+		if err != nil {
+			log.Error("failed to get free bytes", map[string]interface{}{
+				log.FnError: err,
+			})
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+	case TypeThin:
+		pool, err = vg.FindPool(dc.ThinPoolConfig.Name)
+		if err != nil {
+			log.Error("failed to get thinpool", map[string]interface{}{
+				log.FnError: err,
+			})
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+		tpu, err := pool.Free()
+		if err != nil {
+			log.Error("failed to get free bytes", map[string]interface{}{
+				log.FnError: err,
+			})
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+		free = uint64(math.Floor(dc.ThinPoolConfig.OverprovisionRatio*float64(tpu.SizeBytes))) - tpu.VirtualBytes
+	default:
+		// technically this block will not be hit however make sure we return error
+		// in such cases where deviceclass target is neither thick or thinpool
+		return nil, status.Error(codes.Internal, fmt.Sprintf("unsupported device class target: %s", dc.Type))
 	}
+
 	if free < (requested - current) {
 		log.Error("no enough space left on VG", map[string]interface{}{
 			log.FnError: err,

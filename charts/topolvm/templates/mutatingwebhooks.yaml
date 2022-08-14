@@ -1,4 +1,4 @@
-{{- if or .Values.webhook.podMutatingWebhook.enabled .Values.webhook.pvcMutatingWebhook.enabled }}
+{{- if .Values.webhook.podMutatingWebhook.enabled }}
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
@@ -11,33 +11,6 @@ metadata:
   labels:
     {{- include "topolvm.labels" . | nindent 4 }}
 webhooks:
-  {{- if .Values.webhook.pvcMutatingWebhook.enabled }}
-  - name: pvc-hook.{{ include "topolvm.pluginName" . }}
-    admissionReviewVersions:
-      - "v1"
-      - "v1beta1"
-    namespaceSelector:
-      matchExpressions:
-        - key: {{ include "topolvm.pluginName" . }}/webhook
-          operator: NotIn
-          values: ["ignore"]
-    failurePolicy: Fail
-    matchPolicy: Equivalent
-    clientConfig:
-      {{- with .Values.webhook.caBundle }}
-      caBundle: {{ . }}
-      {{- end }}
-      service:
-        namespace: {{ .Release.Namespace }}
-        name: {{ template "topolvm.fullname" . }}-controller
-        path: /pvc/mutate
-    rules:
-      - operations: ["CREATE"]
-        apiGroups: [""]
-        apiVersions: ["v1"]
-        resources: ["persistentvolumeclaims"]
-    sideEffects: None
-  {{- end }}
   {{- if .Values.webhook.podMutatingWebhook.enabled }}
   - name: pod-hook.{{ include "topolvm.pluginName" . }}
     admissionReviewVersions:

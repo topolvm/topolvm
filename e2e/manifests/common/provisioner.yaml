@@ -70,6 +70,15 @@ provisioner: topolvm.io
 parameters:
   "topolvm.io/device-class": "raid"
 ---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: topolvm-provisioner-thin
+provisioner: topolvm.cybozu.com
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  "topolvm.cybozu.com/device-class": "thin"
+---
 apiVersion: v1
 kind: PersistentVolume
 metadata:

@@ -142,9 +142,9 @@ func testNode() {
 			}
 			found = true
 
-			length := 3
+			length := 4
 			if isDaemonsetLvmdEnvSet() {
-				length = 4
+				length = 5
 			}
 			Expect(family.Metric).Should(HaveLen(length))
 
@@ -160,6 +160,11 @@ func testNode() {
 				}
 				dc := k[len(topolvm.GetCapacityKeyPrefix()):]
 				if dc == topolvm.DefaultDeviceClassAnnotationName {
+					continue
+				}
+				// The value will not match the overprovisioned capacity
+				// for thin pools.
+				if dc == "thin" {
 					continue
 				}
 				expected, err := strconv.ParseFloat(v, 64)

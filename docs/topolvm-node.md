@@ -53,6 +53,45 @@ free space in the LVM volume group in bytes.
 | `node`         | The node resource name |
 | `device_class` | The device class name. |
 
+
+### `topolvm_thinpool_data_percent`
+
+`topolvm_thinpool_data_percent` is a Gauge that indicates the data space percentage used in the LVM thinpool.
+
+| Label          | Description            |
+| -------------- | ---------------------- |
+| `node`         | The node resource name |
+| `device_class` | The device class name. |
+
+
+### `topolvm_thinpool_metadata_percent`
+
+`topolvm_thinpool_metadata_percent` is a Gauge that indicates the metadata space percentage used of the LVM thinpool.
+
+| Label          | Description            |
+| -------------- | ---------------------- |
+| `node`         | The node resource name |
+| `device_class` | The device class name. |
+
+
+### `topolvm_thinpool_size_bytes`
+
+`topolvm_thinpool_size_bytes` is a Gauge that indicates the size of the LVM thin pool in bytes.
+
+| Label          | Description            |
+| -------------- | ---------------------- |
+| `node`         | The node resource name |
+| `device_class` | The device class name. |
+
+### `topolvm_thinpool_overprovisioned_available`
+
+`topolvm_thinpool_overprovisioned_available` is a Gauge that indicates the available overprovisioned size of the LVM thin pool in bytes.
+
+| Label          | Description            |
+| -------------- | ---------------------- |
+| `node`         | The node resource name |
+| `device_class` | The device class name. |
+
 Node resource
 -------------
 
