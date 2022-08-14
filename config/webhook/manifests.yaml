@@ -15,7 +15,7 @@ webhooks:
       path: /pod/mutate
   failurePolicy: Fail
   matchPolicy: Equivalent
-  name: pod-hook.io
+  name: pod-hook.topolvm.io
   rules:
   - apiGroups:
     - ""

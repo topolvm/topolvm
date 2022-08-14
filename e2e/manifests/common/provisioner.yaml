@@ -74,10 +74,10 @@ kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: topolvm-provisioner-thin
-provisioner: topolvm.cybozu.com
+provisioner: topolvm.io
 volumeBindingMode: WaitForFirstConsumer
 parameters:
-  "topolvm.cybozu.com/device-class": "thin"
+  "topolvm.io/device-class": "thin"
 ---
 apiVersion: v1
 kind: PersistentVolume

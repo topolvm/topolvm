@@ -125,20 +125,22 @@ func (v *volumeGetter) Get(ctx context.Context, volumeID string) (*topolvmv1.Log
 // NewLogicalVolumeService returns LogicalVolumeService.
 func NewLogicalVolumeService(mgr manager.Manager) (*LogicalVolumeService, error) {
 	ctx := context.Background()
-	err := mgr.GetFieldIndexer().IndexField(ctx, &topolvmv1.LogicalVolume{}, indexFieldVolumeID,
-		func(o client.Object) []string {
-			return []string{o.(*topolvmv1.LogicalVolume).Status.VolumeID}
-		})
-	if err != nil {
-		return nil, err
-	}
-
-	err = mgr.GetFieldIndexer().IndexField(ctx, &topolvmlegacyv1.LogicalVolume{}, indexFieldVolumeID,
-		func(o client.Object) []string {
-			return []string{o.(*topolvmlegacyv1.LogicalVolume).Status.VolumeID}
-		})
-	if err != nil {
-		return nil, err
+	if topolvm.UseLegacy() {
+		err := mgr.GetFieldIndexer().IndexField(ctx, &topolvmlegacyv1.LogicalVolume{}, indexFieldVolumeID,
+			func(o client.Object) []string {
+				return []string{o.(*topolvmlegacyv1.LogicalVolume).Status.VolumeID}
+			})
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		err := mgr.GetFieldIndexer().IndexField(ctx, &topolvmv1.LogicalVolume{}, indexFieldVolumeID,
+			func(o client.Object) []string {
+				return []string{o.(*topolvmv1.LogicalVolume).Status.VolumeID}
+			})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &LogicalVolumeService{

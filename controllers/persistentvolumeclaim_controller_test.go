@@ -78,7 +78,7 @@ func newPVCWithFinalizer() *corev1.PersistentVolumeClaim {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "sample",
 			Namespace:  "test",
-			Finalizers: []string{topolvm.PVCFinalizer, "topolvm.io/finalizer1", topolvm.PVCFinalizer, topolvm.PVCFinalizer, "topolvm.io/finalizer2", topolvm.PVCFinalizer},
+			Finalizers: []string{topolvm.GetPVCFinalizer(), "topolvm.io/finalizer1", "topolvm.io/finalizer2"},
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},

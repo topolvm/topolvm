@@ -195,18 +195,20 @@ func (r *NodeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
-	err = mgr.GetFieldIndexer().IndexField(ctx, &topolvmv1.LogicalVolume{}, keyLogicalVolumeNode, func(o client.Object) []string {
-		return []string{o.(*topolvmv1.LogicalVolume).Spec.NodeName}
-	})
-	if err != nil {
-		return err
-	}
-
-	err = mgr.GetFieldIndexer().IndexField(ctx, &topolvmlegacyv1.LogicalVolume{}, keyLogicalVolumeNode, func(o client.Object) []string {
-		return []string{o.(*topolvmlegacyv1.LogicalVolume).Spec.NodeName}
-	})
-	if err != nil {
-		return err
+	if topolvm.UseLegacy() {
+		err = mgr.GetFieldIndexer().IndexField(ctx, &topolvmlegacyv1.LogicalVolume{}, keyLogicalVolumeNode, func(o client.Object) []string {
+			return []string{o.(*topolvmlegacyv1.LogicalVolume).Spec.NodeName}
+		})
+		if err != nil {
+			return err
+		}
+	} else {
+		err = mgr.GetFieldIndexer().IndexField(ctx, &topolvmv1.LogicalVolume{}, keyLogicalVolumeNode, func(o client.Object) []string {
+			return []string{o.(*topolvmv1.LogicalVolume).Spec.NodeName}
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	pred := predicate.Funcs{

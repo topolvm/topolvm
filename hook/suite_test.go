@@ -45,7 +45,6 @@ const (
 	missingStorageClassName                     = "missing-storageclass"
 
 	podMutatingWebhookPath = "/pod/mutate"
-	pvcMutatingWebhookPath = "/pvc/mutate"
 )
 
 func strPtr(s string) *string { return &s }
@@ -206,7 +205,6 @@ var _ = BeforeSuite(func() {
 	By("setting up resources")
 	setupCommonResources()
 	setupMutatePodResources()
-	setupMutatePVCResources()
 }, 60)
 
 var _ = AfterSuite(func() {
