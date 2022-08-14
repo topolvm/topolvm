@@ -7,15 +7,21 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-const pluginName = "topolvm.io"
-const legacyPluginName = "topolvm.cybozu.com"
+const (
+	pluginName       = "topolvm.io"
+	legacyPluginName = "topolvm.cybozu.com"
+)
+
+func UseLegacy() bool {
+	return os.Getenv("USE_LEGACY_PLUGIN_NAME") != ""
+}
 
 // GetPluginName returns the name of the CSI plugin.
 func GetPluginName() string {
-	if os.Getenv("USE_LEGACY_PLUGIN_NAME") == "" {
-		return pluginName
-	} else {
+	if UseLegacy() {
 		return legacyPluginName
+	} else {
+		return pluginName
 	}
 }
 

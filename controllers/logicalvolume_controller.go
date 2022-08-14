@@ -6,8 +6,10 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/topolvm/topolvm"
+	topolvmlegacyv1 "github.com/topolvm/topolvm/api/legacy/v1"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	"github.com/topolvm/topolvm/lvmd/proto"
+	logicalvolumeclient "github.com/topolvm/topolvm/util/client/logicalvolume"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -46,14 +48,13 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	log := crlog.FromContext(ctx)
 
 	lv := new(topolvmv1.LogicalVolume)
-	if err := r.Get(ctx, req.NamespacedName, lv); err != nil {
+	if err := logicalvolumeclient.Get(ctx, r, req.NamespacedName, lv); err != nil {
 		if !apierrs.IsNotFound(err) {
 			log.Error(err, "unable to fetch LogicalVolume")
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, nil
 	}
-
 	if lv.Spec.NodeName != r.nodeName {
 		log.Info("unfiltered logical value", "nodeName", lv.Spec.NodeName)
 		return ctrl.Result{}, nil
@@ -63,8 +64,10 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		if !containsString(lv.Finalizers, topolvm.GetLogicalVolumeFinalizer()) {
 			lv2 := lv.DeepCopy()
 			lv2.Finalizers = append(lv2.Finalizers, topolvm.GetLogicalVolumeFinalizer())
-			patch := client.MergeFrom(lv)
-			if err := r.Patch(ctx, lv2, patch); err != nil {
+			patchFn := func(obj client.Object) (client.Patch, error) {
+				return client.MergeFrom(obj), nil
+			}
+			if err := logicalvolumeclient.Patch(ctx, r, lv2, lv, patchFn); err != nil {
 				log.Error(err, "failed to add finalizer", "name", lv.Name)
 				return ctrl.Result{}, err
 			}
@@ -77,8 +80,10 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 				lv2.Labels = map[string]string{}
 			}
 			lv2.Labels[topolvm.CreatedbyLabelKey] = topolvm.CreatedbyLabelValue
-			patch := client.MergeFrom(lv)
-			if err := r.Patch(ctx, lv2, patch); err != nil {
+			patchFn := func(obj client.Object) (client.Patch, error) {
+				return client.MergeFrom(obj), nil
+			}
+			if err := logicalvolumeclient.Patch(ctx, r, lv2, lv, patchFn); err != nil {
 				log.Error(err, "failed to add label", "name", lv.Name)
 				return ctrl.Result{}, err
 			}
@@ -114,8 +119,10 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	lv2 := lv.DeepCopy()
 	lv2.Finalizers = removeString(lv2.Finalizers, topolvm.GetLogicalVolumeFinalizer())
-	patch := client.MergeFrom(lv)
-	if err := r.Patch(ctx, lv2, patch); err != nil {
+	patchFn := func(obj client.Object) (client.Patch, error) {
+		return client.MergeFrom(obj), nil
+	}
+	if err := logicalvolumeclient.Patch(ctx, r, lv2, lv, patchFn); err != nil {
 		log.Error(err, "failed to remove finalizer", "name", lv.Name)
 		return ctrl.Result{}, err
 	}
@@ -124,10 +131,13 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *LogicalVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&topolvmv1.LogicalVolume{}).
-		WithEventFilter(&logicalVolumeFilter{r.nodeName}).
-		Complete(r)
+	builder := ctrl.NewControllerManagedBy(mgr)
+	if topolvm.UseLegacy() {
+		builder = builder.For(&topolvmlegacyv1.LogicalVolume{})
+	} else {
+		builder = builder.For(&topolvmv1.LogicalVolume{})
+	}
+	return builder.WithEventFilter(&logicalVolumeFilter{r.nodeName}).Complete(r)
 }
 
 func (r *LogicalVolumeReconciler) removeLVIfExists(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) error {
@@ -252,14 +262,14 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 	}()
 
 	if err != nil {
-		if err2 := r.Status().Update(ctx, lv); err2 != nil {
+		if err2 := logicalvolumeclient.StatusUpdate(ctx, r, lv); err2 != nil {
 			// err2 is logged but not returned because err is more important
 			log.Error(err2, "failed to update status", "name", lv.Name, "uid", lv.UID)
 		}
 		return err
 	}
 
-	if err := r.Status().Update(ctx, lv); err != nil {
+	if err := logicalvolumeclient.StatusUpdate(ctx, r, lv); err != nil {
 		log.Error(err, "failed to update status", "name", lv.Name, "uid", lv.UID)
 		return err
 	}
@@ -300,14 +310,14 @@ func (r *LogicalVolumeReconciler) expandLV(ctx context.Context, log logr.Logger,
 	}()
 
 	if err != nil {
-		if err2 := r.Status().Update(ctx, lv); err2 != nil {
+		if err2 := logicalvolumeclient.StatusUpdate(ctx, r, lv); err2 != nil {
 			// err2 is logged but not returned because err is more important
 			log.Error(err2, "failed to update status", "name", lv.Name, "uid", lv.UID)
 		}
 		return err
 	}
 
-	if err := r.Status().Update(ctx, lv); err != nil {
+	if err := logicalvolumeclient.StatusUpdate(ctx, r, lv); err != nil {
 		log.Error(err, "failed to update status", "name", lv.Name, "uid", lv.UID)
 		return err
 	}

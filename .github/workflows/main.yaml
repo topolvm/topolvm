@@ -25,6 +25,7 @@ jobs:
       - run: make setup
       - run: make check-uncommitted
       - run: make test
+      - run: make test-env
       - run: sudo -E env PATH=${PATH} go test -count=1 -race -v ./lvmd ./driver ./filesystem
       - run: make image
 

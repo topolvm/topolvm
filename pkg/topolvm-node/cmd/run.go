@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/topolvm/topolvm"
+	topolvmlegacyv1 "github.com/topolvm/topolvm/api/legacy/v1"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	"github.com/topolvm/topolvm/controllers"
 	"github.com/topolvm/topolvm/csi"
@@ -38,6 +39,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(topolvmv1.AddToScheme(scheme))
+	utilruntime.Must(topolvmlegacyv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 

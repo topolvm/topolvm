@@ -8,8 +8,10 @@ import (
 	"time"
 
 	"github.com/topolvm/topolvm"
+	topolvmlegacyv1 "github.com/topolvm/topolvm/api/legacy/v1"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	"github.com/topolvm/topolvm/getter"
+	logicalvolumeclient "github.com/topolvm/topolvm/util/client/logicalvolume"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -29,7 +31,7 @@ type LogicalVolumeService struct {
 		client.Writer
 		client.StatusClient
 	}
-	getter       *getter.RetryMissingGetter
+	getter       getter.Interface
 	volumeGetter *volumeGetter
 	mu           sync.Mutex
 }
@@ -42,6 +44,37 @@ var (
 	logger = ctrl.Log.WithName("LogicalVolume")
 )
 
+type retryMissingGetter struct {
+	cacheReader client.Reader
+	apiReader   client.Reader
+	getter      getter.Interface
+}
+
+func newRetryMissingGetter(cacheReader client.Reader, apiReader client.Reader) *retryMissingGetter {
+	return &retryMissingGetter{
+		cacheReader: cacheReader,
+		apiReader:   apiReader,
+		getter:      getter.NewRetryMissingGetter(cacheReader, apiReader),
+	}
+}
+
+func (r *retryMissingGetter) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
+	var lv *topolvmv1.LogicalVolume
+	var ok bool
+	if lv, ok = obj.(*topolvmv1.LogicalVolume); !ok {
+		return r.getter.Get(ctx, key, obj)
+	}
+
+	err := logicalvolumeclient.Get(ctx, r.cacheReader, key, lv)
+	if err == nil {
+		return nil
+	}
+	if !apierrors.IsNotFound(err) {
+		return err
+	}
+	return logicalvolumeclient.Get(ctx, r.apiReader, key, lv)
+}
+
 // This type is a safe guard to prohibit calling List from LogicalVolumeService directly.
 type volumeGetter struct {
 	cacheReader client.Reader
@@ -52,7 +85,7 @@ type volumeGetter struct {
 // This ensures read-after-create consistency.
 func (v *volumeGetter) Get(ctx context.Context, volumeID string) (*topolvmv1.LogicalVolume, error) {
 	lvList := new(topolvmv1.LogicalVolumeList)
-	err := v.cacheReader.List(ctx, lvList, client.MatchingFields{indexFieldVolumeID: volumeID})
+	err := logicalvolumeclient.List(ctx, v.cacheReader, lvList, client.MatchingFields{indexFieldVolumeID: volumeID})
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +97,7 @@ func (v *volumeGetter) Get(ctx context.Context, volumeID string) (*topolvmv1.Log
 	}
 
 	// not found. try direct reader.
-	err = v.apiReader.List(ctx, lvList)
+	err = logicalvolumeclient.List(ctx, v.apiReader, lvList)
 	if err != nil {
 		return nil, err
 	}
@@ -100,9 +133,17 @@ func NewLogicalVolumeService(mgr manager.Manager) (*LogicalVolumeService, error)
 		return nil, err
 	}
 
+	err = mgr.GetFieldIndexer().IndexField(ctx, &topolvmlegacyv1.LogicalVolume{}, indexFieldVolumeID,
+		func(o client.Object) []string {
+			return []string{o.(*topolvmlegacyv1.LogicalVolume).Status.VolumeID}
+		})
+	if err != nil {
+		return nil, err
+	}
+
 	return &LogicalVolumeService{
 		writer:       mgr.GetClient(),
-		getter:       getter.NewRetryMissingGetter(mgr.GetClient(), mgr.GetAPIReader()),
+		getter:       newRetryMissingGetter(mgr.GetClient(), mgr.GetAPIReader()),
 		volumeGetter: &volumeGetter{cacheReader: mgr.GetClient(), apiReader: mgr.GetAPIReader()},
 	}, nil
 }
@@ -151,7 +192,7 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, dc, name,
 			return "", err
 		}
 
-		err := s.writer.Create(ctx, lv)
+		err := logicalvolumeclient.Create(ctx, s.writer, lv)
 		if err != nil {
 			return "", err
 		}
@@ -186,7 +227,7 @@ func (s *LogicalVolumeService) DeleteVolume(ctx context.Context, volumeID string
 		return err
 	}
 
-	err = s.writer.Delete(ctx, lv)
+	err = logicalvolumeclient.Delete(ctx, s.writer, lv)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil
@@ -237,7 +278,7 @@ func (s *LogicalVolumeService) CreateSnapshot(ctx context.Context, node, dc, sou
 		if !apierrors.IsNotFound(err) {
 			return "", err
 		}
-		err := s.writer.Create(ctx, snapshotLV)
+		err := logicalvolumeclient.Create(ctx, s.writer, snapshotLV)
 		if err != nil {
 			return "", err
 		}
@@ -328,7 +369,7 @@ func (s *LogicalVolumeService) UpdateSpecSize(ctx context.Context, volumeID stri
 		}
 		lv.Annotations[topolvm.GetResizeRequestedAtKey()] = time.Now().UTC().String()
 
-		if err := s.writer.Update(ctx, lv); err != nil {
+		if err := logicalvolumeclient.Update(ctx, s.writer, lv); err != nil {
 			if apierrors.IsConflict(err) {
 				logger.Info("detect conflict when LogicalVolume spec update", "name", lv.Name)
 				continue
@@ -357,7 +398,7 @@ func (s *LogicalVolumeService) UpdateCurrentSize(ctx context.Context, volumeID s
 
 		lv.Status.CurrentSize = size
 
-		if err := s.writer.Status().Update(ctx, lv); err != nil {
+		if err := logicalvolumeclient.StatusUpdate(ctx, s.writer, lv); err != nil {
 			if apierrors.IsConflict(err) {
 				logger.Info("detect conflict when LogicalVolume status update", "name", lv.Name)
 				continue
@@ -391,7 +432,7 @@ func (s *LogicalVolumeService) waitForStatusUpdate(ctx context.Context, name str
 			return newLV.Status.VolumeID, nil
 		}
 		if newLV.Status.Code != codes.OK {
-			err := s.writer.Delete(ctx, &newLV)
+			err := logicalvolumeclient.Delete(ctx, s.writer, &newLV)
 			if err != nil {
 				// log this error but do not return this error, because newLV.Status.Message is more important
 				logger.Error(err, "failed to delete LogicalVolume")
