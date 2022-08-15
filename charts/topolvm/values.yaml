@@ -1,4 +1,4 @@
-# useLegacyName -- If true, using the legacy plugin name (topolvm.cybozy.com).
+# useLegacyName -- If true, the legacy plugin name (topolvm.cybozy.com) is used.
 useLegacyName: false
 
 image:
