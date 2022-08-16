@@ -55,8 +55,7 @@ func TestLvmJSON(t *testing.T) {
 			  {}
 			]
 		  }
-		],
-		"log": []
+		]
 	  }
 	`
 	vgs, lvs, err := parseLVMJSON([]byte(goodJSON))
