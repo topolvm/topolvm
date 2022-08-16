@@ -7,6 +7,9 @@ on:
       skip_node_finalize:
         default: "false"
         type: string
+      thin_csi_sanity:
+        default: "false"
+        type: string
 
 jobs:
   e2e-k8s:
@@ -20,6 +23,7 @@ jobs:
       KUBERNETES_VERSION: ${{ matrix.kubernetes_versions }}
       TEST_SCHEDULER_MANIFEST: ${{ inputs.test_scheduler_manifest }}
       SKIP_NODE_FINALIZE: ${{ inputs.skip_node_finalize }}
+      TEST_THIN_DEVICECLASS: ${{ inputs.thin_csi_sanity }}
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v3
