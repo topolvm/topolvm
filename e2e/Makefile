@@ -3,6 +3,7 @@ KUBERNETES_VERSION ?= 1.24.2
 TEST_SCHEDULER_MANIFEST ?= daemonset
 STORAGE_CAPACITY ?= false
 SKIP_NODE_FINALIZE ?= false
+TEST_THIN_DEVICECLASS ?= false
 
 ## Dependency versions
 MINIKUBE_VERSION := v1.26.0
@@ -32,6 +33,7 @@ ifeq ($(STORAGE_CAPACITY),true)
 HELM_VALUES_FILE := manifests/values/storage-capacity.yaml
 endif
 
+
 KIND_CONFIG="topolvm-cluster.yaml"
 MINIKUBE_FEATURE_GATES="ReadWriteOncePod=true"
 
@@ -42,6 +44,13 @@ HELM_SKIP_NODE_FINALIZE_FLAG := --set controller.nodeFinalize.skipped=true
 else
 HELM_SKIP_NODE_FINALIZE_FLAG :=
 endif
+
+ifeq ($(TEST_THIN_DEVICECLASS),false)
+GINKGO_SKIP_SNAPSHOT_CSI_TESTS := -skip='snapshot' -skip='CreateSnapshot' -skip='DeleteSnapshot' -skip='source volume'
+else
+GINKGO_SKIP_SNAPSHOT_CSI_TESTS :=
+endif
+
 
 SCHEDULER_CONFIG := scheduler-config-$(TEST_SCHEDULER_MANIFEST).yaml
 
@@ -173,7 +182,8 @@ test: create-cluster
 	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
 	SKIP_NODE_FINALIZE=$(SKIP_NODE_FINALIZE) \
 	GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn \
-	$(GINKGO) -skip='snapshot' -skip='CreateSnapshot' -skip='DeleteSnapshot' -skip='source volume' --failFast -v .
+	$(GINKGO) $(GINKGO_SKIP_SNAPSHOT_CSI_TESTS) --failFast -v .
+
 
 .PHONY: clean
 clean: stop-lvmd
