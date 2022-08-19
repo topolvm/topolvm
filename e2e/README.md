@@ -58,7 +58,7 @@ Make lvm and launch Kubernetes using minikube with the following commands:
 ```console
 make daemonset-lvmd/create-vg
 make daemonset-lvmd/setup-minikube
-make daemonset-lvmd/update-minikube-setting
+make daemonset-lvmd/launch-minikube
 ```
 
 Run the tests with the following command.
