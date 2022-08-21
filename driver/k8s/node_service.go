@@ -8,7 +8,6 @@ import (
 	"github.com/topolvm/topolvm"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 // ErrNodeNotFound represents the error that node is not found.
@@ -22,8 +21,8 @@ type NodeService struct {
 }
 
 // NewNodeService returns NodeService.
-func NewNodeService(mgr manager.Manager) *NodeService {
-	return &NodeService{reader: mgr.GetClient()}
+func NewNodeService(r client.Reader) *NodeService {
+	return &NodeService{reader: r}
 }
 
 func (s NodeService) getNodes(ctx context.Context) (*corev1.NodeList, error) {

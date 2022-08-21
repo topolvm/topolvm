@@ -45,9 +45,9 @@ spec:
           command:
             - /topolvm-scheduler
             - --config=/etc/topolvm/scheduler-options.yaml
-          {{ if .Values.useLegacyName }}
+          {{ if .Values.useLegacy }}
           env:
-            - name: USE_LEGACY_PLUGIN_NAME
+            - name: USE_LEGACY
               value: "true"
           {{ end }}
           livenessProbe:

@@ -105,13 +105,13 @@ We will make the following changes to allow users to continue to use `topolvm.cy
 
 #### Addition of group name setting function
 
-- If you set the `USE_LEGACY_PLUGIN_NAME` environment variable, the group name `topolvm.cybozu.com` will be used
-- If the `USE_LEGACY_PLUGIN_NAME` environment variable is not set, the group name `topolvm.io` will be used
+- If you set the `USE_LEGACY` environment variable, the group name `topolvm.cybozu.com` will be used
+- If the `USE_LEGACY` environment variable is not set, the group name `topolvm.io` will be used
 
 #### Group name setting in helm chart
 
-Add the `.Values.useLegacyName` variable to the helm chart and set this variable to `true` to set the installation manifest to use `topolvm.cybozu.com`.
-If the `.Values.useLegacyName` variable is not set to `true`, the group name will be `topolvm.io`.
+Add the `.Values.useLegacy` variable to the helm chart and set this variable to `true` to set the installation manifest to use `topolvm.cybozu.com`.
+If the `.Values.useLegacy` variable is not set to `true`, the group name will be `topolvm.io`.
 
 If you are going to set the following variables, you may need to set them appropriately to use `topolvm.io` or `topolvm.cybozu.com` in the variables.
 
@@ -127,7 +127,7 @@ Automatically generating the API and CRD of `topolvm.cybozu.com` based on the AP
 
 Since this change was released, users of TopoLVM with the group name `topolvm.cybozu.com` will need to take the following actions when upgrading the helm chart.
 
-- Set the `.Values.useLegacyName `variable to` true` in `values.yaml` in the helm chart
+- Set the `.Values.useLegacy `variable to` true` in `values.yaml` in the helm chart
 - If there is a part of the `values.yaml` in the helm chart that uses the string `topolvm.cybozu.com`, change it to `topolvm.io`
 
 If you upgrade the helm chart without taking above actions, it is possible that TopoLVM related resources will be deleted.

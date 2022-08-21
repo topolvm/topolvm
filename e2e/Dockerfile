@@ -9,6 +9,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY tmpbin/* /
+COPY build/hypertopolvm /hypertopolvm
 
 RUN ln -sf hypertopolvm lvmd && \
 	ln -sf hypertopolvm topolvm-scheduler && \

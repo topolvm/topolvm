@@ -40,7 +40,7 @@ SHELL = /bin/bash
 .SHELLFLAGS = -e -o pipefail -c
 
 define CRD_TEMPLATE
-{{ if not .Values.useLegacyName }}
+{{ if not .Values.useLegacy }}
 %s
 {{ end }}
 
@@ -48,7 +48,7 @@ endef
 export CRD_TEMPLATE
 
 define LEGACY_CRD_TEMPLATE
-{{ if .Values.useLegacyName }}
+{{ if .Values.useLegacy }}
 %s
 {{ end }}
 
@@ -148,8 +148,8 @@ test-env: ## Run unit tests that depends on the legacy plugin.
 	go install ./...
 
 	mkdir -p $(ENVTEST_ASSETS_DIR)
-	source <($(BINDIR)/setup-envtest use $(ENVTEST_KUBERNETES_VERSION) --bin-dir=$(ENVTEST_ASSETS_DIR) -p env); GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn TEST_WITH_USE_LEGACY_PLUGIN_NAME=true go test -count=1 -race -v ./util/...
-	TEST_WITH_USE_LEGACY_PLUGIN_NAME=true go test -count=1 -race -v ./constants*.go
+	source <($(BINDIR)/setup-envtest use $(ENVTEST_KUBERNETES_VERSION) --bin-dir=$(ENVTEST_ASSETS_DIR) -p env); GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn TEST_LEGACY=true go test -count=1 -race -v ./client/*
+	TEST_LEGACY=true go test -count=1 -race -v ./constants*.go
 
 .PHONY: clean
 clean: ## Clean working directory.

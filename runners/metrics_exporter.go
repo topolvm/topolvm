@@ -61,7 +61,7 @@ var _ manager.LeaderElectionRunnable = &metricsExporter{}
 
 // NewMetricsExporter creates controller-runtime's manager.Runnable to run
 // a metrics exporter for a node.
-func NewMetricsExporter(conn *grpc.ClientConn, mgr manager.Manager, nodeName string) manager.Runnable {
+func NewMetricsExporter(conn *grpc.ClientConn, client client.Client, nodeName string) manager.Runnable {
 
 	// metrics available under volumegroup subsystem
 	availableBytes := prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -120,7 +120,7 @@ func NewMetricsExporter(conn *grpc.ClientConn, mgr manager.Manager, nodeName str
 	metrics.Registry.MustRegister(opAvailableBytes)
 
 	return &metricsExporter{
-		client:         mgr.GetClient(),
+		client:         client,
 		nodeName:       nodeName,
 		vgService:      proto.NewVGServiceClient(conn),
 		availableBytes: availableBytes,

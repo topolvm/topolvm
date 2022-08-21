@@ -9,6 +9,7 @@ import (
 	"github.com/topolvm/topolvm"
 	topolvmlegacyv1 "github.com/topolvm/topolvm/api/legacy/v1"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
+	clientwapper "github.com/topolvm/topolvm/client"
 	"github.com/topolvm/topolvm/controllers"
 	"github.com/topolvm/topolvm/csi"
 	"github.com/topolvm/topolvm/driver"
@@ -73,16 +74,18 @@ func subMain() error {
 	if err != nil {
 		return err
 	}
+	client := clientwapper.NewWrappedClient(mgr.GetClient())
+	apiReader := clientwapper.NewWrappedReader(mgr.GetAPIReader(), mgr.GetClient().Scheme())
 
 	// register webhook handlers
 	// admissoin.NewDecoder never returns non-nil error
 	dec, _ := admission.NewDecoder(scheme)
 	wh := mgr.GetWebhookServer()
-	wh.Register("/pod/mutate", hook.PodMutator(mgr.GetClient(), mgr.GetAPIReader(), dec))
+	wh.Register("/pod/mutate", hook.PodMutator(client, apiReader, dec))
 
 	// register controllers
 	nodecontroller := &controllers.NodeReconciler{
-		Client:           mgr.GetClient(),
+		Client:           client,
 		SkipNodeFinalize: config.skipNodeFinalize,
 	}
 	if err := nodecontroller.SetupWithManager(mgr); err != nil {
@@ -91,7 +94,7 @@ func subMain() error {
 	}
 
 	pvccontroller := &controllers.PersistentVolumeClaimReconciler{
-		Client: mgr.GetClient(),
+		Client: client,
 	}
 	if err := pvccontroller.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PersistentVolumeClaim")
@@ -107,7 +110,7 @@ func subMain() error {
 		defer cancel()
 
 		var drv storagev1.CSIDriver
-		return mgr.GetAPIReader().Get(ctx, types.NamespacedName{Name: topolvm.GetPluginName()}, &drv)
+		return apiReader.Get(ctx, types.NamespacedName{Name: topolvm.GetPluginName()}, &drv)
 	}
 	checker := runners.NewChecker(check, 1*time.Minute)
 	if err := mgr.Add(checker); err != nil {
@@ -119,7 +122,7 @@ func subMain() error {
 	if err != nil {
 		return err
 	}
-	n := k8s.NewNodeService(mgr)
+	n := k8s.NewNodeService(client)
 
 	grpcServer := grpc.NewServer()
 	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityService(checker.Ready))

@@ -1,3 +1,5 @@
+USE_LEGACY ?= ""
+
 KUBERNETES_VERSION := 1.24.2
 HELM_VERSION := 3.9.0
 TOPOLVM_VERSION := 0.14.1
@@ -8,7 +10,7 @@ KIND_CLUSTER_NAME := topolvm-example
 SUDO := sudo
 CURL := curl -sSLf
 BINDIR := $(shell pwd)/bin
-TMPDIR := /tmp/topolvm
+TMPDIR := /tmp/topolvm-example
 HELM := $(BINDIR)/helm
 KUBECTL := $(BINDIR)/kubectl
 KIND := ../bin/kind
@@ -17,6 +19,21 @@ GO_FILES := $(shell find .. -prune -o -path ../e2e -prune -o -name '*.go' -print
 BACKING_STORE := ./build
 
 BUILD_IMAGE := false
+
+HELM_VALUES_FILE := values.yaml
+ifneq ($(USE_LEGACY),"")
+HELM_VALUES_FILE := values_legacy.yaml
+endif
+
+SCHEDULER_CONFIG := scheduler-config.yaml
+ifneq ($(USE_LEGACY),"")
+SCHEDULER_CONFIG := scheduler-config-legacy.yaml
+endif
+
+LOGICALVOLUE_GK_NAME := logicalvolume.topolvm.io
+ifneq ($(USE_LEGACY),"")
+LOGICALVOLUE_GK_NAME := logicalvolume.topolvm.cybozu.com
+endif
 
 $(KUBECTL):
 	mkdir -p $(BINDIR)
@@ -42,12 +59,13 @@ run:
 	$(HELM) repo add jetstack https://charts.jetstack.io
 	$(HELM) repo update
 	$(HELM) dependency build ../charts/topolvm/
-	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f ./values.yaml
+	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE)
 	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/topolvm-controller
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system -l="app.kubernetes.io/component=controller,app.kubernetes.io/name=topolvm" pod
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system certificate/topolvm-mutatingwebhook
 	timeout 120 sh -c "until $(KUBECTL) apply -f podpvc.yaml; do sleep 10; done"
-	$(KUBECTL) wait --for=condition=ready --timeout=60s -n default pod -l app=example
+	$(KUBECTL) wait --for=condition=ready --timeout=120s -n default pod -l app=example || true
+	[ $$($(KUBECTL) get --no-headers=true $(LOGICALVOLUE_GK_NAME) | wc -l) -ne 0 ]
 
 setup: $(KUBECTL)
 	$(SUDO) apt-get update
@@ -59,9 +77,9 @@ setup: $(KUBECTL)
 	  | tar xvz -C $(BINDIR) --strip-components 1 linux-amd64/helm
 
 clean: stop-lvmd
-	rm -rf bin/ build/
+	rm -rf bin/ build/ $(TMPDIR)
 
-$(TMPDIR)/scheduler/scheduler-config.yaml: ../deploy/scheduler-config/scheduler-config.yaml
+$(TMPDIR)/scheduler/scheduler-config.yaml: ../deploy/scheduler-config/$(SCHEDULER_CONFIG)
 	mkdir -p $(TMPDIR)/scheduler
 	cp $< $@
 

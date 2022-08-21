@@ -62,8 +62,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            {{ if .Values.useLegacyName }}
-            - name: USE_LEGACY_PLUGIN_NAME
+            {{ if .Values.useLegacy }}
+            - name: USE_LEGACY
               value: "true"
             {{ end }}
           volumeMounts:

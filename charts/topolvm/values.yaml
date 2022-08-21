@@ -1,5 +1,5 @@
-# useLegacyName -- If true, the legacy plugin name (topolvm.cybozy.com) is used.
-useLegacyName: false
+# useLegacy -- If true, the legacy plugin name and legacy custome resource group is used(topolvm.cybozy.com).
+useLegacy: false
 
 image:
   # image.repository -- TopoLVM image repository to use.

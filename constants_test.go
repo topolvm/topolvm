@@ -18,19 +18,19 @@ func TestUseLegacy(t *testing.T) {
 		expected bool
 	}{
 		{
-			name:     "return false if USE_LEGACY_PLUGIN_NAME env value is empty",
+			name:     "return false if USE_LEGACY env value is empty",
 			envval:   "",
 			expected: false,
 		},
 		{
-			name:     "return true if USE_LEGACY_PLUGIN_NAME env value is not empty",
+			name:     "return true if USE_LEGACY env value is not empty",
 			envval:   "true",
 			expected: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			os.Setenv("USE_LEGACY_PLUGIN_NAME", tt.envval)
+			os.Setenv("USE_LEGACY", tt.envval)
 			if UseLegacy() != tt.expected {
 				t.Fatalf("return value is not %s", strconv.FormatBool(tt.expected))
 			}
@@ -46,19 +46,19 @@ func TestGetPluginName(t *testing.T) {
 		expected string
 	}{
 		{
-			name:     fmt.Sprintf("return %q if USE_LEGACY_PLUGIN_NAME env value is empty", pluginName),
+			name:     fmt.Sprintf("return %q if USE_LEGACY env value is empty", pluginName),
 			envval:   "",
 			expected: pluginName,
 		},
 		{
-			name:     fmt.Sprintf("return %q if USE_LEGACY_PLUGIN_NAME env value is not empty", legacyPluginName),
+			name:     fmt.Sprintf("return %q if USE_LEGACY env value is not empty", legacyPluginName),
 			envval:   "true",
 			expected: legacyPluginName,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			os.Setenv("USE_LEGACY_PLUGIN_NAME", tt.envval)
+			os.Setenv("USE_LEGACY", tt.envval)
 			if GetPluginName() != tt.expected {
 				t.Fatalf("return value is not %s", tt.expected)
 			}
@@ -115,19 +115,19 @@ func doContainTest(t *testing.T, f func() string) {
 		contained string
 	}{
 		{
-			name:      fmt.Sprintf("return strings containing %q if USE_LEGACY_PLUGIN_NAME env value is empty", pluginName),
+			name:      fmt.Sprintf("return strings containing %q if USE_LEGACY env value is empty", pluginName),
 			envval:    "",
 			contained: pluginName,
 		},
 		{
-			name:      fmt.Sprintf("return strings containing %q if USE_LEGACY_PLUGIN_NAME env value is not empty", legacyPluginName),
+			name:      fmt.Sprintf("return strings containing %q if USE_LEGACY env value is not empty", legacyPluginName),
 			envval:    "true",
 			contained: legacyPluginName,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			os.Setenv("USE_LEGACY_PLUGIN_NAME", tt.envval)
+			os.Setenv("USE_LEGACY", tt.envval)
 			val := f()
 			if !strings.Contains(val, tt.contained) {
 				t.Fatalf("return value %q does not contain strings: %s", val, tt.contained)

@@ -7,7 +7,6 @@ import (
 	"github.com/topolvm/topolvm"
 	topolvmlegacyv1 "github.com/topolvm/topolvm/api/legacy/v1"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
-	logicalvolumeclient "github.com/topolvm/topolvm/util/client/logicalvolume"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -133,7 +132,7 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 	}
 
 	lvList := new(topolvmv1.LogicalVolumeList)
-	err = logicalvolumeclient.List(ctx, r, lvList, client.MatchingFields{keyLogicalVolumeNode: node.Name})
+	err = r.List(ctx, lvList, client.MatchingFields{keyLogicalVolumeNode: node.Name})
 	if err != nil {
 		log.Error(err, "failed to get LogicalVolumes")
 		return ctrl.Result{}, err
@@ -167,17 +166,14 @@ func (r *NodeReconciler) cleanupLogicalVolume(ctx context.Context, log logr.Logg
 			finalizers = append(finalizers, fin)
 		}
 		lv2.Finalizers = finalizers
-
-		patchFn := func(obj client.Object) (client.Patch, error) {
-			return client.MergeFrom(obj), nil
-		}
-		if err := logicalvolumeclient.Patch(ctx, r, lv2, lv, patchFn); err != nil {
+		patch := client.MergeFrom(lv)
+		if err := r.Patch(ctx, lv2, patch); err != nil {
 			log.Error(err, "failed to patch LogicalVolume", "name", lv.Name)
 			return err
 		}
 	}
 
-	if err := logicalvolumeclient.Delete(ctx, r, lv); err != nil {
+	if err := r.Delete(ctx, lv); err != nil {
 		log.Error(err, "failed to delete LogicalVolume", "name", lv.Name)
 		return err
 	}

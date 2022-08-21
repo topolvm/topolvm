@@ -13,7 +13,7 @@ const (
 )
 
 func UseLegacy() bool {
-	return os.Getenv("USE_LEGACY_PLUGIN_NAME") != ""
+	return os.Getenv("USE_LEGACY") != ""
 }
 
 // GetPluginName returns the name of the CSI plugin.

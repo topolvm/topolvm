@@ -42,9 +42,9 @@ spec:
             {{- if .Values.controller.nodeFinalize.skipped }}
             - --skip-node-finalize
             {{- end }}
-          {{ if .Values.useLegacyName }}
+          {{ if .Values.useLegacy }}
           env:
-            - name: USE_LEGACY_PLUGIN_NAME
+            - name: USE_LEGACY
               value: "true"
           {{ end }}
           ports:

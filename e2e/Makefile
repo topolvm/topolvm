@@ -49,8 +49,9 @@ GO_FILES := $(shell find .. -path ../e2e -prune -o -name '*.go' -print)
 BACKING_STORE := ./build
 
 topolvm.img: $(GO_FILES)
+	mkdir -p build
+	CGO_ENABLED=0 go build -o build/hypertopolvm ../pkg/hypertopolvm
 	mkdir -p tmpbin
-	CGO_ENABLED=0 go build -o tmpbin/hypertopolvm ../pkg/hypertopolvm
 	$(MAKE) -f ../csi-sidecars.mk OUTPUT_DIR=tmpbin
 	docker build --no-cache --rm=false -f Dockerfile -t topolvm:dev .
 	docker save -o $@ topolvm:dev

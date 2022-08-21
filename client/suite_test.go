@@ -1,10 +1,11 @@
-package logicalvolume
+package client
 
 import (
 	"context"
 	"fmt"
 	"path/filepath"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,6 +17,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -45,6 +47,9 @@ func TestAPIs(t *testing.T) {
 	testingutil.DoEnvCheck(t)
 	RegisterFailHandler(Fail)
 
+	SetDefaultEventuallyPollingInterval(time.Second)
+	SetDefaultEventuallyTimeout(time.Minute)
+
 	RunSpecsWithDefaultAndCustomReporters(t,
 		"Controller Suite",
 		[]Reporter{printer.NewlineReporter{}})
@@ -55,7 +60,7 @@ var _ = BeforeSuite(func() {
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "..", "config", "crd", "bases")},
+		CRDDirectoryPaths:     []string{filepath.Join("..", "config", "crd", "bases")},
 		ErrorIfCRDPathMissing: true,
 	}
 
@@ -158,4 +163,15 @@ func setLegacyLVStatus(lv *topolvmlegacyv1.LogicalVolume, i int) {
 		Message:     codes.Unknown.String(),
 		CurrentSize: resource.NewQuantity(1<<30, resource.BinarySI),
 	}
+}
+
+func convertToCurrent(lv *topolvmlegacyv1.LogicalVolume) *topolvmv1.LogicalVolume {
+	u := &unstructured.Unstructured{}
+	err := k8sDelegatedClient.Scheme().Convert(lv, u, nil)
+	Expect(err).ShouldNot(HaveOccurred())
+	u.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+	current := new(topolvmv1.LogicalVolume)
+	err = k8sDelegatedClient.Scheme().Convert(u, current, nil)
+	Expect(err).ShouldNot(HaveOccurred())
+	return current
 }
