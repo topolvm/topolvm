@@ -6,6 +6,18 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.3.0/).
 
 ## [Unreleased]
+
+## [9.0.1] - 2022-08-17
+### Changed
+- appVersion was changed to 0.15.1.
+
+## [9.0.0] - 2022-08-16
+### Changed
+- support Kubernetes 1.24 (#529)
+- Drop a PVC finalizer to delete pods (#536)
+  - **BREAKING**: `pvcMutatingWebhook` setting is deleted from `charts/topolvm/values.yaml`.
+- appVersion was changed to 0.15.0.
+
 ## [8.0.1] - 2022-07-05
 ### Changed
 - appVersion was changed to 0.14.1.
@@ -168,7 +180,9 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v8.0.1...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v9.0.1...HEAD
+[9.0.1]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v9.0.0...topolvm-chart-v9.0.1
+[9.0.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v8.0.1...topolvm-chart-v9.0.0
 [8.0.1]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v8.0.0...topolvm-chart-v8.0.1
 [8.0.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v7.0.0...topolvm-chart-v8.0.0
 [7.0.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v6.0.1...topolvm-chart-v7.0.0

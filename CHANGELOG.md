@@ -7,6 +7,47 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.15.1] - 2022-08-17
+
+### Fixed
+
+- Make lvm commands independent of the environment (#551) 
+
+## [0.15.0] - 2022-08-16
+
+### Added
+
+- Add ESASHIKA Kaoru as a reviewer (#533)
+- e2e tests for thin provisioning feature (#532)
+- additional metric for thin pools (#537)
+
+### Changed
+
+- support Kubernetes 1.24 (#529)
+- Use lvm JSON output (#501)
+- Drop a PVC finalizer to delete pods (#536)
+
+### Doc
+
+- doc: Add design doc for thin-snapshots (#446)
+- doc: Add design doc for thin-lv clones (#447)
+- Docs: delete description for inline ephemeral volume. (#543)
+- fix documentation link (#538)
+
+### Fixed
+
+- webhook: allow PVCs with storageClassName set to "" (#525)
+- lvm: disable activation skip (#534)
+- fix ci by adding Eventually to wait to start topolvm-controller (#542)
+- fix: ResizeLV does not check thinpool overprovisioned size (#540)
+
+### Contributors
+
+- @Yuggupta27
+- @tasleson
+- @nbalacha
+- @usefss
+
 ## [0.14.1] - 2022-07-05
 
 ### Fixed
@@ -533,7 +574,9 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.14.1...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.15.1...HEAD
+[0.15.1]: https://github.com/topolvm/topolvm/compare/v0.15.0...v0.15.1
+[0.15.0]: https://github.com/topolvm/topolvm/compare/v0.14.1...v0.15.0
 [0.14.1]: https://github.com/topolvm/topolvm/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/topolvm/topolvm/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/topolvm/topolvm/compare/v0.12.0...v0.13.0

@@ -191,8 +191,7 @@ func getLVMState() (vgs []vg, lvs []lv, _ error) {
 	// the column to 1 and then exclude it to remove.
 	args := []string{
 		"fullreport",
-		"--profile", "lvmdbusd",
-		"--config", "report {pvs_cols_full=\"pv_name\" segs_cols_full=\"lv_uuid\" pvsegs_cols_full=\"lv_uuid\" }",
+		"--config", "report {output_format=json pvs_cols_full=\"pv_name\" segs_cols_full=\"lv_uuid\" pvsegs_cols_full=\"lv_uuid\"} global {units=b suffix=0}",
 		"--configreport", "pv", "-o-pv_name",
 		"--configreport", "seg", "-o-lv_uuid",
 		"--configreport", "pvseg", "-o-lv_uuid",

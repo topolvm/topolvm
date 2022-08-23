@@ -3,6 +3,8 @@ package e2e
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"os"
 	"path"
 
 	"github.com/kubernetes-csi/csi-test/v4/pkg/sanity"
@@ -32,6 +34,7 @@ func testSanity() {
 			if err != nil {
 				return err
 			}
+			fmt.Println("topolvm-node", "ds.Status.NumberAvailable", ds.Status.NumberAvailable)
 			if ds.Status.NumberAvailable != 1 {
 				return errors.New("node daemonset is not ready")
 			}
@@ -61,6 +64,14 @@ func testSanity() {
 		}
 		_, _, err = kubectl("exec", "-n", "topolvm-system", "daemonset/topolvm-node", "--", "test", "-e", path)
 		return sanity.PathIsOther, err
+	}
+
+	if os.Getenv("TEST_THIN_DEVICECLASS") == "true" {
+		// csi.storage.k8s.io/fstype=xfs,topolvm.cybozu.com/device-class=thin
+		volParams := make(map[string]string)
+		volParams["csi.storage.k8s.io/fstype"] = "xfs"
+		volParams["topolvm.cybozu.com/device-class"] = "thin"
+		tc.TestVolumeParameters = volParams
 	}
 	sanity.GinkgoTest(&tc)
 }
