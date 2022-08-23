@@ -85,17 +85,21 @@ Make the following changes for each Node resources
 
 Modify each PersistentVolumeClaim resources in TopoLVM as follows:
 
-- Change the value of the `volume.beta.kubernetes.io/storage-provisioner` annotation to` topolvm.io`
-- Change the value of the `volume.kubernetes.io/storage-provisioner` annotation to` topolvm.io`
+- Change the value of the `volume.beta.kubernetes.io/storage-provisioner`[^storage-provisioner] annotation to` topolvm.io`
+- Change the value of the `volume.kubernetes.io/storage-provisioner`[^storage-provisioner] annotation to` topolvm.io`
 - Change the `topolvm.cybozu.com/pvc` finalizer to` topolvm.io/pvc`
+
+[^storage-provisioner]: https://github.com/kubernetes/kubernetes/blob/v1.24.2/pkg/controller/volume/persistentvolume/pv_controller_base.go#L638-L639
 
 ##### PersistentVolume
 
 Modify each PersistentVolume resource in TopoLVM as follows:
 
-- Change the value of the `pv.kubernetes.io/provisioned-by` annotation to` topolvm.io`
+- Change the value of the `pv.kubernetes.io/provisioned-by`[^provisioned-by] annotation to` topolvm.io`
 - Change the value of the `.spec.csi.driver` field to` topolvm.io`
 - Change the string `topolvm.cybozu.com` in the value of the `.spec.csi.volumeAttributes ["storage.kubernetes.io/csiProvisionerIdentity "]` field to` topolvm.io`
+
+[^provisioned-by]: https://github.com/kubernetes/kubernetes/blob/v1.24.2/pkg/controller/volume/persistentvolume/pv_controller.go#L1662
 
 **Since it is not possible to change the above fields of the PersistentVolume resource, it is necessary to recreate the resource when migrating the group name. Also, if `.spec.persistentVolumeReclaimPolicy = Delete` is set, there is a risk of deleting the actual LVM volume, so it is recommended to temporarily change it to `Retain` and then delete it.**
 
@@ -122,6 +126,11 @@ If you are going to set the following variables, you may need to set them approp
 #### Automatic generation for API and CRD
 
 Automatically generating the API and CRD of `topolvm.cybozu.com` based on the API and CRD of `topolvm.io`.
+
+### Auto group conversion for LogicalVolume
+
+Add a wrap client for controller-runtime client to automatically convert a group of LogicalVolume resources.
+Change each controller and other components to use this wrapped client.
 
 ### Things to be done by users of topolvm.cybozu.com for upgrading the helm chart
 
