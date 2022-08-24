@@ -3,7 +3,7 @@ KUBERNETES_VERSION ?= 1.24.2
 TEST_SCHEDULER_MANIFEST ?= daemonset
 STORAGE_CAPACITY ?= false
 SKIP_NODE_FINALIZE ?= false
-TEST_THIN_DEVICECLASS ?= false
+SANITY_TEST_WITH_THIN_DEVICECLASS ?= false
 
 ## Dependency versions
 MINIKUBE_VERSION := v1.26.0
@@ -45,7 +45,7 @@ else
 HELM_SKIP_NODE_FINALIZE_FLAG :=
 endif
 
-ifeq ($(TEST_THIN_DEVICECLASS),false)
+ifeq ($(SANITY_TEST_WITH_THIN_DEVICECLASS),false)
 GINKGO_SKIP_SNAPSHOT_CSI_TESTS := -skip='snapshot' -skip='CreateSnapshot' -skip='DeleteSnapshot' -skip='source volume'
 else
 GINKGO_SKIP_SNAPSHOT_CSI_TESTS :=

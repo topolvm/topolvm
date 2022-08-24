@@ -130,7 +130,7 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = Describe("TopoLVM", func() {
-	if os.Getenv("TEST_THIN_DEVICECLASS") != "true" {
+	if os.Getenv("SANITY_TEST_WITH_THIN_DEVICECLASS") != "true" {
 		Context("hook", testHook)
 		Context("topolvm-node", testNode)
 		Context("scheduler", testScheduler)
