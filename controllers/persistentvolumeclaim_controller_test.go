@@ -31,9 +31,7 @@ var _ = Describe("PersistentVolumeClaimController controller", func() {
 		})
 		Expect(err).ToNot(HaveOccurred())
 
-		reconciler := PersistentVolumeClaimReconciler{
-			Client: k8sClient,
-		}
+		reconciler := NewPersistentVolumeClaimReconciler(k8sClient)
 		err = reconciler.SetupWithManager(mgr)
 		Expect(err).NotTo(HaveOccurred())
 

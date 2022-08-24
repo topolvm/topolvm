@@ -23,7 +23,7 @@ import (
 
 // LogicalVolumeReconciler reconciles a LogicalVolume object
 type LogicalVolumeReconciler struct {
-	client.Client
+	client    client.Client
 	nodeName  string
 	vgService proto.VGServiceClient
 	lvService proto.LVServiceClient
@@ -35,7 +35,7 @@ type LogicalVolumeReconciler struct {
 // NewLogicalVolumeReconciler returns LogicalVolumeReconciler with creating lvService and vgService.
 func NewLogicalVolumeReconciler(client client.Client, nodeName string, conn *grpc.ClientConn) *LogicalVolumeReconciler {
 	return &LogicalVolumeReconciler{
-		Client:    client,
+		client:    client,
 		nodeName:  nodeName,
 		vgService: proto.NewVGServiceClient(conn),
 		lvService: proto.NewLVServiceClient(conn),
@@ -47,7 +47,7 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	log := crlog.FromContext(ctx)
 
 	lv := new(topolvmv1.LogicalVolume)
-	if err := r.Get(ctx, req.NamespacedName, lv); err != nil {
+	if err := r.client.Get(ctx, req.NamespacedName, lv); err != nil {
 		if !apierrs.IsNotFound(err) {
 			log.Error(err, "unable to fetch LogicalVolume")
 			return ctrl.Result{}, err
@@ -64,7 +64,7 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			lv2 := lv.DeepCopy()
 			lv2.Finalizers = append(lv2.Finalizers, topolvm.GetLogicalVolumeFinalizer())
 			patch := client.MergeFrom(lv)
-			if err := r.Patch(ctx, lv2, patch); err != nil {
+			if err := r.client.Patch(ctx, lv2, patch); err != nil {
 				log.Error(err, "failed to add finalizer", "name", lv.Name)
 				return ctrl.Result{}, err
 			}
@@ -78,7 +78,7 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			}
 			lv2.Labels[topolvm.CreatedbyLabelKey] = topolvm.CreatedbyLabelValue
 			patch := client.MergeFrom(lv)
-			if err := r.Patch(ctx, lv2, patch); err != nil {
+			if err := r.client.Patch(ctx, lv2, patch); err != nil {
 				log.Error(err, "failed to add label", "name", lv.Name)
 				return ctrl.Result{}, err
 			}
@@ -115,7 +115,7 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	lv2 := lv.DeepCopy()
 	lv2.Finalizers = removeString(lv2.Finalizers, topolvm.GetLogicalVolumeFinalizer())
 	patch := client.MergeFrom(lv)
-	if err := r.Patch(ctx, lv2, patch); err != nil {
+	if err := r.client.Patch(ctx, lv2, patch); err != nil {
 		log.Error(err, "failed to remove finalizer", "name", lv.Name)
 		return ctrl.Result{}, err
 	}
@@ -208,7 +208,7 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 				return fmt.Errorf("invalid access type for source volume: %s", lv.Spec.AccessType)
 			}
 			sourcelv := new(topolvmv1.LogicalVolume)
-			if err := r.Get(ctx, types.NamespacedName{Namespace: lv.Namespace, Name: lv.Spec.Source}, sourcelv); err != nil {
+			if err := r.client.Get(ctx, types.NamespacedName{Namespace: lv.Namespace, Name: lv.Spec.Source}, sourcelv); err != nil {
 				log.Error(err, "unable to fetch source LogicalVolume", "name", lv.Name)
 				return err
 			}
@@ -255,14 +255,14 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 	}()
 
 	if err != nil {
-		if err2 := r.Status().Update(ctx, lv); err2 != nil {
+		if err2 := r.client.Status().Update(ctx, lv); err2 != nil {
 			// err2 is logged but not returned because err is more important
 			log.Error(err2, "failed to update status", "name", lv.Name, "uid", lv.UID)
 		}
 		return err
 	}
 
-	if err := r.Status().Update(ctx, lv); err != nil {
+	if err := r.client.Status().Update(ctx, lv); err != nil {
 		log.Error(err, "failed to update status", "name", lv.Name, "uid", lv.UID)
 		return err
 	}
@@ -303,14 +303,14 @@ func (r *LogicalVolumeReconciler) expandLV(ctx context.Context, log logr.Logger,
 	}()
 
 	if err != nil {
-		if err2 := r.Status().Update(ctx, lv); err2 != nil {
+		if err2 := r.client.Status().Update(ctx, lv); err2 != nil {
 			// err2 is logged but not returned because err is more important
 			log.Error(err2, "failed to update status", "name", lv.Name, "uid", lv.UID)
 		}
 		return err
 	}
 
-	if err := r.Status().Update(ctx, lv); err != nil {
+	if err := r.client.Status().Update(ctx, lv); err != nil {
 		log.Error(err, "failed to update status", "name", lv.Name, "uid", lv.UID)
 		return err
 	}

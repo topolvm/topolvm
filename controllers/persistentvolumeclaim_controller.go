@@ -15,7 +15,12 @@ import (
 
 // PersistentVolumeClaimReconciler reconciles a PersistentVolumeClaim object
 type PersistentVolumeClaimReconciler struct {
-	client.Client
+	client client.Client
+}
+
+// NewPersistentVolumeClaimReconciler returns NodeReconciler.
+func NewPersistentVolumeClaimReconciler(client client.Client) *PersistentVolumeClaimReconciler {
+	return &PersistentVolumeClaimReconciler{client: client}
 }
 
 //+kubebuilder:rbac:groups=core,resources=persistentvolumeclaims,verbs=get;list;watch;update
@@ -26,7 +31,7 @@ func (r *PersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req ctr
 	log := crlog.FromContext(ctx)
 	// your logic here
 	pvc := &corev1.PersistentVolumeClaim{}
-	err := r.Get(ctx, req.NamespacedName, pvc)
+	err := r.client.Get(ctx, req.NamespacedName, pvc)
 	switch {
 	case err == nil:
 	case apierrors.IsNotFound(err):
@@ -71,7 +76,7 @@ func (r *PersistentVolumeClaimReconciler) removeTopoLVMFinalizer(ctx context.Con
 		i++
 	}
 	if removed {
-		if err := r.Update(ctx, pvc); err != nil {
+		if err := r.client.Update(ctx, pvc); err != nil {
 			return err
 		}
 	}

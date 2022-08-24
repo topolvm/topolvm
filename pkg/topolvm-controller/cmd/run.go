@@ -84,18 +84,13 @@ func subMain() error {
 	wh.Register("/pod/mutate", hook.PodMutator(client, apiReader, dec))
 
 	// register controllers
-	nodecontroller := &controllers.NodeReconciler{
-		Client:           client,
-		SkipNodeFinalize: config.skipNodeFinalize,
-	}
+	nodecontroller := controllers.NewNodeReconciler(client, config.skipNodeFinalize)
 	if err := nodecontroller.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Node")
 		return err
 	}
 
-	pvccontroller := &controllers.PersistentVolumeClaimReconciler{
-		Client: client,
-	}
+	pvccontroller := controllers.NewPersistentVolumeClaimReconciler(client)
 	if err := pvccontroller.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PersistentVolumeClaim")
 		return err

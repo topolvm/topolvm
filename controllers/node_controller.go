@@ -19,8 +19,16 @@ import (
 
 // NodeReconciler reconciles a Node object
 type NodeReconciler struct {
-	client.Client
-	SkipNodeFinalize bool
+	client           client.Client
+	skipNodeFinalize bool
+}
+
+// NewNodeReconciler returns NodeReconciler.
+func NewNodeReconciler(client client.Client, skipNodeFinalize bool) *NodeReconciler {
+	return &NodeReconciler{
+		client:           client,
+		skipNodeFinalize: skipNodeFinalize,
+	}
 }
 
 //+kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch;update;patch
@@ -33,7 +41,7 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	// your logic here
 	node := &corev1.Node{}
-	err := r.Get(ctx, req.NamespacedName, node)
+	err := r.client.Get(ctx, req.NamespacedName, node)
 	switch {
 	case err == nil:
 	case apierrors.IsNotFound(err):
@@ -72,7 +80,7 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	node2.Finalizers = finalizers
 
 	patch := client.MergeFrom(node)
-	if err := r.Patch(ctx, node2, patch); err != nil {
+	if err := r.client.Patch(ctx, node2, patch); err != nil {
 		log.Error(err, "failed to remove finalizer", "name", node.Name)
 		return ctrl.Result{}, err
 	}
@@ -82,7 +90,7 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 func (r *NodeReconciler) targetStorageClasses(ctx context.Context) (map[string]bool, error) {
 	var scl storagev1.StorageClassList
-	if err := r.List(ctx, &scl); err != nil {
+	if err := r.client.List(ctx, &scl); err != nil {
 		return nil, err
 	}
 
@@ -97,7 +105,7 @@ func (r *NodeReconciler) targetStorageClasses(ctx context.Context) (map[string]b
 }
 
 func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *corev1.Node) (ctrl.Result, error) {
-	if r.SkipNodeFinalize {
+	if r.skipNodeFinalize {
 		log.Info("skipping node finalize")
 		return ctrl.Result{}, nil
 	}
@@ -109,7 +117,7 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 	}
 
 	var pvcs corev1.PersistentVolumeClaimList
-	err = r.List(ctx, &pvcs, client.MatchingFields{keySelectedNode: node.Name})
+	err = r.client.List(ctx, &pvcs, client.MatchingFields{keySelectedNode: node.Name})
 	if err != nil {
 		log.Error(err, "unable to fetch PersistentVolumeClaimList")
 		return ctrl.Result{}, err
@@ -123,7 +131,7 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 			continue
 		}
 
-		err = r.Delete(ctx, &pvc)
+		err = r.client.Delete(ctx, &pvc)
 		if err != nil {
 			log.Error(err, "unable to delete PVC", "name", pvc.Name, "namespace", pvc.Namespace)
 			return ctrl.Result{}, err
@@ -132,7 +140,7 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 	}
 
 	lvList := new(topolvmv1.LogicalVolumeList)
-	err = r.List(ctx, lvList, client.MatchingFields{keyLogicalVolumeNode: node.Name})
+	err = r.client.List(ctx, lvList, client.MatchingFields{keyLogicalVolumeNode: node.Name})
 	if err != nil {
 		log.Error(err, "failed to get LogicalVolumes")
 		return ctrl.Result{}, err
@@ -167,13 +175,13 @@ func (r *NodeReconciler) cleanupLogicalVolume(ctx context.Context, log logr.Logg
 		}
 		lv2.Finalizers = finalizers
 		patch := client.MergeFrom(lv)
-		if err := r.Patch(ctx, lv2, patch); err != nil {
+		if err := r.client.Patch(ctx, lv2, patch); err != nil {
 			log.Error(err, "failed to patch LogicalVolume", "name", lv.Name)
 			return err
 		}
 	}
 
-	if err := r.Delete(ctx, lv); err != nil {
+	if err := r.client.Delete(ctx, lv); err != nil {
 		log.Error(err, "failed to delete LogicalVolume", "name", lv.Name)
 		return err
 	}
