@@ -22,8 +22,15 @@ func testSanity() {
 	It("should add node selector to node DaemonSet for CSI test", func() {
 		// Skip deleting node because there is just one node in daemonset lvmd test environment.
 		skipIfDaemonsetLvmd()
+
+		if os.Getenv("SANITY_TEST_WITH_THIN_DEVICECLASS") == "true" {
+			// Normally this node is deleted in testCleanup
+			_, _, err := kubectl("delete", "nodes", "topolvm-e2e-worker3")
+			Expect(err).ShouldNot(HaveOccurred())
+		}
 		_, _, err := kubectl("delete", "nodes", "topolvm-e2e-worker2")
 		Expect(err).ShouldNot(HaveOccurred())
+
 		Eventually(func() error {
 			var ds appsv1.DaemonSet
 			stdout, _, err := kubectl("get", "-n", "topolvm-system", "ds", "topolvm-node", "-o", "json")
@@ -66,7 +73,7 @@ func testSanity() {
 		return sanity.PathIsOther, err
 	}
 
-	if os.Getenv("TEST_THIN_DEVICECLASS") == "true" {
+	if os.Getenv("SANITY_TEST_WITH_THIN_DEVICECLASS") == "true" {
 		// csi.storage.k8s.io/fstype=xfs,topolvm.cybozu.com/device-class=thin
 		volParams := make(map[string]string)
 		volParams["csi.storage.k8s.io/fstype"] = "xfs"
