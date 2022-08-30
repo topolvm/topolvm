@@ -145,7 +145,7 @@ If you upgrade the helm chart without taking above actions, it is possible that 
 
 If you are already using TopoLVM with the group name `topolvm.cybozu.com` and want to migrate the group name to `topolvm.io` after the release of this change, you can manually change the data by the following method.
 
-1. Avoid booting pods using TopoLVM volumes during migration
+1. Avoid booting pods using TopoLVM volumes during migration.
 1. Temporarily stop the following pods:
    - topolvm-controller
    - topolvm-node
