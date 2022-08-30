@@ -44,7 +44,6 @@ DeviceClassKey | topolvm.cybozu.com/device-class
 ResizeRequestedAtKey | topolvm.cybozu.com/resize-requested-at
 LogicalVolumeFinalizer | topolvm.cybozu.com/logicalvolume
 NodeFinalizer | topolvm.cybozu.com/node
-PVCFinalizer | topolvm.cybozu.com/pvc
 
 #### CRD
 
@@ -87,7 +86,6 @@ Modify each PersistentVolumeClaim resources in TopoLVM as follows:
 
 - Change the value of the `volume.beta.kubernetes.io/storage-provisioner`[^storage-provisioner] annotation to` topolvm.io`
 - Change the value of the `volume.kubernetes.io/storage-provisioner`[^storage-provisioner] annotation to` topolvm.io`
-- Change the `topolvm.cybozu.com/pvc` finalizer to` topolvm.io/pvc`
 
 [^storage-provisioner]: https://github.com/kubernetes/kubernetes/blob/v1.24.2/pkg/controller/volume/persistentvolume/pv_controller_base.go#L638-L639
 
