@@ -21,17 +21,11 @@ BACKING_STORE := ./build
 BUILD_IMAGE := false
 
 HELM_VALUES_FILE := values.yaml
-ifneq ($(USE_LEGACY),"")
-HELM_VALUES_FILE := values_legacy.yaml
-endif
-
 SCHEDULER_CONFIG := scheduler-config.yaml
-ifneq ($(USE_LEGACY),"")
-SCHEDULER_CONFIG := scheduler-config-legacy.yaml
-endif
-
 LOGICALVOLUE_GK_NAME := logicalvolume.topolvm.io
 ifneq ($(USE_LEGACY),"")
+HELM_VALUES_FILE := values_legacy.yaml
+SCHEDULER_CONFIG := scheduler-config-legacy.yaml
 LOGICALVOLUE_GK_NAME := logicalvolume.topolvm.cybozu.com
 endif
 
