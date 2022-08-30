@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -34,7 +35,9 @@ const (
 )
 
 var (
-	configmapKey = types.NamespacedName{
+	configMapGVK     = schema.GroupVersionKind{Group: "", Version: "v1", Kind: "ConfigMap"}
+	configMapListGVK = schema.GroupVersionKind{Group: "", Version: "v1", Kind: "ConfigMapList"}
+	configmapKey     = types.NamespacedName{
 		Name:      configmapName,
 		Namespace: configmapNamespace,
 	}
@@ -436,7 +439,7 @@ var _ = Describe("client", func() {
 				It("metav1.PartialObjectMetadata", func() {
 					get(false, func(c *wrappedReader, lv *topolvmv1.LogicalVolume, name string) {
 						p := &metav1.PartialObjectMetadata{}
-						p.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+						p.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 						lv.ObjectMeta.DeepCopyInto(&p.ObjectMeta)
 						err := c.Get(testCtx, types.NamespacedName{Name: name}, lv)
 						Expect(err).ShouldNot(HaveOccurred())
@@ -452,6 +455,32 @@ var _ = Describe("client", func() {
 					checkcm := new(corev1.ConfigMap)
 					c := NewWrappedReader(k8sAPIReader, scheme)
 					err = c.Get(testCtx, configmapKey, checkcm)
+					Expect(err).ShouldNot(HaveOccurred())
+				})
+
+				It("non LogicalVolume unstructured.Unstructured", func() {
+					cm := new(corev1.ConfigMap)
+					cm.Name = configmapName
+					cm.Namespace = configmapNamespace
+					err := k8sDelegatedClient.Create(testCtx, cm)
+					Expect(err).ShouldNot(HaveOccurred())
+					u := &unstructured.Unstructured{}
+					u.SetGroupVersionKind(configMapGVK)
+					c := NewWrappedReader(k8sAPIReader, scheme)
+					err = c.Get(testCtx, configmapKey, u)
+					Expect(err).ShouldNot(HaveOccurred())
+				})
+
+				It("non LogicalVolume metav1.PartialObjectMetadata", func() {
+					cm := new(corev1.ConfigMap)
+					cm.Name = configmapName
+					cm.Namespace = configmapNamespace
+					err := k8sDelegatedClient.Create(testCtx, cm)
+					Expect(err).ShouldNot(HaveOccurred())
+					p := &metav1.PartialObjectMetadata{}
+					p.SetGroupVersionKind(configMapGVK)
+					c := NewWrappedReader(k8sAPIReader, scheme)
+					err = c.Get(testCtx, configmapKey, p)
 					Expect(err).ShouldNot(HaveOccurred())
 				})
 			})
@@ -510,7 +539,7 @@ var _ = Describe("client", func() {
 				It("metav1.PartialObjectMetadata", func() {
 					list(false, func(c *wrappedReader, lvlist *topolvmv1.LogicalVolumeList) {
 						p := &metav1.PartialObjectMetadataList{}
-						p.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+						p.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 						err := c.List(testCtx, lvlist)
 						Expect(err).ShouldNot(HaveOccurred())
 					})
@@ -552,6 +581,44 @@ var _ = Describe("client", func() {
 					err = k8sAPIReader.List(testCtx, list2)
 					Expect(err).ShouldNot(HaveOccurred())
 					Expect(len(list.Items)).Should(Equal(len(list2.Items)))
+				})
+
+				It("non LogicalVolumeList unstructured.Unstructured", func() {
+					cm := new(corev1.ConfigMap)
+					cm.Name = configmapName
+					cm.Namespace = configmapNamespace
+					err := k8sDelegatedClient.Create(testCtx, cm)
+					Expect(err).ShouldNot(HaveOccurred())
+
+					u := &unstructured.UnstructuredList{}
+					u.SetGroupVersionKind(configMapListGVK)
+					c := NewWrappedReader(k8sAPIReader, scheme)
+					err = c.List(testCtx, u)
+					Expect(err).ShouldNot(HaveOccurred())
+					list := new(corev1.ConfigMapList)
+					Expect(scheme.Convert(u, list, nil)).ShouldNot(HaveOccurred())
+					list2 := new(corev1.ConfigMapList)
+					err = k8sAPIReader.List(testCtx, list2)
+					Expect(err).ShouldNot(HaveOccurred())
+					Expect(len(list.Items)).Should(Equal(len(list2.Items)))
+				})
+
+				It("non LogicalVolumeList metav1.PartialObjectMetadata", func() {
+					cm := new(corev1.ConfigMap)
+					cm.Name = configmapName
+					cm.Namespace = configmapNamespace
+					err := k8sDelegatedClient.Create(testCtx, cm)
+					Expect(err).ShouldNot(HaveOccurred())
+
+					p := &metav1.PartialObjectMetadataList{}
+					p.SetGroupVersionKind(configMapListGVK)
+					c := NewWrappedReader(k8sAPIReader, scheme)
+					err = c.List(testCtx, p)
+					Expect(err).ShouldNot(HaveOccurred())
+					list2 := new(corev1.ConfigMapList)
+					err = k8sAPIReader.List(testCtx, list2)
+					Expect(err).ShouldNot(HaveOccurred())
+					Expect(len(p.Items)).Should(Equal(len(list2.Items)))
 				})
 			})
 		})
@@ -610,7 +677,7 @@ var _ = Describe("client", func() {
 				It("metav1.PartialObjectMetadata", func() {
 					get(false, func(g Gomega, c client.Client, lv *topolvmv1.LogicalVolume, name string) {
 						p := &metav1.PartialObjectMetadata{}
-						p.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+						p.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 						lv.ObjectMeta.DeepCopyInto(&p.ObjectMeta)
 						err := c.Get(testCtx, types.NamespacedName{Name: name}, lv)
 						g.Expect(err).ShouldNot(HaveOccurred())
@@ -629,7 +696,36 @@ var _ = Describe("client", func() {
 						err = c.Get(testCtx, configmapKey, checkcm)
 						g.Expect(err).ShouldNot(HaveOccurred())
 					}).Should(Succeed())
+				})
 
+				It("non LogicalVolume unstructured.Unstructured", func() {
+					cm := new(corev1.ConfigMap)
+					cm.Name = configmapName
+					cm.Namespace = configmapNamespace
+					err := k8sDelegatedClient.Create(testCtx, cm)
+					Expect(err).ShouldNot(HaveOccurred())
+					u := &unstructured.Unstructured{}
+					u.SetGroupVersionKind(configMapGVK)
+					Eventually(func(g Gomega) {
+						c := NewWrappedClient(k8sDelegatedClient)
+						err = c.Get(testCtx, configmapKey, u)
+						g.Expect(err).ShouldNot(HaveOccurred())
+					}).Should(Succeed())
+				})
+
+				It("non LogicalVolume metav1.PartialObjectMetadata", func() {
+					cm := new(corev1.ConfigMap)
+					cm.Name = configmapName
+					cm.Namespace = configmapNamespace
+					err := k8sDelegatedClient.Create(testCtx, cm)
+					Expect(err).ShouldNot(HaveOccurred())
+					p := &metav1.PartialObjectMetadata{}
+					p.SetGroupVersionKind(configMapGVK)
+					Eventually(func(g Gomega) {
+						c := NewWrappedClient(k8sDelegatedClient)
+						err = c.Get(testCtx, configmapKey, p)
+						g.Expect(err).ShouldNot(HaveOccurred())
+					}).Should(Succeed())
 				})
 			})
 
@@ -690,7 +786,7 @@ var _ = Describe("client", func() {
 				It("metav1.PartialObjectMetadata", func() {
 					list(false, func(g Gomega, c *wrappedReader, lvlist *topolvmv1.LogicalVolumeList) {
 						p := &metav1.PartialObjectMetadataList{}
-						p.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+						p.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 						err := c.List(testCtx, lvlist)
 						g.Expect(err).ShouldNot(HaveOccurred())
 					})
@@ -735,6 +831,46 @@ var _ = Describe("client", func() {
 						g.Expect(len(list.Items)).Should(Equal(len(list2.Items)))
 					}).Should(Succeed())
 				})
+
+				It("non LogicalVolumeList unstructured.Unstructured", func() {
+					cm := new(corev1.ConfigMap)
+					cm.Name = configmapName
+					cm.Namespace = configmapNamespace
+					err := k8sDelegatedClient.Create(testCtx, cm)
+					Expect(err).ShouldNot(HaveOccurred())
+
+					Eventually(func(g Gomega) {
+						u := &unstructured.UnstructuredList{}
+						u.SetGroupVersionKind(configMapGVK)
+						c := NewWrappedClient(k8sDelegatedClient)
+						err = c.List(testCtx, u)
+						g.Expect(err).ShouldNot(HaveOccurred())
+						list2 := new(corev1.ConfigMapList)
+						err = k8sAPIReader.List(testCtx, list2)
+						g.Expect(err).ShouldNot(HaveOccurred())
+						g.Expect(len(u.Items)).Should(Equal(len(list2.Items)))
+					}).Should(Succeed())
+				})
+
+				It("non LogicalVolumeList metav1.PartialObjectMetadata", func() {
+					cm := new(corev1.ConfigMap)
+					cm.Name = configmapName
+					cm.Namespace = configmapNamespace
+					err := k8sDelegatedClient.Create(testCtx, cm)
+					Expect(err).ShouldNot(HaveOccurred())
+
+					Eventually(func(g Gomega) {
+						p := &metav1.PartialObjectMetadataList{}
+						p.SetGroupVersionKind(configMapGVK)
+						c := NewWrappedClient(k8sDelegatedClient)
+						err = c.List(testCtx, p)
+						g.Expect(err).ShouldNot(HaveOccurred())
+						list2 := new(corev1.ConfigMapList)
+						err = k8sAPIReader.List(testCtx, list2)
+						g.Expect(err).ShouldNot(HaveOccurred())
+						g.Expect(len(p.Items)).Should(Equal(len(list2.Items)))
+					}).Should(Succeed())
+				})
 			})
 
 			Context("Create", func() {
@@ -777,7 +913,7 @@ var _ = Describe("client", func() {
 				It("metav1.PartialObjectMetadata", func() {
 					create(false, func(c client.Client, lv *topolvmv1.LogicalVolume) {
 						p := &metav1.PartialObjectMetadata{}
-						p.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+						p.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 						lv.ObjectMeta.DeepCopyInto(&p.ObjectMeta)
 						err := c.Create(testCtx, p)
 						Expect(err).Should(HaveOccurred())
@@ -791,6 +927,21 @@ var _ = Describe("client", func() {
 					c := NewWrappedClient(k8sDelegatedClient)
 					err := c.Create(testCtx, cm)
 					Expect(err).ShouldNot(HaveOccurred())
+					err = k8sAPIReader.Get(testCtx, configmapKey, cm)
+					Expect(err).ShouldNot(HaveOccurred())
+				})
+
+				It("non LogicalVolume unstructured.Unstructured", func() {
+					u := &unstructured.Unstructured{}
+					u.SetGroupVersionKind(configMapGVK)
+					u.SetName(configmapName)
+					u.SetNamespace(configmapNamespace)
+					c := NewWrappedClient(k8sDelegatedClient)
+					err := c.Create(testCtx, u)
+					Expect(err).ShouldNot(HaveOccurred())
+					cm := new(corev1.ConfigMap)
+					cm.Name = configmapName
+					cm.Namespace = configmapNamespace
 					err = k8sAPIReader.Get(testCtx, configmapKey, cm)
 					Expect(err).ShouldNot(HaveOccurred())
 				})
@@ -831,7 +982,7 @@ var _ = Describe("client", func() {
 				It("metav1.PartialObjectMetadata", func() {
 					delete(func(c client.Client, lv *topolvmv1.LogicalVolume) {
 						p := &metav1.PartialObjectMetadata{}
-						p.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+						p.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 						lv.ObjectMeta.DeepCopyInto(&p.ObjectMeta)
 						err := c.Delete(testCtx, p)
 						Expect(err).ShouldNot(HaveOccurred())
@@ -847,6 +998,46 @@ var _ = Describe("client", func() {
 
 					c := NewWrappedClient(k8sDelegatedClient)
 					err = c.Delete(testCtx, cm)
+					Expect(err).ShouldNot(HaveOccurred())
+
+					err = k8sAPIReader.Get(testCtx, configmapKey, cm)
+					Expect(err).Should(HaveOccurred())
+					Expect(apierrs.IsNotFound(err)).Should(BeTrue())
+				})
+
+				It("non LogicalVolume unstructured.Unstructured", func() {
+					cm := new(corev1.ConfigMap)
+					cm.Name = configmapName
+					cm.Namespace = configmapNamespace
+					err := k8sDelegatedClient.Create(testCtx, cm)
+					Expect(err).ShouldNot(HaveOccurred())
+
+					u := &unstructured.Unstructured{}
+					u.SetGroupVersionKind(configMapGVK)
+					u.SetName(configmapName)
+					u.SetNamespace(configmapNamespace)
+					c := NewWrappedClient(k8sDelegatedClient)
+					err = c.Delete(testCtx, u)
+					Expect(err).ShouldNot(HaveOccurred())
+
+					err = k8sAPIReader.Get(testCtx, configmapKey, cm)
+					Expect(err).Should(HaveOccurred())
+					Expect(apierrs.IsNotFound(err)).Should(BeTrue())
+				})
+
+				It("non LogicalVolume metav1.PartialObjectMetadata", func() {
+					cm := new(corev1.ConfigMap)
+					cm.Name = configmapName
+					cm.Namespace = configmapNamespace
+					err := k8sDelegatedClient.Create(testCtx, cm)
+					Expect(err).ShouldNot(HaveOccurred())
+
+					p := &metav1.PartialObjectMetadata{}
+					p.SetGroupVersionKind(configMapGVK)
+					p.SetName(configmapName)
+					p.SetNamespace(configmapNamespace)
+					c := NewWrappedClient(k8sDelegatedClient)
+					err = c.Delete(testCtx, p)
 					Expect(err).ShouldNot(HaveOccurred())
 
 					err = k8sAPIReader.Get(testCtx, configmapKey, cm)
@@ -903,7 +1094,7 @@ var _ = Describe("client", func() {
 				It("metav1.PartialObjectMetadata", func() {
 					update(false, func(c client.Client, lv *topolvmv1.LogicalVolume) {
 						p := &metav1.PartialObjectMetadata{}
-						p.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+						p.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 						lv.ObjectMeta.DeepCopyInto(&p.ObjectMeta)
 						err := c.Update(testCtx, p)
 						Expect(err).Should(HaveOccurred())
@@ -922,6 +1113,28 @@ var _ = Describe("client", func() {
 					cm2.Annotations = ann
 					c := NewWrappedClient(k8sDelegatedClient)
 					err = c.Update(testCtx, cm2)
+					Expect(err).ShouldNot(HaveOccurred())
+
+					cm3 := new(corev1.ConfigMap)
+					err = k8sAPIReader.Get(testCtx, configmapKey, cm3)
+					Expect(err).ShouldNot(HaveOccurred())
+					Expect(cm3.Annotations).Should(Equal(ann))
+				})
+
+				It("non LogicalVolume unstructured.Unstructured", func() {
+					cm := new(corev1.ConfigMap)
+					cm.Name = configmapName
+					cm.Namespace = configmapNamespace
+					err := k8sDelegatedClient.Create(testCtx, cm)
+					Expect(err).ShouldNot(HaveOccurred())
+
+					ann := map[string]string{"foo": "bar"}
+					cm2 := cm.DeepCopy()
+					cm2.Annotations = ann
+					u := &unstructured.Unstructured{}
+					Expect(scheme.Convert(cm2, u, nil)).ShouldNot(HaveOccurred())
+					c := NewWrappedClient(k8sDelegatedClient)
+					err = c.Update(testCtx, u)
 					Expect(err).ShouldNot(HaveOccurred())
 
 					cm3 := new(corev1.ConfigMap)
@@ -982,7 +1195,7 @@ var _ = Describe("client", func() {
 				It("metav1.PartialObjectMetadata", func() {
 					patch(false, func(c client.Client, lv *topolvmv1.LogicalVolume, patch client.Patch) {
 						p := &metav1.PartialObjectMetadata{}
-						p.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+						p.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 						lv.ObjectMeta.DeepCopyInto(&p.ObjectMeta)
 						err := c.Patch(testCtx, p, patch)
 						Expect(err).ShouldNot(HaveOccurred())
@@ -1009,6 +1222,55 @@ var _ = Describe("client", func() {
 					err = k8sAPIReader.Get(testCtx, configmapKey, cm4)
 					Expect(err).ShouldNot(HaveOccurred())
 					Expect(cm4.Annotations).Should(Equal(ann))
+				})
+
+				It("non LogicalVolume unstructured.Unstructured", func() {
+					cm := new(corev1.ConfigMap)
+					cm.Name = configmapName
+					cm.Namespace = configmapNamespace
+					err := k8sDelegatedClient.Create(testCtx, cm)
+					Expect(err).ShouldNot(HaveOccurred())
+
+					ann := map[string]string{"foo": "bar"}
+					cm2 := cm.DeepCopy()
+					cm3 := cm2.DeepCopy()
+					cm3.Annotations = ann
+					u := &unstructured.Unstructured{}
+					Expect(scheme.Convert(cm3, u, nil)).ShouldNot(HaveOccurred())
+					patch := client.MergeFrom(cm2)
+					c := NewWrappedClient(k8sDelegatedClient)
+					err = c.Patch(testCtx, u, patch)
+					Expect(err).ShouldNot(HaveOccurred())
+
+					cm4 := new(corev1.ConfigMap)
+					err = k8sAPIReader.Get(testCtx, configmapKey, cm4)
+					Expect(err).ShouldNot(HaveOccurred())
+					Expect(cm4.Annotations).Should(Equal(ann))
+				})
+
+				It("non LogicalVolume metav1.PartialObjectMetadata", func() {
+					cm := new(corev1.ConfigMap)
+					cm.Name = configmapName
+					cm.Namespace = configmapNamespace
+					err := k8sDelegatedClient.Create(testCtx, cm)
+					Expect(err).ShouldNot(HaveOccurred())
+
+					ann := map[string]string{"foo": "bar"}
+					p := &metav1.PartialObjectMetadata{}
+					p.SetGroupVersionKind(configMapGVK)
+					p.SetName(configmapName)
+					p.SetNamespace(configmapNamespace)
+					p.SetAnnotations(ann)
+					patch := client.MergeFrom(cm)
+					p.SetAnnotations(ann)
+					c := NewWrappedClient(k8sDelegatedClient)
+					err = c.Patch(testCtx, p, patch)
+					Expect(err).ShouldNot(HaveOccurred())
+
+					cm2 := new(corev1.ConfigMap)
+					err = k8sAPIReader.Get(testCtx, configmapKey, cm2)
+					Expect(err).ShouldNot(HaveOccurred())
+					Expect(cm2.Annotations).Should(Equal(ann))
 				})
 			})
 
@@ -1054,7 +1316,7 @@ var _ = Describe("client", func() {
 				It("metav1.PartialObjectMetadata", func() {
 					deleteAllOf(func(c client.Client, lv *topolvmv1.LogicalVolume) {
 						p := &metav1.PartialObjectMetadata{}
-						p.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+						p.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 						lv.ObjectMeta.DeepCopyInto(&p.ObjectMeta)
 						err := c.DeleteAllOf(testCtx, p)
 						Expect(err).ShouldNot(HaveOccurred())
@@ -1085,6 +1347,14 @@ var _ = Describe("client", func() {
 				})
 
 				It("non LogicalVolume object", func() {
+					Skip("If you found resources other than LogicalVolume resource what DeleteAllOf can be executed in the envtest environment, please write test cases for these resources.")
+				})
+
+				It("non LogicalVolume unstructured.Unstructured", func() {
+					Skip("If you found resources other than LogicalVolume resource what DeleteAllOf can be executed in the envtest environment, please write test cases for these resources.")
+				})
+
+				It("non LogicalVolume metav1.PartialObjectMetadata", func() {
 					Skip("If you found resources other than LogicalVolume resource what DeleteAllOf can be executed in the envtest environment, please write test cases for these resources.")
 				})
 			})
@@ -1146,7 +1416,7 @@ var _ = Describe("client", func() {
 					It("metav1.PartialObjectMetadata", func() {
 						update(false, func(c client.Client, lv *topolvmv1.LogicalVolume) {
 							p := &metav1.PartialObjectMetadata{}
-							p.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+							p.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 							lv.ObjectMeta.DeepCopyInto(&p.ObjectMeta)
 							err := c.Status().Update(testCtx, p)
 							Expect(err).Should(HaveOccurred())
@@ -1184,6 +1454,49 @@ var _ = Describe("client", func() {
 						svc2.Status.LoadBalancer = lbstatus
 						c := NewWrappedClient(k8sDelegatedClient)
 						err = c.Status().Update(testCtx, svc2)
+						Expect(err).ShouldNot(HaveOccurred())
+
+						svc3 := new(corev1.Service)
+						err = k8sAPIReader.Get(testCtx, configmapKey, svc3)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(svc3.Status.LoadBalancer).Should(Equal(lbstatus))
+					})
+
+					It("non LogicalVolume unstructured.Unstructured", func() {
+						svc := new(corev1.Service)
+						svc.Name = configmapName
+						svc.Namespace = configmapNamespace
+						svc.Spec = corev1.ServiceSpec{
+							Selector: map[string]string{"app": "MyApp"},
+							Ports: []corev1.ServicePort{
+								{
+									Protocol: corev1.ProtocolTCP,
+									Port:     80,
+								},
+							},
+						}
+						err := k8sDelegatedClient.Create(testCtx, svc)
+						Expect(err).ShouldNot(HaveOccurred())
+						defer func() {
+							err := k8sDelegatedClient.Delete(testCtx, svc)
+							Expect(err).ShouldNot(HaveOccurred())
+						}()
+
+						svc2 := svc.DeepCopy()
+						lbstatus := corev1.LoadBalancerStatus{
+							Ingress: []corev1.LoadBalancerIngress{
+								{
+									Hostname: "example.com",
+								},
+							},
+						}
+						svc2.Status.LoadBalancer = lbstatus
+						u := &unstructured.Unstructured{}
+						u.SetGroupVersionKind(configMapGVK)
+						Expect(scheme.Convert(svc2, u, nil)).ShouldNot(HaveOccurred())
+
+						c := NewWrappedClient(k8sDelegatedClient)
+						err = c.Status().Update(testCtx, u)
 						Expect(err).ShouldNot(HaveOccurred())
 
 						svc3 := new(corev1.Service)
@@ -1245,7 +1558,7 @@ var _ = Describe("client", func() {
 					It("metav1.PartialObjectMetadata", func() {
 						patch(false, func(c client.Client, lv *topolvmv1.LogicalVolume, patch client.Patch) {
 							p := &metav1.PartialObjectMetadata{}
-							p.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+							p.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 							lv.ObjectMeta.DeepCopyInto(&p.ObjectMeta)
 							err := c.Status().Patch(testCtx, p, patch)
 							Expect(err).ShouldNot(HaveOccurred())
@@ -1287,6 +1600,81 @@ var _ = Describe("client", func() {
 						err = k8sAPIReader.Get(testCtx, configmapKey, svc4)
 						Expect(err).ShouldNot(HaveOccurred())
 						Expect(svc4.Status.LoadBalancer).Should(Equal(lbstatus))
+					})
+
+					It("non LogicalVolume unstructured.Unstructured", func() {
+						svc := new(corev1.Service)
+						svc.Name = configmapName
+						svc.Namespace = configmapNamespace
+						svc.Spec = corev1.ServiceSpec{
+							Selector: map[string]string{"app": "MyApp"},
+							Ports: []corev1.ServicePort{
+								{
+									Protocol: corev1.ProtocolTCP,
+									Port:     80,
+								},
+							},
+						}
+						err := k8sDelegatedClient.Create(testCtx, svc)
+						Expect(err).ShouldNot(HaveOccurred())
+
+						svc2 := svc.DeepCopy()
+						svc3 := svc2.DeepCopy()
+						lbstatus := corev1.LoadBalancerStatus{
+							Ingress: []corev1.LoadBalancerIngress{
+								{
+									Hostname: "example.com",
+								},
+							},
+						}
+						svc3.Status.LoadBalancer = lbstatus
+						patch := client.MergeFrom(svc2)
+						u := &unstructured.Unstructured{}
+						Expect(scheme.Convert(svc3, u, nil)).ShouldNot(HaveOccurred())
+						c := NewWrappedClient(k8sDelegatedClient)
+						err = c.Status().Patch(testCtx, u, patch)
+						Expect(err).ShouldNot(HaveOccurred())
+
+						svc4 := new(corev1.Service)
+						err = k8sAPIReader.Get(testCtx, configmapKey, svc4)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(svc4.Status.LoadBalancer).Should(Equal(lbstatus))
+					})
+
+					It("non LogicalVolume metav1.PartialObjectMetadata", func() {
+						svc := new(corev1.Service)
+						svc.Name = configmapName
+						svc.Namespace = configmapNamespace
+						svc.Spec = corev1.ServiceSpec{
+							Selector: map[string]string{"app": "MyApp"},
+							Ports: []corev1.ServicePort{
+								{
+									Protocol: corev1.ProtocolTCP,
+									Port:     80,
+								},
+							},
+						}
+						err := k8sDelegatedClient.Create(testCtx, svc)
+						Expect(err).ShouldNot(HaveOccurred())
+
+						ann := map[string]string{"foo": "bar"}
+						svc2 := svc.DeepCopy()
+						svc2.Spec = corev1.ServiceSpec{}
+						svc2.Status = corev1.ServiceStatus{}
+						patch := client.MergeFrom(svc2)
+						p := &metav1.PartialObjectMetadata{}
+						p.SetGroupVersionKind(svc2.GroupVersionKind().GroupVersion().WithKind("Service"))
+						p.SetName(configmapName)
+						p.SetNamespace(configmapNamespace)
+						p.SetAnnotations(ann)
+						c := NewWrappedClient(k8sDelegatedClient)
+						err = c.Status().Patch(testCtx, p, patch)
+						Expect(err).ShouldNot(HaveOccurred())
+
+						svc4 := new(corev1.Service)
+						err = k8sAPIReader.Get(testCtx, configmapKey, svc4)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(svc4.Annotations).Should(Equal(ann))
 					})
 				})
 			})

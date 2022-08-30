@@ -169,7 +169,7 @@ func convertToCurrent(lv *topolvmlegacyv1.LogicalVolume) *topolvmv1.LogicalVolum
 	u := &unstructured.Unstructured{}
 	err := k8sDelegatedClient.Scheme().Convert(lv, u, nil)
 	Expect(err).ShouldNot(HaveOccurred())
-	u.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+	u.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 	current := new(topolvmv1.LogicalVolume)
 	err = k8sDelegatedClient.Scheme().Convert(u, current, nil)
 	Expect(err).ShouldNot(HaveOccurred())

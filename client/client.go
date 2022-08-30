@@ -14,8 +14,12 @@ import (
 )
 
 const (
-	logicalVolume     = "LogicalVolume"
-	logicalVolumeList = "LogicalVolumeList"
+	kind     = "LogicalVolume"
+	kindList = "LogicalVolumeList"
+)
+
+var (
+	group = topolvmv1.GroupVersion.Group
 )
 
 type wrappedReader struct {
@@ -33,20 +37,21 @@ func NewWrappedReader(c client.Reader, s *runtime.Scheme) client.Reader {
 }
 
 func (c *wrappedReader) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
+	gvk := obj.GetObjectKind().GroupVersionKind()
 	switch o := obj.(type) {
 	case *unstructured.Unstructured:
-		if topolvm.UseLegacy() {
-			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(logicalVolume))
+		if gvk.Group == group && gvk.Kind == kind && topolvm.UseLegacy() {
+			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kind))
 			err := c.client.Get(ctx, key, o)
-			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 			return err
 		}
 		return c.client.Get(ctx, key, obj)
 	case *metav1.PartialObjectMetadata:
-		if topolvm.UseLegacy() {
-			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(logicalVolume))
+		if gvk.Group == group && gvk.Kind == kind && topolvm.UseLegacy() {
+			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kind))
 			err := c.client.Get(ctx, key, o)
-			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 			return err
 		}
 		return c.client.Get(ctx, key, obj)
@@ -56,11 +61,11 @@ func (c *wrappedReader) Get(ctx context.Context, key client.ObjectKey, obj clien
 			if err := c.scheme.Convert(obj, u, nil); err != nil {
 				return err
 			}
-			u.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(logicalVolume))
+			u.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kind))
 			if err := c.client.Get(ctx, key, u); err != nil {
 				return err
 			}
-			u.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+			u.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 			return c.scheme.Convert(u, obj, nil)
 		}
 		return c.client.Get(ctx, key, obj)
@@ -69,20 +74,21 @@ func (c *wrappedReader) Get(ctx context.Context, key client.ObjectKey, obj clien
 }
 
 func (c *wrappedReader) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
+	gvk := list.GetObjectKind().GroupVersionKind()
 	switch o := list.(type) {
 	case *unstructured.UnstructuredList:
-		if topolvm.UseLegacy() {
-			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(logicalVolumeList))
+		if gvk.Group == group && gvk.Kind == kindList && topolvm.UseLegacy() {
+			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kindList))
 			err := c.client.List(ctx, list, opts...)
-			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolumeList))
+			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kindList))
 			return err
 		}
 		return c.client.List(ctx, list, opts...)
 	case *metav1.PartialObjectMetadataList:
-		if topolvm.UseLegacy() {
-			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(logicalVolumeList))
+		if gvk.Group == group && gvk.Kind == kindList && topolvm.UseLegacy() {
+			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kindList))
 			err := c.client.List(ctx, list, opts...)
-			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolumeList))
+			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kindList))
 			return err
 		}
 		return c.client.List(ctx, list, opts...)
@@ -92,11 +98,11 @@ func (c *wrappedReader) List(ctx context.Context, list client.ObjectList, opts .
 			if err := c.scheme.Convert(list, u, nil); err != nil {
 				return err
 			}
-			u.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(logicalVolumeList))
+			u.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kindList))
 			if err := c.client.List(ctx, u, opts...); err != nil {
 				return err
 			}
-			u.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolumeList))
+			u.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kindList))
 			return c.scheme.Convert(u, list, nil)
 		}
 		return c.client.List(ctx, list, opts...)
@@ -127,12 +133,13 @@ func (c *wrappedClient) List(ctx context.Context, list client.ObjectList, opts .
 }
 
 func (c *wrappedClient) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
+	gvk := obj.GetObjectKind().GroupVersionKind()
 	switch o := obj.(type) {
 	case *unstructured.Unstructured:
-		if topolvm.UseLegacy() {
-			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(logicalVolume))
+		if gvk.Group == group && gvk.Kind == kind && topolvm.UseLegacy() {
+			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kind))
 			err := c.client.Create(ctx, o, opts...)
-			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 			return err
 		}
 		return c.client.Create(ctx, obj, opts...)
@@ -144,11 +151,11 @@ func (c *wrappedClient) Create(ctx context.Context, obj client.Object, opts ...c
 			if err := c.client.Scheme().Convert(obj, u, nil); err != nil {
 				return err
 			}
-			u.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(logicalVolume))
+			u.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kind))
 			if err := c.client.Create(ctx, u, opts...); err != nil {
 				return err
 			}
-			u.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+			u.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 			return c.client.Scheme().Convert(u, obj, nil)
 		}
 		return c.client.Create(ctx, obj, opts...)
@@ -157,20 +164,21 @@ func (c *wrappedClient) Create(ctx context.Context, obj client.Object, opts ...c
 }
 
 func (c *wrappedClient) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
+	gvk := obj.GetObjectKind().GroupVersionKind()
 	switch o := obj.(type) {
 	case *unstructured.Unstructured:
-		if topolvm.UseLegacy() {
-			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(logicalVolume))
+		if gvk.Group == group && gvk.Kind == kind && topolvm.UseLegacy() {
+			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kind))
 			err := c.client.Delete(ctx, o, opts...)
-			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 			return err
 		}
 		return c.client.Delete(ctx, obj, opts...)
 	case *metav1.PartialObjectMetadata:
-		if topolvm.UseLegacy() {
-			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(logicalVolume))
+		if gvk.Group == group && gvk.Kind == kind && topolvm.UseLegacy() {
+			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kind))
 			err := c.client.Delete(ctx, o, opts...)
-			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 			return err
 		}
 		return c.client.Delete(ctx, obj, opts...)
@@ -180,7 +188,7 @@ func (c *wrappedClient) Delete(ctx context.Context, obj client.Object, opts ...c
 			if err := c.client.Scheme().Convert(obj, u, nil); err != nil {
 				return err
 			}
-			u.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(logicalVolume))
+			u.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kind))
 			return c.client.Delete(ctx, u, opts...)
 		}
 		return c.client.Delete(ctx, obj, opts...)
@@ -189,12 +197,13 @@ func (c *wrappedClient) Delete(ctx context.Context, obj client.Object, opts ...c
 }
 
 func (c *wrappedClient) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
+	gvk := obj.GetObjectKind().GroupVersionKind()
 	switch o := obj.(type) {
 	case *unstructured.Unstructured:
-		if topolvm.UseLegacy() {
-			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(logicalVolume))
+		if gvk.Group == group && gvk.Kind == kind && topolvm.UseLegacy() {
+			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kind))
 			err := c.client.Update(ctx, o, opts...)
-			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 			return err
 		}
 		return c.client.Update(ctx, obj, opts...)
@@ -206,11 +215,11 @@ func (c *wrappedClient) Update(ctx context.Context, obj client.Object, opts ...c
 			if err := c.client.Scheme().Convert(obj, u, nil); err != nil {
 				return err
 			}
-			u.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(logicalVolume))
+			u.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kind))
 			if err := c.client.Update(ctx, u, opts...); err != nil {
 				return err
 			}
-			u.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+			u.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 			return c.client.Scheme().Convert(u, obj, nil)
 		}
 		return c.client.Update(ctx, obj, opts...)
@@ -222,20 +231,21 @@ func (c *wrappedClient) Update(ctx context.Context, obj client.Object, opts ...c
 // Since patch processes resources as Objects, even if the structs are different, if the Spec and Status are the same, there is no problem with patch processing.
 // ref: https://github.com/kubernetes-sigs/controller-runtime/blob/v0.12.1/pkg/client/patch.go#L114
 func (c *wrappedClient) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
+	gvk := obj.GetObjectKind().GroupVersionKind()
 	switch o := obj.(type) {
 	case *unstructured.Unstructured:
-		if topolvm.UseLegacy() {
-			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(logicalVolume))
+		if gvk.Group == group && gvk.Kind == kind && topolvm.UseLegacy() {
+			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kind))
 			err := c.client.Patch(ctx, o, patch, opts...)
-			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 			return err
 		}
 		return c.client.Patch(ctx, obj, patch, opts...)
 	case *metav1.PartialObjectMetadata:
-		if topolvm.UseLegacy() {
-			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(logicalVolume))
+		if gvk.Group == group && gvk.Kind == kind && topolvm.UseLegacy() {
+			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kind))
 			err := c.client.Patch(ctx, o, patch, opts...)
-			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 			return err
 		}
 	case *topolvmv1.LogicalVolume:
@@ -244,11 +254,11 @@ func (c *wrappedClient) Patch(ctx context.Context, obj client.Object, patch clie
 			if err := c.client.Scheme().Convert(obj, u, nil); err != nil {
 				return err
 			}
-			u.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(logicalVolume))
+			u.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kind))
 			if err := c.client.Patch(ctx, u, patch, opts...); err != nil {
 				return err
 			}
-			u.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+			u.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 			return c.client.Scheme().Convert(u, obj, nil)
 		}
 		return c.client.Patch(ctx, obj, patch, opts...)
@@ -257,20 +267,21 @@ func (c *wrappedClient) Patch(ctx context.Context, obj client.Object, patch clie
 }
 
 func (c *wrappedClient) DeleteAllOf(ctx context.Context, obj client.Object, opts ...client.DeleteAllOfOption) error {
+	gvk := obj.GetObjectKind().GroupVersionKind()
 	switch o := obj.(type) {
 	case *unstructured.Unstructured:
-		if topolvm.UseLegacy() {
-			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(logicalVolume))
+		if gvk.Group == group && gvk.Kind == kind && topolvm.UseLegacy() {
+			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kind))
 			err := c.client.DeleteAllOf(ctx, o, opts...)
-			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 			return err
 		}
 		return c.client.DeleteAllOf(ctx, obj, opts...)
 	case *metav1.PartialObjectMetadata:
-		if topolvm.UseLegacy() {
-			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(logicalVolume))
+		if gvk.Group == group && gvk.Kind == kind && topolvm.UseLegacy() {
+			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kind))
 			err := c.client.DeleteAllOf(ctx, o, opts...)
-			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 			return err
 		}
 		return c.client.DeleteAllOf(ctx, obj, opts...)
@@ -280,7 +291,7 @@ func (c *wrappedClient) DeleteAllOf(ctx context.Context, obj client.Object, opts
 			if err := c.client.Scheme().Convert(obj, u, nil); err != nil {
 				return err
 			}
-			u.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(logicalVolume))
+			u.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kind))
 			return c.client.DeleteAllOf(ctx, u, opts...)
 		}
 		return c.client.DeleteAllOf(ctx, obj, opts...)
@@ -307,12 +318,13 @@ type wrappedStatusWriter struct {
 var _ client.StatusWriter = &wrappedStatusWriter{}
 
 func (c *wrappedStatusWriter) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
+	gvk := obj.GetObjectKind().GroupVersionKind()
 	switch o := obj.(type) {
 	case *unstructured.Unstructured:
-		if topolvm.UseLegacy() {
-			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(logicalVolume))
+		if gvk.Group == group && gvk.Kind == kind && topolvm.UseLegacy() {
+			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kind))
 			err := c.client.Status().Update(ctx, o, opts...)
-			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 			return err
 		}
 		return c.client.Status().Update(ctx, obj, opts...)
@@ -324,11 +336,11 @@ func (c *wrappedStatusWriter) Update(ctx context.Context, obj client.Object, opt
 			if err := c.client.Scheme().Convert(obj, u, nil); err != nil {
 				return err
 			}
-			u.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(logicalVolume))
+			u.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kind))
 			if err := c.client.Status().Update(ctx, u, opts...); err != nil {
 				return err
 			}
-			u.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+			u.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 			return c.client.Scheme().Convert(u, obj, nil)
 		}
 		return c.client.Status().Update(ctx, obj, opts...)
@@ -340,20 +352,21 @@ func (c *wrappedStatusWriter) Update(ctx context.Context, obj client.Object, opt
 // Since patch processes resources as Objects, even if the structs are different, if the Spec and Status are the same, there is no problem with patch processing.
 // ref: https://github.com/kubernetes-sigs/controller-runtime/blob/v0.12.1/pkg/client/patch.go#L114
 func (c *wrappedStatusWriter) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
+	gvk := obj.GetObjectKind().GroupVersionKind()
 	switch o := obj.(type) {
 	case *unstructured.Unstructured:
-		if topolvm.UseLegacy() {
-			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(logicalVolume))
+		if gvk.Group == group && gvk.Kind == kind && topolvm.UseLegacy() {
+			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kind))
 			err := c.client.Status().Patch(ctx, o, patch, opts...)
-			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 			return err
 		}
 		return c.client.Status().Patch(ctx, obj, patch, opts...)
 	case *metav1.PartialObjectMetadata:
-		if topolvm.UseLegacy() {
-			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(logicalVolume))
+		if gvk.Group == group && gvk.Kind == kind && topolvm.UseLegacy() {
+			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kind))
 			err := c.client.Status().Patch(ctx, o, patch, opts...)
-			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 			return err
 		}
 		return c.client.Status().Patch(ctx, obj, patch, opts...)
@@ -363,11 +376,11 @@ func (c *wrappedStatusWriter) Patch(ctx context.Context, obj client.Object, patc
 			if err := c.client.Scheme().Convert(obj, u, nil); err != nil {
 				return err
 			}
-			u.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(logicalVolume))
+			u.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kind))
 			if err := c.client.Status().Patch(ctx, u, patch, opts...); err != nil {
 				return err
 			}
-			u.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(logicalVolume))
+			u.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 			return c.client.Scheme().Convert(u, obj, nil)
 		}
 		return c.client.Status().Patch(ctx, obj, patch, opts...)
