@@ -10,7 +10,7 @@ import (
 	"github.com/topolvm/topolvm"
 	topolvmlegacyv1 "github.com/topolvm/topolvm/api/legacy/v1"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
-	clientwapper "github.com/topolvm/topolvm/client"
+	clientwrapper "github.com/topolvm/topolvm/client"
 	"github.com/topolvm/topolvm/getter"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -143,8 +143,8 @@ func NewLogicalVolumeService(mgr manager.Manager) (*LogicalVolumeService, error)
 		}
 	}
 
-	client := clientwapper.NewWrappedClient(mgr.GetClient())
-	apiReader := clientwapper.NewWrappedReader(mgr.GetAPIReader(), mgr.GetClient().Scheme())
+	client := clientwrapper.NewWrappedClient(mgr.GetClient())
+	apiReader := clientwrapper.NewWrappedReader(mgr.GetAPIReader(), mgr.GetClient().Scheme())
 	return &LogicalVolumeService{
 		writer:       client,
 		getter:       newRetryMissingGetter(client, apiReader),
