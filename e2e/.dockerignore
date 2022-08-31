@@ -1,4 +1,3 @@
 *
 !tmpbin
 tmpbin/.*
-!build/hypertopolvm

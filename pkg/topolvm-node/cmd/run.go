@@ -11,7 +11,7 @@ import (
 	"github.com/topolvm/topolvm"
 	topolvmlegacyv1 "github.com/topolvm/topolvm/api/legacy/v1"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
-	clientwapper "github.com/topolvm/topolvm/client"
+	clientwrapper "github.com/topolvm/topolvm/client"
 	"github.com/topolvm/topolvm/controllers"
 	"github.com/topolvm/topolvm/csi"
 	"github.com/topolvm/topolvm/driver"
@@ -61,8 +61,8 @@ func subMain() error {
 		setupLog.Error(err, "unable to start manager")
 		return err
 	}
-	client := clientwapper.NewWrappedClient(mgr.GetClient())
-	apiReader := clientwapper.NewWrappedReader(mgr.GetAPIReader(), mgr.GetClient().Scheme())
+	client := clientwrapper.NewWrappedClient(mgr.GetClient())
+	apiReader := clientwrapper.NewWrappedReader(mgr.GetAPIReader(), mgr.GetClient().Scheme())
 
 	dialer := &net.Dialer{}
 	dialFunc := func(ctx context.Context, a string) (net.Conn, error) {
