@@ -66,7 +66,7 @@ Modify each StorageClass resource in TopoLVM as follows:
 
 ##### LogicalVolume
 
-Modify each LogicalVolume resources in TopoLVM as follows:
+Modify each LogicalVolume resource in TopoLVM as follows:
 
 - Change the CRD to use from `logicalvolumes.topolvm.cybozu.com` to` logicalvolumes.topolvm.io`
 - Change the `topolvm.cybozu.com/resize-requested-at` annotation to` topolvm.io/resize-requested-at`
