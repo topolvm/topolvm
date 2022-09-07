@@ -127,8 +127,8 @@ kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/relea
 Add a label to `Namespace` resources for the TopoLVM webhook to avoid unnecessary validation.
 
 ```console
-kubectl label namespace kube-system topolvm.io/webhook=ignore
-kubectl label namespace cert-manager topolvm.io/webhook=ignore
+kubectl label namespace kube-system topolvm.cybozu.com/webhook=ignore
+kubectl label namespace cert-manager topolvm.cybozu.com/webhook=ignore
 ```
 
 ## 4. Install `lvmd`

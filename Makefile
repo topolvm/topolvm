@@ -144,7 +144,7 @@ test: lint ## Run lint and unit tests.
 	mkdir -p $(ENVTEST_ASSETS_DIR)
 	source <($(BINDIR)/setup-envtest use $(ENVTEST_KUBERNETES_VERSION) --bin-dir=$(ENVTEST_ASSETS_DIR) -p env); GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn go test -count=1 -race -v ./...
 
-test-env: ## Run unit tests that depends on the legacy plugin.
+groupname-test: ## Run unit tests that depends on the groupname.
 	go install ./...
 
 	mkdir -p $(ENVTEST_ASSETS_DIR)

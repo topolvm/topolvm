@@ -8,4 +8,4 @@ webhook:
   port: 9443
 leaderElection:
   leaderElect: true
-  resourceName: 846b3cc5.io
+  resourceName: 846b3cc5.topolvm.io
