@@ -27,7 +27,7 @@ for example:
 | Certificate        | [webhook-ca](https://github.com/topolvm/topolvm/blob/v0.8.3/deploy/manifests/base/certificates.yaml#L11-L27) | `{{ template "topolvm.fullname" . }}-webhook-ca` |
 | Issuer             | [webhook-ca](https://github.com/topolvm/topolvm/blob/v0.8.3/deploy/manifests/base/certificates.yaml#L29-L37) | `{{ template "topolvm.fullname" . }}-webhook-ca` |
 | Certificate        | [mutatingwebhook](https://github.com/topolvm/topolvm/blob/v0.8.3/deploy/manifests/base/certificates.yaml#L39-L58) | `{{ template "topolvm.fullname" . }}-mutatingwebhook` |
-| CSIDriver          | [topolvm.io](https://github.com/topolvm/topolvm/blob/v0.8.3/deploy/manifests/base/controller.yaml#L2-L11) | **NO CHANGED** |
+| CSIDriver          | [topolvm.io](https://github.com/topolvm/topolvm/blob/v0.8.3/deploy/manifests/base/controller.yaml#L2-L11) | [Please read here](./README.md#about-the-legacy-flag) |
 | ServiceAccount     | [controller](https://github.com/topolvm/topolvm/blob/v0.8.3/deploy/manifests/base/controller.yaml#L14-L18) | `{{ template "topolvm.fullname" . }}-controller` |
 | ClusterRole        | [topolvm-system:controller](https://github.com/topolvm/topolvm/blob/v0.8.3/deploy/manifests/base/controller.yaml#L20-L39) | `{{ .Release.Namespace }}:controller` |
 | ClusterRoleBinding | [topolvm-system:controller](https://github.com/topolvm/topolvm/blob/v0.8.3/deploy/manifests/base/controller.yaml#L41-L52) | `{{ .Release.Namespace }}:controller` |
