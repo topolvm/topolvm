@@ -12,7 +12,7 @@ So we would like to remove the domain name "cybozy.com," which contains the spec
 ### Goals
 
 - Change `topolvm.cybozu.com` used in TopoLVM's CRD and plugin name to `topolvm.io`
-- Keep TopoLVM available at `topolvm.cybozu.com` for existing users
+- Keep TopoLVM available at `topolvm.cybozu.com` for existing users(but does not support concurrent use with topolvm.io partly)
 
 ## Proposal
 
