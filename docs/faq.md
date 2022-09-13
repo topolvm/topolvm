@@ -33,3 +33,19 @@ To keep track of the volume _usage_, the Pod should now request 80 GiB storage. 
 
 TopoLVM, on the other hand, keeps track of the volume _free_ capacity through annotations of nodes.
 TopoLVM's extended scheduler `topolvm-scheduler` ignores the current usage.  It only cares if a node has sufficient _free_ capacity for new Pods.
+
+## Why do I get exit code 5 on `lvcreate`?
+
+Likely because you are using read only file system, and/or `/etc/lvm` is mounted
+read-only.
+
+To mitigate this you need to set the env `LVM_SYSTEM_DIR=/tmp` on the lvmd daemon.
+
+In the helm chart you can do this with the following:
+
+```yaml
+lvmd:
+  env:
+    - name: LVM_SYSTEM_DIR
+      value: /tmp
+```

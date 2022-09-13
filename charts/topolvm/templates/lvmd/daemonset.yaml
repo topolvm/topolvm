@@ -21,13 +21,13 @@ spec:
     matchLabels:
       idx: {{ $lvmdidx | quote }}
       app.kubernetes.io/component: lvmd
-      {{ include "topolvm.selectorLabels" . | nindent 6 }}
+      {{- include "topolvm.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
         idx: {{ $lvmdidx | quote }}
         app.kubernetes.io/component: lvmd
-        {{ include "topolvm.selectorLabels" . | nindent 8 }}
+        {{- include "topolvm.selectorLabels" . | nindent 8 }}
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/lvmd/configmap.yaml") . | sha256sum }}
         {{- if and .Values.node.metrics.enabled .Values.node.metrics.annotations }}
@@ -55,10 +55,14 @@ spec:
               mountPath: /etc/topolvm
             {{- if .Values.lvmd.volumeMounts }}
             {{- toYaml .Values.lvmd.volumeMounts | nindent 12 }}
-            {{- else}}
+            {{- else }}
             - name: lvmd-socket-dir
               mountPath: {{ dir .Values.lvmd.socketName }}
-            {{- end}}
+            {{- end }}
+          {{- if .Values.lvmd.env }}
+          env:
+          {{- toYaml .Values.lvmd.env | nindent 10 }}
+          {{- end }}
       volumes:
         - name: config
           configMap:
