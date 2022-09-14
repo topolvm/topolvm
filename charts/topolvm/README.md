@@ -114,6 +114,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | image.tag | string | `{{ .Chart.AppVersion }}` | TopoLVM image tag to use. |
 | lvmd.additionalConfigs | list | `[]` | Define additional LVM Daemon configs if you have additional types of nodes. Please ensure nodeSelectors are non overlapping. |
 | lvmd.deviceClasses | list | `[{"default":true,"name":"ssd","spare-gb":10,"volume-group":"myvg1"}]` | Specify the device-class settings. |
+| lvmd.env | list | `[]` | extra environment variables |
 | lvmd.managed | bool | `true` | If true, set up lvmd service with DaemonSet. |
 | lvmd.nodeSelector | object | `{}` | Specify nodeSelector. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/ |
 | lvmd.priorityClassName | string | `nil` | Specify priorityClassName. |
