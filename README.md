@@ -37,6 +37,7 @@ Features
 - Volume metrics: Usage stats are exported as Prometheus metrics from `kubelet`.
 - [Volume Expansion](https://kubernetes-csi.github.io/docs/volume-expansion.html): Volumes can be expanded by editing `PersistentVolumeClaim` objects.
 - [Storage capacity tracking](https://github.com/topolvm/topolvm/tree/main/deploy#storage-capacity-tracking): You can enable Storage Capacity Tracking mode instead of using topolvm-scheduler.
+- [IO Throttling](https://github.com/topolvm/topolvm/tree/main/deploy#io-throttling): You can add annotation to pod to limit bandwidth or IOPS.
 
 ### Planned features
 

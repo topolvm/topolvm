@@ -20,7 +20,8 @@ const (
 )
 
 // This regexp is based on the following validation:
-//   https://github.com/kubernetes/apimachinery/blob/v0.18.3/pkg/util/validation/validation.go#L42
+//
+//	https://github.com/kubernetes/apimachinery/blob/v0.18.3/pkg/util/validation/validation.go#L42
 var qualifiedNameRegexp = regexp.MustCompile("^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$")
 
 // This regexp is used to check StripeSize format

@@ -115,8 +115,10 @@ func (s *lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*pr
 	s.notify()
 
 	log.Info("created a new LV", map[string]interface{}{
-		"name": req.GetName(),
-		"size": requested,
+		"name":  req.GetName(),
+		"size":  requested,
+		"major": lv.MajorNumber(),
+		"minor": lv.MinorNumber(),
 	})
 
 	return &proto.CreateLVResponse{

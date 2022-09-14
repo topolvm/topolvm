@@ -8,6 +8,25 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - persistentvolumes
+  verbs:
+  - delete
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - nodes
   verbs:
   - get

@@ -69,6 +69,16 @@ func subMain() error {
 	}
 	defer conn.Close()
 
+	// pod io controller
+	podIOController := controllers.NewPodIOReconciler(
+		mgr.GetClient(),
+		nodename,
+	)
+	if err := podIOController.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller ", "controller", "podController")
+		return err
+	}
+
 	lvcontroller := controllers.NewLogicalVolumeReconciler(
 		mgr.GetClient(),
 		nodename,

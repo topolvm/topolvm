@@ -248,6 +248,8 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 		lv.Status.CurrentSize = resource.NewQuantity(reqBytes, resource.BinarySI)
 		lv.Status.Code = codes.OK
 		lv.Status.Message = ""
+		lv.Status.DevMajor = fmt.Sprint(volume.DevMajor)
+		lv.Status.DevMinor = fmt.Sprint(volume.DevMinor)
 		return nil
 	}()
 
@@ -264,7 +266,13 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 		return err
 	}
 
-	log.Info("created new LV", "name", lv.Name, "uid", lv.UID, "status.volumeID", lv.Status.VolumeID)
+	log.Info(
+		"created new LV", "name", lv.Name,
+		"uid", lv.UID,
+		"status.volumeID", lv.Status.VolumeID,
+		"status.DevMajor", lv.Status.DevMajor,
+		"status.DevMinor", lv.Status.DevMinor,
+	)
 	return nil
 }
 

@@ -14,6 +14,12 @@ rules:
   - apiGroups: ["storage.k8s.io"]
     resources: ["csidrivers"]
     verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  - apiGroups: [""]                                  
+    resources: ["persistentvolumes"]
+    verbs: ["get", "list", "watch", "delete"]
   {{- if .Values.podSecurityPolicy.create }}
   - apiGroups: ["policy"]
     resources: ["podsecuritypolicies"]

@@ -252,6 +252,83 @@ you need to set the `controller.storageCapacityTracking.enabled=true`, `schedule
         enabled: false
     <snip>
     ```
+## IO Throttling
+
+Users can add annotation to pod to limit bandwidth or IOPS.
+
+Example: `kubectl apply -f deployment.yaml`
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-deployment-speed-limit
+  namespace: test
+  labels:
+    app: web-server-speed-limit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-server-speed-limit
+  template:
+    metadata:
+      annotations:
+        topolvm.cybozu.com/blkio.throttle.read_bps_device: "10485760"
+        topolvm.cybozu.com/blkio.throttle.read_iops_device: "10000"
+        topolvm.cybozu.com/blkio.throttle.write_bps_device: "10485760"
+        topolvm.cybozu.com/blkio.throttle.write_iops_device: "100000"
+      labels:
+        app: web-server-speed-limit
+    spec:
+      containers:
+        - name: web-server
+          image: nginx:latest
+          imagePullPolicy: "IfNotPresent"
+          volumeMounts:
+            - name: mypvc
+              mountPath: /var/lib/www/html
+      volumes:
+        - name: mypvc
+          persistentVolumeClaim:
+            claimName: topolvm-pvc-speed-limit
+            readOnly: false
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: topolvm-pvc-speed-limit
+  namespace: test
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 17Gi
+  storageClassName: topolvm-provisioner
+  volumeMode: Filesystem
+```
+
+- Topolvm will convert those anntoations into pod's cgroupfs hierarchy.
+
+  ```shell
+  cgroup v1
+  /sys/fs/cgroup/blkio/kubepods/burstable/pod0b0e005c-39ec-4719-bbfe-78aadbc3e4ad/blkio.throttle.read_bps_device
+  /sys/fs/cgroup/blkio/kubepods/burstable/pod0b0e005c-39ec-4719-bbfe-78aadbc3e4ad/blkio.throttle.read_iops_device
+  /sys/fs/cgroup/blkio/kubepods/burstable/pod0b0e005c-39ec-4719-bbfe-78aadbc3e4ad/blkio.throttle.write_bps_device
+  /sys/fs/cgroup/blkio/kubepods/burstable/pod0b0e005c-39ec-4719-bbfe-78aadbc3e4ad/blkio.throttle.write_iops_device
+  ```
+  ```shell
+  cgroup v2
+  /sys/fs/cgroup/kubepods/burstable/pod0b0e005c-39ec-4719-bbfe-78aadbc3e4ad/io.max
+  ```
+
+* Users can add one or more annotations. Adding or removing annotations will be synced to cgroupfs in about 60s. 
+* Currently, only block device disk speed limit is supported. User can test io throttling with command `dd if=/dev/zero of=out.file bs=1M count=512 oflag=dsync`.
+* Topolvm can automatically decide whether to use cgroup v1 or cgroup v2 according to the system environment.
+* If the system uses cgroup v2, it supports buffer io speed limit (you need to enable io and memory controllers at the same time), otherwise only direct io speed limit is supported.
+* If user can set io throttling too low, it may cause the procedure of formating filesystem hangs there and then the pod will be in pending state forever.
+* The main inspiration of this function comes from the [Carina](https://github.com/carina-io/carina) project, and some codes of the carina project are referenced at the same time.
 
 ## Protect system namespaces from TopoLVM webhook
 

@@ -39,6 +39,8 @@ type LogicalVolumeStatus struct {
 	Code        codes.Code         `json:"code,omitempty"`
 	Message     string             `json:"message,omitempty"`
 	CurrentSize *resource.Quantity `json:"currentSize,omitempty"`
+	DevMajor    string             `json:"devMajor,omitempty"`
+	DevMinor    string             `json:"devMinor,omitempty"`
 }
 
 //+kubebuilder:object:root=true

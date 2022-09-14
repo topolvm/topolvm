@@ -194,7 +194,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 
 	name = strings.ToLower(name)
 
-	volumeID, err := s.lvService.CreateVolume(ctx, node, deviceClass, name, sourceName, requestGb)
+	volumeID, devMajor, devMinor, err := s.lvService.CreateVolume(ctx, node, deviceClass, name, sourceName, requestGb)
 	if err != nil {
 		_, ok := status.FromError(err)
 		if !ok {
@@ -202,12 +202,16 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 		}
 		return nil, err
 	}
-
+	ctrlLogger.Info("Called CreateVolume", "volumeID", volumeID, "devMajor", devMajor, "devMinor", devMinor)
+	volumeContext := make(map[string]string)
+	volumeContext[topolvm.DeviceMajorKey] = fmt.Sprintf("%d", devMajor)
+	volumeContext[topolvm.DeviceMinorKey] = fmt.Sprintf("%d", devMinor)
 	return &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
 			CapacityBytes: requestGb << 30,
 			VolumeId:      volumeID,
 			ContentSource: source,
+			VolumeContext: volumeContext,
 			AccessibleTopology: []*csi.Topology{
 				{
 					Segments: map[string]string{topolvm.TopologyNodeKey: node},
@@ -292,7 +296,7 @@ func (s controllerService) CreateSnapshot(ctx context.Context, req *csi.CreateSn
 	deviceClass := sourceVol.Spec.DeviceClass
 	size := sourceVol.Spec.Size
 	sourceVolName := sourceVol.Spec.Name
-	snapshotID, err := s.lvService.CreateSnapshot(ctx, node, deviceClass, sourceVolName, name, accessType, size)
+	snapshotID, _, _, err := s.lvService.CreateSnapshot(ctx, node, deviceClass, sourceVolName, name, accessType, size)
 	if err != nil {
 		_, ok := status.FromError(err)
 		if !ok {
@@ -300,7 +304,6 @@ func (s controllerService) CreateSnapshot(ctx context.Context, req *csi.CreateSn
 		}
 		return nil, err
 	}
-
 	return &csi.CreateSnapshotResponse{
 		Snapshot: &csi.Snapshot{
 			SnapshotId:     snapshotID,

@@ -17,6 +17,12 @@ const TopologyNodeKey = "topology.topolvm.cybozu.com/node"
 // DeviceClassKey is the key used in CSI volume create requests to specify a device-class.
 const DeviceClassKey = "topolvm.cybozu.com/device-class"
 
+// DeviceMajorKey is the key used by iolimmit.
+const DeviceMajorKey = "topolvm.cybozu.com/device-major"
+
+// DeviceMinorKey is the key used by iolimmit.
+const DeviceMinorKey = "topolvm.cybozu.com/device-minor"
+
 // ResizeRequestedAtKey is the key of LogicalVolume that represents the timestamp of the resize request.
 const ResizeRequestedAtKey = "topolvm.cybozu.com/resize-requested-at"
 
@@ -53,3 +59,8 @@ const CreatedbyLabelKey = "app.kubernetes.io/created-by"
 
 // Label value that indicates The controller/user who created this resource
 const CreatedbyLabelValue = "topolvm-controller"
+
+const ConfigSourceKey = "kubernetes.io/config.source"
+
+// Updates from Kubernetes API Server
+const ApiServerSource = "api"
