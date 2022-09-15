@@ -41,7 +41,9 @@ build/topolvm.img: $(GO_FILES)
 	$(MAKE) -C .. tag IMAGE_PREFIX=ghcr.io/topolvm/ IMAGE_TAG=$(TOPOLVM_VERSION)
 	docker save -o $@ ghcr.io/topolvm/topolvm-with-sidecar:$(TOPOLVM_VERSION)
 
+.PHONY: run
 run:
+	rm -f $(TMPDIR)/scheduler/scheduler-config.yaml
 	$(MAKE) start-lvmd
 	$(MAKE) launch-kind
 	if [ "$(BUILD_IMAGE)" = "true" ]; then \
@@ -60,9 +62,10 @@ run:
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system -l="app.kubernetes.io/component=controller,app.kubernetes.io/name=topolvm" pod
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system certificate/topolvm-mutatingwebhook
 	timeout 120 sh -c "until $(KUBECTL) apply -f podpvc.yaml; do sleep 10; done"
-	$(KUBECTL) wait --for=condition=ready --timeout=120s -n default pod -l app=example || true
+	$(KUBECTL) wait --for=condition=ready --timeout=120s -n default pod -l app=example
 	[ $$($(KUBECTL) get --no-headers=true $(LOGICALVOLUE_GK_NAME) | wc -l) -ne 0 ]
 
+.PHONY: setup
 setup: $(KUBECTL)
 	$(SUDO) apt-get update
 	$(SUDO) apt-get install -y lvm2 xfsprogs thin-provisioning-tools
@@ -72,6 +75,7 @@ setup: $(KUBECTL)
 	$(CURL) https://get.helm.sh/helm-v$(HELM_VERSION)-linux-amd64.tar.gz \
 	  | tar xvz -C $(BINDIR) --strip-components 1 linux-amd64/helm
 
+.PHONY: stop-lvmd
 clean: stop-lvmd
 	rm -rf bin/ build/ $(TMPDIR)
 
@@ -83,12 +87,14 @@ $(TMPDIR)/lvmd/lvmd.yaml: ../deploy/lvmd-config/lvmd.yaml
 	mkdir -p $(TMPDIR)/lvmd
 	sed -e 's=/run/topolvm/lvmd.sock=$(TMPDIR)/lvmd/lvmd.sock=' $< > $@
 
+.PHONY: launch-kind
 launch-kind: $(TMPDIR)/scheduler/scheduler-config.yaml kind/topolvm-cluster.yaml
 	$(MAKE) shutdown-kind
 	$(SUDO) rm -rf $(TMPDIR)/controller $(TMPDIR)/worker*
 	sed 's/@KUBERNETES_VERSION@/$(KUBERNETES_VERSION)/; s=@TMPDIR@=$(TMPDIR)='  kind/topolvm-cluster.yaml > $(TMPDIR)/topolvm-cluster.yaml
 	$(KIND) create cluster --name=$(KIND_CLUSTER_NAME) --config $(TMPDIR)/topolvm-cluster.yaml --image kindest/node:v$(KUBERNETES_VERSION)
 
+.PHONY: shutdown-kind
 shutdown-kind:
 	$(KIND) delete cluster --name=$(KIND_CLUSTER_NAME) || true
 	for d in $$($(SUDO) find $(TMPDIR) -type d); do \
@@ -97,6 +103,7 @@ shutdown-kind:
 		fi; \
 	done
 
+.PHONY: start-lvmd
 start-lvmd: $(TMPDIR)/lvmd/lvmd.yaml
 	go build -o build/lvmd ../pkg/lvmd
 	if [ -f $(BACKING_STORE)/backing_store ]; then $(MAKE) stop-lvmd; fi; \
@@ -108,6 +115,7 @@ start-lvmd: $(TMPDIR)/lvmd/lvmd.yaml
 	$(SUDO) lvcreate -T myvg1/thinpool -L 2G; \
 	$(SUDO) systemd-run --unit=lvmd.service $(shell pwd)/build/lvmd --config=$(TMPDIR)/lvmd/lvmd.yaml; \
 
+.PHONY: stop-lvmd
 stop-lvmd:
 	$(MAKE) shutdown-kind
 	if systemctl is-active -q lvmd.service; then $(SUDO) systemctl stop lvmd.service; fi; \
@@ -118,4 +126,93 @@ stop-lvmd:
 		rm -f $(BACKING_STORE)/backing_store; \
 	fi
 
-.PHONY: launch-kind shutdown-kind start-lvmd stop-lvmd run setup clean
+$(TMPDIR)/scheduler/kube-scheduler.yaml: migrate/kube-scheduler.yaml
+	mkdir -p $(TMPDIR)/scheduler
+	cp $< $@
+
+.PHONY: migration-test
+migration-test: build/topolvm.io_logicalvolumes.yaml
+	$(MAKE) run BUILD_IMAGE=true USE_LEGACY=true
+
+	# Stopping legacy topolvm
+	$(KUBECTL) -n topolvm-system delete deploy topolvm-controller topolvm-cert-manager topolvm-cert-manager-cainjector topolvm-cert-manager-webhook
+	$(KUBECTL) -n topolvm-system delete ds topolvm-node topolvm-scheduler
+	$(KUBECTL) delete storageclass topolvm-provisioner topolvm-provisioner-thin
+	$(KUBECTL) delete csidriver topolvm.cybozu.com
+	$(KUBECTL) delete clusterrole \
+		topolvm-cert-manager-cainjector \
+		topolvm-cert-manager-controller-approve:cert-manager-io \
+		topolvm-cert-manager-controller-certificates \
+		topolvm-cert-manager-controller-certificatesigningrequests \
+		topolvm-cert-manager-controller-challenges \
+		topolvm-cert-manager-controller-clusterissuers \
+		topolvm-cert-manager-controller-ingress-shim \
+		topolvm-cert-manager-controller-issuers \
+		topolvm-cert-manager-controller-orders \
+		topolvm-cert-manager-edit \
+		topolvm-cert-manager-view \
+		topolvm-cert-manager-webhook:subjectaccessreviews \
+		topolvm-external-provisioner-runner \
+		topolvm-external-resizer-runner \
+		topolvm-external-snapshotter-runner \
+		topolvm-system:controller \
+		topolvm-system:node
+	$(KUBECTL) delete clusterrolebinding \
+		topolvm-cert-manager-cainjector \
+		topolvm-cert-manager-controller-approve:cert-manager-io \
+		topolvm-cert-manager-controller-certificates \
+		topolvm-cert-manager-controller-certificatesigningrequests \
+		topolvm-cert-manager-controller-challenges \
+		topolvm-cert-manager-controller-clusterissuers \
+		topolvm-cert-manager-controller-ingress-shim \
+		topolvm-cert-manager-controller-issuers \
+		topolvm-cert-manager-controller-orders \
+		topolvm-cert-manager-webhook:subjectaccessreviews \
+		topolvm-csi-provisioner-role \
+		topolvm-csi-resizer-role \
+		topolvm-csi-snapshotter-role \
+		topolvm-system:controller \
+		topolvm-system:node
+	$(KUBECTL) -n kube-system delete role \
+		topolvm-cert-manager-cainjector:leaderelection \
+		topolvm-cert-manager:leaderelection
+	$(KUBECTL) -n kube-system delete rolebinding \
+		topolvm-cert-manager-cainjector:leaderelection \
+		topolvm-cert-manager:leaderelection
+	$(KUBECTL) delete mutatingwebhookconfiguration \
+		topolvm-cert-manager-webhook \
+		topolvm-hook
+	$(KUBECTL) delete validatingwebhookconfiguration topolvm-cert-manager-webhook
+	$(KUBECTL) delete priorityclass topolvm
+
+	# Installing the new TopoLVM
+	$(KUBECTL) -n kube-system delete pod -l component=kube-scheduler,tier=control-plane
+	$(KUBECTL) create namespace topolvm-system2
+	$(KUBECTL) label namespace topolvm-system2 topolvm.io/webhook=ignore
+	$(HELM) install --namespace=topolvm-system2 topolvm ../charts/topolvm/ -f values.yaml
+	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system2 deployments/topolvm-controller
+	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system2 -l="app.kubernetes.io/component=controller,app.kubernetes.io/name=topolvm" pod
+	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system2 certificate/topolvm-mutatingwebhook
+	cp ../deploy/scheduler-config/scheduler-config.yaml $(TMPDIR)/scheduler/scheduler-config.yaml
+	docker exec -it $$(docker ps -f name=topolvm-example-control-plane --format="{{.ID}}") cp /mnt/host/scheduler/kube-scheduler.yaml /etc/kubernetes/manifests/kube-scheduler.yaml
+
+	# Migration resources
+	$(KUBECTL) -n topolvm-system2 patch ds topolvm-node -p '{"spec": {"template": {"spec": {"nodeSelector": {"unschedule": "true"}}}}}'
+	go run cmd/migration-example/main.go
+	$(KUBECTL) delete -f ../config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml
+	$(KUBECTL) delete ns topolvm-system
+	$(KUBECTL) -n topolvm-system2 patch ds topolvm-node --type json -p='[{"op": "remove", "path": "/spec/template/spec/nodeSelector/unschedule"}]'
+	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system2 -l="app.kubernetes.io/component=node,app.kubernetes.io/name=topolvm" pod
+	sleep 30
+
+	# Checking if the new TopoLVM operating correctly(existing volumes)
+	$(KUBECTL) wait --for=condition=ready --timeout=120s -n default pod -l app=example
+	$(KUBECTL) exec my-pod -- touch /test1/file
+	$(KUBECTL) exec my-pod -- ls -la /test1/file
+	$(KUBECTL) delete -n default pod my-pod
+	timeout 120 sh -c "until $(KUBECTL) apply -f podpvc.yaml; do sleep 10; done"
+	$(KUBECTL) wait --for=condition=ready --timeout=120s -n default pod my-pod
+
+	# Checking if the new TopoLVM operating correctly(new volumes)
+	timeout 120 sh -c "until $(KUBECTL) apply -f migrate/podpvc.yaml; do sleep 10; done"
+	$(KUBECTL) wait --for=condition=ready --timeout=120s -n default pod -l app=example

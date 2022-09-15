@@ -94,12 +94,12 @@ func (c *wrappedReader) List(ctx context.Context, list client.ObjectList, opts .
 		return c.client.List(ctx, list, opts...)
 	case *topolvmv1.LogicalVolumeList:
 		if topolvm.UseLegacy() {
-			u := &unstructured.UnstructuredList{}
-			if err := c.scheme.Convert(list, u, nil); err != nil {
+			l := new(topolvmlegacyv1.LogicalVolumeList)
+			if err := c.client.List(ctx, l, opts...); err != nil {
 				return err
 			}
-			u.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kindList))
-			if err := c.client.List(ctx, u, opts...); err != nil {
+			u := &unstructured.UnstructuredList{}
+			if err := c.scheme.Convert(l, u, nil); err != nil {
 				return err
 			}
 			u.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kindList))

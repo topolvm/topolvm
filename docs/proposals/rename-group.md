@@ -148,11 +148,12 @@ If you are already using TopoLVM with the group name `topolvm.cybozu.com` and wa
    - topolvm-controller
    - topolvm-node
    - topolvm-scheduler
-1. Manually install the CRD for `topolvm.io`
+1. Remove legacy TopoLVM resources without LogicalVolume CRD
+1. Manually install the new TopoLVM without topolvm-node to another namespace
+1. Update a scheduler config and restart a kube-scheduler
 1. Perform the migration work for each resource as mentioned in the chapter `Changes to topolvm.io`.
    - Please migrate while confirming that the pod using the updated resource (e.g. Persistent Volume) continues to operate without problems.
-1. If the migration of various data is successful, restart the stopped pod.
-1. Create PersistentVolume using StorageClass whose `provisioner` is set to the group name of `topolvm.io` and check if mount to Pod succeeds.
+1. Start topolvm-node after resource migration
 
 ## NOTE
 

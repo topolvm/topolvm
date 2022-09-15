@@ -1,0 +1,94 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: topolvm-pvc-migration
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: topolvm-provisioner
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod-migration
+  namespace: default
+  labels:
+    app.kubernetes.io/name: my-pod-migration
+    app: example
+spec:
+  containers:
+  - name: ubuntu
+    image: quay.io/cybozu/ubuntu:20.04
+    command: ["/usr/local/bin/pause"]
+    volumeMounts:
+    - mountPath: /test1
+      name: my-volume
+  volumes:
+  - name: my-volume
+    persistentVolumeClaim:
+      claimName: topolvm-pvc-migration
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: topolvm-pvc-thin-migration
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      # thin-pool size - 2G, with overprovision - 2G *10 and 10Gi ask should work
+      storage: 10Gi
+  storageClassName: topolvm-provisioner-thin
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod-thin-migration
+  namespace: default
+  labels:
+    app.kubernetes.io/name: my-pod-thin-migration
+    app: example
+spec:
+  containers:
+  - name: ubuntu
+    image: quay.io/cybozu/ubuntu:20.04
+    command: ["/usr/local/bin/pause"]
+    volumeMounts:
+    - mountPath: /test1
+      name: my-volume
+  volumes:
+  - name: my-volume
+    persistentVolumeClaim:
+      claimName: topolvm-pvc-thin-migration
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod-ephemeral-migration
+  namespace: default
+  labels:
+    app.kubernetes.io/name: my-pod-ephemeral-migration
+    app: example
+spec:
+  containers:
+  - name: ubuntu
+    image: quay.io/cybozu/ubuntu:20.04
+    command: ["/usr/local/bin/pause"]
+    volumeMounts:
+    - mountPath: /test1
+      name: my-volume
+  volumes:
+  - name: my-volume
+    ephemeral:
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+          - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi
+          storageClassName: topolvm-provisioner
