@@ -7,7 +7,7 @@ Change `topolvm.cybozu.com` used in the CRD and plugin name of TopoLVM to `topol
 ## Motivation
 
 We are thinking of donating the TopoLVM project to CNCF in the future.
-So we would like to remove the domain name "cybozy.com," which contains the specific company's name, from the project.
+So we would like to remove the domain name "cybozu.com," which contains the specific company's name, from the project.
 
 ### Goals
 

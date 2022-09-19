@@ -1,4 +1,4 @@
-# useLegacy -- If true, the legacy plugin name and legacy custome resource group is used(topolvm.cybozy.com).
+# useLegacy -- If true, the legacy plugin name and legacy custome resource group is used(topolvm.cybozu.com).
 useLegacy: false
 
 image:

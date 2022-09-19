@@ -22,12 +22,12 @@ BUILD_IMAGE := false
 
 HELM_VALUES_FILE := values.yaml
 SCHEDULER_CONFIG := scheduler-config.yaml
-LOGICALVOLUE_GK_NAME := logicalvolume.topolvm.io
+LOGICALVOLUME_GK_NAME := logicalvolume.topolvm.io
 LABEL_KEY := topolvm.io
 ifneq ($(USE_LEGACY),"")
 HELM_VALUES_FILE := values_legacy.yaml
 SCHEDULER_CONFIG := scheduler-config-legacy.yaml
-LOGICALVOLUE_GK_NAME := logicalvolume.topolvm.cybozu.com
+LOGICALVOLUME_GK_NAME := logicalvolume.topolvm.cybozu.com
 LABEL_KEY := topolvm.cybozu.com
 endif
 
@@ -63,7 +63,7 @@ run:
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system certificate/topolvm-mutatingwebhook
 	timeout 120 sh -c "until $(KUBECTL) apply -f podpvc.yaml; do sleep 10; done"
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n default pod -l app=example
-	[ $$($(KUBECTL) get --no-headers=true $(LOGICALVOLUE_GK_NAME) | wc -l) -ne 0 ]
+	[ $$($(KUBECTL) get --no-headers=true $(LOGICALVOLUME_GK_NAME) | wc -l) -ne 0 ]
 
 .PHONY: setup
 setup: $(KUBECTL)
