@@ -95,16 +95,12 @@ func (u *lv) UnmarshalJSON(data []byte) error {
 	u.uuid = temp.UUID
 	u.path = temp.Path
 
-	var convErr error
-	u.major, convErr = strconv.ParseUint(temp.Major, 10, 32)
-	if convErr != nil {
-		return convErr
-	}
-	u.minor, convErr = strconv.ParseUint(temp.Minor, 10, 32)
-	if convErr != nil {
-		return convErr
-	}
+	// If LV is not active, major/minor numbers will be -1, ignore conversion
+	// errors which results in 0 for values in this case.
+	u.major, _ = strconv.ParseUint(temp.Major, 10, 32)
+	u.minor, _ = strconv.ParseUint(temp.Minor, 10, 32)
 
+	var convErr error
 	u.origin = temp.Origin
 	if len(temp.OriginSize) > 0 {
 		u.originSize, convErr = strconv.ParseUint(temp.OriginSize, 10, 64)

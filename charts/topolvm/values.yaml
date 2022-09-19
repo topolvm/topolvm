@@ -180,6 +180,11 @@ lvmd:
   #  - name: lvmd-socket-dir
   #    mountPath: /run/topolvm
 
+  # lvmd.env -- extra environment variables
+  env: []
+  #  - name: LVM_SYSTEM_DIR
+  #    value: /tmp
+
   # lvmd.additionalConfigs -- Define additional LVM Daemon configs if you have additional types of nodes.
   # Please ensure nodeSelectors are non overlapping.
   additionalConfigs: []

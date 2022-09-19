@@ -164,6 +164,89 @@ func TestLvmJSON(t *testing.T) {
 	}
 }
 
+func TestLvmInactiveMajorMinor(t *testing.T) {
+	inactiveMajorMinor := `
+	{
+	  "report": [
+		{
+		  "vg": [
+			{
+			  "vg_name": "myvg1",
+			  "vg_uuid": "P8en82-LNUe-MERd-mOTT-XlAS-fkp8-1bleiB",
+			  "vg_size": "2199014866944",
+			  "vg_free": "2198482190336"
+			}
+		  ],
+		  "pv": [
+			{},
+			{}
+		  ],
+		  "lv": [
+			{
+			  "lv_uuid": "n3eoy5-R1B3-9S6A-rBwo-3n9f-mIxA-Dy4nnw",
+			  "lv_name": "thinpool",
+			  "lv_full_name": "myvg1/thinpool",
+			  "lv_path": "",
+			  "lv_size": "524288000",
+			  "lv_kernel_major": "-1",
+			  "lv_kernel_minor": "-1",
+			  "origin": "",
+			  "origin_size": "",
+			  "pool_lv": "",
+			  "lv_tags": "some_tag,some_tag2",
+			  "lv_attr": "twi-a-tz--",
+			  "vg_name": "myvg1",
+			  "data_percent": "0.00",
+			  "metadata_percent": "10.84"
+			}
+		  ],
+		  "pvseg": [
+			{},
+			{},
+			{},
+			{},
+			{}
+		  ],
+		  "seg": [
+			{}
+		  ]
+		}
+	  ]
+	}
+  `
+	vgs, lvs, err := parseLVMJSON([]byte(inactiveMajorMinor))
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if vgs == nil {
+		t.Fatal("vgs unexpectedly nil")
+	}
+
+	if lvs == nil {
+		t.Fatal("lvs unexpectedly nil")
+	}
+
+	if len(lvs) != 1 {
+		t.Fatal("Incorrect number of LVs returned: ", len(lvs))
+	}
+
+	if len(vgs) != 1 {
+		t.Fatal("Incorrect number of VGs returned: ", len(vgs))
+	}
+
+	lv := lvs[0]
+
+	if lv.major != 0 {
+		t.Fatal("Incorrect major number:", lv.major)
+	}
+
+	if lv.minor != 0 {
+		t.Fatal("Incorrect minor number:", lv.minor)
+	}
+}
+
 func TestLvmJSONBad(t *testing.T) {
 	truncatedJSON := `
 	  {
