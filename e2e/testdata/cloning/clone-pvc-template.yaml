@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: %s
+spec:
+  storageClassName: topolvm-provisioner-thin
+  dataSource:
+    name: %s
+    kind: PersistentVolumeClaim
+  accessModes:
+   - ReadWriteOnce
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: %sGi
