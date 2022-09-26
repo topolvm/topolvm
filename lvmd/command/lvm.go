@@ -522,13 +522,8 @@ func (l *LogicalVolume) Snapshot(name string, cowSize uint64, tags []string) (*L
 		return snapLV, nil
 	}
 
-	var lvcreateArgs []string
+	lvcreateArgs := []string{"-s", "-k", "n", "-n", name, l.fullname}
 
-	if _, err := os.Stat("/run/systemd/system"); err != nil {
-		lvcreateArgs = []string{"-s", "-n", name, l.fullname}
-	} else {
-		lvcreateArgs = []string{"-s", "-k", "n", "-n", name, l.fullname}
-	}
 	for _, tag := range tags {
 		lvcreateArgs = append(lvcreateArgs, "--addtag")
 		lvcreateArgs = append(lvcreateArgs, tag)
