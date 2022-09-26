@@ -1,7 +1,9 @@
+{{- $rlsNamespace := .Release.Namespace -}}
+
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: leader-election
+  name: {{ printf "%s-leader-election" $rlsNamespace }}
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "topolvm.labels" . | nindent 4 }}
@@ -11,13 +13,13 @@ subjects:
     name: {{ template "topolvm.fullname" . }}-controller
 roleRef:
   kind: Role
-  name: leader-election
+  name: {{ printf "%s-leader-election" $rlsNamespace }}
   apiGroup: rbac.authorization.k8s.io
 ---
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: csi-provisioner-role-cfg
+  name: {{ printf "%s-external-provisioner-cfg" $rlsNamespace }}
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "topolvm.labels" . | nindent 4 }}
@@ -27,13 +29,13 @@ subjects:
     name: {{ template "topolvm.fullname" . }}-controller
 roleRef:
   kind: Role
-  name: external-provisioner-cfg
+  name: {{ printf "%s-external-provisioner-cfg" $rlsNamespace }}
   apiGroup: rbac.authorization.k8s.io
 ---
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: csi-resizer-role-cfg
+  name: {{ printf "%s-external-resizer-cfg" $rlsNamespace }}
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "topolvm.labels" . | nindent 4 }}
@@ -43,13 +45,13 @@ subjects:
     namespace: {{ .Release.Namespace }}
 roleRef:
   kind: Role
-  name: external-resizer-cfg
+  name: {{ printf "%s-external-resizer-cfg" $rlsNamespace }}
   apiGroup: rbac.authorization.k8s.io
 ---
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: external-snapshotter-leaderelection
+  name: {{ printf "%s-external-snapshotter-leaderelection" $rlsNamespace }}
   namespace: {{ .Release.Namespace }}
   labels:
   {{- include "topolvm.labels" . | nindent 4 }}
@@ -59,5 +61,5 @@ subjects:
     namespace: {{ .Release.Namespace }}
 roleRef:
   kind: Role
-  name: external-snapshotter-leaderelection
+  name: {{ printf "%s-external-snapshotter-leaderelection" $rlsNamespace }}
   apiGroup: rbac.authorization.k8s.io

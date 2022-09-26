@@ -1,7 +1,9 @@
+{{- $rlsNamespace := .Release.Namespace -}}
+
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: leader-election
+  name: {{ printf "%s-leader-election" $rlsNamespace }}
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "topolvm.labels" . | nindent 4 }}
@@ -16,7 +18,7 @@ rules:
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: external-provisioner-cfg
+  name: {{ printf "%s-external-provisioner-cfg" $rlsNamespace }}
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "topolvm.labels" . | nindent 4 }}
@@ -45,7 +47,7 @@ rules:
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: external-resizer-cfg
+  name: {{ printf "%s-external-resizer-cfg" $rlsNamespace }}
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "topolvm.labels" . | nindent 4 }}
@@ -57,7 +59,7 @@ rules:
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: external-snapshotter-leaderelection
+  name: {{ printf "%s-external-snapshotter-leaderelection" $rlsNamespace }}
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "topolvm.labels" . | nindent 4 }}

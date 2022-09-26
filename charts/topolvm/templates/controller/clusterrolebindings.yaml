@@ -1,59 +1,61 @@
+{{- $rlsNamespace := .Release.Namespace -}}
+
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ .Release.Namespace }}:controller
+  name: {{ printf "%s-controller" $rlsNamespace }}
+  labels:
+    {{- include "topolvm.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    namespace: {{ $rlsNamespace }}
+    name: {{ printf "%s-controller" $rlsNamespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ printf "%s-controller" $rlsNamespace }}
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ printf "%s-external-provisioner" $rlsNamespace }}
   labels:
     {{- include "topolvm.labels" . | nindent 4 }}
 subjects:
   - kind: ServiceAccount
     namespace: {{ .Release.Namespace }}
-    name: {{ template "topolvm.fullname" . }}-controller
+    name: {{ printf "%s-controller" $rlsNamespace }}
 roleRef:
-  apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ .Release.Namespace }}:controller
+  name: {{ printf "%s-external-provisioner" $rlsNamespace }}
+  apiGroup: rbac.authorization.k8s.io
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: topolvm-csi-provisioner-role
+  name: {{ printf "%s-csi-resizer" $rlsNamespace }}
   labels:
     {{- include "topolvm.labels" . | nindent 4 }}
 subjects:
   - kind: ServiceAccount
     namespace: {{ .Release.Namespace }}
-    name: {{ template "topolvm.fullname" . }}-controller
+    name: {{ printf "%s-controller" $rlsNamespace }}
 roleRef:
   kind: ClusterRole
-  name: topolvm-external-provisioner-runner
+  name: {{ printf "%s-csi-resizer" $rlsNamespace }}
   apiGroup: rbac.authorization.k8s.io
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: topolvm-csi-resizer-role
-  labels:
-    {{- include "topolvm.labels" . | nindent 4 }}
-subjects:
-  - kind: ServiceAccount
-    namespace: {{ .Release.Namespace }}
-    name: {{ template "topolvm.fullname" . }}-controller
-roleRef:
-  kind: ClusterRole
-  name: topolvm-external-resizer-runner
-  apiGroup: rbac.authorization.k8s.io
----
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: topolvm-csi-snapshotter-role
+  name: {{ printf "%s-external-snapshotter" $rlsNamespace }}
   labels:
   {{- include "topolvm.labels" . | nindent 4 }}
 subjects:
   - kind: ServiceAccount
     namespace: {{ .Release.Namespace }}
-    name: {{ template "topolvm.fullname" . }}-controller
+    name: {{ printf "%s-controller" $rlsNamespace }}
 roleRef:
   kind: ClusterRole
-  name: topolvm-external-snapshotter-runner
+  name: {{ printf "%s-external-snapshotter" $rlsNamespace }}
   apiGroup: rbac.authorization.k8s.io
