@@ -65,7 +65,7 @@ func (g *VolumeGroup) Update() error {
 		return err
 	}
 	for _, vg := range vgs {
-		if vg.name == g.Name() {
+		if vg.Name == g.Name() {
 			g.state = vg
 			break
 		}
@@ -77,17 +77,17 @@ func (g *VolumeGroup) Update() error {
 
 // Name returns the volume group name.
 func (g *VolumeGroup) Name() string {
-	return g.state.name
+	return g.state.Name
 }
 
 // Size returns the capacity of the volume group in bytes.
 func (g *VolumeGroup) Size() (uint64, error) {
-	return g.state.size, nil
+	return g.state.Size, nil
 }
 
 // Free returns the free space of the volume group in bytes.
 func (g *VolumeGroup) Free() (uint64, error) {
-	return g.state.free, nil
+	return g.state.Free, nil
 }
 
 // CreateVolumeGroup calls "vgcreate" to create a volume group.
@@ -117,7 +117,7 @@ func FindVolumeGroup(name string) (*VolumeGroup, error) {
 
 func SearchVolumeGroupList(vgs []*VolumeGroup, name string) (*VolumeGroup, error) {
 	for _, vg := range vgs {
-		if vg.state.name == name {
+		if vg.state.Name == name {
 			return vg, nil
 		}
 	}
@@ -127,7 +127,7 @@ func SearchVolumeGroupList(vgs []*VolumeGroup, name string) (*VolumeGroup, error
 func filter_lv(vg_name string, lvs []lv) []lv {
 	var filtered []lv
 	for _, l := range lvs {
-		if l.vgName == vg_name {
+		if l.VGName == vg_name {
 			filtered = append(filtered, l)
 		}
 	}
@@ -143,7 +143,7 @@ func ListVolumeGroups() ([]*VolumeGroup, error) {
 
 	groups := []*VolumeGroup{}
 	for _, vg := range vgs {
-		groups = append(groups, &VolumeGroup{vg, filter_lv(vg.name, lvs)})
+		groups = append(groups, &VolumeGroup{vg, filter_lv(vg.Name, lvs)})
 	}
 	return groups, nil
 }
@@ -164,28 +164,28 @@ func (g *VolumeGroup) ListVolumes() []*LogicalVolume {
 
 	for i, lv := range g.lvs {
 		if !lv.isThinPool() {
-			size := lv.size
+			size := lv.Size
 
 			var origin *string
-			if len(lv.origin) > 0 {
-				origin = &g.lvs[i].origin
+			if len(lv.Origin) > 0 {
+				origin = &g.lvs[i].Origin
 			}
 
 			var pool *string
-			if len(lv.poolLV) > 0 {
-				pool = &g.lvs[i].poolLV
+			if len(lv.PoolLV) > 0 {
+				pool = &g.lvs[i].PoolLV
 			}
 
 			if origin != nil && pool == nil {
 				// this volume is a snapshot, but not a thin volume.
-				size = lv.originSize
+				size = lv.OriginSize
 			}
 
 			var major uint32
 			var minor uint32
-			if lv.major >= 0 && lv.minor >= 0 {
-				major = uint32(lv.major)
-				minor = uint32(lv.minor)
+			if lv.Major >= 0 && lv.Minor >= 0 {
+				major = uint32(lv.Major)
+				minor = uint32(lv.Minor)
 			} else {
 				// If the major or minor number given by LVM is a negative
 				// number, the device corresponding to that LV cannot be
@@ -198,15 +198,15 @@ func (g *VolumeGroup) ListVolumes() []*LogicalVolume {
 			}
 
 			ret = append(ret, newLogicalVolume(
-				lv.name,
-				lv.path,
+				lv.Name,
+				lv.Path,
 				g,
 				size,
 				origin,
 				pool,
 				major,
 				minor,
-				strings.Split(lv.tags, ","),
+				strings.Split(lv.Tags, ","),
 			))
 		}
 	}
@@ -259,7 +259,7 @@ func (g *VolumeGroup) ListPools() []*ThinPool {
 	ret := []*ThinPool{}
 	for _, lv := range g.lvs {
 		if lv.isThinPool() {
-			ret = append(ret, newThinPool(lv.name, g, lv))
+			ret = append(ret, newThinPool(lv.Name, g, lv))
 		}
 	}
 	return ret
@@ -304,12 +304,12 @@ func newThinPool(name string, vg *VolumeGroup, lvm_lv lv) *ThinPool {
 
 // Name returns thin pool name.
 func (t *ThinPool) Name() string {
-	return t.state.name
+	return t.state.Name
 }
 
 // FullName returns a VG prefixed name.
 func (t *ThinPool) FullName() string {
-	return t.state.fullName
+	return t.state.FullName
 }
 
 // VG returns a volume group in which the thin pool is.
@@ -319,15 +319,15 @@ func (t *ThinPool) VG() *VolumeGroup {
 
 // Size returns a size of the thin pool.
 func (t *ThinPool) Size() uint64 {
-	return t.state.size
+	return t.state.Size
 }
 
 // Resize the thin pool capacity.
 func (t *ThinPool) Resize(newSize uint64) error {
-	if t.state.size == newSize {
+	if t.state.Size == newSize {
 		return nil
 	}
-	if err := CallLVM("lvresize", "-f", "-L", fmt.Sprintf("%vb", newSize), t.state.fullName); err != nil {
+	if err := CallLVM("lvresize", "-f", "-L", fmt.Sprintf("%vb", newSize), t.state.FullName); err != nil {
 		return err
 	}
 	return t.vg.Update()
@@ -337,7 +337,7 @@ func (t *ThinPool) Resize(newSize uint64) error {
 func (t *ThinPool) ListVolumes() []*LogicalVolume {
 	ret := []*LogicalVolume{}
 	for _, volume := range t.vg.ListVolumes() {
-		if volume.pool != nil && *volume.pool == t.state.name {
+		if volume.pool != nil && *volume.pool == t.state.Name {
 			ret = append(ret, volume)
 		}
 	}
@@ -347,7 +347,7 @@ func (t *ThinPool) ListVolumes() []*LogicalVolume {
 // FindVolume finds a named logical volume in this thin pool
 func (t *ThinPool) FindVolume(name string) (*LogicalVolume, error) {
 	for _, volume := range t.vg.ListVolumes() {
-		if volume.name == name && volume.pool != nil && *volume.pool == t.state.name {
+		if volume.name == name && volume.pool != nil && *volume.pool == t.state.Name {
 			return volume, nil
 		}
 	}
@@ -384,13 +384,13 @@ func (t *ThinPool) CreateVolume(name string, size uint64, tags []string, stripe 
 // sum of virtualsizes of all thinlvs and size of thinpool
 func (t *ThinPool) Free() (*ThinPoolUsage, error) {
 	tpu := &ThinPoolUsage{}
-	tpu.DataPercent = t.state.dataPercent
-	tpu.MetadataPercent = t.state.metaDataPercent
-	tpu.SizeBytes = t.state.size
+	tpu.DataPercent = t.state.DataPercent
+	tpu.MetadataPercent = t.state.MetaDataPercent
+	tpu.SizeBytes = t.state.Size
 
 	for _, l := range t.vg.lvs {
-		if l.poolLV == t.state.name {
-			tpu.VirtualBytes += l.size
+		if l.PoolLV == t.state.Name {
+			tpu.VirtualBytes += l.Size
 		}
 	}
 	return tpu, nil
