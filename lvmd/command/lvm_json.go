@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"strconv"
-	"strings"
 )
 
 type vg struct {
@@ -25,7 +24,7 @@ type lv struct {
 	origin          string
 	originSize      uint64
 	poolLV          string
-	tags            []string
+	tags            string
 	attr            string
 	vgName          string
 	size            uint64
@@ -110,7 +109,7 @@ func (u *lv) UnmarshalJSON(data []byte) error {
 	}
 
 	u.poolLV = temp.PoolLV
-	u.tags = strings.Split(temp.Tags, ",")
+	u.tags = temp.Tags
 	u.attr = temp.Attr
 	u.vgName = temp.VgName
 

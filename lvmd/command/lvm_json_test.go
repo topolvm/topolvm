@@ -122,11 +122,7 @@ func TestLvmJSON(t *testing.T) {
 		t.Fatal("Incorrect pool lv:", lv.poolLV)
 	}
 
-	if len(lv.tags) != 2 {
-		t.Fatal("Incorrect number of tags:", len(lv.tags))
-	}
-
-	if lv.tags[0] != "some_tag" || lv.tags[1] != "some_tag2" {
+	if lv.tags != "some_tag,some_tag2" {
 		t.Fatal("Incorrect tags:", lv.tags)
 	}
 

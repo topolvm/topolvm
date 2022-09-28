@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/cybozu-go/log"
@@ -189,7 +190,7 @@ func (g *VolumeGroup) ListVolumes() []*LogicalVolume {
 				pool,
 				uint32(lv.major),
 				uint32(lv.minor),
-				lv.tags,
+				strings.Split(lv.tags, ","),
 			))
 		}
 	}
