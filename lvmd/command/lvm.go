@@ -181,6 +181,22 @@ func (g *VolumeGroup) ListVolumes() []*LogicalVolume {
 				size = lv.originSize
 			}
 
+			var major uint32
+			var minor uint32
+			if lv.major >= 0 && lv.minor >= 0 {
+				major = uint32(lv.major)
+				minor = uint32(lv.minor)
+			} else {
+				// If the major or minor number given by LVM is a negative
+				// number, the device corresponding to that LV cannot be
+				// operated. For example, LVM returns -1 as the major and minor
+				// number if the LV is inactive. In such cases, set both
+				// numbers to 0 to avoid operating on unrelated devices. This is
+				// safe because such a device does not exist.
+				major = 0
+				minor = 0
+			}
+
 			ret = append(ret, newLogicalVolume(
 				lv.name,
 				lv.path,
@@ -188,8 +204,8 @@ func (g *VolumeGroup) ListVolumes() []*LogicalVolume {
 				size,
 				origin,
 				pool,
-				uint32(lv.major),
-				uint32(lv.minor),
+				major,
+				minor,
 				strings.Split(lv.tags, ","),
 			))
 		}

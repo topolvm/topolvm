@@ -19,8 +19,8 @@ type lv struct {
 	fullName        string
 	uuid            string
 	path            string
-	major           uint64
-	minor           uint64
+	major           int32 // might be negative, e.g., when LV is not active
+	minor           int32 // might be negative, e.g., when LV is not active
 	origin          string
 	originSize      uint64
 	poolLV          string
@@ -71,8 +71,8 @@ func (u *lv) UnmarshalJSON(data []byte) error {
 		FullName        string `json:"lv_full_name"`
 		UUID            string `json:"lv_uuid"`
 		Path            string `json:"lv_path"`
-		Major           string `json:"lv_kernel_major"`
-		Minor           string `json:"lv_kernel_minor"`
+		Major           int32  `json:"lv_kernel_major"`
+		Minor           int32  `json:"lv_kernel_minor"`
 		Origin          string `json:"origin"`
 		OriginSize      string `json:"origin_size"`
 		PoolLV          string `json:"pool_lv"`
@@ -93,11 +93,8 @@ func (u *lv) UnmarshalJSON(data []byte) error {
 	u.fullName = temp.FullName
 	u.uuid = temp.UUID
 	u.path = temp.Path
-
-	// If LV is not active, major/minor numbers will be -1, ignore conversion
-	// errors which results in 0 for values in this case.
-	u.major, _ = strconv.ParseUint(temp.Major, 10, 32)
-	u.minor, _ = strconv.ParseUint(temp.Minor, 10, 32)
+	u.major = temp.Major
+	u.minor = temp.Minor
 
 	var convErr error
 	u.origin = temp.Origin
