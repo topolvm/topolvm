@@ -7,6 +7,19 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [9.1.0] - 2022-10-04
+### Added
+- fix: add lvmd env option to helm chart (#563)
+
+### Changed
+- appVersion was changed to 0.15.2.
+- build(deps): bump helm/chart-testing-action from 2.2.1 to 2.3.0 (#558)
+- build(deps): bump helm/chart-releaser-action from 1.4.0 to 1.4.1 (#570)
+- build(deps): bump helm/chart-testing-action from 2.3.0 to 2.3.1 (#572)
+
+### Contributors
+- @Davincible
+
 ## [9.0.1] - 2022-08-17
 ### Changed
 - appVersion was changed to 0.15.1.
@@ -180,7 +193,8 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v9.0.1...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v9.1.0...HEAD
+[9.1.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v9.0.1...topolvm-chart-v9.1.0
 [9.0.1]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v9.0.0...topolvm-chart-v9.0.1
 [9.0.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v8.0.1...topolvm-chart-v9.0.0
 [8.0.1]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v8.0.0...topolvm-chart-v8.0.1
