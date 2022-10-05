@@ -45,6 +45,9 @@ spec:
           command:
             - /topolvm-scheduler
             - --config=/etc/topolvm/scheduler-options.yaml
+          {{- with .Values.scheduler.args }}
+          args: {{ toYaml . | nindent 12 }}
+          {{- end }}
           livenessProbe:
             httpGet:
               host: {{ .Values.scheduler.options.listen.host }}
