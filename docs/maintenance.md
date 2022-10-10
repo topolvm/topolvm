@@ -31,6 +31,7 @@ Edit the following files.
 - `Makefile`
 - `e2e/Makefile`
 - `example/Makefile`
+- `example/migrate/kube-scheduler.yaml`
 - `.github/workflows/e2e-k8s-daemonset-lvmd.yaml`
 - `.github/workflows/e2e-k8s-workflow.yaml`
 

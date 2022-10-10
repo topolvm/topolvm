@@ -12,7 +12,7 @@ So we would like to remove the domain name "cybozu.com," which contains the spec
 ### Goals
 
 - Change `topolvm.cybozu.com` used in TopoLVM's CRD and plugin name to `topolvm.io`
-- Keep TopoLVM available at `topolvm.cybozu.com` for existing users(but does not support concurrent use with topolvm.io partly)
+- Keep TopoLVM available at `topolvm.cybozu.com` for existing users (However, please avoid concurrent using it with `topolvm.io`)
 
 ## Proposal
 
@@ -91,7 +91,7 @@ Modify each PersistentVolumeClaim resources in TopoLVM as follows:
 
 ##### PersistentVolume
 
-Modify each PersistentVolume resource in TopoLVM as follows:
+Modify each PersistentVolume resource in TopoLVM as follows(You need to recreate PersistentVolumes because can't edit it):
 
 - Change the value of the `pv.kubernetes.io/provisioned-by`[^provisioned-by] annotation to` topolvm.io`
 - Change the value of the `.spec.csi.driver` field to` topolvm.io`

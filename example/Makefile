@@ -23,12 +23,12 @@ BUILD_IMAGE := false
 HELM_VALUES_FILE := values.yaml
 SCHEDULER_CONFIG := scheduler-config.yaml
 LOGICALVOLUME_GK_NAME := logicalvolume.topolvm.io
-LABEL_KEY := topolvm.io
+DOMAIN_NAME := topolvm.io
 ifneq ($(USE_LEGACY),"")
 HELM_VALUES_FILE := values_legacy.yaml
 SCHEDULER_CONFIG := scheduler-config-legacy.yaml
 LOGICALVOLUME_GK_NAME := logicalvolume.topolvm.cybozu.com
-LABEL_KEY := topolvm.cybozu.com
+DOMAIN_NAME := topolvm.cybozu.com
 endif
 
 $(KUBECTL):
@@ -52,8 +52,8 @@ run:
 	fi
 	$(KUBECTL) apply -f https://github.com/cert-manager/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
 	$(KUBECTL) create namespace topolvm-system
-	$(KUBECTL) label namespace topolvm-system $(LABEL_KEY)/webhook=ignore
-	$(KUBECTL) label namespace kube-system $(LABEL_KEY)/webhook=ignore
+	$(KUBECTL) label namespace topolvm-system $(DOMAIN_NAME)/webhook=ignore
+	$(KUBECTL) label namespace kube-system $(DOMAIN_NAME)/webhook=ignore
 	$(HELM) repo add jetstack https://charts.jetstack.io
 	$(HELM) repo update
 	$(HELM) dependency build ../charts/topolvm/

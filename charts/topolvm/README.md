@@ -186,10 +186,10 @@ helm template --include-crds --namespace=topolvm-system topolvm topolvm/topolvm
 
 ## About the legacy flag
 
-https://github.com/topolvm/topolvm/pull/539 renamed topolvm.cybozu.com, which was used for CRD and others, to topolvm.io.
-Automatic migration to topolvm.io is risky because the risk to LVM volumes is high, but migration to topolvm.io has a large impact on the entire TopoLVM, including CRDs.
+In https://github.com/topolvm/topolvm/pull/539, the domain name which is used for CRD and other purposes was changed from topolvm.cybozu.com to topolvm.io.
+Automatic domain name migration to topolvm.io is risky from the data integrity point of view, and migration to topolvm.io has a large impact on the entire TopoLVM system, including CRDs.
 So we added an option to use topolvm.cybozu.com as it is.
-TopoLVM users can use topolvm.cybozu.com by setting `--set useLegacy=true` in their helm chart.
+TopoLVM users can continue to use topolvm.cybozu.com by setting `--set useLegacy=true` in their helm chart.
 
 ## Update README
 
