@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strings"
 
@@ -54,6 +55,7 @@ func main() {
 		return
 	}
 	for _, lv := range lvList.Items {
+		log.Printf("Process LogicalVolume: %s\n", lv.Name)
 		newLV := topolvmv1.LogicalVolume{}
 		u := &unstructured.Unstructured{}
 		if err := scheme.Convert(&lv, u, nil); err != nil {
@@ -78,12 +80,14 @@ func main() {
 		newLV.ResourceVersion = ""
 		newLV.UID = types.UID("")
 		newLV.ManagedFields = []metav1.ManagedFieldsEntry{}
+		delete(newLV.Annotations, "kubectl.kubernetes.io/last-applied-configuration")
 		status := newLV.DeepCopy().Status
 		err = c.Create(ctx, &newLV)
 		if err != nil {
 			log.Fatalf("unable to create LogicalVolume: %+v\nnewLV: %+v\n", err, newLV)
 			return
 		}
+		log.Printf("Created LogicalVolume: %s\n", newLV.Name)
 
 		newLV2 := topolvmv1.LogicalVolume{}
 		err = c.Get(ctx, types.NamespacedName{Name: newLV.Name}, &newLV2)
@@ -97,48 +101,7 @@ func main() {
 			log.Fatalf("unable to update LogicalVolume status: %+v\nnewLV: %+v\n", err, newLV2)
 			return
 		}
-
-		lv2 := lv.DeepCopy()
-		lv2.Finalizers = []string{}
-		err = c.Update(ctx, lv2)
-		if err != nil {
-			log.Fatalf("unable to remove legacy LogicalVolume finalizers: %+v\nlv: %+v\n", err, lv)
-			return
-		}
-		err = c.Delete(ctx, lv2)
-		if err != nil {
-			log.Fatalf("unable to delete legacy LogicalVolume: %+v\nlv: %+v\n", err, lv)
-			return
-		}
-	}
-
-	log.Println("Start update Nodes")
-	nodeList := corev1.NodeList{}
-	err = c.List(ctx, &nodeList)
-	if err != nil {
-		log.Fatalf("unable to get NodeList: %+v\n", err)
-		return
-	}
-	for _, node := range nodeList.Items {
-		node2 := node.DeepCopy()
-		var changed bool
-		for i := range node2.Finalizers {
-			if node2.Finalizers[i] == "topolvm.cybozu.com/node" {
-				node2.Finalizers[i] = "topolvm.io/node"
-				changed = true
-			}
-		}
-		if _, ok := node2.Labels["topology.topolvm.cybozu.com/node"]; ok {
-			delete(node2.Labels, "topology.topolvm.cybozu.com/node")
-			changed = true
-		}
-		if changed {
-			err = c.Update(ctx, node2)
-			if err != nil {
-				log.Fatalf("unable to update Node: %+v\nnode: %+v\n", err, node2)
-				return
-			}
-		}
+		log.Printf("Updated LogicalVolume: %s\n", newLV2.Name)
 	}
 
 	log.Println("Start update PersistentVolumeClaims")
@@ -149,17 +112,24 @@ func main() {
 		return
 	}
 	for _, pvc := range pvcList.Items {
-		pvc2 := pvc.DeepCopy()
 		if pvc.Annotations["volume.beta.kubernetes.io/storage-provisioner"] == "topolvm.cybozu.com" {
+			pvc2 := pvc.DeepCopy()
+			pvc2.Name += "-new"
+			log.Printf("Process PersistentVolumeClaim: %s\n", pvc2.Name)
+			delete(pvc2.Annotations, "kubectl.kubernetes.io/last-applied-configuration")
 			pvc2.Annotations["volume.beta.kubernetes.io/storage-provisioner"] = "topolvm.io"
 			pvc2.Annotations["volume.kubernetes.io/storage-provisioner"] = "topolvm.io"
+			pvc2.Spec.VolumeName += "-new"
+			scName := fmt.Sprintf("%s-new", *pvc2.Spec.StorageClassName)
+			pvc2.Spec.StorageClassName = &scName
 			pvc2.ResourceVersion = ""
 			pvc2.UID = types.UID("")
-			err = c.Update(ctx, pvc2)
+			err = c.Create(ctx, pvc2)
 			if err != nil {
-				log.Fatalf("unable to update PersistentVolumeClaim: %+v\npvc: %+v\n", err, pvc2)
+				log.Fatalf("unable to create PersistentVolumeClaim: %+v\npvc: %+v\n", err, pvc2)
 				return
 			}
+			log.Printf("Created PersistentVolumeClaim: %s\n", pvc2.Name)
 		}
 	}
 
@@ -174,20 +144,25 @@ func main() {
 		if pv.Annotations["pv.kubernetes.io/provisioned-by"] == "topolvm.cybozu.com" {
 			pv2 := pv.DeepCopy()
 			pv3 := pv.DeepCopy()
-			pv2.Finalizers = []string{}
+			log.Printf("Process PersistentVolume(): %s\n", pv3.Name)
+
+			pv2.Spec.PersistentVolumeReclaimPolicy = "Retain"
 			err = c.Update(ctx, pv2)
 			if err != nil {
-				log.Fatalf("unable to remove PersistentVolume finalizers: %+v\nlv: %+v\n", err, pv2)
+				log.Fatalf("unable to update PersistentVolume: %+v\npv: %+v\n", err, pv2)
 				return
 			}
-			err := c.Delete(ctx, &pv)
+			err = c.Delete(ctx, pv2)
 			if err != nil {
-				log.Fatalf("unable to delete PersistentVolume: %+v\n", err)
+				log.Fatalf("unable to delete legacy PersistentVolume %q: %+v\n", pv2.Name, err)
 				return
 			}
 
+			pv3.Name += "-new"
+			delete(pv3.Annotations, "kubectl.kubernetes.io/last-applied-configuration")
 			pv3.Annotations["pv.kubernetes.io/provisioned-by"] = "topolvm.io"
 			pv3.Spec.CSI.Driver = "topolvm.io"
+			pv3.Spec.StorageClassName += "-new"
 			pv3.Spec.CSI.VolumeAttributes["storage.kubernetes.io/csiProvisionerIdentity"] = strings.Replace(pv3.Spec.CSI.VolumeAttributes["storage.kubernetes.io/csiProvisionerIdentity"], "topolvm.cybozu.com", "topolvm.io", -1)
 			pv3.ResourceVersion = ""
 			pv3.UID = types.UID("")
@@ -202,11 +177,21 @@ func main() {
 				}
 			}
 
+			pv3.Spec.ClaimRef.Name += "-new"
+			pvc := corev1.PersistentVolumeClaim{}
+			err = c.Get(ctx, types.NamespacedName{Name: pv3.Spec.ClaimRef.Name, Namespace: pv3.Spec.ClaimRef.Namespace}, &pvc)
+			if err != nil {
+				log.Fatalf("unable to get PersistentVolumeClaim: %+v\n", err)
+				return
+			}
+			pv3.Spec.ClaimRef.ResourceVersion = pvc.ResourceVersion
+			pv3.Spec.ClaimRef.UID = pvc.UID
 			err = c.Create(ctx, pv3)
 			if err != nil {
 				log.Fatalf("unable to create PersistentVolume: %+v\npv: %+v\n", err, pv3)
 				return
 			}
+			log.Printf("Created PersistentVolume: %s\n", pv3.Name)
 		}
 	}
 
