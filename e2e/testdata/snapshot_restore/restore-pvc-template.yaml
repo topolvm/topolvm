@@ -1,0 +1,16 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: %s
+spec:
+  accessModes:
+  - ReadWriteOnce
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: %sGi
+  storageClassName: topolvm-provisioner-thin
+  dataSource:
+    name: %s
+    kind: VolumeSnapshot
+    apiGroup: snapshot.storage.k8s.io

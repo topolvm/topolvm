@@ -8,8 +8,8 @@ assignees: ''
 ---
 
 <!--
-  For questions or requests for help, we would be happy if you post it on Slack.
-  https://topolvm.slack.com/archives/CT0AS6UQ1
+  For questions or requests for help, we would be happy if you post it on discussions.
+  https://github.com/topolvm/topolvm/discussions
   -->
 **What should the feature do:**
 

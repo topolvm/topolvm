@@ -7,6 +7,33 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.15.2] - 2022-10-04
+
+### Added
+
+- Update e2e tests to handle snapshot csi tests (#545)
+- e2e: Snapshot-Restore and PVC-PVC cloning features (#546)
+
+### Changed
+
+- Improve the e2e test cases run (#557)
+- Use discussions instead of slack. (#565)
+
+### Fixed
+
+- doc: update target name (#554)
+- docs: fix incorrect flag description (#556)
+- Correct LV JSON major/minor (#561)
+
+### Contributors
+
+- @Yuggupta27
+- @bells17
+- @nbalacha
+- @pluser
+- @tasleson
+- @toshipp
+
 ## [0.15.1] - 2022-08-17
 
 ### Fixed
@@ -574,7 +601,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.15.1...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.15.2...HEAD
+[0.15.2]: https://github.com/topolvm/topolvm/compare/v0.15.1...v0.15.2
 [0.15.1]: https://github.com/topolvm/topolvm/compare/v0.15.0...v0.15.1
 [0.15.0]: https://github.com/topolvm/topolvm/compare/v0.14.1...v0.15.0
 [0.14.1]: https://github.com/topolvm/topolvm/compare/v0.14.0...v0.14.1
