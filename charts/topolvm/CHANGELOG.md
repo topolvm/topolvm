@@ -7,6 +7,9 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+### Added
+- feat: add `args` for `controller`, `node`, `scheduler`, `lvmd` to helm chart (#576)
+
 ## [9.1.0] - 2022-10-04
 ### Added
 - fix: add lvmd env option to helm chart (#563)

@@ -42,6 +42,9 @@ spec:
             {{- if .Values.controller.nodeFinalize.skipped }}
             - --skip-node-finalize
             {{- end }}
+          {{- with .Values.controller.args }}
+          args: {{ toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - containerPort: 9443
               name: webhook
