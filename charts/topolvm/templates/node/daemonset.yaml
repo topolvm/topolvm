@@ -108,6 +108,9 @@ spec:
                 - /bin/sh
                 - -c
                 - rm -rf /registration/topolvm.cybozu.com /registration/topolvm.cybozu.com-reg.sock
+          {{- with .Values.node.csi.csi_registrar.resources }}
+          resources: {{ toYaml . | nindent 12 }}
+          {{- end }}
           volumeMounts:
             - name: node-plugin-dir
               mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/
@@ -126,6 +129,9 @@ spec:
           command:
             - /livenessprobe
             - --csi-address={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
+          {{- with .Values.node.csi.liveness_probe.resources }}
+          resources: {{ toYaml . | nindent 12 }}
+          {{- end }}
           volumeMounts:
             - name: node-plugin-dir
               mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/
