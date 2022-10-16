@@ -38,6 +38,9 @@ scheduler:
   # scheduler.enabled --  If true, enable scheduler extender for TopoLVM
   enabled: true
 
+  # scheduler.args -- Arguments to be passed to the command.
+  args: []
+
   # scheduler.type -- If you run with a managed control plane (such as GKE, AKS, etc), topolvm-scheduler should be deployed as Deployment and Service.
   # topolvm-scheduler should otherwise be deployed as DaemonSet in unmanaged (i.e. bare metal) deployments.
   # possible values:  daemonset/deployment
@@ -148,6 +151,9 @@ lvmd:
       default: true
       spare-gb: 10
 
+  # lvmd.args -- Arguments to be passed to the command.
+  args: []
+
   # lvmd.resources -- Specify resources.
   resources: {}
   #  requests:
@@ -216,6 +222,9 @@ node:
   # node.kubeletWorkDirectory -- Specify the work directory of Kubelet on the host.
   # For example, on microk8s it needs to be set to `/var/snap/microk8s/common/var/lib/kubelet`
   kubeletWorkDirectory: /var/lib/kubelet
+
+  # node.args -- Arguments to be passed to the command.
+  args: []
 
   # node.securityContext. -- Container securityContext.
   ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
@@ -339,6 +348,9 @@ node:
 controller:
   # controller.replicaCount -- Number of replicas for CSI controller service.
   replicaCount: 2
+
+  # controller.args -- Arguments to be passed to the command.
+  args: []
 
   storageCapacityTracking:
     # controller.storageCapacityTracking.enabled -- Enable Storage Capacity Tracking for csi-provisoner.

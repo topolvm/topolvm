@@ -39,6 +39,9 @@ spec:
             - /topolvm-node
             - --csi-socket={{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/csi-topolvm.sock
             - --lvmd-socket={{ .Values.node.lvmdSocket }}
+          {{- with .Values.node.args }}
+          args: {{ toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - name: healthz
               containerPort: 9808

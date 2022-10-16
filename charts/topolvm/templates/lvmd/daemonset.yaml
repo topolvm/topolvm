@@ -47,6 +47,9 @@ spec:
           command:
             - /lvmd
             - --container
+          {{- with .Values.lvmd.args }}
+          args: {{ toYaml . | nindent 12 }}
+          {{- end }}
           {{- with .Values.lvmd.resources }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
