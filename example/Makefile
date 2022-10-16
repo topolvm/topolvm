@@ -161,5 +161,7 @@ migration-test: build/topolvm.io_logicalvolumes.yaml
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n default pod my-pod
 	$(KUBECTL) exec my-pod -- touch /test1/file
 	$(KUBECTL) exec my-pod -- ls -la /test1/file
+	$(KUBECTL) delete -f migrate/pod.yaml
 	timeout 120 sh -c "until $(KUBECTL) apply -f migrate/podpvc.yaml; do sleep 10; done"
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n default pod -l app=example
+	$(KUBECTL) delete -f migrate/podpvc.yaml
