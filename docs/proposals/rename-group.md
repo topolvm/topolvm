@@ -143,6 +143,10 @@ If you upgrade the helm chart without taking above actions, it is possible that 
 
 If you are already using TopoLVM with the group name `topolvm.cybozu.com` and want to migrate the group name to `topolvm.io` after the release of this change, you can manually change the data by the following method.
 
+**You should backup Kubernetes resources (PV, PVC, LogicalVolume CR) and lvm that data managed by TopoLVM because the data could be lost when the migration is failed.**
+**Also, please verify in advance whether the migration will succeed without any problems before executing the migration.**
+**Since the migration procedure is complicated, please consider using TopoLVM as topolvm.cybozu.com without migration.**
+
 1. Avoid booting pods using TopoLVM volumes during migration.
 1. Temporarily stop the following pods:
    - topolvm-controller
@@ -154,6 +158,44 @@ If you are already using TopoLVM with the group name `topolvm.cybozu.com` and wa
 1. Perform the migration work for each resource as mentioned in the chapter `Changes to topolvm.io`.
    - Please migrate while confirming that the pod using the updated resource (e.g. Persistent Volume) continues to operate without problems.
 1. Start topolvm-node after resource migration
+
+#### Manual migration procedure
+
+##### LogicalVolume
+
+1. Run command like `kubectl get logicalvolumes.topolvm.cybozu.com <name> -o yaml > logicalvolumes.yaml` and get current LogicalVolume data.
+1. Edit a `logicalvolumes.yaml` file like follows:
+   * Remove unnecessary metadata fields like a `.metadata.creationTimestamp`
+   * Edit `.apiVersion` value to `topolvm.io/v1`
+   * If there is a `topolvm.cybozu.com/resize-requested-at` field in `.metadata.annotations`, rewrite it to `topolvm.io/resize-requested-at`
+   * If there is `topolvm.cybozu.com/logicalvolume` in `.metadata.finalizers`, delete it and add `topolvm.io/logicalvolume`
+1. Run command like `kubectl apply -f logicalvolumes.yaml` and create a migrated LogicalVolume
+1. Set the `.status` field to the value from `logicalvolumes.yaml` with `kubectl edit logicalvolumes.topolvm.io <name>`
+
+##### PersistentVolumeClaims
+
+1. Run command like `kubectl get pvc <name> -o yaml > pvc.yaml` and get current PersistentVolumeClaims data.
+1. Edit `pvc.yaml`file like follows:
+   * Remove unnecessary metadata fields like a `.metadata.creationTimestamp`
+   * Rewrite the value of `.metadata.name` to a value that does not conflict with the existing pvc name
+   * Rewrite the value of the `volume.beta.kubernetes.io/storage-provisioner` field in `.metadata.annotations` to `topolvm.io`
+   * Rewrite the value of the `volume.kubernetes.io/storage-provisioner` field in `.metadata.annotations` to `topolvm.io`
+   * Rewrite the value of `.spec.volumeName` to a value that does not conflict with the existing pv name
+   * Change the value of `.spec.storageClassName` to the StorageClass name for `topolvm.io`
+1. Run command like `kubectl apply -f pvc.yaml` and create a migrated PersistentVolumeClaims
+
+##### PersistentVolumes
+
+1. Run command like `kubectl get pvc <name> -o yaml > pv.yaml` and get current PersistentVolumes data.
+1. Edit `pv.yaml`file like follows:
+   * Remove unnecessary metadata fields like a `.metadata.creationTimestamp`
+   * Set the value of `.metadata.name` to the value of `.spec.volumeName` of the corresponding PersistentVolumes
+   * Rewrite the value of the `pv.kubernetes.io/provisioned-by` field in `.metadata.annotations` to `topolvm.io`
+   * Replace the value of `.spec.csi.driver` with `topolvm.io`
+   * Rewrite the value of `.spec.claimRef.name` to the name of the associated pvc
+   * Replace `topolvm.cybozu.com` with `topolvm.io` from the value contained in the `storage.kubernetes.io/csiProvisionerIdentity` field of `.spec.csi.volumeAttributes`
+   * Rewrite the value of `.spec.nodeAffinity.required.nodeSelectorTerms[].matchExpressions[].key` from `topology.topolvm.cybozu.com/node` to `topology.topolvm.io/node`
+1. Run command like `kubectl apply -f pv.yaml` and create a migrated PersistentVolumes
 
 ## NOTE
 
