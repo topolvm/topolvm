@@ -91,7 +91,7 @@ Modify each PersistentVolumeClaim resources in TopoLVM as follows:
 
 ##### PersistentVolume
 
-Modify each PersistentVolume resource in TopoLVM as follows(You need to recreate PersistentVolumes because can't edit it):
+Modify each PersistentVolume resource in TopoLVM as follows (You need to recreate PersistentVolumes because it is not editable):
 
 - Change the value of the `pv.kubernetes.io/provisioned-by`[^provisioned-by] annotation to` topolvm.io`
 - Change the value of the `.spec.csi.driver` field to` topolvm.io`
