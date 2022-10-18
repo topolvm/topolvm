@@ -144,7 +144,7 @@ If you upgrade the helm chart without taking above actions, it is possible that 
 If you are already using TopoLVM with the group name `topolvm.cybozu.com` and want to migrate the group name to `topolvm.io` after the release of this change, you can manually change the data by the following method.
 
 **You should backup Kubernetes resources (PV, PVC, LogicalVolume CR) and lvm that data managed by TopoLVM because the data could be lost when the migration is failed.**
-**Also, please verify in advance whether the migration will succeed without any problems before executing the migration.**
+**Also, please test the migration procedure in advance before you actually execute the migration.**
 **Since the migration procedure is complicated, please consider using TopoLVM as topolvm.cybozu.com without migration.**
 
 1. Avoid booting pods using TopoLVM volumes during migration.
