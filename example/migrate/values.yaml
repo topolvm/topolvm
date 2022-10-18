@@ -11,13 +11,13 @@ cert-manager:
   enabled: true
 
 storageClasses:
-  - name: topolvm-provisioner
+  - name: topolvm-provisioner-new
     storageClass:
       fsType: xfs
       isDefaultClass: false
       volumeBindingMode: WaitForFirstConsumer
       allowVolumeExpansion: true
-  - name: topolvm-provisioner-thin
+  - name: topolvm-provisioner-thin-new
     storageClass:
       fsType: xfs
       isDefaultClass: false
@@ -25,3 +25,11 @@ storageClasses:
       allowVolumeExpansion: true
       additionalParameters:
         "topolvm.io/device-class": "ssd-thin"
+
+scheduler:
+  options:
+    listen:
+      port: 9252
+
+priorityClass:
+  enabled: false

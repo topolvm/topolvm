@@ -112,7 +112,7 @@ start-lvmd: $(TMPDIR)/lvmd/lvmd.yaml
 	truncate --size=20G $(BACKING_STORE)/backing_store; \
 	$(SUDO) losetup -f $(BACKING_STORE)/backing_store; \
 	$(SUDO) vgcreate -f -y myvg1 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store | cut -d: -f1); \
-	$(SUDO) lvcreate -T myvg1/thinpool -L 2G; \
+	$(SUDO) lvcreate -T myvg1/thinpool -L 12G; \
 	$(SUDO) systemd-run --unit=lvmd.service $(shell pwd)/build/lvmd --config=$(TMPDIR)/lvmd/lvmd.yaml; \
 
 .PHONY: stop-lvmd
@@ -131,14 +131,14 @@ $(TMPDIR)/scheduler/kube-scheduler.yaml: migrate/kube-scheduler.yaml
 	cp $< $@
 
 .PHONY: migration-test
-migration-test: build/topolvm.io_logicalvolumes.yaml
+migration-test:
 	$(MAKE) run BUILD_IMAGE=true USE_LEGACY=true
 
 	# Installing the new TopoLVM
 	$(KUBECTL) -n kube-system delete pod -l component=kube-scheduler,tier=control-plane
 	$(KUBECTL) create namespace topolvm-system2
 	$(KUBECTL) label namespace topolvm-system2 topolvm.io/webhook=ignore
-	$(HELM) install --namespace=topolvm-system2 topolvm2 ../charts/topolvm/ -f values.yaml
+	$(HELM) install --namespace=topolvm-system2 topolvm2 ../charts/topolvm/ -f migrate/values.yaml
 	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system2 deployments/topolvm2-controller
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system2 -l="app.kubernetes.io/component=controller,app.kubernetes.io/name=topolvm" pod
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system2 certificate/topolvm2-mutatingwebhook
@@ -155,6 +155,7 @@ migration-test: build/topolvm.io_logicalvolumes.yaml
 	$(KUBECTL) exec my-pod -- touch /test1/file
 	$(KUBECTL) exec my-pod -- ls -la /test1/file
 	$(KUBECTL) delete -f podpvc.yaml
+	$(HELM) uninstall --namespace=topolvm-system topolvm
 
 	# Checking if the new TopoLVM operating correctly(new volumes)
 	timeout 120 sh -c "until $(KUBECTL) apply -f migrate/pod.yaml; do sleep 10; done"
@@ -162,6 +163,7 @@ migration-test: build/topolvm.io_logicalvolumes.yaml
 	$(KUBECTL) exec my-pod -- touch /test1/file
 	$(KUBECTL) exec my-pod -- ls -la /test1/file
 	$(KUBECTL) delete -f migrate/pod.yaml
+	$(KUBECTL) delete pvc topolvm-pvc-new topolvm-pvc-thin-new
 	timeout 120 sh -c "until $(KUBECTL) apply -f migrate/podpvc.yaml; do sleep 10; done"
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n default pod -l app=example
 	$(KUBECTL) delete -f migrate/podpvc.yaml

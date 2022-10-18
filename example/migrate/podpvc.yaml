@@ -40,8 +40,7 @@ spec:
   - ReadWriteOnce
   resources:
     requests:
-      # thin-pool size - 2G, with overprovision - 2G *10 and 10Gi ask should work
-      storage: 10Gi
+      storage: 1Gi
   storageClassName: topolvm-provisioner-thin-new
 ---
 apiVersion: v1
