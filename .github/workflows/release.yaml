@@ -17,8 +17,8 @@ jobs:
             exit 1
           fi
           if [ $(echo $VERSION | grep "-") ]; then PRERELEASE=true; else PRERELEASE=false; fi
-          echo "version=${VERSION} >> ${GITHUB_OUTPUT}"
-          echo "prerelease=${PRERELEASE} >> ${GITHUB_OUTPUT}"
+          echo "version=${VERSION}" >> ${GITHUB_OUTPUT}
+          echo "prerelease=${PRERELEASE}" >> ${GITHUB_OUTPUT}
       - run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: "Export IMAGE_PREFIX"
         run: |
