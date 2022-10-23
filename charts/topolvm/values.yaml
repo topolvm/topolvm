@@ -268,8 +268,18 @@ node:
       #   replacement: ${1}
       #   action: replace
 
-  csi:
-    # node.csi.csi_registrar.resources -- Specify resources.
+  containers:
+    # node.containers.topolvm_node.resources -- Specify resources.
+    ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+    topolvm_node:
+      resources: {}
+      #  requests:
+      #    memory: 100Mi
+      #    cpu: 100m
+      #  limits:
+      #    memory: 500Mi
+      #    cpu: 500m
+    # node.containers.csi_registrar.resources -- Specify resources.
     ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
     csi_registrar:
       resources: {}
@@ -279,7 +289,7 @@ node:
       # limits:
       #   cpu: "200m"
       #   memory: "200Mi"
-    # node.csi.liveness_probe.resources -- Specify resources.
+    # node.containers.liveness_probe.resources -- Specify resources.
     ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
     liveness_probe:
       resources: {}
@@ -289,16 +299,6 @@ node:
       # limits:
       #   cpu: "200m"
       #   memory: "200Mi"
-
-  # node.resources -- Specify resources.
-  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
-  resources: {}
-  #  requests:
-  #    memory: 100Mi
-  #    cpu: 100m
-  #  limits:
-  #    memory: 500Mi
-  #    cpu: 500m
 
   # node.priorityClassName -- Specify priorityClassName.
   priorityClassName:
@@ -419,15 +419,57 @@ controller:
   # controller.terminationGracePeriodSeconds -- (int) Specify terminationGracePeriodSeconds.
   terminationGracePeriodSeconds:  # 10
 
-  # controller.resources -- Specify resources.
-  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
-  resources: {}
-  #  requests:
-  #    memory: "50Mi"
-  #    cpu: "50m"
-  #  limits:
-  #    memory: "200Mi"
-  #    cpu: "200m"
+  containers:
+    topolvm_controller:
+      # controller.containers.topolvm_controller.resources -- Specify resources.
+      ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+      resources: {}
+      #  requests:
+      #    memory: "50Mi"
+      #    cpu: "50m"
+      #  limits:
+      #    memory: "200Mi"
+      #    cpu: "200m"
+    csi_provisioner:
+      # controller.containers.csi_provisioner.resources -- Specify resources.
+      ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+      resources: {}
+      #  requests:
+      #    memory: "50Mi"
+      #    cpu: "50m"
+      #  limits:
+      #    memory: "200Mi"
+      #    cpu: "200m"
+    csi_resizer:
+      # controller.containers.csi_resizer.resources -- Specify resources.
+      ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+      resources: {}
+      #  requests:
+      #    memory: "50Mi"
+      #    cpu: "50m"
+      #  limits:
+      #    memory: "200Mi"
+      #    cpu: "200m"
+    csi_snapshotter:
+      # controller.containers.csi_snapshotter.resources -- Specify resources.
+      ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+      resources: {}
+      #  requests:
+      #    memory: "50Mi"
+      #    cpu: "50m"
+      #  limits:
+      #    memory: "200Mi"
+      #    cpu: "200m"
+    liveness_probe:
+      # controller.containers.liveness_probe.resources -- Specify resources.
+      ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+      resources: {}
+      #  requests:
+      #    memory: "50Mi"
+      #    cpu: "50m"
+      #  limits:
+      #    memory: "200Mi"
+      #    cpu: "200m"
 
   # controller.priorityClassName -- Specify priorityClassName.
   priorityClassName:

@@ -49,6 +49,10 @@ spec:
           {{- with .Values.scheduler.args }}
           args: {{ toYaml . | nindent 12 }}
           {{- end }}
+          ports:
+          - containerPort: {{ .Values.scheduler.options.listen.port }}
+            name: listenport
+            protocol: TCP
           livenessProbe:
             httpGet:
               port: {{ .Values.scheduler.options.listen.port }}
