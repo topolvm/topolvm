@@ -112,6 +112,9 @@ spec:
                 - /bin/sh
                 - -c
                 - rm -rf /registration/{{ include "topolvm.pluginName" . }} /registration/{{ include "topolvm.pluginName" . }}-reg.sock
+          {{- with .Values.node.csi.csi_registrar.resources }}
+          resources: {{ toYaml . | nindent 12 }}
+          {{- end }}
           volumeMounts:
             - name: node-plugin-dir
               mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/
@@ -130,6 +133,9 @@ spec:
           command:
             - /livenessprobe
             - --csi-address={{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/csi-topolvm.sock
+          {{- with .Values.node.csi.liveness_probe.resources }}
+          resources: {{ toYaml . | nindent 12 }}
+          {{- end }}
           volumeMounts:
             - name: node-plugin-dir
               mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/
