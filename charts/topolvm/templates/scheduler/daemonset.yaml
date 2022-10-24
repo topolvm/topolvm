@@ -61,7 +61,7 @@ spec:
           volumeMounts:
             - mountPath: /etc/topolvm
               name: {{ template "topolvm.fullname" . }}-scheduler-options
-          {{- with .Values.scheduler.resources }}
+          {{- with .Values.resources.topolvm_scheduler }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
       hostNetwork: true

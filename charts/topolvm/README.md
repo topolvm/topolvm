@@ -85,11 +85,6 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | cert-manager.enabled | bool | `false` | Install cert-manager together. # ref: https://cert-manager.io/docs/installation/kubernetes/#installing-with-helm |
 | controller.affinity | string | `"podAntiAffinity:\n  requiredDuringSchedulingIgnoredDuringExecution:\n    - labelSelector:\n        matchExpressions:\n          - key: app.kubernetes.io/component\n            operator: In\n            values:\n              - controller\n          - key: app.kubernetes.io/name\n            operator: In\n            values:\n              - {{ include \"topolvm.name\" . }}\n      topologyKey: kubernetes.io/hostname\n"` | Specify affinity. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity |
 | controller.args | list | `[]` | Arguments to be passed to the command. |
-| controller.containers.csi_provisioner.resources | object | `{}` | Specify resources. # ref: https://kubernetes.io/docs/user-guide/compute-resources/ |
-| controller.containers.csi_resizer.resources | object | `{}` | Specify resources. # ref: https://kubernetes.io/docs/user-guide/compute-resources/ |
-| controller.containers.csi_snapshotter.resources | object | `{}` | Specify resources. # ref: https://kubernetes.io/docs/user-guide/compute-resources/ |
-| controller.containers.liveness_probe.resources | object | `{}` | Specify resources. # ref: https://kubernetes.io/docs/user-guide/compute-resources/ |
-| controller.containers.topolvm_controller.resources | object | `{}` | Specify resources. # ref: https://kubernetes.io/docs/user-guide/compute-resources/ |
 | controller.minReadySeconds | int | `nil` | Specify minReadySeconds. |
 | controller.nodeFinalize.skipped | bool | `false` | Skip automatic cleanup of PhysicalVolumeClaims when a Node is deleted. |
 | controller.nodeSelector | object | `{}` | Specify nodeSelector. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/ |
@@ -125,16 +120,12 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | lvmd.nodeSelector | object | `{}` | Specify nodeSelector. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/ |
 | lvmd.priorityClassName | string | `nil` | Specify priorityClassName. |
 | lvmd.psp.allowedHostPaths | list | `[]` | Specify allowedHostPaths. |
-| lvmd.resources | object | `{}` | Specify resources. |
 | lvmd.socketName | string | `"/run/topolvm/lvmd.sock"` | Specify socketName. |
 | lvmd.tolerations | list | `[]` | Specify tolerations. # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ |
 | lvmd.updateStrategy | object | `{}` | Specify updateStrategy. |
 | lvmd.volumeMounts | list | `[]` | Specify volumeMounts. |
 | lvmd.volumes | list | `[]` | Specify volumes. |
 | node.args | list | `[]` | Arguments to be passed to the command. |
-| node.containers.csi_registrar.resources | object | `{}` | Specify resources. # ref: https://kubernetes.io/docs/user-guide/compute-resources/ |
-| node.containers.liveness_probe.resources | object | `{}` | Specify resources. # ref: https://kubernetes.io/docs/user-guide/compute-resources/ |
-| node.containers.topolvm_node.resources | object | `{}` | Specify resources. # ref: https://kubernetes.io/docs/user-guide/compute-resources/ |
 | node.kubeletWorkDirectory | string | `"/var/lib/kubelet"` | Specify the work directory of Kubelet on the host. For example, on microk8s it needs to be set to `/var/snap/microk8s/common/var/lib/kubelet` |
 | node.lvmdSocket | string | `"/run/topolvm/lvmd.sock"` | Specify the socket to be used for communication with lvmd. |
 | node.metrics.annotations | object | `{"prometheus.io/port":"metrics"}` | Annotations for Scrape used by Prometheus. |
@@ -158,6 +149,15 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | priorityClass.enabled | bool | `true` | Install priorityClass. |
 | priorityClass.name | string | `"topolvm"` | Specify priorityClass resource name. |
 | priorityClass.value | int | `1000000` |  |
+| resources.csi_provisioner | object | `{}` | Specify resources. # ref: https://kubernetes.io/docs/user-guide/compute-resources/ |
+| resources.csi_registrar | object | `{}` | Specify resources. # ref: https://kubernetes.io/docs/user-guide/compute-resources/ |
+| resources.csi_resizer | object | `{}` | Specify resources. # ref: https://kubernetes.io/docs/user-guide/compute-resources/ |
+| resources.csi_snapshotter | object | `{}` | Specify resources. # ref: https://kubernetes.io/docs/user-guide/compute-resources/ |
+| resources.liveness_probe | object | `{}` | Specify resources. # ref: https://kubernetes.io/docs/user-guide/compute-resources/ |
+| resources.lvmd | object | `{}` | Specify resources. # ref: https://kubernetes.io/docs/user-guide/compute-resources/ |
+| resources.topolvm_controller | object | `{}` | Specify resources. # ref: https://kubernetes.io/docs/user-guide/compute-resources/ |
+| resources.topolvm_node | object | `{}` | Specify resources. # ref: https://kubernetes.io/docs/user-guide/compute-resources/ |
+| resources.topolvm_scheduler | object | `{}` | Specify resources. # ref: https://kubernetes.io/docs/user-guide/compute-resources/ |
 | scheduler.affinity | object | `{"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"node-role.kubernetes.io/control-plane","operator":"Exists"}]},{"matchExpressions":[{"key":"node-role.kubernetes.io/master","operator":"Exists"}]}]}}}` | Specify affinity on the Deployment or DaemonSet. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity |
 | scheduler.args | list | `[]` | Arguments to be passed to the command. |
 | scheduler.deployment.replicaCount | int | `2` | Number of replicas for Deployment. |
@@ -168,7 +168,6 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | scheduler.options.listen.port | int | `9251` | Listen port. |
 | scheduler.podDisruptionBudget.enabled | bool | `true` | Specify podDisruptionBudget enabled. |
 | scheduler.priorityClassName | string | `nil` | Specify priorityClassName on the Deployment or DaemonSet. |
-| scheduler.resources | object | `{}` | Specify resources on the TopoLVM scheduler extender container. # ref: https://kubernetes.io/docs/user-guide/compute-resources/ |
 | scheduler.schedulerOptions | object | `{}` | Tune the Node scoring. ref: https://github.com/topolvm/topolvm/blob/master/deploy/README.md |
 | scheduler.service.clusterIP | string | `nil` | Specify Service clusterIP. |
 | scheduler.service.nodePort | int | `nil` | Specify nodePort. |

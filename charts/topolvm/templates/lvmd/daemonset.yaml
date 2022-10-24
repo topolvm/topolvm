@@ -50,7 +50,7 @@ spec:
           {{- with .Values.lvmd.args }}
           args: {{ toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.lvmd.resources }}
+          {{- with .Values.resources.lvmd }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:

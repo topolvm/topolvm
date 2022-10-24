@@ -74,7 +74,7 @@ spec:
           {{- with .Values.image.pullPolicy }}
           imagePullPolicy: {{ . }}
           {{- end }}
-          {{- with .Values.controller.containers.topolvm_controller.resources }}
+          {{- with .Values.resources.topolvm_controller }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
@@ -92,7 +92,7 @@ spec:
           {{- with .Values.image.pullPolicy }}
           imagePullPolicy: {{ . }}
           {{- end }}
-          {{- with .Values.controller.containers.csi_provisioner.resources }}
+          {{- with .Values.resources.csi_provisioner }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
           command:
@@ -129,7 +129,7 @@ spec:
           {{- with .Values.image.pullPolicy }}
           imagePullPolicy: {{ . }}
           {{- end }}
-          {{- with .Values.controller.containers.csi_resizer.resources }}
+          {{- with .Values.resources.csi_resizer }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
           command:
@@ -151,7 +151,7 @@ spec:
           {{- with .Values.image.pullPolicy }}
           imagePullPolicy: {{ . }}
           {{- end }}
-          {{- with .Values.controller.containers.csi_snapshotter.resources }}
+          {{- with .Values.resources.csi_snapshotter }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
           command:
@@ -179,7 +179,7 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /run/topolvm
-          {{- with .Values.controller.containers.liveness_probe.resources }}
+          {{- with .Values.resources.liveness_probe }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
 
