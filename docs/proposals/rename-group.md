@@ -147,7 +147,7 @@ If you are already using TopoLVM with the group name topolvm.cybozu.com and want
 
 **Please test the migration procedure before you execute the migration. Also, since the migration procedure is complicated, please consider using TopoLVM as topolvm.cybozu.com without migration.**
 
-1. Deploy the `topolvm.io` version TopoLVM (when used with the `topolvm.cybozu.com` version TopoLVM,  names of cluster-wide resources such as StorageClass names need to be changed)
+1. Deploy the `topolvm.io` version of TopoLVM (when used with the `topolvm.cybozu.com` version of TopoLVM,  names of cluster-wide resources such as StorageClass names need to be changed)
 1. Create a new PV(C) using the topolvm.io version TopoLVM
 1. Copy the LVM volume data created by the `topolvm.cybozu.com` version TopoLVM to new LVM volumes created by the `topolvm.io` version TopoLVM using, such as `rsync` command (You can know the targets LV Name of LVM from the values of PV's  `.spec.csi.volumeHandle`)
 1. Start pods using volumes created by the `topolvm.io` version TopoLVM and confirm the data has been migrated without problems
