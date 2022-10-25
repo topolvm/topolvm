@@ -182,19 +182,19 @@ func parseLVMJSON(data []byte) (vgs []vg, lvs []lv, _ error) {
 
 // Issue single lvm command that retrieves everything we need in one call and get the output as JSON
 func getLVMState() (vgs []vg, lvs []lv, _ error) {
-
-	// Note: fullreport doesn't have an option to omit an entire section, so in those cases we limit
-	// the column to 1 and then exclude it to remove.
 	args := []string{
 		"fullreport",
-		"--config", "report {output_format=json pvs_cols_full=\"pv_name\" segs_cols_full=\"lv_uuid\" pvsegs_cols_full=\"lv_uuid\"} global {units=b suffix=0}",
-		"--configreport", "pv", "-o-pv_name",
-		"--configreport", "seg", "-o-lv_uuid",
-		"--configreport", "pvseg", "-o-lv_uuid",
+		"--reportformat", "json",
+		"--units", "b", "--nosuffix",
 		"--configreport", "vg", "-o", "vg_name,vg_uuid,vg_size,vg_free",
 		"--configreport", "lv", "-o", "lv_uuid,lv_name,lv_full_name,lv_path,lv_size," +
 			"lv_kernel_major,lv_kernel_minor,origin,origin_size,pool_lv,lv_tags," +
 			"lv_attr,vg_name,data_percent,metadata_percent,pool_lv",
+		// fullreport doesn't have an option to omit an entire section, so we
+		// omit all fields instead.
+		"--configreport", "pv", "-o,",
+		"--configreport", "pvseg", "-o,",
+		"--configreport", "seg", "-o,",
 	}
 
 	c := wrapExecCommand(lvm, args...)
