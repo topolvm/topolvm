@@ -8,7 +8,6 @@ import (
 )
 
 func TestLvmJSON(t *testing.T) {
-
 	goodJSON := `
 	  {
 		"report": [
@@ -58,7 +57,7 @@ func TestLvmJSON(t *testing.T) {
 		]
 	  }
 	`
-	vgs, lvs, err := parseLVMJSON([]byte(goodJSON))
+	vgs, lvs, err := parseFullReportResult([]byte(goodJSON))
 
 	if err != nil {
 		t.Fatal(err)
@@ -214,7 +213,7 @@ func TestLvmInactiveMajorMinor(t *testing.T) {
 	  ]
 	}
   `
-	vgs, lvs, err := parseLVMJSON([]byte(inactiveMajorMinor))
+	vgs, lvs, err := parseFullReportResult([]byte(inactiveMajorMinor))
 
 	if err != nil {
 		t.Fatal(err)
@@ -266,7 +265,7 @@ func TestLvmJSONBad(t *testing.T) {
 			],
 			"lv": [
 	`
-	vgs, lvs, err := parseLVMJSON([]byte(truncatedJSON))
+	vgs, lvs, err := parseFullReportResult([]byte(truncatedJSON))
 
 	if vgs != nil {
 		t.Fatal("Expected vgs to be nil!")

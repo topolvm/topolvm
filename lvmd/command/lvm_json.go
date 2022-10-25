@@ -2,8 +2,6 @@ package command
 
 import (
 	"encoding/json"
-	"io"
-	"os"
 	"strconv"
 	"strings"
 )
@@ -137,53 +135,31 @@ func (u *lv) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func parseLVMJSON(data []byte) (vgs []vg, lvs []lv, _ error) {
-	type lvmResponse struct {
-		Report json.RawMessage `json:"report"`
-		Log    json.RawMessage `json:"log"`
+func parseFullReportResult(data []byte) ([]vg, []lv, error) {
+	type fullReportResult struct {
+		Report []struct {
+			VG []vg `json:"vg"`
+			LV []lv `json:"lv"`
+		} `json:"report"`
 	}
 
-	type lvmEntries struct {
-		Vg json.RawMessage `json:"vg"`
-		Lv json.RawMessage `json:"lv"`
+	var result fullReportResult
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, nil, err
 	}
 
-	var result lvmResponse
-
-	if parseErr := json.Unmarshal(data, &result); parseErr != nil {
-		return nil, nil, parseErr
-	}
-
-	if result.Report != nil {
-		var entries []lvmEntries
-		if parseErr := json.Unmarshal(result.Report, &entries); parseErr != nil {
-			return nil, nil, parseErr
-		}
-
-		for _, e := range entries {
-			if e.Vg != nil {
-				var tvgs []vg
-				if parseErr := json.Unmarshal(e.Vg, &tvgs); parseErr != nil {
-					return nil, nil, parseErr
-				}
-				vgs = append(vgs, tvgs...)
-			}
-			if e.Lv != nil {
-				var tlvs []lv
-				if parseErr := json.Unmarshal(e.Lv, &tlvs); parseErr != nil {
-					return nil, nil, parseErr
-				}
-				lvs = append(lvs, tlvs...)
-			}
-		}
+	var vgs []vg
+	var lvs []lv
+	for _, report := range result.Report {
+		vgs = append(vgs, report.VG...)
+		lvs = append(lvs, report.LV...)
 	}
 	return vgs, lvs, nil
 }
 
 // Issue single lvm command that retrieves everything we need in one call and get the output as JSON
-func getLVMState() (vgs []vg, lvs []lv, _ error) {
+func getLVMState() ([]vg, []lv, error) {
 	args := []string{
-		"fullreport",
 		"--reportformat", "json",
 		"--units", "b", "--nosuffix",
 		"--configreport", "vg", "-o", "vg_name,vg_uuid,vg_size,vg_free",
@@ -196,23 +172,10 @@ func getLVMState() (vgs []vg, lvs []lv, _ error) {
 		"--configreport", "pvseg", "-o,",
 		"--configreport", "seg", "-o,",
 	}
-
-	c := wrapExecCommand(lvm, args...)
-	c.Stderr = os.Stderr
-	stdout, err := c.StdoutPipe()
-	if err != nil {
-		return vgs, lvs, err
-	}
-	if err := c.Start(); err != nil {
-		return nil, nil, err
-	}
-	out, err := io.ReadAll(stdout)
+	stdout, err := callLVMWithStdout("fullreport", args...)
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := c.Wait(); err != nil {
-		return nil, nil, err
-	}
 
-	return parseLVMJSON(out)
+	return parseFullReportResult(stdout)
 }

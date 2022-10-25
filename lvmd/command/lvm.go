@@ -1,6 +1,7 @@
 package command
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -38,15 +39,27 @@ func wrapExecCommand(cmd string, args ...string) *exec.Cmd {
 // callLVM calls lvm sub-commands.
 // cmd is a name of sub-command.
 func callLVM(cmd string, args ...string) error {
+	_, err := callLVMWithStdout(cmd, args...)
+	return err
+}
+
+// callLVMWithStdout calls lvm sub-commands and returns stdout.
+// cmd is a name of sub-command.
+func callLVMWithStdout(cmd string, args ...string) ([]byte, error) {
+	var stdout bytes.Buffer
 	args = append([]string{cmd}, args...)
+
 	c := wrapExecCommand(lvm, args...)
 	c.Env = os.Environ()
 	c.Env = append(c.Env, "LC_ALL=C")
+	c.Stdout = &stdout
+	c.Stderr = os.Stderr
+
 	log.Info("invoking LVM command", map[string]interface{}{
 		"args": args,
 	})
-	c.Stderr = os.Stderr
-	return c.Run()
+	err := c.Run()
+	return stdout.Bytes(), err
 }
 
 // LVInfo is a map of lv attributes to values.
