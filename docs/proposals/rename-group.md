@@ -130,6 +130,10 @@ Automatically generating the API and CRD of `topolvm.cybozu.com` based on the AP
 Add a wrap client for controller-runtime client to automatically convert a group of LogicalVolume resources.
 Change each controller and other components to use this wrapped client.
 
+## User considerations.
+
+Migration is not enforced as existing domain name `topolvm.cybozu.com` is going to continue to be maintained.  However, only the `.Values.useLegacy` setting is required.
+
 ### Things to be done by users of topolvm.cybozu.com for upgrading the helm chart
 
 Since this change was released, users of TopoLVM with the group name `topolvm.cybozu.com` will need to take the following actions when upgrading the helm chart.
