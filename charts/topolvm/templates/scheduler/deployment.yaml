@@ -49,6 +49,10 @@ spec:
           {{- with .Values.scheduler.args }}
           args: {{ toYaml . | nindent 12 }}
           {{- end }}
+          ports:
+          - containerPort: {{ .Values.scheduler.options.listen.port }}
+            name: listenport
+            protocol: TCP
           livenessProbe:
             httpGet:
               port: {{ .Values.scheduler.options.listen.port }}
@@ -60,7 +64,7 @@ spec:
           volumeMounts:
             - mountPath: /etc/topolvm
               name: {{ template "topolvm.fullname" . }}-scheduler-options
-          {{- with .Values.scheduler.resources }}
+          {{- with .Values.resources.topolvm_scheduler }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
       volumes:

@@ -74,7 +74,7 @@ spec:
           {{- with .Values.image.pullPolicy }}
           imagePullPolicy: {{ . }}
           {{- end }}
-          {{- with .Values.controller.resources }}
+          {{- with .Values.resources.topolvm_controller }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
@@ -91,6 +91,9 @@ spec:
           {{- end }}
           {{- with .Values.image.pullPolicy }}
           imagePullPolicy: {{ . }}
+          {{- end }}
+          {{- with .Values.resources.csi_provisioner }}
+          resources: {{ toYaml . | nindent 12 }}
           {{- end }}
           command:
             - /csi-provisioner
@@ -126,6 +129,9 @@ spec:
           {{- with .Values.image.pullPolicy }}
           imagePullPolicy: {{ . }}
           {{- end }}
+          {{- with .Values.resources.csi_resizer }}
+          resources: {{ toYaml . | nindent 12 }}
+          {{- end }}
           command:
             - /csi-resizer
             - --csi-address=/run/topolvm/csi-topolvm.sock
@@ -144,6 +150,9 @@ spec:
           {{- end }}
           {{- with .Values.image.pullPolicy }}
           imagePullPolicy: {{ . }}
+          {{- end }}
+          {{- with .Values.resources.csi_snapshotter }}
+          resources: {{ toYaml . | nindent 12 }}
           {{- end }}
           command:
             - /csi-snapshotter
@@ -170,6 +179,9 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /run/topolvm
+          {{- with .Values.resources.liveness_probe }}
+          resources: {{ toYaml . | nindent 12 }}
+          {{- end }}
 
       volumes:
         - name: certs

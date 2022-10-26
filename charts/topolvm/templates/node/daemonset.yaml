@@ -57,7 +57,7 @@ spec:
             initialDelaySeconds: 10
             timeoutSeconds: 3
             periodSeconds: 60
-          {{- with .Values.node.resources }}
+          {{- with .Values.resources.topolvm_node }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
           env:
@@ -108,7 +108,7 @@ spec:
                 - /bin/sh
                 - -c
                 - rm -rf /registration/topolvm.cybozu.com /registration/topolvm.cybozu.com-reg.sock
-          {{- with .Values.node.csi.csi_registrar.resources }}
+          {{- with .Values.resources.csi_registrar }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
@@ -129,7 +129,7 @@ spec:
           command:
             - /livenessprobe
             - --csi-address={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.cybozu.com/node/csi-topolvm.sock
-          {{- with .Values.node.csi.liveness_probe.resources }}
+          {{- with .Values.resources.liveness_probe }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:

@@ -105,16 +105,6 @@ scheduler:
   ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
   nodeSelector: {}
 
-  # scheduler.resources -- Specify resources on the TopoLVM scheduler extender container.
-  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
-  resources: {}
-  #  requests:
-  #    memory: "50Mi"
-  #    cpu: "50m"
-  #  limits:
-  #    memory: "200Mi"
-  #    cpu: "200m"
-
   # scheduler.priorityClassName -- Specify priorityClassName on the Deployment or DaemonSet.
   priorityClassName:
 
@@ -150,15 +140,6 @@ lvmd:
 
   # lvmd.args -- Arguments to be passed to the command.
   args: []
-
-  # lvmd.resources -- Specify resources.
-  resources: {}
-  #  requests:
-  #    memory: 100Mi
-  #    cpu: 100m
-  #  limits:
-  #    memory: 500Mi
-  #    cpu: 500m
 
   # lvmd.priorityClassName -- Specify priorityClassName.
   priorityClassName:
@@ -267,38 +248,6 @@ node:
       #   regex: (.*)
       #   replacement: ${1}
       #   action: replace
-
-  csi:
-    # node.csi.csi_registrar.resources -- Specify resources.
-    ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
-    csi_registrar:
-      resources: {}
-      # requests:
-      #   cpu: "25m"
-      #   memory: "10Mi"
-      # limits:
-      #   cpu: "200m"
-      #   memory: "200Mi"
-    # node.csi.liveness_probe.resources -- Specify resources.
-    ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
-    liveness_probe:
-      resources: {}
-      # requests:
-      #   cpu: "25m"
-      #   memory: "10Mi"
-      # limits:
-      #   cpu: "200m"
-      #   memory: "200Mi"
-
-  # node.resources -- Specify resources.
-  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
-  resources: {}
-  #  requests:
-  #    memory: 100Mi
-  #    cpu: 100m
-  #  limits:
-  #    memory: 500Mi
-  #    cpu: 500m
 
   # node.priorityClassName -- Specify priorityClassName.
   priorityClassName:
@@ -419,16 +368,6 @@ controller:
   # controller.terminationGracePeriodSeconds -- (int) Specify terminationGracePeriodSeconds.
   terminationGracePeriodSeconds:  # 10
 
-  # controller.resources -- Specify resources.
-  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
-  resources: {}
-  #  requests:
-  #    memory: "50Mi"
-  #    cpu: "50m"
-  #  limits:
-  #    memory: "200Mi"
-  #    cpu: "200m"
-
   # controller.priorityClassName -- Specify priorityClassName.
   priorityClassName:
 
@@ -475,6 +414,89 @@ controller:
   podDisruptionBudget:
     # controller.podDisruptionBudget.enabled -- Specify podDisruptionBudget enabled.
     enabled: true
+
+resources:
+  # resources.topolvm_node -- Specify resources.
+  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+  topolvm_node: {}
+  #  requests:
+  #    memory: 100Mi
+  #    cpu: 100m
+  #  limits:
+  #    memory: 500Mi
+  #    cpu: 500m
+  # resources.csi_registrar -- Specify resources.
+  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+  csi_registrar: {}
+  # requests:
+  #   cpu: "25m"
+  #   memory: "10Mi"
+  # limits:
+  #   cpu: "200m"
+  #   memory: "200Mi"
+  # resources.liveness_probe -- Specify resources.
+  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+  liveness_probe: {}
+  # requests:
+  #   cpu: "25m"
+  #   memory: "10Mi"
+  # limits:
+  #   cpu: "200m"
+  #   memory: "200Mi"
+  # resources.topolvm_controller -- Specify resources.
+  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+  topolvm_controller: {}
+  #  requests:
+  #    memory: "50Mi"
+  #    cpu: "50m"
+  #  limits:
+  #    memory: "200Mi"
+  #    cpu: "200m"
+  # resources.csi_provisioner -- Specify resources.
+  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+  csi_provisioner: {}
+  #  requests:
+  #    memory: "50Mi"
+  #    cpu: "50m"
+  #  limits:
+  #    memory: "200Mi"
+  #    cpu: "200m"
+  # resources.csi_resizer -- Specify resources.
+  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+  csi_resizer: {}
+  #  requests:
+  #    memory: "50Mi"
+  #    cpu: "50m"
+  #  limits:
+  #    memory: "200Mi"
+  #    cpu: "200m"
+  # resources.csi_snapshotter -- Specify resources.
+  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+  csi_snapshotter: {}
+  #  requests:
+  #    memory: "50Mi"
+  #    cpu: "50m"
+  #  limits:
+  #    memory: "200Mi"
+  #    cpu: "200m"
+  # resources.lvmd -- Specify resources.
+  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+  lvmd: {}
+  #  requests:
+  #    memory: 100Mi
+  #    cpu: 100m
+  #  limits:
+  #    memory: 500Mi
+  #    cpu: 500m
+  # resources.topolvm_scheduler -- Specify resources.
+  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+  topolvm_scheduler: {}
+  #  requests:
+  #    memory: "50Mi"
+  #    cpu: "50m"
+  #  limits:
+  #    memory: "200Mi"
+  #    cpu: "200m"
 
 # storageClasses -- Whether to create storageclass(s)
 # ref: https://kubernetes.io/docs/concepts/storage/storage-classes/
