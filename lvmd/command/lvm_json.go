@@ -2,8 +2,6 @@ package command
 
 import (
 	"encoding/json"
-	"io"
-	"os"
 	"strconv"
 	"strings"
 )
@@ -137,82 +135,47 @@ func (u *lv) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func parseLVMJSON(data []byte) (vgs []vg, lvs []lv, _ error) {
-	type lvmResponse struct {
-		Report json.RawMessage `json:"report"`
-		Log    json.RawMessage `json:"log"`
+func parseFullReportResult(data []byte) ([]vg, []lv, error) {
+	type fullReportResult struct {
+		Report []struct {
+			VG []vg `json:"vg"`
+			LV []lv `json:"lv"`
+		} `json:"report"`
 	}
 
-	type lvmEntries struct {
-		Vg json.RawMessage `json:"vg"`
-		Lv json.RawMessage `json:"lv"`
+	var result fullReportResult
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, nil, err
 	}
 
-	var result lvmResponse
-
-	if parseErr := json.Unmarshal(data, &result); parseErr != nil {
-		return nil, nil, parseErr
-	}
-
-	if result.Report != nil {
-		var entries []lvmEntries
-		if parseErr := json.Unmarshal(result.Report, &entries); parseErr != nil {
-			return nil, nil, parseErr
-		}
-
-		for _, e := range entries {
-			if e.Vg != nil {
-				var tvgs []vg
-				if parseErr := json.Unmarshal(e.Vg, &tvgs); parseErr != nil {
-					return nil, nil, parseErr
-				}
-				vgs = append(vgs, tvgs...)
-			}
-			if e.Lv != nil {
-				var tlvs []lv
-				if parseErr := json.Unmarshal(e.Lv, &tlvs); parseErr != nil {
-					return nil, nil, parseErr
-				}
-				lvs = append(lvs, tlvs...)
-			}
-		}
+	var vgs []vg
+	var lvs []lv
+	for _, report := range result.Report {
+		vgs = append(vgs, report.VG...)
+		lvs = append(lvs, report.LV...)
 	}
 	return vgs, lvs, nil
 }
 
 // Issue single lvm command that retrieves everything we need in one call and get the output as JSON
-func getLVMState() (vgs []vg, lvs []lv, _ error) {
-
-	// Note: fullreport doesn't have an option to omit an entire section, so in those cases we limit
-	// the column to 1 and then exclude it to remove.
+func getLVMState() ([]vg, []lv, error) {
 	args := []string{
-		"fullreport",
-		"--config", "report {output_format=json pvs_cols_full=\"pv_name\" segs_cols_full=\"lv_uuid\" pvsegs_cols_full=\"lv_uuid\"} global {units=b suffix=0}",
-		"--configreport", "pv", "-o-pv_name",
-		"--configreport", "seg", "-o-lv_uuid",
-		"--configreport", "pvseg", "-o-lv_uuid",
+		"--reportformat", "json",
+		"--units", "b", "--nosuffix",
 		"--configreport", "vg", "-o", "vg_name,vg_uuid,vg_size,vg_free",
 		"--configreport", "lv", "-o", "lv_uuid,lv_name,lv_full_name,lv_path,lv_size," +
 			"lv_kernel_major,lv_kernel_minor,origin,origin_size,pool_lv,lv_tags," +
 			"lv_attr,vg_name,data_percent,metadata_percent,pool_lv",
+		// fullreport doesn't have an option to omit an entire section, so we
+		// omit all fields instead.
+		"--configreport", "pv", "-o,",
+		"--configreport", "pvseg", "-o,",
+		"--configreport", "seg", "-o,",
 	}
-
-	c := wrapExecCommand(lvm, args...)
-	c.Stderr = os.Stderr
-	stdout, err := c.StdoutPipe()
-	if err != nil {
-		return vgs, lvs, err
-	}
-	if err := c.Start(); err != nil {
-		return nil, nil, err
-	}
-	out, err := io.ReadAll(stdout)
+	stdout, err := callLVMWithStdout("fullreport", args...)
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := c.Wait(); err != nil {
-		return nil, nil, err
-	}
 
-	return parseLVMJSON(out)
+	return parseFullReportResult(stdout)
 }
