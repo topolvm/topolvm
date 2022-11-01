@@ -132,7 +132,7 @@ Change each controller and other components to use this wrapped client.
 
 ## User action
 
-Migration to `topolvm.io` is not mandatory and `topolvm.cybozu.com` is going to be maintained.  If users want to continue to use  `topolvm.cybozu.com`, they should set `.Values.useLegacy` parameter.
+Migration to `topolvm.io` is not mandatory and `topolvm.cybozu.com` is going to be maintained. Those who still want to use `topolvm.cybozu.com` must set `.Values.useLegacy:true` for the helm chart when updating TopoLVM.
 
 ### Things to be done by users of topolvm.cybozu.com for upgrading the helm chart
 
