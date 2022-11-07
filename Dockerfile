@@ -1,17 +1,18 @@
 # Build Container
-FROM golang:1.18-buster AS build-env
+FROM --platform=$BUILDPLATFORM golang:1.18-buster AS build-env
 
 # Get argment
 ARG TOPOLVM_VERSION
+ARG TARGETARCH
 
 COPY . /workdir
 WORKDIR /workdir
 
 RUN touch csi/*.go lvmd/proto/*.go \
-    && make build-topolvm TOPOLVM_VERSION=${TOPOLVM_VERSION}
+    && make build-topolvm TOPOLVM_VERSION=${TOPOLVM_VERSION} GOARCH=${TARGETARCH}
 
 # TopoLVM container
-FROM ubuntu:18.04
+FROM --platform=$TARGETPLATFORM ubuntu:18.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
