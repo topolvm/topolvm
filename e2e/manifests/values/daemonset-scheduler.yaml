@@ -13,7 +13,7 @@ controller:
   volumes:
     - name: socket-dir
       hostPath:
-        path: /var/lib/kubelet/plugins/topolvm.cybozu.com/controller
+        path: /var/lib/kubelet/plugins/topolvm.io/controller
         type: DirectoryOrCreate
 
 scheduler:
@@ -33,7 +33,7 @@ storageClasses:
       volumeBindingMode: WaitForFirstConsumer
       allowVolumeExpansion: true
       additionalParameters:
-        topolvm.cybozu.com/device-class: "ssd"
+        topolvm.io/device-class: "ssd"
 
 podSecurityPolicy:
   create: false

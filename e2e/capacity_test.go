@@ -50,7 +50,7 @@ func testStorageCapacity() {
 		err = json.Unmarshal(result, &node)
 		Expect(err).ShouldNot(HaveOccurred())
 		size := func() string {
-			sizeStr, exists := node.Annotations[topolvm.CapacityKeyPrefix+"00default"]
+			sizeStr, exists := node.Annotations[topolvm.GetCapacityKeyPrefix()+"00default"]
 			Expect(exists).Should(BeTrue(), "size is not found")
 			size, err := strconv.Atoi(sizeStr)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -140,7 +140,7 @@ func testStorageCapacity() {
 		err = json.Unmarshal(result, &node)
 		Expect(err).ShouldNot(HaveOccurred())
 		size = func() string {
-			sizeStr, exists := node.Annotations[topolvm.CapacityKeyPrefix+"hdd1"]
+			sizeStr, exists := node.Annotations[topolvm.GetCapacityKeyPrefix()+"hdd1"]
 			if !exists {
 				Expect(errors.New("size is not found")).ShouldNot(HaveOccurred())
 			}

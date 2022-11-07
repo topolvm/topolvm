@@ -534,7 +534,7 @@ func (s *nodeService) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoReque
 		NodeId: s.nodeName,
 		AccessibleTopology: &csi.Topology{
 			Segments: map[string]string{
-				topolvm.TopologyNodeKey: s.nodeName,
+				topolvm.GetTopologyNodeKey(): s.nodeName,
 			},
 		},
 	}, nil

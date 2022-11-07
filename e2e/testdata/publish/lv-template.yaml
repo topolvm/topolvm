@@ -1,4 +1,4 @@
-apiVersion: topolvm.cybozu.com/v1
+apiVersion: topolvm.io/v1
 kind: LogicalVolume
 metadata:
   name: %s

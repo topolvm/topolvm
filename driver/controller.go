@@ -34,7 +34,7 @@ type controllerService struct {
 func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	capabilities := req.GetVolumeCapabilities()
 	source := req.GetVolumeContentSource()
-	deviceClass := req.GetParameters()[topolvm.DeviceClassKey]
+	deviceClass := req.GetParameters()[topolvm.GetDeviceClassKey()]
 
 	ctrlLogger.Info("CreateVolume called",
 		"name", req.GetName(),
@@ -126,7 +126,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 		} else {
 			sourceNode := sourceVol.Spec.NodeName
 			for _, topo := range requirements.Preferred {
-				if v, ok := topo.GetSegments()[topolvm.TopologyNodeKey]; ok {
+				if v, ok := topo.GetSegments()[topolvm.GetTopologyNodeKey()]; ok {
 					if v == sourceNode {
 						node = v
 						break
@@ -135,7 +135,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 			}
 			if node == "" {
 				for _, topo := range requirements.Requisite {
-					if v, ok := topo.GetSegments()[topolvm.TopologyNodeKey]; ok {
+					if v, ok := topo.GetSegments()[topolvm.GetTopologyNodeKey()]; ok {
 						if v == sourceNode {
 							node = v
 							break
@@ -168,21 +168,21 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 			node = nodeName
 		} else {
 			for _, topo := range requirements.Preferred {
-				if v, ok := topo.GetSegments()[topolvm.TopologyNodeKey]; ok {
+				if v, ok := topo.GetSegments()[topolvm.GetTopologyNodeKey()]; ok {
 					node = v
 					break
 				}
 			}
 			if node == "" {
 				for _, topo := range requirements.Requisite {
-					if v, ok := topo.GetSegments()[topolvm.TopologyNodeKey]; ok {
+					if v, ok := topo.GetSegments()[topolvm.GetTopologyNodeKey()]; ok {
 						node = v
 						break
 					}
 				}
 			}
 			if node == "" {
-				return nil, status.Errorf(codes.InvalidArgument, "cannot find key '%s' in accessibility_requirements", topolvm.TopologyNodeKey)
+				return nil, status.Errorf(codes.InvalidArgument, "cannot find key '%s' in accessibility_requirements", topolvm.GetTopologyNodeKey())
 			}
 		}
 	}
@@ -210,7 +210,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 			ContentSource: source,
 			AccessibleTopology: []*csi.Topology{
 				{
-					Segments: map[string]string{topolvm.TopologyNodeKey: node},
+					Segments: map[string]string{topolvm.GetTopologyNodeKey(): node},
 				},
 			},
 		},
@@ -420,7 +420,7 @@ func (s controllerService) GetCapacity(ctx context.Context, req *csi.GetCapacity
 		ctrlLogger.Info("capability argument is not nil, but TopoLVM ignores it")
 	}
 
-	deviceClass := req.GetParameters()[topolvm.DeviceClassKey]
+	deviceClass := req.GetParameters()[topolvm.GetDeviceClassKey()]
 
 	var capacity int64
 	switch topology {
@@ -431,9 +431,9 @@ func (s controllerService) GetCapacity(ctx context.Context, req *csi.GetCapacity
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 	default:
-		v, ok := topology.Segments[topolvm.TopologyNodeKey]
+		v, ok := topology.Segments[topolvm.GetTopologyNodeKey()]
 		if !ok {
-			err := fmt.Errorf("%s is not found in req.AccessibleTopology", topolvm.TopologyNodeKey)
+			err := fmt.Errorf("%s is not found in req.AccessibleTopology", topolvm.GetTopologyNodeKey())
 			ctrlLogger.Error(err, "target node key is not found")
 			return &csi.GetCapacityResponse{AvailableCapacity: 0}, nil
 		}

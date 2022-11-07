@@ -12,5 +12,5 @@ extenders:
   nodeCacheCapable: false
   weight: 1
   managedResources:
-  - name: "topolvm.cybozu.com/capacity"
+  - name: "topolvm.io/capacity"
     ignoredByScheduler: true

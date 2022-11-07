@@ -235,7 +235,7 @@ extenders:
     nodeCacheCapable: false
     weight: 100 ## EDIT THIS FIELD ##
     managedResources:
-      - name: "topolvm.cybozu.com/capacity"
+      - name: "topolvm.io/capacity"
         ignoredByScheduler: true
 ```
 
@@ -275,7 +275,7 @@ if the webhook pods and the system pods are both missing.
 To workaround the problem, add a label to system namespaces such as `kube-system` as follows:
 
 ```console
-$ kubectl label namespace kube-system topolvm.cybozu.com/webhook=ignore
+$ kubectl label namespace kube-system topolvm.io/webhook=ignore
 ```
 
 ## Configure StorageClasses
@@ -302,7 +302,7 @@ The first step is to create a namespace and add a label.
 
 ```console
 $ kubectl create namespace topolvm-system
-$ kubectl label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
+$ kubectl label namespace topolvm-system topolvm.io/webhook=ignore
 ```
 
 > :memo: Helm does not support adding labels or other metadata when creating namespaces.
@@ -392,7 +392,7 @@ apiVersion: snapshot.storage.k8s.io/v1
 kind: VolumeSnapshotClass
 metadata:
   name: csi-topolvm-snapclass
-driver: topolvm.cybozu.com
+driver: topolvm.io
 deletionPolicy: Delete
 ```
 

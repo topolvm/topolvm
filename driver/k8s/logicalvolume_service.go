@@ -8,7 +8,9 @@ import (
 	"time"
 
 	"github.com/topolvm/topolvm"
+	topolvmlegacyv1 "github.com/topolvm/topolvm/api/legacy/v1"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
+	clientwrapper "github.com/topolvm/topolvm/client"
 	"github.com/topolvm/topolvm/getter"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -29,7 +31,7 @@ type LogicalVolumeService struct {
 		client.Writer
 		client.StatusClient
 	}
-	getter       *getter.RetryMissingGetter
+	getter       getter.Interface
 	volumeGetter *volumeGetter
 	mu           sync.Mutex
 }
@@ -41,6 +43,37 @@ const (
 var (
 	logger = ctrl.Log.WithName("LogicalVolume")
 )
+
+type retryMissingGetter struct {
+	cacheReader client.Reader
+	apiReader   client.Reader
+	getter      getter.Interface
+}
+
+func newRetryMissingGetter(cacheReader client.Reader, apiReader client.Reader) *retryMissingGetter {
+	return &retryMissingGetter{
+		cacheReader: cacheReader,
+		apiReader:   apiReader,
+		getter:      getter.NewRetryMissingGetter(cacheReader, apiReader),
+	}
+}
+
+func (r *retryMissingGetter) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
+	var lv *topolvmv1.LogicalVolume
+	var ok bool
+	if lv, ok = obj.(*topolvmv1.LogicalVolume); !ok {
+		return r.getter.Get(ctx, key, obj)
+	}
+
+	err := r.cacheReader.Get(ctx, key, lv)
+	if err == nil {
+		return nil
+	}
+	if !apierrors.IsNotFound(err) {
+		return err
+	}
+	return r.apiReader.Get(ctx, key, lv)
+}
 
 // This type is a safe guard to prohibit calling List from LogicalVolumeService directly.
 type volumeGetter struct {
@@ -86,24 +119,34 @@ func (v *volumeGetter) Get(ctx context.Context, volumeID string) (*topolvmv1.Log
 	return foundLv, nil
 }
 
-//+kubebuilder:rbac:groups=topolvm.cybozu.com,resources=logicalvolumes,verbs=get;list;watch;create;delete
+//+kubebuilder:rbac:groups=topolvm.io,resources=logicalvolumes,verbs=get;list;watch;create;delete
 //+kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch
 
 // NewLogicalVolumeService returns LogicalVolumeService.
 func NewLogicalVolumeService(mgr manager.Manager) (*LogicalVolumeService, error) {
 	ctx := context.Background()
-	err := mgr.GetFieldIndexer().IndexField(ctx, &topolvmv1.LogicalVolume{}, indexFieldVolumeID,
-		func(o client.Object) []string {
+	if topolvm.UseLegacy() {
+		err := mgr.GetFieldIndexer().IndexField(ctx, &topolvmlegacyv1.LogicalVolume{}, indexFieldVolumeID, func(o client.Object) []string {
+			return []string{o.(*topolvmlegacyv1.LogicalVolume).Status.VolumeID}
+		})
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		err := mgr.GetFieldIndexer().IndexField(ctx, &topolvmv1.LogicalVolume{}, indexFieldVolumeID, func(o client.Object) []string {
 			return []string{o.(*topolvmv1.LogicalVolume).Status.VolumeID}
 		})
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
 	}
 
+	client := clientwrapper.NewWrappedClient(mgr.GetClient())
+	apiReader := clientwrapper.NewWrappedReader(mgr.GetAPIReader(), mgr.GetClient().Scheme())
 	return &LogicalVolumeService{
-		writer:       mgr.GetClient(),
-		getter:       getter.NewRetryMissingGetter(mgr.GetClient(), mgr.GetAPIReader()),
-		volumeGetter: &volumeGetter{cacheReader: mgr.GetClient(), apiReader: mgr.GetAPIReader()},
+		writer:       client,
+		getter:       newRetryMissingGetter(client, apiReader),
+		volumeGetter: &volumeGetter{cacheReader: client, apiReader: apiReader},
 	}, nil
 }
 
@@ -116,10 +159,6 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, dc, name,
 	// if the create volume request has no source, proceed with regular lv creation.
 	if sourceName == "" {
 		lv = &topolvmv1.LogicalVolume{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "LogicalVolume",
-				APIVersion: "topolvm.cybozu.com/v1",
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
 			},
@@ -134,10 +173,6 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, dc, name,
 	} else {
 		// On the other hand, if a volume has a datasource, create a thin snapshot of the source volume with READ-WRITE access.
 		lv = &topolvmv1.LogicalVolume{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "LogicalVolume",
-				APIVersion: "topolvm.cybozu.com/v1",
-			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
 			},
@@ -226,10 +261,6 @@ func (s *LogicalVolumeService) DeleteVolume(ctx context.Context, volumeID string
 func (s *LogicalVolumeService) CreateSnapshot(ctx context.Context, node, dc, sourceVol, sname, accessType string, snapSize resource.Quantity) (string, error) {
 	logger.Info("CreateSnapshot called", "name", sname)
 	snapshotLV := &topolvmv1.LogicalVolume{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "LogicalVolume",
-			APIVersion: "topolvm.cybozu.com/v1",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: sname,
 		},
@@ -338,7 +369,7 @@ func (s *LogicalVolumeService) UpdateSpecSize(ctx context.Context, volumeID stri
 		if lv.Annotations == nil {
 			lv.Annotations = make(map[string]string)
 		}
-		lv.Annotations[topolvm.ResizeRequestedAtKey] = time.Now().UTC().String()
+		lv.Annotations[topolvm.GetResizeRequestedAtKey()] = time.Now().UTC().String()
 
 		if err := s.writer.Update(ctx, lv); err != nil {
 			if apierrors.IsConflict(err) {

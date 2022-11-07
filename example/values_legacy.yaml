@@ -1,0 +1,29 @@
+controller:
+  replicaCount: 1
+
+lvmd:
+  managed: false
+
+podSecurityPolicy:
+  create: false
+
+cert-manager:
+  enabled: true
+
+storageClasses:
+  - name: topolvm-provisioner
+    storageClass:
+      fsType: xfs
+      isDefaultClass: false
+      volumeBindingMode: WaitForFirstConsumer
+      allowVolumeExpansion: true
+  - name: topolvm-provisioner-thin
+    storageClass:
+      fsType: xfs
+      isDefaultClass: false
+      volumeBindingMode: WaitForFirstConsumer
+      allowVolumeExpansion: true
+      additionalParameters:
+        "topolvm.cybozu.com/device-class": "ssd-thin"
+
+useLegacy: true

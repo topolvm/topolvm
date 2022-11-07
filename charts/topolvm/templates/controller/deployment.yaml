@@ -42,6 +42,11 @@ spec:
             {{- if .Values.controller.nodeFinalize.skipped }}
             - --skip-node-finalize
             {{- end }}
+          {{ if .Values.useLegacy }}
+          env:
+            - name: USE_LEGACY
+              value: "true"
+          {{ end }}
           {{- with .Values.controller.args }}
           args: {{ toYaml . | nindent 12 }}
           {{- end }}
