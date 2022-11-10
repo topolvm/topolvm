@@ -1,0 +1,43 @@
+name: manual-build-push
+
+on:
+  workflow_call:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to build from'
+        required: true
+
+jobs:
+  build-and-publish-image:
+    name: Build and publish the TopoLVM image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.inputs.branch }}
+      - uses: actions/setup-go@v3
+        with:
+          go-version-file: go.mod
+
+      - name: Login to quay (quay.io/lvmo)
+        uses: docker/login-action@v1
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_NAME }}
+          password: ${{ secrets.QUAY_TOKEN }}
+
+      - name: Get Current Date
+        id: date
+        run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+
+      - name: Build and publish image
+        env:
+          IMAGE_PREFIX: quay.io/lvmo/
+          IMAGE_TAG: ${{ github.event.inputs.branch }}-${{ steps.date.outputs.date }}
+        run: |
+          TAG=${{ github.event.inputs.branch }}-${{ steps.date.outputs.date }}
+          make build image
+          make tag push
+          make tag push IMAGE_TAG=latest
+
