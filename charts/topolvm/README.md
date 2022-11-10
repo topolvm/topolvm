@@ -39,8 +39,8 @@ Also, [lvmd](../../deploy/README.md#lvmd) is run in a DaemonSet by default.
 To work webhooks properly, add a label to the target namespace. We also recommend to use a dedicated namespace.
 
 ```sh
-kubectl label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
-kubectl label namespace kube-system topolvm.cybozu.com/webhook=ignore
+kubectl label namespace topolvm-system topolvm.io/webhook=ignore
+kubectl label namespace kube-system topolvm.io/webhook=ignore
 ```
 
 Install the chart with the release name `topolvm` into the namespace:
@@ -180,6 +180,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | securityContext.runAsUser | int | `10000` | Specify runAsUser. |
 | snapshot.enabled | bool | `true` | Turn on the snapshot feature. |
 | storageClasses | list | `[{"name":"topolvm-provisioner","storageClass":{"additionalParameters":{},"allowVolumeExpansion":true,"annotations":{},"fsType":"xfs","isDefaultClass":false,"reclaimPolicy":null,"volumeBindingMode":"WaitForFirstConsumer"}}]` | Whether to create storageclass(s) ref: https://kubernetes.io/docs/concepts/storage/storage-classes/ |
+| useLegacy | bool | `false` | If true, the legacy plugin name and legacy custom resource group is used(topolvm.cybozu.com). |
 | webhook.caBundle | string | `nil` | Specify the certificate to be used for AdmissionWebhook. |
 | webhook.existingCertManagerIssuer | object | `{}` | Specify the cert-manager issuer to be used for AdmissionWebhook. |
 | webhook.podMutatingWebhook.enabled | bool | `true` | Enable Pod MutatingWebhook. |
@@ -191,6 +192,13 @@ You can use the `helm template` command to render manifests.
 ```sh
 helm template --include-crds --namespace=topolvm-system topolvm topolvm/topolvm
 ```
+
+## About the legacy flag
+
+In https://github.com/topolvm/topolvm/pull/592, the domain name which is used for CRD and other purposes was changed from topolvm.cybozu.com to topolvm.io.
+Automatic domain name migration to topolvm.io is risky from the data integrity point of view, and migration to topolvm.io has a large impact on the entire TopoLVM system, including CRDs.
+So we added an option to use topolvm.cybozu.com as it is.
+TopoLVM users can continue to use topolvm.cybozu.com by setting `--set useLegacy=true` in their helm chart.
 
 ## Update README
 

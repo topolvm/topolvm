@@ -21,7 +21,7 @@ import (
 
 var pmLogger = ctrl.Log.WithName("pod-mutator")
 
-//+kubebuilder:webhook:failurePolicy=fail,matchPolicy=equivalent,groups=core,resources=pods,verbs=create,versions=v1,name=pod-hook.topolvm.cybozu.com,path=/pod/mutate,mutating=true,sideEffects=none,admissionReviewVersions={v1,v1beta1}
+//+kubebuilder:webhook:failurePolicy=fail,matchPolicy=equivalent,groups=core,resources=pods,verbs=create,versions=v1,name=pod-hook.topolvm.io,path=/pod/mutate,mutating=true,sideEffects=none,admissionReviewVersions={v1,v1beta1}
 //+kubebuilder:rbac:groups=core,resources=persistentvolumeclaims,verbs=get;list;watch
 //+kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=get;list;watch
 
@@ -79,17 +79,17 @@ func (m *podMutator) Handle(ctx context.Context, req admission.Request) admissio
 	if ctnr.Resources.Requests == nil {
 		ctnr.Resources.Requests = corev1.ResourceList{}
 	}
-	ctnr.Resources.Requests[topolvm.CapacityResource] = *quantity
+	ctnr.Resources.Requests[topolvm.GetCapacityResource()] = *quantity
 	if ctnr.Resources.Limits == nil {
 		ctnr.Resources.Limits = corev1.ResourceList{}
 	}
-	ctnr.Resources.Limits[topolvm.CapacityResource] = *quantity
+	ctnr.Resources.Limits[topolvm.GetCapacityResource()] = *quantity
 
 	if pod.Annotations == nil {
 		pod.Annotations = make(map[string]string)
 	}
 	for dc, capacity := range capacities {
-		pod.Annotations[topolvm.CapacityKeyPrefix+dc] = strconv.FormatInt(capacity, 10)
+		pod.Annotations[topolvm.GetCapacityKeyPrefix()+dc] = strconv.FormatInt(capacity, 10)
 	}
 
 	marshaledPod, err := json.Marshal(pod)
@@ -119,7 +119,7 @@ func (t *targetSC) Get(ctx context.Context, name string) (*storagev1.StorageClas
 		}
 		return nil, err
 	}
-	if sc.Provisioner != topolvm.PluginName {
+	if sc.Provisioner != topolvm.GetPluginName() {
 		t.cache[name] = nil
 		return nil, nil
 	}
@@ -214,7 +214,7 @@ func (m *podMutator) pvcCapacity(
 			requested = ((req.Value()-1)>>30 + 1) << 30
 		}
 	}
-	dc, ok := sc.Parameters[topolvm.DeviceClassKey]
+	dc, ok := sc.Parameters[topolvm.GetDeviceClassKey()]
 	if !ok {
 		dc = topolvm.DefaultDeviceClassAnnotationName
 	}
@@ -248,7 +248,7 @@ func (m *podMutator) ephemeralCapacity(
 			requested = ((req.Value()-1)>>30 + 1) << 30
 		}
 	}
-	dc, ok := sc.Parameters[topolvm.DeviceClassKey]
+	dc, ok := sc.Parameters[topolvm.GetDeviceClassKey()]
 	if !ok {
 		dc = topolvm.DefaultDeviceClassAnnotationName
 	}

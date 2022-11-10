@@ -42,7 +42,7 @@ The extender implements filter and prioritize verbs.
 
 The filter verb is "predicate" and served at "/predicate" via HTTP.
 It filters out nodes that have less storage capacity than requested.
-The requested capacity is read from "capacity.topolvm.cybozu.com/<device-class>"
+The requested capacity is read from "capacity.topolvm.io/<device-class>"
 resource value.
 
 The prioritize verb is "prioritize" and served at "/prioritize" via HTTP.

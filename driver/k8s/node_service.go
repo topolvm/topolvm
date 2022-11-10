@@ -8,7 +8,6 @@ import (
 	"github.com/topolvm/topolvm"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 // ErrNodeNotFound represents the error that node is not found.
@@ -22,8 +21,8 @@ type NodeService struct {
 }
 
 // NewNodeService returns NodeService.
-func NewNodeService(mgr manager.Manager) *NodeService {
-	return &NodeService{reader: mgr.GetClient()}
+func NewNodeService(r client.Reader) *NodeService {
+	return &NodeService{reader: r}
 }
 
 func (s NodeService) getNodes(ctx context.Context) (*corev1.NodeList, error) {
@@ -39,7 +38,7 @@ func (s NodeService) extractCapacityFromAnnotation(node *corev1.Node, deviceClas
 	if deviceClass == topolvm.DefaultDeviceClassName {
 		deviceClass = topolvm.DefaultDeviceClassAnnotationName
 	}
-	c, ok := node.Annotations[topolvm.CapacityKeyPrefix+deviceClass]
+	c, ok := node.Annotations[topolvm.GetCapacityKeyPrefix()+deviceClass]
 	if !ok {
 		return 0, ErrDeviceClassNotFound
 	}
@@ -65,7 +64,7 @@ func (s NodeService) GetCapacityByTopologyLabel(ctx context.Context, topology, d
 	}
 
 	for _, node := range nl.Items {
-		if v, ok := node.Labels[topolvm.TopologyNodeKey]; ok {
+		if v, ok := node.Labels[topolvm.GetTopologyNodeKey()]; ok {
 			if v != topology {
 				continue
 			}

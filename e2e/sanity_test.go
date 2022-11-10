@@ -14,9 +14,9 @@ import (
 )
 
 func testSanity() {
-	baseDir := "/tmp/topolvm/worker1/plugins/topolvm.cybozu.com/"
+	baseDir := "/tmp/topolvm/worker1/plugins/topolvm.io/"
 	if isDaemonsetLvmdEnvSet() {
-		baseDir = "/var/lib/kubelet/plugins/topolvm.cybozu.com/"
+		baseDir = "/var/lib/kubelet/plugins/topolvm.io/"
 	}
 
 	It("should add node selector to node DaemonSet for CSI test", func() {
@@ -74,10 +74,10 @@ func testSanity() {
 	}
 
 	if os.Getenv("SANITY_TEST_WITH_THIN_DEVICECLASS") == "true" {
-		// csi.storage.k8s.io/fstype=xfs,topolvm.cybozu.com/device-class=thin
+		// csi.storage.k8s.io/fstype=xfs,topolvm.io/device-class=thin
 		volParams := make(map[string]string)
 		volParams["csi.storage.k8s.io/fstype"] = "xfs"
-		volParams["topolvm.cybozu.com/device-class"] = "thin"
+		volParams["topolvm.io/device-class"] = "thin"
 		tc.TestVolumeParameters = volParams
 	}
 	sanity.GinkgoTest(&tc)

@@ -31,9 +31,7 @@ var _ = Describe("PersistentVolumeClaimController controller", func() {
 		})
 		Expect(err).ToNot(HaveOccurred())
 
-		reconciler := PersistentVolumeClaimReconciler{
-			Client: k8sClient,
-		}
+		reconciler := NewPersistentVolumeClaimReconciler(k8sClient)
 		err = reconciler.SetupWithManager(mgr)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -78,7 +76,7 @@ func newPVCWithFinalizer() *corev1.PersistentVolumeClaim {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "sample",
 			Namespace:  "test",
-			Finalizers: []string{topolvm.PVCFinalizer, "topolvm.io/finalizer1", topolvm.PVCFinalizer, topolvm.PVCFinalizer, "topolvm.io/finalizer2", topolvm.PVCFinalizer},
+			Finalizers: []string{topolvm.GetPVCFinalizer(), "topolvm.io/finalizer1", topolvm.GetPVCFinalizer(), topolvm.GetPVCFinalizer(), "topolvm.io/finalizer2", topolvm.GetPVCFinalizer()},
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},

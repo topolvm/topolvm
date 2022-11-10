@@ -34,8 +34,8 @@ func capacityToScore(capacity uint64, divisor float64) int {
 func scoreNodes(pod *corev1.Pod, nodes []corev1.Node, defaultDivisor float64, divisors map[string]float64) []HostPriority {
 	var dcs []string
 	for k := range pod.Annotations {
-		if strings.HasPrefix(k, topolvm.CapacityKeyPrefix) {
-			dcs = append(dcs, k[len(topolvm.CapacityKeyPrefix):])
+		if strings.HasPrefix(k, topolvm.GetCapacityKeyPrefix()) {
+			dcs = append(dcs, k[len(topolvm.GetCapacityKeyPrefix()):])
 		}
 	}
 	if len(dcs) == 0 {
@@ -62,7 +62,7 @@ func scoreNodes(pod *corev1.Pod, nodes []corev1.Node, defaultDivisor float64, di
 func scoreNode(item corev1.Node, deviceClasses []string, defaultDivisor float64, divisors map[string]float64) int {
 	minScore := math.MaxInt32
 	for _, dc := range deviceClasses {
-		if val, ok := item.Annotations[topolvm.CapacityKeyPrefix+dc]; ok {
+		if val, ok := item.Annotations[topolvm.GetCapacityKeyPrefix()+dc]; ok {
 			capacity, _ := strconv.ParseUint(val, 10, 64)
 			var divisor float64
 			if v, ok := divisors[dc]; ok {

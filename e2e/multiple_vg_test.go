@@ -111,7 +111,7 @@ type lvinfo struct {
 }
 
 func getLVInfo(volName string) (*lvinfo, error) {
-	stdout, stderr, err := kubectl("get", "logicalvolume", "-n", "topolvm-system", volName, "-o=template", "--template={{.metadata.uid}}")
+	stdout, stderr, err := kubectl("get", "logicalvolumes", "-n", "topolvm-system", volName, "-o=template", "--template={{.metadata.uid}}")
 	if err != nil {
 		return nil, fmt.Errorf("err=%v, stdout=%s, stderr=%s", err, stdout, stderr)
 	}

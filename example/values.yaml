@@ -24,4 +24,4 @@ storageClasses:
       volumeBindingMode: WaitForFirstConsumer
       allowVolumeExpansion: true
       additionalParameters:
-        "topolvm.cybozu.com/device-class": "ssd-thin"
+        "topolvm.io/device-class": "ssd-thin"

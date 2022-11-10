@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/topolvm/topolvm"
+	topolvmlegacyv1 "github.com/topolvm/topolvm/api/legacy/v1"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -18,8 +19,16 @@ import (
 
 // NodeReconciler reconciles a Node object
 type NodeReconciler struct {
-	client.Client
-	SkipNodeFinalize bool
+	client           client.Client
+	skipNodeFinalize bool
+}
+
+// NewNodeReconciler returns NodeReconciler.
+func NewNodeReconciler(client client.Client, skipNodeFinalize bool) *NodeReconciler {
+	return &NodeReconciler{
+		client:           client,
+		skipNodeFinalize: skipNodeFinalize,
+	}
 }
 
 //+kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch;update;patch
@@ -32,7 +41,7 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	// your logic here
 	node := &corev1.Node{}
-	err := r.Get(ctx, req.NamespacedName, node)
+	err := r.client.Get(ctx, req.NamespacedName, node)
 	switch {
 	case err == nil:
 	case apierrors.IsNotFound(err):
@@ -47,7 +56,7 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	needFinalize := false
 	for _, fin := range node.Finalizers {
-		if fin == topolvm.NodeFinalizer {
+		if fin == topolvm.GetNodeFinalizer() {
 			needFinalize = true
 			break
 		}
@@ -63,7 +72,7 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	node2 := node.DeepCopy()
 	finalizers := node2.Finalizers[:0]
 	for _, fin := range node.Finalizers {
-		if fin == topolvm.NodeFinalizer {
+		if fin == topolvm.GetNodeFinalizer() {
 			continue
 		}
 		finalizers = append(finalizers, fin)
@@ -71,7 +80,7 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	node2.Finalizers = finalizers
 
 	patch := client.MergeFrom(node)
-	if err := r.Patch(ctx, node2, patch); err != nil {
+	if err := r.client.Patch(ctx, node2, patch); err != nil {
 		log.Error(err, "failed to remove finalizer", "name", node.Name)
 		return ctrl.Result{}, err
 	}
@@ -81,13 +90,13 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 func (r *NodeReconciler) targetStorageClasses(ctx context.Context) (map[string]bool, error) {
 	var scl storagev1.StorageClassList
-	if err := r.List(ctx, &scl); err != nil {
+	if err := r.client.List(ctx, &scl); err != nil {
 		return nil, err
 	}
 
 	targets := make(map[string]bool)
 	for _, sc := range scl.Items {
-		if sc.Provisioner != topolvm.PluginName {
+		if sc.Provisioner != topolvm.GetPluginName() {
 			continue
 		}
 		targets[sc.Name] = true
@@ -96,7 +105,7 @@ func (r *NodeReconciler) targetStorageClasses(ctx context.Context) (map[string]b
 }
 
 func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *corev1.Node) (ctrl.Result, error) {
-	if r.SkipNodeFinalize {
+	if r.skipNodeFinalize {
 		log.Info("skipping node finalize")
 		return ctrl.Result{}, nil
 	}
@@ -108,7 +117,7 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 	}
 
 	var pvcs corev1.PersistentVolumeClaimList
-	err = r.List(ctx, &pvcs, client.MatchingFields{keySelectedNode: node.Name})
+	err = r.client.List(ctx, &pvcs, client.MatchingFields{keySelectedNode: node.Name})
 	if err != nil {
 		log.Error(err, "unable to fetch PersistentVolumeClaimList")
 		return ctrl.Result{}, err
@@ -122,7 +131,7 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 			continue
 		}
 
-		err = r.Delete(ctx, &pvc)
+		err = r.client.Delete(ctx, &pvc)
 		if err != nil {
 			log.Error(err, "unable to delete PVC", "name", pvc.Name, "namespace", pvc.Namespace)
 			return ctrl.Result{}, err
@@ -131,12 +140,11 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 	}
 
 	lvList := new(topolvmv1.LogicalVolumeList)
-	err = r.List(ctx, lvList, client.MatchingFields{keyLogicalVolumeNode: node.Name})
+	err = r.client.List(ctx, lvList, client.MatchingFields{keyLogicalVolumeNode: node.Name})
 	if err != nil {
 		log.Error(err, "failed to get LogicalVolumes")
 		return ctrl.Result{}, err
 	}
-
 	for _, lv := range lvList.Items {
 		err = r.cleanupLogicalVolume(ctx, log, &lv)
 		if err != nil {
@@ -150,7 +158,7 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 func (r *NodeReconciler) cleanupLogicalVolume(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) error {
 	finExists := false
 	for _, fin := range lv.Finalizers {
-		if fin == topolvm.LogicalVolumeFinalizer {
+		if fin == topolvm.GetLogicalVolumeFinalizer() {
 			finExists = true
 			break
 		}
@@ -160,26 +168,23 @@ func (r *NodeReconciler) cleanupLogicalVolume(ctx context.Context, log logr.Logg
 		lv2 := lv.DeepCopy()
 		var finalizers []string
 		for _, fin := range lv2.Finalizers {
-			if fin == topolvm.LogicalVolumeFinalizer {
+			if fin == topolvm.GetLogicalVolumeFinalizer() {
 				continue
 			}
 			finalizers = append(finalizers, fin)
 		}
 		lv2.Finalizers = finalizers
-
 		patch := client.MergeFrom(lv)
-		if err := r.Patch(ctx, lv2, patch); err != nil {
+		if err := r.client.Patch(ctx, lv2, patch); err != nil {
 			log.Error(err, "failed to patch LogicalVolume", "name", lv.Name)
 			return err
 		}
 	}
 
-	err := r.Delete(ctx, lv)
-	if err != nil {
+	if err := r.client.Delete(ctx, lv); err != nil {
 		log.Error(err, "failed to delete LogicalVolume", "name", lv.Name)
 		return err
 	}
-
 	log.Info("deleted LogicalVolume", "name", lv.Name)
 	return nil
 }
@@ -194,11 +199,20 @@ func (r *NodeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
-	err = mgr.GetFieldIndexer().IndexField(ctx, &topolvmv1.LogicalVolume{}, keyLogicalVolumeNode, func(o client.Object) []string {
-		return []string{o.(*topolvmv1.LogicalVolume).Spec.NodeName}
-	})
-	if err != nil {
-		return err
+	if topolvm.UseLegacy() {
+		err = mgr.GetFieldIndexer().IndexField(ctx, &topolvmlegacyv1.LogicalVolume{}, keyLogicalVolumeNode, func(o client.Object) []string {
+			return []string{o.(*topolvmlegacyv1.LogicalVolume).Spec.NodeName}
+		})
+		if err != nil {
+			return err
+		}
+	} else {
+		err = mgr.GetFieldIndexer().IndexField(ctx, &topolvmv1.LogicalVolume{}, keyLogicalVolumeNode, func(o client.Object) []string {
+			return []string{o.(*topolvmv1.LogicalVolume).Spec.NodeName}
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	pred := predicate.Funcs{

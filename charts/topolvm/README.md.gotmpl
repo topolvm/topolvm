@@ -39,8 +39,8 @@ Also, [lvmd](../../deploy/README.md#lvmd) is run in a DaemonSet by default.
 To work webhooks properly, add a label to the target namespace. We also recommend to use a dedicated namespace.
 
 ```sh
-kubectl label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
-kubectl label namespace kube-system topolvm.cybozu.com/webhook=ignore
+kubectl label namespace topolvm-system topolvm.io/webhook=ignore
+kubectl label namespace kube-system topolvm.io/webhook=ignore
 ```
 
 Install the chart with the release name `topolvm` into the namespace:
@@ -87,6 +87,13 @@ You can use the `helm template` command to render manifests.
 ```sh
 helm template --include-crds --namespace=topolvm-system topolvm topolvm/topolvm
 ```
+
+## About the legacy flag
+
+In https://github.com/topolvm/topolvm/pull/592, the domain name which is used for CRD and other purposes was changed from topolvm.cybozu.com to topolvm.io.
+Automatic domain name migration to topolvm.io is risky from the data integrity point of view, and migration to topolvm.io has a large impact on the entire TopoLVM system, including CRDs.
+So we added an option to use topolvm.cybozu.com as it is.
+TopoLVM users can continue to use topolvm.cybozu.com by setting `--set useLegacy=true` in their helm chart.
 
 ## Update README
 

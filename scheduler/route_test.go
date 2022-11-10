@@ -19,7 +19,7 @@ var extenderArgs = ExtenderArgs{
 	Pod: &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
-				topolvm.CapacityKeyPrefix + "ssd": strconv.Itoa(3 << 30),
+				topolvm.GetCapacityKeyPrefix() + "ssd": strconv.Itoa(3 << 30),
 			},
 		},
 		Spec: corev1.PodSpec{
@@ -27,7 +27,7 @@ var extenderArgs = ExtenderArgs{
 				{
 					Resources: corev1.ResourceRequirements{
 						Limits: corev1.ResourceList{
-							topolvm.CapacityResource: *resource.NewQuantity(1, resource.BinarySI),
+							topolvm.GetCapacityResource(): *resource.NewQuantity(1, resource.BinarySI),
 						},
 					},
 				},
