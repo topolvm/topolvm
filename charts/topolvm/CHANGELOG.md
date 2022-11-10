@@ -7,8 +7,20 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [10.0.0] - 2022-11-04
 ### Added
 - feat: add `args` for `controller`, `node`, `scheduler`, `lvmd` to helm chart (#576)
+- helm: Add resource template to csi-registrar and liveness-probe containers (#579)
+
+### Changed
+- github/workflows: Use output parameter instead of set-output command (#581)
+- helm: Update templates for Container specific resources (#582)
+  - **BREAKING**: Changed parameters to set resources in `values.yaml` file.
+
+### Contributors
+- @laxmanvallandas
+- @maxime1907
+- @pluser
 
 ## [9.1.0] - 2022-10-04
 ### Added
@@ -196,7 +208,8 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v9.1.0...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v10.0.0...HEAD
+[10.0.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v9.1.0...topolvm-chart-v10.0.0
 [9.1.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v9.0.1...topolvm-chart-v9.1.0
 [9.0.1]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v9.0.0...topolvm-chart-v9.0.1
 [9.0.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v8.0.1...topolvm-chart-v9.0.0

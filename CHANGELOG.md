@@ -7,6 +7,19 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.15.3] - 2022-11-04
+
+### Changed
+
+- build(deps): bump actions/stale from 5 to 6 (#571)
+- github/workflows: Use output parameter instead of set-output command (#581)
+- lvmd: refactor getLVMState() (#584)
+
+### Contributors
+
+- @daichimukai
+- @pluser
+
 ## [0.15.2] - 2022-10-04
 
 ### Added
@@ -601,7 +614,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.15.2...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.15.3...HEAD
+[0.15.3]: https://github.com/topolvm/topolvm/compare/v0.15.2...v0.15.3
 [0.15.2]: https://github.com/topolvm/topolvm/compare/v0.15.1...v0.15.2
 [0.15.1]: https://github.com/topolvm/topolvm/compare/v0.15.0...v0.15.1
 [0.15.0]: https://github.com/topolvm/topolvm/compare/v0.14.1...v0.15.0
