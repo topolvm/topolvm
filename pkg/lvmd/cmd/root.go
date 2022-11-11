@@ -16,6 +16,7 @@ import (
 	"github.com/topolvm/topolvm/lvmd/command"
 	"github.com/topolvm/topolvm/lvmd/proto"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health/grpc_health_v1"
 )
 
 var cfgFilePath string
@@ -96,6 +97,7 @@ func subMain() error {
 	vgService, notifier := lvmd.NewVGService(manager)
 	proto.RegisterVGServiceServer(grpcServer, vgService)
 	proto.RegisterLVServiceServer(grpcServer, lvmd.NewLVService(manager, notifier))
+	grpc_health_v1.RegisterHealthServer(grpcServer, lvmd.NewHealthService())
 	well.Go(func(ctx context.Context) error {
 		return grpcServer.Serve(lis)
 	})
