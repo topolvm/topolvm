@@ -37,7 +37,7 @@ func healthSubMain(config *Config) error {
 	client := grpc_health_v1.NewHealthClient(conn)
 
 	ctx := context.Background()
-	res, err := client.Check(ctx, &grpc_health_v1.HealthCheckRequest{Service: "lvmd"})
+	res, err := client.Check(ctx, &grpc_health_v1.HealthCheckRequest{})
 	if err != nil {
 		return err
 	}
