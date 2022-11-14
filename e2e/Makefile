@@ -140,6 +140,7 @@ start-lvmd:
 	done
 
 	for i in $$(seq 3); do \
+		$(SUDO) systemctl reset-failed lvmd$$i.service || true; \
 		$(SUDO) systemd-run --unit=lvmd$$i.service $(shell pwd)/build/lvmd --config=$(shell pwd)/lvmd$$i.yaml; \
 	done
 
