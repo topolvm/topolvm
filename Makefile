@@ -138,7 +138,7 @@ build/hypertopolvm: $(GO_FILES)
 	mkdir -p build
 	go build -o $@ -ldflags "-w -s -X github.com/topolvm/topolvm.Version=$(TOPOLVM_VERSION)" ./pkg/hypertopolvm
 
-build/lvmd:
+build/lvmd: $(GO_FILES)
 	mkdir -p build
 	CGO_ENABLED=0 go build -o $@ -ldflags "-w -s -X github.com/topolvm/topolvm.Version=$(TOPOLVM_VERSION)" ./pkg/lvmd
 

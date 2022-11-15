@@ -16,22 +16,10 @@ import (
 	"github.com/topolvm/topolvm/lvmd/command"
 	"github.com/topolvm/topolvm/lvmd/proto"
 	"google.golang.org/grpc"
-	"sigs.k8s.io/yaml"
+	"google.golang.org/grpc/health/grpc_health_v1"
 )
 
 var cfgFilePath string
-
-// Config represents configuration parameters for lvmd
-type Config struct {
-	// SocketName is Unix domain socket name
-	SocketName string `json:"socket-name"`
-	// DeviceClasses is
-	DeviceClasses []*lvmd.DeviceClass `json:"device-classes"`
-}
-
-var config = &Config{
-	SocketName: topolvm.DefaultLVMdSocket,
-}
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -59,19 +47,10 @@ func subMain() error {
 		return err
 	}
 
-	b, err := os.ReadFile(cfgFilePath)
+	err = loadConfFile(cfgFilePath)
 	if err != nil {
 		return err
 	}
-	err = yaml.Unmarshal(b, &config)
-	if err != nil {
-		return err
-	}
-	log.Info("configuration file loaded: ", map[string]interface{}{
-		"device_classes": config.DeviceClasses,
-		"socket_name":    config.SocketName,
-		"file_name":      cfgFilePath,
-	})
 	err = lvmd.ValidateDeviceClasses(config.DeviceClasses)
 	if err != nil {
 		return err
@@ -118,6 +97,7 @@ func subMain() error {
 	vgService, notifier := lvmd.NewVGService(manager)
 	proto.RegisterVGServiceServer(grpcServer, vgService)
 	proto.RegisterLVServiceServer(grpcServer, lvmd.NewLVService(manager, notifier))
+	grpc_health_v1.RegisterHealthServer(grpcServer, lvmd.NewHealthService())
 	well.Go(func(ctx context.Context) error {
 		return grpcServer.Serve(lis)
 	})

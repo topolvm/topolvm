@@ -50,6 +50,17 @@ spec:
           {{- with .Values.lvmd.args }}
           args: {{ toYaml . | nindent 12 }}
           {{- end }}
+          {{- if .Values.lvmd.env }}
+          env:
+          {{- toYaml .Values.lvmd.env | nindent 10 }}
+          {{- end }}
+          livenessProbe:
+            exec:
+              command:
+                - /lvmd
+                - health
+            initialDelaySeconds: 10
+            timeoutSeconds: 3
           {{- with .Values.resources.lvmd }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
@@ -62,10 +73,6 @@ spec:
             - name: lvmd-socket-dir
               mountPath: {{ dir .Values.lvmd.socketName }}
             {{- end }}
-          {{- if .Values.lvmd.env }}
-          env:
-          {{- toYaml .Values.lvmd.env | nindent 10 }}
-          {{- end }}
       volumes:
         - name: config
           configMap:
