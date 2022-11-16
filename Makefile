@@ -28,6 +28,7 @@ export GOFLAGS
 BUILD_TARGET=hypertopolvm
 TOPOLVM_VERSION ?= devel
 IMAGE_TAG ?= latest
+ORIGINAL_IMAGE_TAG ?=
 
 ENVTEST_KUBERNETES_VERSION=1.24
 
@@ -168,31 +169,44 @@ build-topolvm: build/hypertopolvm build/lvmd
 
 build/hypertopolvm: $(GO_FILES)
 	mkdir -p build
-	go build -o $@ -ldflags "-w -s -X github.com/topolvm/topolvm.Version=$(TOPOLVM_VERSION)" ./pkg/hypertopolvm
+	GOARCH=$(GOARCH) go build -o $@ -ldflags "-w -s -X github.com/topolvm/topolvm.Version=$(TOPOLVM_VERSION)" ./pkg/hypertopolvm
 
 build/lvmd: $(GO_FILES)
 	mkdir -p build
-	CGO_ENABLED=0 go build -o $@ -ldflags "-w -s -X github.com/topolvm/topolvm.Version=$(TOPOLVM_VERSION)" ./pkg/lvmd
+	GOARCH=$(GOARCH) CGO_ENABLED=0 go build -o $@ -ldflags "-w -s -X github.com/topolvm/topolvm.Version=$(TOPOLVM_VERSION)" ./pkg/lvmd
 
 .PHONY: csi-sidecars
 csi-sidecars: ## Build sidecar images.
 	mkdir -p build
-	make -f csi-sidecars.mk OUTPUT_DIR=build
+	make -f csi-sidecars.mk OUTPUT_DIR=build BUILD_PLATFORMS="linux $(GOARCH)"
 
 .PHONY: image
 image: ## Build topolvm images.
-	docker build --no-cache -t $(IMAGE_PREFIX)topolvm:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) .
-	docker build --no-cache -t $(IMAGE_PREFIX)topolvm-with-sidecar:devel --build-arg IMAGE_PREFIX=$(IMAGE_PREFIX) -f Dockerfile.with-sidecar .
-
-.PHONY: tag
-tag: ## Tag topolvm images.
-	docker tag $(IMAGE_PREFIX)topolvm:devel $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG)
-	docker tag $(IMAGE_PREFIX)topolvm-with-sidecar:devel $(IMAGE_PREFIX)topolvm-with-sidecar:$(IMAGE_TAG)
+	docker buildx build --no-cache --load -t $(IMAGE_PREFIX)topolvm:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) .
+	docker buildx build --no-cache --load -t $(IMAGE_PREFIX)topolvm-with-sidecar:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) -f Dockerfile.with-sidecar .
 
 .PHONY: push
 push: ## Push topolvm images.
-	docker push $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG)
-	docker push $(IMAGE_PREFIX)topolvm-with-sidecar:$(IMAGE_TAG)
+	docker buildx build --no-cache --push \
+		--platform linux/amd64,linux/arm64/v8 \
+		-t $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG) \
+		--build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) \
+		.
+	docker buildx build --no-cache --push \
+		--platform linux/amd64,linux/arm64/v8 \
+		-t $(IMAGE_PREFIX)topolvm-with-sidecar:$(IMAGE_TAG) \
+		--build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) \
+		-f Dockerfile.with-sidecar \
+		.
+
+.PHONY: tag
+tag: ## Tag topolvm images.
+	docker buildx imagetools create \
+		--tag $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG) \
+		$(IMAGE_PREFIX)topolvm:$(ORIGINAL_IMAGE_TAG)
+	docker buildx imagetools create \
+		--tag $(IMAGE_PREFIX)topolvm-with-sidecar:$(IMAGE_TAG) \
+		$(IMAGE_PREFIX)topolvm-with-sidecar:$(ORIGINAL_IMAGE_TAG)
 
 ##@ Setup
 
