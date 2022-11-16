@@ -1,33 +1,69 @@
 package topolvm
 
-import corev1 "k8s.io/api/core/v1"
+import (
+	"fmt"
+	"os"
 
-// CapacityKeyPrefix is the key prefix of Node annotation that represents VG free space.
-const CapacityKeyPrefix = "capacity.topolvm.cybozu.com/"
+	corev1 "k8s.io/api/core/v1"
+)
 
-// CapacityResource is the resource name of topolvm capacity.
-const CapacityResource = corev1.ResourceName("topolvm.cybozu.com/capacity")
+const (
+	pluginName       = "topolvm.io"
+	legacyPluginName = "topolvm.cybozu.com"
+)
 
-// PluginName is the name of the CSI plugin.
-const PluginName = "topolvm.cybozu.com"
+func UseLegacy() bool {
+	return os.Getenv("USE_LEGACY") != ""
+}
 
-// TopologyNodeKey is the key of topology that represents node name.
-const TopologyNodeKey = "topology.topolvm.cybozu.com/node"
+// GetPluginName returns the name of the CSI plugin.
+func GetPluginName() string {
+	if UseLegacy() {
+		return legacyPluginName
+	} else {
+		return pluginName
+	}
+}
 
-// DeviceClassKey is the key used in CSI volume create requests to specify a device-class.
-const DeviceClassKey = "topolvm.cybozu.com/device-class"
+// GetCapacityKeyPrefix returns the key prefix of Node annotation that represents VG free space.
+func GetCapacityKeyPrefix() string {
+	return fmt.Sprintf("capacity.%s/", GetPluginName())
+}
 
-// ResizeRequestedAtKey is the key of LogicalVolume that represents the timestamp of the resize request.
-const ResizeRequestedAtKey = "topolvm.cybozu.com/resize-requested-at"
+// GetCapacityResource returns the resource name of topolvm capacity.
+func GetCapacityResource() corev1.ResourceName {
+	return corev1.ResourceName(fmt.Sprintf("%s/capacity", GetPluginName()))
+}
 
-// LogicalVolumeFinalizer is the name of LogicalVolume finalizer
-const LogicalVolumeFinalizer = "topolvm.cybozu.com/logicalvolume"
+// TopologyNodeKey returns the key of topology that represents node name.
+func GetTopologyNodeKey() string {
+	return fmt.Sprintf("topology.%s/node", GetPluginName())
+}
 
-// NodeFinalizer is the name of Node finalizer of TopoLVM
-const NodeFinalizer = "topolvm.cybozu.com/node"
+// GetDeviceClassKey returns the key used in CSI volume create requests to specify a device-class.
+func GetDeviceClassKey() string {
+	return fmt.Sprintf("%s/device-class", GetPluginName())
+}
 
-// PVCFinalizer is the name of PVC finalizer of TopoLVM
-const PVCFinalizer = "topolvm.cybozu.com/pvc"
+// GetResizeRequestedAtKey returns the key of LogicalVolume that represents the timestamp of the resize request.
+func GetResizeRequestedAtKey() string {
+	return fmt.Sprintf("%s/resize-requested-at", GetPluginName())
+}
+
+// GetLogicalVolumeFinalizer returns the name of LogicalVolume finalizer
+func GetLogicalVolumeFinalizer() string {
+	return fmt.Sprintf("%s/logicalvolume", GetPluginName())
+}
+
+// GetNodeFinalizer returns the name of Node finalizer of TopoLVM
+func GetNodeFinalizer() string {
+	return fmt.Sprintf("%s/node", GetPluginName())
+}
+
+// GetPVCFinalizer returns the name of PVC finalizer of TopoLVM
+func GetPVCFinalizer() string {
+	return fmt.Sprintf("%s/pvc", GetPluginName())
+}
 
 // DefaultCSISocket is the default path of the CSI socket file.
 const DefaultCSISocket = "/run/topolvm/csi-topolvm.sock"
@@ -45,7 +81,7 @@ const DefaultDeviceClassName = ""
 const DefaultSizeGb = 1
 
 // DefaultSize is DefaultSizeGb in bytes
-const DefaultSize = DefaultSizeGb << 30
+const DefaultSize = int64(DefaultSizeGb << 30)
 
 // Label key that indicates The controller/user who created this resource
 // https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/#labels

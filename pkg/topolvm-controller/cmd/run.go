@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/topolvm/topolvm"
+	topolvmlegacyv1 "github.com/topolvm/topolvm/api/legacy/v1"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
+	clientwrapper "github.com/topolvm/topolvm/client"
 	"github.com/topolvm/topolvm/controllers"
 	"github.com/topolvm/topolvm/csi"
 	"github.com/topolvm/topolvm/driver"
@@ -36,6 +38,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(topolvmv1.AddToScheme(scheme))
+	utilruntime.Must(topolvmlegacyv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -71,26 +74,23 @@ func subMain() error {
 	if err != nil {
 		return err
 	}
+	client := clientwrapper.NewWrappedClient(mgr.GetClient())
+	apiReader := clientwrapper.NewWrappedReader(mgr.GetAPIReader(), mgr.GetClient().Scheme())
 
 	// register webhook handlers
 	// admissoin.NewDecoder never returns non-nil error
 	dec, _ := admission.NewDecoder(scheme)
 	wh := mgr.GetWebhookServer()
-	wh.Register("/pod/mutate", hook.PodMutator(mgr.GetClient(), mgr.GetAPIReader(), dec))
+	wh.Register("/pod/mutate", hook.PodMutator(client, apiReader, dec))
 
 	// register controllers
-	nodecontroller := &controllers.NodeReconciler{
-		Client:           mgr.GetClient(),
-		SkipNodeFinalize: config.skipNodeFinalize,
-	}
+	nodecontroller := controllers.NewNodeReconciler(client, config.skipNodeFinalize)
 	if err := nodecontroller.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Node")
 		return err
 	}
 
-	pvccontroller := &controllers.PersistentVolumeClaimReconciler{
-		Client: mgr.GetClient(),
-	}
+	pvccontroller := controllers.NewPersistentVolumeClaimReconciler(client)
 	if err := pvccontroller.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PersistentVolumeClaim")
 		return err
@@ -105,7 +105,7 @@ func subMain() error {
 		defer cancel()
 
 		var drv storagev1.CSIDriver
-		return mgr.GetAPIReader().Get(ctx, types.NamespacedName{Name: topolvm.PluginName}, &drv)
+		return apiReader.Get(ctx, types.NamespacedName{Name: topolvm.GetPluginName()}, &drv)
 	}
 	checker := runners.NewChecker(check, 1*time.Minute)
 	if err := mgr.Add(checker); err != nil {
@@ -117,7 +117,7 @@ func subMain() error {
 	if err != nil {
 		return err
 	}
-	n := k8s.NewNodeService(mgr)
+	n := k8s.NewNodeService(client)
 
 	grpcServer := grpc.NewServer()
 	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityService(checker.Ready))

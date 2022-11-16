@@ -72,8 +72,8 @@ topolvm.img: $(GO_FILES)
 .PHONY: prepare-namespace
 prepare-namespace:
 	$(KUBECTL) create namespace topolvm-system
-	$(KUBECTL) label namespace topolvm-system topolvm.cybozu.com/webhook=ignore
-	$(KUBECTL) label namespace kube-system topolvm.cybozu.com/webhook=ignore
+	$(KUBECTL) label namespace topolvm-system topolvm.io/webhook=ignore
+	$(KUBECTL) label namespace kube-system topolvm.io/webhook=ignore
 
 .PHONY: apply-certmanager-crds
 apply-certmanager-crds:
@@ -173,10 +173,12 @@ create-cluster: topolvm.img
 	$(HELM) repo update
 	$(HELM) dependency build ../charts/topolvm/
 	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE) --set "controller.nodeSelector.kubernetes\.io/hostname"=$(KIND_CLUSTER_NAME)-worker $(HELM_SKIP_NODE_FINALIZE_FLAG)
+	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/topolvm-controller
+	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system -l="app.kubernetes.io/component=controller,app.kubernetes.io/name=topolvm" pod
+	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system certificate/topolvm-mutatingwebhook
 
 .PHONY: test
 test: create-cluster
-	# deploy snapshot-controller
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
@@ -284,7 +286,9 @@ daemonset-lvmd/test: topolvm.img
 	$(HELM) repo update
 	$(HELM) dependency build ../charts/topolvm/
 	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE_LVMD) $(HELM_SKIP_NODE_FINALIZE_FLAG)
-	# deploy snapshot-controller
+	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/topolvm-controller
+	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system -l="app.kubernetes.io/component=controller,app.kubernetes.io/name=topolvm" pod
+	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system certificate/topolvm-mutatingwebhook
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml

@@ -17,14 +17,14 @@ rules:
   - apiGroups: ["storage.k8s.io"]
     resources: ["storageclasses","csidrivers"]
     verbs: ["get", "list", "watch"]
-  - apiGroups: ["topolvm.cybozu.com"]
+  - apiGroups: ["{{ include "topolvm.pluginName" . }}"]
     resources: ["logicalvolumes", "logicalvolumes/status"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: topolvm-external-provisioner-runner
+  name: {{ .Release.Namespace }}-external-provisioner-runner
   labels:
     {{- include "topolvm.labels" . | nindent 4 }}
 rules:
@@ -68,7 +68,7 @@ rules:
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: topolvm-external-resizer-runner
+  name: {{ .Release.Namespace }}-external-resizer-runner
   labels:
     {{- include "topolvm.labels" . | nindent 4 }}
 rules:
@@ -96,7 +96,7 @@ rules:
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: topolvm-external-snapshotter-runner
+  name: {{ .Release.Namespace }}-external-snapshotter-runner
   labels:
     {{- include "topolvm.labels" . | nindent 4 }}
 rules:

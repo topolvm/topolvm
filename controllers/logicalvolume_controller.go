@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/topolvm/topolvm"
+	topolvmlegacyv1 "github.com/topolvm/topolvm/api/legacy/v1"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	"github.com/topolvm/topolvm/lvmd/proto"
 	"google.golang.org/grpc"
@@ -22,19 +23,19 @@ import (
 
 // LogicalVolumeReconciler reconciles a LogicalVolume object
 type LogicalVolumeReconciler struct {
-	client.Client
+	client    client.Client
 	nodeName  string
 	vgService proto.VGServiceClient
 	lvService proto.LVServiceClient
 }
 
-//+kubebuilder:rbac:groups=topolvm.cybozu.com,resources=logicalvolumes,verbs=get;list;watch;update;patch
-//+kubebuilder:rbac:groups=topolvm.cybozu.com,resources=logicalvolumes/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=topolvm.io,resources=logicalvolumes,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups=topolvm.io,resources=logicalvolumes/status,verbs=get;update;patch
 
 // NewLogicalVolumeReconciler returns LogicalVolumeReconciler with creating lvService and vgService.
 func NewLogicalVolumeReconciler(client client.Client, nodeName string, conn *grpc.ClientConn) *LogicalVolumeReconciler {
 	return &LogicalVolumeReconciler{
-		Client:    client,
+		client:    client,
 		nodeName:  nodeName,
 		vgService: proto.NewVGServiceClient(conn),
 		lvService: proto.NewLVServiceClient(conn),
@@ -46,25 +47,24 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	log := crlog.FromContext(ctx)
 
 	lv := new(topolvmv1.LogicalVolume)
-	if err := r.Get(ctx, req.NamespacedName, lv); err != nil {
+	if err := r.client.Get(ctx, req.NamespacedName, lv); err != nil {
 		if !apierrs.IsNotFound(err) {
 			log.Error(err, "unable to fetch LogicalVolume")
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, nil
 	}
-
 	if lv.Spec.NodeName != r.nodeName {
 		log.Info("unfiltered logical value", "nodeName", lv.Spec.NodeName)
 		return ctrl.Result{}, nil
 	}
 
 	if lv.ObjectMeta.DeletionTimestamp == nil {
-		if !containsString(lv.Finalizers, topolvm.LogicalVolumeFinalizer) {
+		if !containsString(lv.Finalizers, topolvm.GetLogicalVolumeFinalizer()) {
 			lv2 := lv.DeepCopy()
-			lv2.Finalizers = append(lv2.Finalizers, topolvm.LogicalVolumeFinalizer)
+			lv2.Finalizers = append(lv2.Finalizers, topolvm.GetLogicalVolumeFinalizer())
 			patch := client.MergeFrom(lv)
-			if err := r.Patch(ctx, lv2, patch); err != nil {
+			if err := r.client.Patch(ctx, lv2, patch); err != nil {
 				log.Error(err, "failed to add finalizer", "name", lv.Name)
 				return ctrl.Result{}, err
 			}
@@ -78,7 +78,7 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			}
 			lv2.Labels[topolvm.CreatedbyLabelKey] = topolvm.CreatedbyLabelValue
 			patch := client.MergeFrom(lv)
-			if err := r.Patch(ctx, lv2, patch); err != nil {
+			if err := r.client.Patch(ctx, lv2, patch); err != nil {
 				log.Error(err, "failed to add label", "name", lv.Name)
 				return ctrl.Result{}, err
 			}
@@ -101,7 +101,7 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// finalization
-	if !containsString(lv.Finalizers, topolvm.LogicalVolumeFinalizer) {
+	if !containsString(lv.Finalizers, topolvm.GetLogicalVolumeFinalizer()) {
 		// Our finalizer has finished, so the reconciler can do nothing.
 		return ctrl.Result{}, nil
 	}
@@ -113,9 +113,9 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	lv2 := lv.DeepCopy()
-	lv2.Finalizers = removeString(lv2.Finalizers, topolvm.LogicalVolumeFinalizer)
+	lv2.Finalizers = removeString(lv2.Finalizers, topolvm.GetLogicalVolumeFinalizer())
 	patch := client.MergeFrom(lv)
-	if err := r.Patch(ctx, lv2, patch); err != nil {
+	if err := r.client.Patch(ctx, lv2, patch); err != nil {
 		log.Error(err, "failed to remove finalizer", "name", lv.Name)
 		return ctrl.Result{}, err
 	}
@@ -124,10 +124,13 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *LogicalVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&topolvmv1.LogicalVolume{}).
-		WithEventFilter(&logicalVolumeFilter{r.nodeName}).
-		Complete(r)
+	builder := ctrl.NewControllerManagedBy(mgr)
+	if topolvm.UseLegacy() {
+		builder = builder.For(&topolvmlegacyv1.LogicalVolume{})
+	} else {
+		builder = builder.For(&topolvmv1.LogicalVolume{})
+	}
+	return builder.WithEventFilter(&logicalVolumeFilter{r.nodeName}).Complete(r)
 }
 
 func (r *LogicalVolumeReconciler) removeLVIfExists(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) error {
@@ -205,7 +208,7 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 				return fmt.Errorf("invalid access type for source volume: %s", lv.Spec.AccessType)
 			}
 			sourcelv := new(topolvmv1.LogicalVolume)
-			if err := r.Get(ctx, types.NamespacedName{Namespace: lv.Namespace, Name: lv.Spec.Source}, sourcelv); err != nil {
+			if err := r.client.Get(ctx, types.NamespacedName{Namespace: lv.Namespace, Name: lv.Spec.Source}, sourcelv); err != nil {
 				log.Error(err, "unable to fetch source LogicalVolume", "name", lv.Name)
 				return err
 			}
@@ -252,14 +255,14 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 	}()
 
 	if err != nil {
-		if err2 := r.Status().Update(ctx, lv); err2 != nil {
+		if err2 := r.client.Status().Update(ctx, lv); err2 != nil {
 			// err2 is logged but not returned because err is more important
 			log.Error(err2, "failed to update status", "name", lv.Name, "uid", lv.UID)
 		}
 		return err
 	}
 
-	if err := r.Status().Update(ctx, lv); err != nil {
+	if err := r.client.Status().Update(ctx, lv); err != nil {
 		log.Error(err, "failed to update status", "name", lv.Name, "uid", lv.UID)
 		return err
 	}
@@ -300,14 +303,14 @@ func (r *LogicalVolumeReconciler) expandLV(ctx context.Context, log logr.Logger,
 	}()
 
 	if err != nil {
-		if err2 := r.Status().Update(ctx, lv); err2 != nil {
+		if err2 := r.client.Status().Update(ctx, lv); err2 != nil {
 			// err2 is logged but not returned because err is more important
 			log.Error(err2, "failed to update status", "name", lv.Name, "uid", lv.UID)
 		}
 		return err
 	}
 
-	if err := r.Status().Update(ctx, lv); err != nil {
+	if err := r.client.Status().Update(ctx, lv); err != nil {
 		log.Error(err, "failed to update status", "name", lv.Name, "uid", lv.UID)
 		return err
 	}
@@ -321,30 +324,41 @@ type logicalVolumeFilter struct {
 	nodeName string
 }
 
-func (f logicalVolumeFilter) filter(lv *topolvmv1.LogicalVolume) bool {
-	if lv == nil {
-		return false
+func (f logicalVolumeFilter) filter(obj client.Object) bool {
+	var name string
+	if topolvm.UseLegacy() {
+		lv, ok := obj.(*topolvmlegacyv1.LogicalVolume)
+		if !ok {
+			return false
+		}
+		name = lv.Spec.NodeName
+	} else {
+		lv, ok := obj.(*topolvmv1.LogicalVolume)
+		if !ok {
+			return false
+		}
+		name = lv.Spec.NodeName
 	}
-	if lv.Spec.NodeName == f.nodeName {
+	if name == f.nodeName {
 		return true
 	}
 	return false
 }
 
 func (f logicalVolumeFilter) Create(e event.CreateEvent) bool {
-	return f.filter(e.Object.(*topolvmv1.LogicalVolume))
+	return f.filter(e.Object)
 }
 
 func (f logicalVolumeFilter) Delete(e event.DeleteEvent) bool {
-	return f.filter(e.Object.(*topolvmv1.LogicalVolume))
+	return f.filter(e.Object)
 }
 
 func (f logicalVolumeFilter) Update(e event.UpdateEvent) bool {
-	return f.filter(e.ObjectNew.(*topolvmv1.LogicalVolume))
+	return f.filter(e.ObjectNew)
 }
 
 func (f logicalVolumeFilter) Generic(e event.GenericEvent) bool {
-	return f.filter(e.Object.(*topolvmv1.LogicalVolume))
+	return f.filter(e.Object)
 }
 
 func containsString(slice []string, s string) bool {

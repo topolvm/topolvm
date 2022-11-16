@@ -7,7 +7,7 @@ on:
 jobs:
   build:
     name: "build"
-    runs-on: "ubuntu-18.04"
+    runs-on: "ubuntu-20.04"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v3
@@ -25,15 +25,22 @@ jobs:
       - run: make setup
       - run: make check-uncommitted
       - run: make test
+      - run: make groupname-test
       - run: sudo -E env PATH=${PATH} go test -count=1 -race -v ./lvmd ./driver ./filesystem
       - run: make image
 
   example:
     name: "example"
-    runs-on: "ubuntu-18.04"
+    runs-on: "ubuntu-20.04"
     defaults:
       run:
         working-directory: "example"
+    strategy:
+      fail-fast: false
+      matrix:
+        use_legacy: ["", "true"]
+    env:
+      USE_LEGACY: ${{ matrix.use_legacy }}
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v3

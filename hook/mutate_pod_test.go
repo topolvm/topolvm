@@ -158,7 +158,7 @@ var _ = Describe("pod mutation webhook", func() {
 		pod = getPod()
 		Expect(pod.Spec.Containers[0].Resources.Requests).To(BeEmpty())
 		Expect(pod.Spec.Containers[0].Resources.Limits).To(BeEmpty())
-		Expect(pod.Annotations).NotTo(HaveKey(topolvm.CapacityKeyPrefix))
+		Expect(pod.Annotations).NotTo(HaveKey(topolvm.GetCapacityKeyPrefix()))
 	})
 
 	It("should create pod before its PVC", func() {
@@ -189,9 +189,9 @@ var _ = Describe("pod mutation webhook", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		pod = getPod()
-		request := pod.Spec.Containers[0].Resources.Requests[topolvm.CapacityResource]
-		limit := pod.Spec.Containers[0].Resources.Limits[topolvm.CapacityResource]
-		capacity := pod.Annotations[topolvm.CapacityKeyPrefix+"ssd"]
+		request := pod.Spec.Containers[0].Resources.Requests[topolvm.GetCapacityResource()]
+		limit := pod.Spec.Containers[0].Resources.Limits[topolvm.GetCapacityResource()]
+		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+"ssd"]
 		Expect(request.Value()).Should(BeNumerically("==", 1))
 		Expect(limit.Value()).Should(BeNumerically("==", 1))
 		Expect(capacity).Should(Equal(strconv.Itoa(1 << 30)))
@@ -223,23 +223,23 @@ var _ = Describe("pod mutation webhook", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		pod = getPod()
-		request := pod.Spec.Containers[0].Resources.Requests[topolvm.CapacityResource]
-		limit := pod.Spec.Containers[0].Resources.Limits[topolvm.CapacityResource]
-		capacity := pod.Annotations[topolvm.CapacityKeyPrefix+"ssd"]
+		request := pod.Spec.Containers[0].Resources.Requests[topolvm.GetCapacityResource()]
+		limit := pod.Spec.Containers[0].Resources.Limits[topolvm.GetCapacityResource()]
+		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+"ssd"]
 		Expect(request.Value()).Should(BeNumerically("==", 1))
 		Expect(limit.Value()).Should(BeNumerically("==", 1))
 		Expect(capacity).Should(Equal(strconv.Itoa(1 << 30)))
 
-		request = pod.Spec.Containers[0].Resources.Requests[topolvm.CapacityResource]
-		limit = pod.Spec.Containers[0].Resources.Limits[topolvm.CapacityResource]
-		capacity = pod.Annotations[topolvm.CapacityKeyPrefix+"hdd1"]
+		request = pod.Spec.Containers[0].Resources.Requests[topolvm.GetCapacityResource()]
+		limit = pod.Spec.Containers[0].Resources.Limits[topolvm.GetCapacityResource()]
+		capacity = pod.Annotations[topolvm.GetCapacityKeyPrefix()+"hdd1"]
 		Expect(request.Value()).Should(BeNumerically("==", 1))
 		Expect(limit.Value()).Should(BeNumerically("==", 1))
 		Expect(capacity).Should(Equal(strconv.Itoa(3 << 30)))
 
-		request = pod.Spec.Containers[0].Resources.Requests[topolvm.CapacityResource]
-		capacity = pod.Annotations[topolvm.CapacityKeyPrefix+"hdd2"]
-		limit = pod.Spec.Containers[0].Resources.Limits[topolvm.CapacityResource]
+		request = pod.Spec.Containers[0].Resources.Requests[topolvm.GetCapacityResource()]
+		capacity = pod.Annotations[topolvm.GetCapacityKeyPrefix()+"hdd2"]
+		limit = pod.Spec.Containers[0].Resources.Limits[topolvm.GetCapacityResource()]
 		Expect(request.Value()).Should(BeNumerically("==", 1))
 		Expect(limit.Value()).Should(BeNumerically("==", 1))
 		Expect(capacity).Should(Equal(strconv.Itoa(4 << 30)))
@@ -271,9 +271,9 @@ var _ = Describe("pod mutation webhook", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		pod = getPod()
-		request := pod.Spec.Containers[0].Resources.Requests[topolvm.CapacityResource]
-		limit := pod.Spec.Containers[0].Resources.Limits[topolvm.CapacityResource]
-		capacity := pod.Annotations[topolvm.CapacityKeyPrefix+"ssd"]
+		request := pod.Spec.Containers[0].Resources.Requests[topolvm.GetCapacityResource()]
+		limit := pod.Spec.Containers[0].Resources.Limits[topolvm.GetCapacityResource()]
+		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+"ssd"]
 		Expect(request.Value()).Should(BeNumerically("==", 1))
 		Expect(limit.Value()).Should(BeNumerically("==", 1))
 		Expect(capacity).Should(Equal(strconv.Itoa(100 << 30)))
@@ -299,9 +299,9 @@ var _ = Describe("pod mutation webhook", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		pod = getPod()
-		request := pod.Spec.Containers[0].Resources.Requests[topolvm.CapacityResource]
-		limit := pod.Spec.Containers[0].Resources.Limits[topolvm.CapacityResource]
-		capacity := pod.Annotations[topolvm.CapacityKeyPrefix+"ssd"]
+		request := pod.Spec.Containers[0].Resources.Requests[topolvm.GetCapacityResource()]
+		limit := pod.Spec.Containers[0].Resources.Limits[topolvm.GetCapacityResource()]
+		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+"ssd"]
 		Expect(request.Value()).Should(BeNumerically("==", 1))
 		Expect(limit.Value()).Should(BeNumerically("==", 1))
 		Expect(capacity).Should(Equal(strconv.Itoa(1 << 30)))
@@ -334,7 +334,7 @@ var _ = Describe("pod mutation webhook", func() {
 		pod = getPod()
 		Expect(pod.Spec.Containers[0].Resources.Requests).To(BeEmpty())
 		Expect(pod.Spec.Containers[0].Resources.Limits).To(BeEmpty())
-		Expect(pod.Annotations).NotTo(HaveKey(topolvm.CapacityKeyPrefix))
+		Expect(pod.Annotations).NotTo(HaveKey(topolvm.GetCapacityKeyPrefix()))
 	})
 
 	It("should calculate requested capacity correctly", func() {
@@ -363,8 +363,8 @@ var _ = Describe("pod mutation webhook", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		pod = getPod()
-		request := pod.Spec.Containers[0].Resources.Requests[topolvm.CapacityResource]
-		capacity := pod.Annotations[topolvm.CapacityKeyPrefix+"ssd"]
+		request := pod.Spec.Containers[0].Resources.Requests[topolvm.GetCapacityResource()]
+		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+"ssd"]
 		Expect(request.Value()).Should(BeNumerically("==", 1))
 		Expect(capacity).Should(Equal(strconv.Itoa(3 << 30)))
 	})
@@ -385,6 +385,6 @@ var _ = Describe("pod mutation webhook", func() {
 		pod = getPod()
 		Expect(pod.Spec.Containers[0].Resources.Requests).To(BeEmpty())
 		Expect(pod.Spec.Containers[0].Resources.Limits).To(BeEmpty())
-		Expect(pod.Annotations).NotTo(HaveKey(topolvm.CapacityKeyPrefix))
+		Expect(pod.Annotations).NotTo(HaveKey(topolvm.GetCapacityKeyPrefix()))
 	})
 })

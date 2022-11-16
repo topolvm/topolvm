@@ -17,7 +17,7 @@ metadata:
     {{- end }}
   labels:
     {{- include "topolvm.labels" . | nindent 4 }}
-provisioner: topolvm.cybozu.com
+provisioner: {{ include "topolvm.pluginName" . }}
 parameters:
   "csi.storage.k8s.io/fstype": {{ $val.storageClass.fsType | quote }}
   {{- with $val.storageClass.additionalParameters }}

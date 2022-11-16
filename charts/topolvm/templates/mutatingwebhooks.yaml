@@ -12,13 +12,13 @@ metadata:
     {{- include "topolvm.labels" . | nindent 4 }}
 webhooks:
   {{- if .Values.webhook.podMutatingWebhook.enabled }}
-  - name: pod-hook.topolvm.cybozu.com
+  - name: pod-hook.{{ include "topolvm.pluginName" . }}
     admissionReviewVersions:
       - "v1"
       - "v1beta1"
     namespaceSelector:
       matchExpressions:
-        - key: topolvm.cybozu.com/webhook
+        - key: {{ include "topolvm.pluginName" . }}/webhook
           operator: NotIn
           values: ["ignore"]
     failurePolicy: Fail
