@@ -33,7 +33,7 @@ jobs:
       - run: make test
       - run: make groupname-test
       - run: sudo -E env PATH=${PATH} go test -count=1 -race -v ./lvmd ./driver ./filesystem
-      - run: make image
+      - run: make push
 
   example:
     name: "example"
