@@ -9,7 +9,7 @@ assignees: ''
 
 ## Update Procedure
 
-- Read [this document](../../docs/maintenance.md).
+- Read [this document](https://github.com/topolvm/topolvm/blob/main/docs/maintenance.md).
 
 ## Must Update Dependencies
 
