@@ -9,9 +9,13 @@ assignees: ''
 
 ## Update Procedure
 
-- Read [this document](../../docs/maintenance.md).
+- Read [this document](https://github.com/topolvm/topolvm/blob/main/docs/maintenance.md).
 
-## Must Update Dependencies
+## Before Check List
+
+There is a check list to confirm depending libraries or tools are released.
+
+### Must Update Dependencies
 
 Must update Kubernetes with each new version of Kubernetes.
 
@@ -44,7 +48,7 @@ Must update Kubernetes with each new version of Kubernetes.
 - [ ] crictl
   - https://github.com/kubernetes-sigs/cri-tools/releases
 
-## Semi-required Dependencies
+### Semi-required Dependencies
 
 These are not released on the occasion of a Kubernetes version upgrade, so if there is a release that corresponds to a Kubernetes version, use it.
 
