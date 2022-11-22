@@ -85,7 +85,7 @@ $(TMPDIR)/scheduler/scheduler-config.yaml: ../deploy/scheduler-config/$(SCHEDULE
 
 $(TMPDIR)/lvmd/lvmd.yaml: ../deploy/lvmd-config/lvmd.yaml
 	mkdir -p $(TMPDIR)/lvmd
-	sed -e 's=/run/topolvm/lvmd.sock=$(TMPDIR)/lvmd/lvmd.sock=' $< > $@
+	sed -e 's=/run/topolvm/lvmd.sock=$(TMPDIR)/lvmd/lvmd.sock=; s=spare-gb: 10=spare-gb: 1=' $< > $@
 
 .PHONY: launch-kind
 launch-kind: $(TMPDIR)/scheduler/scheduler-config.yaml
