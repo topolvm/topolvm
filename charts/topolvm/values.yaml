@@ -15,23 +15,23 @@ image:
   csi:
     # image.csi.nodeDriverRegistrar -- Specify csi-node-driver-registrar: image.
     # If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used.
-    nodeDriverRegistrar:  # k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.2.0
+    nodeDriverRegistrar:  # registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.2.0
 
     # image.csi.csiProvisioner -- Specify csi-provisioner image.
     # If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used.
-    csiProvisioner:  # k8s.gcr.io/sig-storage/csi-provisioner:v2.2.1
+    csiProvisioner:  # registry.k8s.io/sig-storage/csi-provisioner:v2.2.1
 
     # image.csi.csiResizer -- Specify csi-resizer image.
     # If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used.
-    csiResizer:  # k8s.gcr.io/sig-storage/csi-resizer:v1.2.0
+    csiResizer:  # registry.k8s.io/sig-storage/csi-resizer:v1.2.0
 
     # image.csi.csiSnapshotter -- Specify csi-snapshot image.
     # If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used.
-    csiSnapshotter:  # k8s.gcr.io/sig-storage/csi-snapshotter:v5.0.1
+    csiSnapshotter:  # registry.k8s.io/sig-storage/csi-snapshotter:v5.0.1
 
     # image.csi.livenessProbe -- Specify livenessprobe image.
     # If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used.
-    livenessProbe:  # k8s.gcr.io/sig-storage/livenessprobe:v2.3.0
+    livenessProbe:  # registry.k8s.io/sig-storage/livenessprobe:v2.3.0
 
 # A scheduler extender for TopoLVM
 scheduler:
