@@ -31,7 +31,7 @@ TOPOLVM_VERSION ?= devel
 IMAGE_TAG ?= latest
 ORIGINAL_IMAGE_TAG ?=
 
-ENVTEST_KUBERNETES_VERSION=1.24
+ENVTEST_KUBERNETES_VERSION=1.25
 
 PROTOC_GEN_GO_VERSION := $(shell awk '/google.golang.org\/protobuf/ {print substr($$2, 2)}' go.mod)
 PROTOC_GEN_DOC_VERSION := $(shell awk '/github.com\/pseudomuto\/protoc-gen-doc/ {print substr($$2, 2)}' go.mod)
