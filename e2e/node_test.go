@@ -105,10 +105,23 @@ func testNode() {
 				"--nosuffix",
 				vgName,
 			)
+
 			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", targetBytes, stderr)
+
+			free, err := strconv.Atoi(strings.TrimSpace(string(targetBytes)))
+			Expect(err).ShouldNot(HaveOccurred())
+
+			// spare-gb is set to 1 in the manifests
+			spare := 1 << 30
+			if free < spare {
+				free = 0
+			} else {
+				free -= spare
+			}
+
 			val, ok := node.Annotations[topolvm.GetCapacityKeyPrefix()+"ssd"]
 			Expect(ok).To(Equal(true), "capacity is not annotated: "+node.Name)
-			Expect(val).To(Equal(strings.TrimSpace(string(targetBytes))), "unexpected capacity: "+node.Name)
+			Expect(val).To(Equal(strconv.Itoa(free)), "unexpected capacity: "+node.Name)
 		}
 	})
 

@@ -193,6 +193,14 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 		if err == ErrNotFound {
 			continue
 		}
+
+		spare := dc.GetSpare()
+		if vgFree < spare {
+			vgFree = 0
+		} else {
+			vgFree -= spare
+		}
+
 		if dc.Default {
 			res.FreeBytes = vgFree
 		}
