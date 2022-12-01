@@ -3,9 +3,9 @@
 CONTROLLER_RUNTIME_VERSION=$(shell awk '/sigs\.k8s\.io\/controller-runtime/ {print substr($$2, 2)}' go.mod)
 CONTROLLER_TOOLS_VERSION=$(shell awk '/sigs\.k8s\.io\/controller-tools/ {print substr($$2, 2)}' go.mod)
 CSI_VERSION=1.6.0
-PROTOC_VERSION=21.2
-KIND_VERSION=v0.14.0
-HELM_VERSION=3.9.0
+PROTOC_VERSION=21.10
+KIND_VERSION=v0.17.0
+HELM_VERSION=3.10.2
 HELM_DOCS_VERSION=1.11.0
 YQ_VERSION=4.18.1
 BUILDX_VERSION=0.9.1

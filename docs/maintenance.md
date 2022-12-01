@@ -94,7 +94,7 @@ The depending tools versions are specified in the following files.
 The following tools do not depend on other software, use latest versions.
 
 - [helm](https://github.com/helm/helm/releases)
-- [helm-docs](github.com/norwoodj/helm-docs/releases)
+- [helm-docs](https://github.com/norwoodj/helm-docs/releases)
 - [protoc](https://github.com/protocolbuffers/protobuf/releases)
 
 The following tools depend on kubernetes, use appropriate version associating to minimal supported kubernetes version by TopoLVM.
