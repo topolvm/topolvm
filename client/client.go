@@ -36,25 +36,25 @@ func NewWrappedReader(c client.Reader, s *runtime.Scheme) client.Reader {
 	}
 }
 
-func (c *wrappedReader) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
+func (c *wrappedReader) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 	gvk := obj.GetObjectKind().GroupVersionKind()
 	switch o := obj.(type) {
 	case *unstructured.Unstructured:
 		if gvk.Group == group && gvk.Kind == kind && topolvm.UseLegacy() {
 			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kind))
-			err := c.client.Get(ctx, key, o)
+			err := c.client.Get(ctx, key, o, opts...)
 			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 			return err
 		}
-		return c.client.Get(ctx, key, obj)
+		return c.client.Get(ctx, key, obj, opts...)
 	case *metav1.PartialObjectMetadata:
 		if gvk.Group == group && gvk.Kind == kind && topolvm.UseLegacy() {
 			o.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kind))
-			err := c.client.Get(ctx, key, o)
+			err := c.client.Get(ctx, key, o, opts...)
 			o.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 			return err
 		}
-		return c.client.Get(ctx, key, obj)
+		return c.client.Get(ctx, key, obj, opts...)
 	case *topolvmv1.LogicalVolume:
 		if topolvm.UseLegacy() {
 			u := &unstructured.Unstructured{}
@@ -62,15 +62,15 @@ func (c *wrappedReader) Get(ctx context.Context, key client.ObjectKey, obj clien
 				return err
 			}
 			u.SetGroupVersionKind(topolvmlegacyv1.GroupVersion.WithKind(kind))
-			if err := c.client.Get(ctx, key, u); err != nil {
+			if err := c.client.Get(ctx, key, u, opts...); err != nil {
 				return err
 			}
 			u.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 			return c.scheme.Convert(u, obj, nil)
 		}
-		return c.client.Get(ctx, key, obj)
+		return c.client.Get(ctx, key, obj, opts...)
 	}
-	return c.client.Get(ctx, key, obj)
+	return c.client.Get(ctx, key, obj, opts...)
 }
 
 func (c *wrappedReader) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
@@ -124,8 +124,8 @@ func NewWrappedClient(c client.Client) client.Client {
 	}
 }
 
-func (c *wrappedClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
-	return c.reader.Get(ctx, key, obj)
+func (c *wrappedClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+	return c.reader.Get(ctx, key, obj, opts...)
 }
 
 func (c *wrappedClient) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
