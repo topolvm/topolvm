@@ -7,6 +7,21 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [11.0.0] - 2022-12-06
+
+### Caution
+
+This release contains the domain name change([#592](https://github.com/topolvm/topolvm/pull/592)). Please read caution section on main [CHANGELOG](https://github.com/topolvm/topolvm/blob/main/CHANGELOG.md#0160---2022-12-05) before update.
+
+### Changed
+- Add health check ([#594](https://github.com/topolvm/topolvm/pull/594))
+- topolvm.io ([#592](https://github.com/topolvm/topolvm/pull/592))
+- helm: change container registry service to registry.k8s.io ([#609](https://github.com/topolvm/topolvm/pull/609))
+
+### Contributors
+- @cupnes
+- @bells17
+
 ## [10.0.0] - 2022-11-04
 ### Added
 - feat: add `args` for `controller`, `node`, `scheduler`, `lvmd` to helm chart (#576)
@@ -208,7 +223,8 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v10.0.0...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.0.0...HEAD
+[11.0.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v10.0.0...topolvm-chart-v11.0.0
 [10.0.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v9.1.0...topolvm-chart-v10.0.0
 [9.1.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v9.0.1...topolvm-chart-v9.1.0
 [9.0.1]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v9.0.0...topolvm-chart-v9.0.1
