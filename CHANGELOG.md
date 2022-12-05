@@ -7,6 +7,45 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.16.0] - 2022-12-05
+
+### Caution
+
+This release contains the domain name change([#592](https://github.com/topolvm/topolvm/pull/592)). Before you use this release, **you must choose what to do about this change**. You have two options:
+1. Migrate to use `topolvm.io`
+2. Continue to use `topolvm.cybozu.com`
+
+If you choose option 1, [this document](https://github.com/topolvm/topolvm/blob/main/docs/proposals/rename-group.md#migrate-from-topolvmcybozucom-to-topolvmio) will help you to migrate your system. Note that this procedure is risky, and you may lose your data. Please back up your data and test the migration procedure before you migrate your production system.
+
+If you choose option 2, you must enable `.Values.useLegacy` flag, otherwise you will lose all of your data.
+
+Check [this document](https://github.com/topolvm/topolvm/blob/main/docs/proposals/rename-group.md) before you upgrade your system to this version.
+
+### Added
+
+- Add health check ([#594](https://github.com/topolvm/topolvm/pull/594))
+- add issute template to update supporting kubernetes ([#598](https://github.com/topolvm/topolvm/pull/598))
+
+### Changed
+
+- change reviewer from nbalacha to suleymanakbas91 ([#591](https://github.com/topolvm/topolvm/pull/591))
+- add a command to list the relevant PRs in the release procedure. ([#590](https://github.com/topolvm/topolvm/pull/590))
+- topolvm.io ([#592](https://github.com/topolvm/topolvm/pull/592))
+  - **BREAKING**: Changed the default domain name used in the CRD and plugin name of TopoLVM from `topolvm.cybozu.com` to `topolvm.io`.
+- improve issue template ([#602](https://github.com/topolvm/topolvm/pull/602))
+
+### Fixed
+
+- fix: consider spare-gb in free space calculations ([#597](https://github.com/topolvm/topolvm/pull/597))
+
+### Contributors
+
+- @cupnes
+- @peng225
+- @bells17
+- @toshipp
+- @nbalacha
+
 ## [0.15.3] - 2022-11-04
 
 ### Changed
@@ -614,7 +653,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.15.3...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/topolvm/topolvm/compare/v0.15.3...v0.16.0
 [0.15.3]: https://github.com/topolvm/topolvm/compare/v0.15.2...v0.15.3
 [0.15.2]: https://github.com/topolvm/topolvm/compare/v0.15.1...v0.15.2
 [0.15.1]: https://github.com/topolvm/topolvm/compare/v0.15.0...v0.15.1
