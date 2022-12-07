@@ -37,9 +37,9 @@ PROTOC_GEN_GO_VERSION := $(shell awk '/google.golang.org\/protobuf/ {print subst
 PROTOC_GEN_DOC_VERSION := $(shell awk '/github.com\/pseudomuto\/protoc-gen-doc/ {print substr($$2, 2)}' go.mod)
 PROTOC_GEN_GO_GRPC_VERSION := $(shell awk '/google.golang.org\/grpc\/cmd\/protoc-gen-go-grpc/ {print substr($$2, 2)}' go.mod)
 
-PUSH_IMAGES ?= false
+PUSH ?= false
 BUILDX_PUSH_OPTIONS := "-o type=tar,dest=build/topolvm.tar"
-ifeq ($(PUSH_IMAGES),true)
+ifeq ($(PUSH),true)
 BUILDX_PUSH_OPTIONS := --push
 endif
 
@@ -198,8 +198,8 @@ image: ## Build topolvm images.
 create-docker-container: ## Create docker-container.
 	docker buildx create --use
 
-.PHONY: push
-push: ## Push topolvm images.
+.PHONY: multiplatform-images
+multi-platform-images: ## Push multi-platform topolvm images.
 	mkdir -p build
 	docker buildx build --no-cache $(BUILDX_PUSH_OPTIONS) \
 		--platform linux/amd64,linux/arm64/v8 \
