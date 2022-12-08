@@ -38,7 +38,7 @@ $(KUBECTL):
 
 build/topolvm.img: $(GO_FILES)
 	$(MAKE) -C .. image IMAGE_PREFIX=ghcr.io/topolvm/
-	$(MAKE) -C .. tag IMAGE_PREFIX=ghcr.io/topolvm/ IMAGE_TAG=$(TOPOLVM_VERSION)
+	docker tag ghcr.io/topolvm/topolvm-with-sidecar:devel ghcr.io/topolvm/topolvm-with-sidecar:$(TOPOLVM_VERSION)
 	docker save -o $@ ghcr.io/topolvm/topolvm-with-sidecar:$(TOPOLVM_VERSION)
 
 .PHONY: run

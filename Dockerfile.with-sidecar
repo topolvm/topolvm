@@ -1,16 +1,35 @@
-ARG IMAGE_PREFIX
+FROM --platform=$BUILDPLATFORM golang:1.18-buster AS build-env
 
-# Build Container
-FROM golang:1.18-buster AS build-env
+# Get argment
+ARG TOPOLVM_VERSION
+ARG TARGETARCH
 
 COPY . /workdir
 WORKDIR /workdir
 
-RUN make csi-sidecars
+RUN touch csi/*.go lvmd/proto/*.go \
+    && make build-topolvm TOPOLVM_VERSION=${TOPOLVM_VERSION} GOARCH=${TARGETARCH} \
+    && make csi-sidecars GOARCH=${TARGETARCH}
 
 # TopoLVM container
-FROM ${IMAGE_PREFIX}topolvm:devel
+FROM --platform=$TARGETPLATFORM ubuntu:18.04
 
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+    && apt-get -y install --no-install-recommends \
+        btrfs-progs \
+        file \
+        xfsprogs \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=build-env /workdir/build/hypertopolvm /hypertopolvm
+
+RUN ln -s hypertopolvm /lvmd \
+    && ln -s hypertopolvm /topolvm-scheduler \
+    && ln -s hypertopolvm /topolvm-node \
+    && ln -s hypertopolvm /topolvm-controller
+
+COPY --from=build-env /workdir/LICENSE /LICENSE
 COPY --from=build-env /workdir/build/csi-provisioner /csi-provisioner
 COPY --from=build-env /workdir/build/csi-node-driver-registrar /csi-node-driver-registrar
 COPY --from=build-env /workdir/build/csi-resizer /csi-resizer
