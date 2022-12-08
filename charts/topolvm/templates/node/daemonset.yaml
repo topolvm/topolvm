@@ -98,13 +98,17 @@ spec:
             - /csi-node-driver-registrar
             - --csi-address={{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/csi-topolvm.sock
             - --kubelet-registration-path={{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/csi-topolvm.sock
+            - --http-endpoint=:9809
+          ports:
+            - containerPort: 9809
+              name: healthz
           livenessProbe:
-            exec:
-              command:
-              - /csi-node-driver-registrar
-              - --kubelet-registration-path={{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/csi-topolvm.sock
-              - --mode=kubelet-registration-probe
-            initialDelaySeconds: 3
+            httpGet:
+              path: /healthz
+              port: healthz
+            failureThreshold: 3
+            initialDelaySeconds: 10
+            timeoutSeconds: 3
           lifecycle:
             preStop:
               exec:
