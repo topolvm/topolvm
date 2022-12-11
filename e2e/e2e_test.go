@@ -172,7 +172,7 @@ func testE2E() {
 
 		By("confirming the Pod is deployed")
 		Eventually(func() error {
-			stdout, stderr, err = kubectl("get", "-n", ns, "pod", "testhttpd", "-o", "json")
+			stdout, stderr, err = kubectl("get", "-n", ns, "pod", "pause", "-o", "json")
 			if err != nil {
 				return fmt.Errorf("failed to get PVC. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
 			}
@@ -190,7 +190,7 @@ func testE2E() {
 
 		By("confirming the PVC is bound")
 		Eventually(func() error {
-			stdout, stderr, err = kubectl("get", "-n", ns, "pvc", "testhttpd-generic-ephemeral-volume1", "-o", "json")
+			stdout, stderr, err = kubectl("get", "-n", ns, "pvc", "pause-generic-ephemeral-volume1", "-o", "json")
 			if err != nil {
 				return fmt.Errorf("failed to get PVC. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
 			}
@@ -212,7 +212,7 @@ func testE2E() {
 
 		By("confirming the Pod is deleted")
 		Eventually(func() error {
-			stdout, stderr, err = kubectl("get", "-n", ns, "pod", "testhttpd")
+			stdout, stderr, err = kubectl("get", "-n", ns, "pod", "pause")
 			if err != nil {
 				if strings.Contains(string(stderr), "not found") {
 					return nil
@@ -224,7 +224,7 @@ func testE2E() {
 
 		By("confirming the PVC is deleted")
 		Eventually(func() error {
-			stdout, stderr, err = kubectl("get", "-n", ns, "pvc", "testhttpd-generic-ephemeral-volume1")
+			stdout, stderr, err = kubectl("get", "-n", ns, "pvc", "pause-generic-ephemeral-volume1")
 			if err != nil {
 				if strings.Contains(string(stderr), "not found") {
 					return nil

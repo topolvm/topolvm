@@ -51,7 +51,7 @@ func testHook() {
 				return nil
 			}
 
-			result, stderr, err := kubectl("get", "-n", nsHookTest, "pods/testhttpd", "-o=json")
+			result, stderr, err := kubectl("get", "-n", nsHookTest, "pods/pause", "-o=json")
 			if err != nil {
 				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
 			}
@@ -96,7 +96,7 @@ func testHook() {
 
 		By("checking pod is annotated with topolvm.io/capacity")
 		Eventually(func() error {
-			result, stderr, err := kubectl("get", "-n", nsHookTest, "pods/testhttpd", "-o=json")
+			result, stderr, err := kubectl("get", "-n", nsHookTest, "pods/pause", "-o=json")
 			if err != nil {
 				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
 			}

@@ -308,7 +308,7 @@ func testCleanup() {
 				"exec", "topolvm-e2e-worker3", "/usr/local/bin/crictl", "stop", c.ID,
 			)
 			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-			fmt.Printf("stop ubuntu container with id=%s\n", c.ID)
+			fmt.Printf("stop pause container with id=%s\n", c.ID)
 		}
 	})
 
