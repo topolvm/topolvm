@@ -826,6 +826,33 @@ func testE2E() {
 		stdout, stderr, err = kubectlWithInput(claimYAML, "delete", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 	})
+
+	It("should delete a pod when the pvc is deleted", func() {
+		By("deploying a pod and PVC")
+		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1, "topolvm-provisioner"))
+		podYaml := []byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu", "topo-pvc"))
+
+		stdout, stderr, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		stdout, stderr, err = kubectlWithInput(podYaml, "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("deleting the PVC")
+		stdout, stderr, err = kubectlWithInput(claimYAML, "delete", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("confirming the pod is deleted")
+		Eventually(func() error {
+			stdout, stderr, err = kubectl("get", "-n", ns, "pod", "ubuntu")
+			if err != nil {
+				if strings.Contains(string(stderr), "not found") {
+					return nil
+				}
+				return err
+			}
+			return errors.New("the pod exists")
+		}).Should(Succeed())
+	})
 }
 
 func verifyMountExists(ns string, pod string, mount string) error {
