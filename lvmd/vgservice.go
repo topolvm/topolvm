@@ -189,27 +189,29 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 			})
 		}
 
-		dc, err := s.dcManager.FindDeviceClassByVGName(vg.Name())
+		dcs, err := s.dcManager.FindDeviceClassesByVGName(vg.Name())
 		if err == ErrNotFound {
 			continue
 		}
 
-		spare := dc.GetSpare()
-		if vgFree < spare {
-			vgFree = 0
-		} else {
-			vgFree -= spare
-		}
+		for _, dc := range dcs {
+			spare := dc.GetSpare()
+			if vgFree < spare {
+				vgFree = 0
+			} else {
+				vgFree -= spare
+			}
 
-		if dc.Default {
-			res.FreeBytes = vgFree
-		}
+			if dc.Default {
+				res.FreeBytes = vgFree
+			}
 
-		res.Items = append(res.Items, &proto.WatchItem{
-			DeviceClass: dc.Name,
-			FreeBytes:   vgFree,
-			SizeBytes:   vgSize,
-		})
+			res.Items = append(res.Items, &proto.WatchItem{
+				DeviceClass: dc.Name,
+				FreeBytes:   vgFree,
+				SizeBytes:   vgSize,
+			})
+		}
 	}
 	return server.Send(res)
 }

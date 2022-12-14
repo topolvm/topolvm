@@ -262,7 +262,7 @@ func TestValidateDeviceClasses(t *testing.T) {
 					},
 				},
 			},
-			valid: false,
+			valid: true,
 		},
 		{
 			deviceClasses: []*DeviceClass{
@@ -435,15 +435,18 @@ func TestDeviceClassManager(t *testing.T) {
 		t.Error("'unknown' should not be found")
 	}
 
-	dc, err = manager.FindDeviceClassByVGName("hdd2-vg")
+	dcs, err := manager.FindDeviceClassesByVGName("hdd2-vg")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if dc.GetSpare() != spare100gb<<30 {
+	if len(dcs) == 0 {
+		t.Error("No device-class was found for hdd2-vg")
+	}
+	if dcs[0].GetSpare() != spare100gb<<30 {
 		t.Error("hdd2's spare should be 100GB")
 	}
 
-	_, err = manager.FindDeviceClassByVGName("unknown")
+	_, err = manager.FindDeviceClassesByVGName("unknown")
 	if err != ErrNotFound {
 		t.Error("'unknown' should not be found")
 	}

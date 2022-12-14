@@ -72,7 +72,7 @@ func ValidateDeviceClasses(deviceClasses []*DeviceClass) error {
 	}
 	var countDefault = 0
 	dcNames := make(map[string]bool)
-	vgNames := make(map[string]bool)
+	thinNames := make(map[string]bool)
 	for _, dc := range deviceClasses {
 		if len(dc.Name) == 0 {
 			return errors.New("device-class name should not be empty")
@@ -118,14 +118,15 @@ func ValidateDeviceClasses(deviceClasses []*DeviceClass) error {
 			// combination of volumegroup and thinpool should be unique across device classes
 			// so the key 'name' shouldn't appear twice to verify it's uniqueness
 			name = name + "/" + dc.ThinPoolConfig.Name
-		}
 
-		if vgNames[name] {
-			return fmt.Errorf("duplicate volumegroup/thinpool name: %s, %s", dc.Name, name)
+			if thinNames[name] {
+				return fmt.Errorf("duplicate volumegroup/thinpool name: %s, %s", dc.Name, name)
+			}
+
+			thinNames[name] = true
 		}
 
 		dcNames[dc.Name] = true
-		vgNames[name] = true
 		if dc.StripeSize != "" && !stripeSizeRegexp.MatchString(dc.StripeSize) {
 			return fmt.Errorf("stripe-size format is \"Size[k|UNIT]\": %s", dc.Name)
 		}
@@ -140,7 +141,7 @@ func ValidateDeviceClasses(deviceClasses []*DeviceClass) error {
 type DeviceClassManager struct {
 	defaultDeviceClass        *DeviceClass
 	deviceClassByName         map[string]*DeviceClass
-	deviceClassByVGName       map[string]*DeviceClass
+	deviceClassesByVGName     map[string][]*DeviceClass
 	deviceClassByThinPoolName map[string]*DeviceClass
 }
 
@@ -148,7 +149,7 @@ type DeviceClassManager struct {
 func NewDeviceClassManager(deviceClasses []*DeviceClass) *DeviceClassManager {
 	dcm := DeviceClassManager{}
 	dcm.deviceClassByName = make(map[string]*DeviceClass)
-	dcm.deviceClassByVGName = make(map[string]*DeviceClass)
+	dcm.deviceClassesByVGName = make(map[string][]*DeviceClass)
 	dcm.deviceClassByThinPoolName = make(map[string]*DeviceClass)
 	for _, dc := range deviceClasses {
 		if dc.Default {
@@ -157,13 +158,13 @@ func NewDeviceClassManager(deviceClasses []*DeviceClass) *DeviceClassManager {
 		dcm.deviceClassByName[dc.Name] = dc
 
 		// device-class has two targets and at a time it can only be in one of
-		// "deviceClassByVGName" or "deviceClassByThinPoolName" maps
+		// "deviceClassesByVGName" or "deviceClassByThinPoolName" maps
 		switch dc.Type {
 		case "", TypeThick:
 			// device-class target is volumegroup and any logical volume referring to
 			// this device-class will have thick logical volumes
 			dc.Type = TypeThick
-			dcm.deviceClassByVGName[dc.VolumeGroup] = dc
+			dcm.deviceClassesByVGName[dc.VolumeGroup] = append(dcm.deviceClassesByVGName[dc.VolumeGroup], dc)
 		case TypeThin:
 			// we can't store pool name alone as there can be of thinpool with same name
 			// but on a different vg, so combination of vg and thinpool should be unique
@@ -184,9 +185,9 @@ func (m DeviceClassManager) DeviceClass(dcName string) (*DeviceClass, error) {
 	return nil, ErrNotFound
 }
 
-// FindDeviceClassByVGName returns the device-class with the volume group name
-func (m DeviceClassManager) FindDeviceClassByVGName(vgName string) (*DeviceClass, error) {
-	if v, ok := m.deviceClassByVGName[vgName]; ok {
+// FindDeviceClassesByVGName returns device-classes with the volume group name
+func (m DeviceClassManager) FindDeviceClassesByVGName(vgName string) ([]*DeviceClass, error) {
+	if v, ok := m.deviceClassesByVGName[vgName]; ok {
 		return v, nil
 	}
 	return nil, ErrNotFound
