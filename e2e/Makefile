@@ -269,7 +269,8 @@ daemonset-lvmd/launch-minikube:
 		--vm-driver=none \
 		--kubernetes-version=v$(KUBERNETES_VERSION) \
 		--extra-config=kubelet.read-only-port=10255 \
-		--feature-gates=$(MINIKUBE_FEATURE_GATES)
+		--feature-gates=$(MINIKUBE_FEATURE_GATES) \
+		--cni=calico
 	$(SUDO) chown -R $$USER $$HOME/.kube $(MINIKUBE_HOME)/.minikube
 	$(SUDO) chmod -R a+r $$HOME/.kube $(MINIKUBE_HOME)/.minikube
 	$(SUDO) find $(MINIKUBE_HOME)/.minikube -name id_rsa -exec chmod 600 {} ';'

@@ -52,6 +52,14 @@ jobs:
       - name: install dependencies of minikube
         run: |
           # These tools are required to use minikube for Kubernetes v1.24+
+
+          # For CNI plugins, see https://github.com/Mirantis/cri-dockerd/blob/v0.2.6/README.md#important
+          CNI_PLUGINS_VERSION="v1.1.1"
+          curl -L -o cni-plugins.tgz https://github.com/containernetworking/plugins/releases/download/${CNI_PLUGINS_VERSION}/cni-plugins-linux-amd64-${CNI_PLUGINS_VERSION}.tgz
+          sudo mkdir -p /opt/cni/bin
+          sudo tar -C /opt/cni/bin -xzf cni-plugins.tgz
+
+          # Install cri-docker
           git clone -n https://github.com/Mirantis/cri-dockerd
           CRI_DOCKERD_VERSION="v0.2.6"
           cd cri-dockerd
@@ -62,6 +70,11 @@ jobs:
           sudo install -o root -g root -m 0755 bin/cri-dockerd /usr/local/bin/cri-dockerd
           sudo cp -a packaging/systemd/* /etc/systemd/system
           sudo sed -i -e 's,/usr/bin/cri-dockerd,/usr/local/bin/cri-dockerd,' /etc/systemd/system/cri-docker.service
+
+          # This is a workaround for the following issue.
+          # https://github.com/kubernetes/minikube/issues/15265
+          sudo ln -s /usr/local/bin/cri-dockerd /usr/bin/cri-dockerd
+
           sudo systemctl daemon-reload
           sudo systemctl enable cri-docker.service
           sudo systemctl enable --now cri-docker.socket
