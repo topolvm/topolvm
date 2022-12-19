@@ -103,11 +103,6 @@ func TestGetNodeFinalizer(t *testing.T) {
 	doContainTest(t, GetNodeFinalizer)
 }
 
-func TestGetPVCFinalizer(t *testing.T) {
-	testingutil.DoEnvCheck(t)
-	doContainTest(t, GetPVCFinalizer)
-}
-
 func doContainTest(t *testing.T, f func() string) {
 	tests := []struct {
 		name      string

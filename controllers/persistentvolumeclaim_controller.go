@@ -2,13 +2,13 @@ package controllers
 
 import (
 	"context"
-	"time"
 
 	"github.com/topolvm/topolvm"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	crlog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -54,40 +54,24 @@ func (r *PersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, err
 	}
 
+	// Remove deprecated finalizer and requeue.
+	removed, err := r.removeDeprecatedFinalizer(ctx, pvc)
+	if err != nil {
+		log.Error(err, "failed to remove deprecated finalizer", "name", pvc.Name)
+		return ctrl.Result{}, err
+	} else if removed {
+		return ctrl.Result{
+			Requeue: true,
+		}, nil
+	}
+
 	if pvc.DeletionTimestamp == nil {
 		return ctrl.Result{}, nil
 	}
 
-	needFinalize := false
-	onlyTopoLVM := true
-	// Due to bug #310, we need to de-dup TopoLVM finalizers.
-	for _, f := range pvc.Finalizers {
-		if f == topolvm.GetPVCFinalizer() {
-			needFinalize = true
-			continue
-		}
-		onlyTopoLVM = false
-	}
-	if !needFinalize {
+	if !controllerutil.ContainsFinalizer(pvc, topolvm.PVCFinalizer) {
 		return ctrl.Result{}, nil
 	}
-
-	// Requeue until other finalizers complete their jobs.
-	if !onlyTopoLVM {
-		return ctrl.Result{
-			Requeue:      true,
-			RequeueAfter: 10 * time.Second,
-		}, nil
-	}
-
-	pvc.Finalizers = nil
-	if err := r.client.Update(ctx, pvc); err != nil {
-		log.Error(err, "failed to remove finalizer", "name", pvc.Name)
-		return ctrl.Result{}, err
-	}
-
-	// sleep shortly to wait StatefulSet controller notices PVC deletion
-	time.Sleep(100 * time.Millisecond)
 
 	pods, err := r.getPodsByPVC(ctx, pvc)
 	if err != nil {
@@ -101,6 +85,14 @@ func (r *PersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req ctr
 			return ctrl.Result{}, err
 		}
 		log.Info("deleted Pod", "name", pod.Name, "namespace", pod.Namespace)
+	}
+
+	// TODO: considering: wait for pvc-protection will be deleted
+	controllerutil.RemoveFinalizer(pvc, topolvm.PVCFinalizer)
+
+	if err := r.client.Update(ctx, pvc); err != nil {
+		log.Error(err, "failed to remove finalizer", "name", pvc.Name)
+		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil
@@ -143,4 +135,24 @@ func (r *PersistentVolumeClaimReconciler) SetupWithManager(mgr ctrl.Manager) err
 		WithEventFilter(pred).
 		For(&corev1.PersistentVolumeClaim{}).
 		Complete(r)
+}
+
+func (r *PersistentVolumeClaimReconciler) removeDeprecatedFinalizer(ctx context.Context, pvc *corev1.PersistentVolumeClaim) (bool, error) {
+	removed := false
+	// Due to the bug #310, multiple TopoLVM finalizers can exist in `pvc.Finalizers`.
+	// So we need to delete all of them.
+	for i := 0; i < len(pvc.Finalizers); {
+		if pvc.Finalizers[i] == topolvm.LegacyPVCFinalizer {
+			pvc.Finalizers = append(pvc.Finalizers[:i], pvc.Finalizers[i+1:]...)
+			removed = true
+			continue
+		}
+		i++
+	}
+	if removed {
+		if err := r.client.Update(ctx, pvc); err != nil {
+			return false, err
+		}
+	}
+	return removed, nil
 }

@@ -60,10 +60,11 @@ func GetNodeFinalizer() string {
 	return fmt.Sprintf("%s/node", GetPluginName())
 }
 
-// GetPVCFinalizer returns the name of PVC finalizer of TopoLVM
-func GetPVCFinalizer() string {
-	return fmt.Sprintf("%s/pvc", GetPluginName())
-}
+// PVCFinalizer is a finalizer of PVC.
+const PVCFinalizer = pluginName + "/pvc"
+
+// LegacyPVCFinalizer is a legacy finalizer of PVC.
+const LegacyPVCFinalizer = pluginName + "/pvc"
 
 // DefaultCSISocket is the default path of the CSI socket file.
 const DefaultCSISocket = "/run/topolvm/csi-topolvm.sock"

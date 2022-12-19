@@ -23,7 +23,7 @@ var hookGenericEphemeralVolumeYAML []byte
 
 func hasTopoLVMFinalizer(pvc *corev1.PersistentVolumeClaim) bool {
 	for _, fin := range pvc.Finalizers {
-		if fin == topolvm.GetPVCFinalizer() {
+		if fin == topolvm.PVCFinalizer {
 			return true
 		}
 	}
