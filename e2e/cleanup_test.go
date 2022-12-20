@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/topolvm/topolvm"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
