@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/topolvm/topolvm"
 	topolvmlegacyv1 "github.com/topolvm/topolvm/api/legacy/v1"
@@ -25,7 +25,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	//+kubebuilder:scaffold:imports
@@ -50,9 +49,7 @@ func TestAPIs(t *testing.T) {
 	SetDefaultEventuallyPollingInterval(time.Second)
 	SetDefaultEventuallyTimeout(time.Minute)
 
-	RunSpecsWithDefaultAndCustomReporters(t,
-		"Controller Suite",
-		[]Reporter{printer.NewlineReporter{}})
+	RunSpecs(t, "Controller Suite")
 }
 
 var _ = BeforeSuite(func() {
@@ -94,7 +91,7 @@ var _ = BeforeSuite(func() {
 	Expect(k8sCache.WaitForCacheSync(testCtx)).ToNot(BeFalse())
 
 	scheme.Converter().WithConversions(conversion.NewConversionFuncs())
-}, 60)
+})
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")

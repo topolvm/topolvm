@@ -1,5 +1,5 @@
 # parameters
-KUBERNETES_VERSION ?= 1.24.2
+KUBERNETES_VERSION ?= 1.25.3
 TEST_SCHEDULER_MANIFEST ?= daemonset
 STORAGE_CAPACITY ?= false
 SKIP_NODE_FINALIZE ?= false
@@ -7,7 +7,7 @@ SANITY_TEST_WITH_THIN_DEVICECLASS ?= false
 EXTERNAL_SNAPSHOTTER_VERSION ?= v6.0.1
 
 ## Dependency versions
-MINIKUBE_VERSION := v1.26.0
+MINIKUBE_VERSION := v1.28.0
 CERT_MANAGER_VERSION := v1.7.0
 KUSTOMIZE_VERSION := v4.5.5
 
@@ -269,7 +269,8 @@ daemonset-lvmd/launch-minikube:
 		--vm-driver=none \
 		--kubernetes-version=v$(KUBERNETES_VERSION) \
 		--extra-config=kubelet.read-only-port=10255 \
-		--feature-gates=$(MINIKUBE_FEATURE_GATES)
+		--feature-gates=$(MINIKUBE_FEATURE_GATES) \
+		--cni=calico
 	$(SUDO) chown -R $$USER $$HOME/.kube $(MINIKUBE_HOME)/.minikube
 	$(SUDO) chmod -R a+r $$HOME/.kube $(MINIKUBE_HOME)/.minikube
 	$(SUDO) find $(MINIKUBE_HOME)/.minikube -name id_rsa -exec chmod 600 {} ';'
