@@ -69,14 +69,14 @@ spec:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: testhttpd
+  name: pause
   namespace: hook-test
   labels:
-    app.kubernetes.io/name: testhttpd
+    app.kubernetes.io/name: pause
 spec:
   containers:
-  - name: testhttpd
-    image: quay.io/cybozu/testhttpd:0
+  - name: pause
+    image: registry.k8s.io/pause
     volumeMounts:
     - mountPath: /test1
       name: my-volume1
@@ -95,7 +95,7 @@ metadata:
     capacity.topolvm.io/ssd: "1073741824"
 spec:
   containers:
-  - name: testhttpd
+  - name: pause
     resources:
       limits:
         topolvm.io/capacity: "1"
@@ -112,14 +112,13 @@ Below is an example for TopoLVM generic ephemeral volumes:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: ubuntu
+  name: pause
   labels:
-    app.kubernetes.io/name: ubuntu
+    app.kubernetes.io/name: pause
 spec:
   containers:
-  - name: ubuntu
-    image: quay.io/cybozu/ubuntu:20.04
-    command: ["/usr/local/bin/pause"]
+  - name: pause
+    image: registry.k8s.io/pause
     volumeMounts:
     - mountPath: /test1
       name: my-volume

@@ -87,7 +87,7 @@ func testMultipleVolumeGroups() {
 
 		By("confirming that the pod wasn't scheduled")
 		Eventually(func() error {
-			stdout, stderr, err = kubectl("get", "-n", ns, "pod", "ubuntu", "-o", "json")
+			stdout, stderr, err = kubectl("get", "-n", ns, "pod", "pause", "-o", "json")
 			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 			var pod corev1.Pod

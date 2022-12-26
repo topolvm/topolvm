@@ -41,7 +41,7 @@ func testMetrics() {
 		By("waiting for the new Pod to be running")
 		var nodeIP string
 		Eventually(func() error {
-			stdout, _, err := kubectl("-n", nsMetricsTest, "get", "pods", "ubuntu", "-o", "json")
+			stdout, _, err := kubectl("-n", nsMetricsTest, "get", "pods", "pause", "-o", "json")
 			if err != nil {
 				return err
 			}

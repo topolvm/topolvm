@@ -302,7 +302,7 @@ func testPublishVolume() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
-			stdout, stderr, err := kubectl("get", "pod", "ubuntu-mount-option", "-o", "yaml")
+			stdout, stderr, err := kubectl("get", "pod", "pause-mount-option", "-o", "yaml")
 			if err != nil {
 				return fmt.Errorf("failed to get pod. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
 			}

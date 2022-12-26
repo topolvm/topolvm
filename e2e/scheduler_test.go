@@ -77,7 +77,7 @@ func testScheduler() {
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		Eventually(func() error {
-			result, stderr, err := kubectl("get", "-n", ns, "pods/testhttpd", "-o=json")
+			result, stderr, err := kubectl("get", "-n", ns, "pods/pause", "-o=json")
 			if err != nil {
 				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
 			}
@@ -94,7 +94,7 @@ func testScheduler() {
 				}
 			}
 
-			return fmt.Errorf("testhttpd is not yet ready: %v", pod.Status)
+			return fmt.Errorf("pause is not yet ready: %v", pod.Status)
 		}).Should(Succeed())
 		kubectl("delete", "namespaces", ns)
 	})
@@ -111,7 +111,7 @@ func testScheduler() {
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		Eventually(func() error {
-			result, stderr, err := kubectl("get", "-n", ns, "pods/testhttpd", "-o=json")
+			result, stderr, err := kubectl("get", "-n", ns, "pods/pause", "-o=json")
 			if err != nil {
 				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
 			}
@@ -128,7 +128,7 @@ func testScheduler() {
 				}
 			}
 
-			return errors.New("testhttpd should not be scheduled")
+			return errors.New("pause should not be scheduled")
 		}).Should(Succeed())
 		kubectl("delete", "namespaces", ns)
 	})

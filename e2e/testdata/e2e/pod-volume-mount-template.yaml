@@ -7,8 +7,8 @@ metadata:
 spec:
   containers:
     - name: ubuntu
-      image: quay.io/cybozu/ubuntu:20.04
-      command: ["/usr/local/bin/pause"]
+      image: ubuntu:20.04
+      command: ["/usr/bin/sleep", "infinity"]
       volumeMounts:
         - mountPath: /test1
           name: my-volume

@@ -25,14 +25,13 @@ spec:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: testhttpd
+  name: pause
   labels:
-    app.kubernetes.io/name: testhttpd
+    app.kubernetes.io/name: pause
 spec:
   containers:
-    - name: ubuntu
-      image: quay.io/cybozu/ubuntu:20.04
-      command: ["/usr/local/bin/pause"]
+    - name: pause
+      image: registry.k8s.io/pause
       volumeMounts:
         - mountPath: /test1
           name: my-volume1

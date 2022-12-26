@@ -3,12 +3,19 @@ kind: Pod
 metadata:
   name: %s
   labels:
-    app.kubernetes.io/name: ubuntu
+    app.kubernetes.io/name: pause
 spec:
   containers:
     - name: ubuntu
-      image: quay.io/cybozu/ubuntu:20.04
-      command: ["/usr/local/bin/pause"]
+      image: ubuntu:20.04
+      command:
+        - bash
+        - -c
+        - |
+          sleep inf &
+          trap "kill -SIGTERM $!" SIGTERM
+          wait $!
+          exit
       volumeMounts:
         - mountPath: /test1
           name: my-volume
