@@ -74,9 +74,8 @@ func (m *persistentVolumeClaimMutator) Handle(ctx context.Context, req admission
 		return admission.Allowed("already added finalizer")
 	}
 
-	pvcPatch := pvc.DeepCopy()
-	pvcPatch.Finalizers = append(pvcPatch.Finalizers, topolvm.PVCFinalizer)
-	marshaled, err := json.Marshal(pvcPatch)
+	pvc.Finalizers = append(pvc.Finalizers, topolvm.PVCFinalizer)
+	marshaled, err := json.Marshal(pvc)
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
 	}

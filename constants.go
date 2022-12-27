@@ -64,7 +64,7 @@ func GetNodeFinalizer() string {
 const PVCFinalizer = pluginName + "/pvc"
 
 // LegacyPVCFinalizer is a legacy finalizer of PVC.
-const LegacyPVCFinalizer = pluginName + "/pvc"
+const LegacyPVCFinalizer = legacyPluginName + "/pvc"
 
 // DefaultCSISocket is the default path of the CSI socket file.
 const DefaultCSISocket = "/run/topolvm/csi-topolvm.sock"

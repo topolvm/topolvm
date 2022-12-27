@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"time"
 
 	"github.com/topolvm/topolvm"
 	corev1 "k8s.io/api/core/v1"
@@ -65,6 +66,7 @@ func (r *PersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req ctr
 		}, nil
 	}
 
+	// Skip if the PVC is not deleted or PVC does not have TopoLVM's finalizer.
 	if pvc.DeletionTimestamp == nil {
 		return ctrl.Result{}, nil
 	}
@@ -73,6 +75,7 @@ func (r *PersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, nil
 	}
 
+	// Delete the pods that are using the PV/PVC.
 	pods, err := r.getPodsByPVC(ctx, pvc)
 	if err != nil {
 		log.Error(err, "unable to fetch PodList for a PVC", "pvc", pvc.Name, "namespace", pvc.Namespace)
@@ -87,7 +90,14 @@ func (r *PersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req ctr
 		log.Info("deleted Pod", "name", pod.Name, "namespace", pod.Namespace)
 	}
 
-	// TODO: considering: wait for pvc-protection will be deleted
+	// Requeue until other finalizers complete their jobs.
+	if len(pvc.Finalizers) != 1 {
+		return ctrl.Result{
+			Requeue:      true,
+			RequeueAfter: 10 * time.Second,
+		}, nil
+	}
+
 	controllerutil.RemoveFinalizer(pvc, topolvm.PVCFinalizer)
 
 	if err := r.client.Update(ctx, pvc); err != nil {

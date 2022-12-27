@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/topolvm/topolvm"
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const nsHookTest = "hook-test"
@@ -22,12 +23,7 @@ var podWithPVCYAML []byte
 var hookGenericEphemeralVolumeYAML []byte
 
 func hasTopoLVMFinalizer(pvc *corev1.PersistentVolumeClaim) bool {
-	for _, fin := range pvc.Finalizers {
-		if fin == topolvm.PVCFinalizer {
-			return true
-		}
-	}
-	return false
+	return controllerutil.ContainsFinalizer(pvc, topolvm.PVCFinalizer)
 }
 
 func testHook() {
@@ -102,7 +98,7 @@ func testHook() {
 
 		for _, pvc := range pvcList.Items {
 			hasFinalizer := hasTopoLVMFinalizer(&pvc)
-			Expect(hasFinalizer).Should(Equal(true), "finalizer is not set: pvc=%s", pvc.Name)
+			Expect(hasFinalizer).Should(Equal(true), "finalizer is not set: pvc=%s finalizers=%v", pvc.Name, pvc.ObjectMeta.Finalizers)
 		}
 	})
 

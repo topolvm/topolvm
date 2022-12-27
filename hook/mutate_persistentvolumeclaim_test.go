@@ -1,12 +1,13 @@
 package hook
 
 import (
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/topolvm/topolvm"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -46,12 +47,7 @@ func getPVC(pvcName string) (*corev1.PersistentVolumeClaim, error) {
 }
 
 func hasTopoLVMFinalizer(pvc *corev1.PersistentVolumeClaim) bool {
-	for _, fin := range pvc.Finalizers {
-		if fin == topolvm.PVCFinalizer {
-			return true
-		}
-	}
-	return false
+	return controllerutil.ContainsFinalizer(pvc, topolvm.PVCFinalizer)
 }
 
 var _ = Describe("pvc mutation webhook", func() {
