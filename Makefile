@@ -166,7 +166,7 @@ clean: ## Clean working directory.
 	rm -rf include/
 	rm -rf testbin/
 	rm -f $(HOME)/.docker/cli-plugins/docker-buildx
-	docker run --privileged --rm tonistiigi/binfmt --uninstall linux/amd64,linux/arm64/v8
+	docker run --privileged --rm tonistiigi/binfmt --uninstall linux/amd64,linux/arm64/v8,linux/ppc64le
 
 ##@ Build
 
@@ -202,12 +202,12 @@ create-docker-container: ## Create docker-container.
 multi-platform-images: ## Push multi-platform topolvm images.
 	mkdir -p build
 	docker buildx build --no-cache $(BUILDX_PUSH_OPTIONS) \
-		--platform linux/amd64,linux/arm64/v8 \
+		--platform linux/amd64,linux/arm64/v8,linux/ppc64le \
 		-t $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG) \
 		--build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) \
 		.
 	docker buildx build --no-cache $(BUILDX_PUSH_OPTIONS) \
-		--platform linux/amd64,linux/arm64/v8 \
+		--platform linux/amd64,linux/arm64/v8,linux/ppc64le \
 		-t $(IMAGE_PREFIX)topolvm-with-sidecar:$(IMAGE_TAG) \
 		--build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) \
 		-f Dockerfile.with-sidecar \
@@ -257,7 +257,7 @@ setup: ## Setup local environment.
 	$(MAKE) tools
 	$(MAKE) $(HOME)/.docker/cli-plugins/docker-buildx
 	# https://github.com/tonistiigi/binfmt
-	docker run --privileged --rm tonistiigi/binfmt --install linux/amd64,linux/arm64/v8
+	docker run --privileged --rm tonistiigi/binfmt --install linux/amd64,linux/arm64/v8,linux/ppc64le
 
 # https://docs.docker.com/build/buildx/install/
 $(HOME)/.docker/cli-plugins/docker-buildx:
