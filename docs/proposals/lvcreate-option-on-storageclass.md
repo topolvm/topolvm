@@ -26,6 +26,9 @@ Introduce a new StorageClass parameter `topolvm.io/lvcreate-option-class` to spe
 The parameter refers to an option class that specifies lv options on lvmd.conf rather than real options.
 This indirection provides flexibility to change options on each node.
 
+We considered [the similar proposal](lvcreate-options.md) before, but it was not chosen because it is harder to be implemented.
+Now, we revisit the idea and conclude that it is better to specify lv create options on wider use-case.
+
 ## Design Detail
 
 Change lvmd.conf format as bellow:
