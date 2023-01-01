@@ -36,7 +36,7 @@ device-classes:
   - name: dc
     volume-group: vg
     spare-gb: 10
-lvcreate-option-class:
+lvcreate-option-classes:
   - name: raid1
     options:
       - --type=raid1
