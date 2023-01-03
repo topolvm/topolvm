@@ -176,6 +176,9 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 			// used for annotating the node for capacity aware scheduling
 			opb := uint64(math.Floor(dc.ThinPoolConfig.OverprovisionRatio*float64(tpu.SizeBytes))) - tpu.VirtualBytes
 			tpi.OverprovisionBytes = opb
+			if dc.Default {
+				res.FreeBytes = opb
+			}
 
 			// size bytes of the thinpool
 			tpi.SizeBytes = tpu.SizeBytes

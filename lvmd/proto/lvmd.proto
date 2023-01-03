@@ -83,7 +83,7 @@ message GetFreeBytesRequest {
 
 // Represents the stream output from Watch.
 message WatchResponse {
-    uint64 free_bytes = 1;  // Free space of the default volume group in bytes.
+    uint64 free_bytes = 1;  // Free space of the default volume group in bytes. In the case of thin pools, free space on the thinpool with overprovision in bytes.
     repeated WatchItem items = 2;
 }
 
