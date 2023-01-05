@@ -24,7 +24,7 @@ The proposed solution is splitting the configuration of options from device-clas
 
 Introduce a new StorageClass parameter `topolvm.io/lvcreate-option-class` to specify LV create options.
 This parameter refers to an option class that specifies lv options on lvmd.conf rather than specifying options directly.
-This indirection provides flexibility to change options on each node.
+This indirection provides flexibility to change options for each node.
 
 We considered [the similar proposal](lvcreate-options.md) before, but it was not chosen because it is harder to be implemented.
 Now, we revisit the idea and conclude that it is better to specify lv create options on wider use-case.
