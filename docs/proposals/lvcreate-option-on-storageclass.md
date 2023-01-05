@@ -65,7 +65,7 @@ volumeBindingMode: WaitForFirstConsumer
 ```
 
 The parameter value is passed to the topolvm-controller via CreateVolume RPC.
-We have to modify LogicalVolume CR to pass the value from the controller to the topolvm-node
+We have to modify LogicalVolume CR to pass the value from the controller to the topolvm-node.
 and also modify lvmd's CreateLVRequest RPC.
 
 ### Migration
