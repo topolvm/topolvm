@@ -72,4 +72,4 @@ We must also modify lvmd's CreateLVRequest RPC.
 
 The new parameter supersedes `stripe`, `stripe-size`, and `lvcreate-options` in device-class,
 we deprecate these parameters and will remove them in the feature.
-But this breaks current behavior, we use these parameters if and only if the new parameter is not specified.
+Before the removal of these deprecated parameters, we use these parameters if and only if the new parameter is not specified.
