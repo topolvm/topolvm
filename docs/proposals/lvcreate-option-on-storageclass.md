@@ -14,7 +14,7 @@ Although one possible solution is relaxing the restriction, it may introduce
 difficulties to calculate VG capacity. For example, there are two device-class A and B.
 They use the same VG whose capacity is 100 GB. A specifies `spare-gb: 10` and B does `spare-gb: 20`.
 If users create a 90GB PV from A, it succeeds, but the remaining capacity of the VG is now 10GB.
-It violates the invariant of `spare-gb: 20` on B which means it must retain at least 20GB on the VG.
+It violates the invariant of `spare-gb: 20` of B which requires at least 20GB free space in the VG.
 
 Moreover, theoretically, LV create options are not related to VG or device-class.
 
