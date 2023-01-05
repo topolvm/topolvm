@@ -18,7 +18,7 @@ It violates the invariant of `spare-gb: 20` of B which requires at least 20GB fr
 
 Moreover, theoretically, LV create options are not related to VG or device-class.
 
-The proposed solution is that split the option from device-class and allow us to specify the option on StorageClass.
+The proposed solution is splitting the configuration of options from device-class and allow us to specify the options in StorageClass.
 
 ## Proposal
 
