@@ -48,7 +48,7 @@ lvcreate-option-classes:
       - --type=raid10
 ```
 
-We can specify the option using the new StorageClass parameter.
+We can specify the options by a new StorageClass parameter, topolvm.io/lvcreate-option-class.
 
 ```yaml
 apiVersion: storage.k8s.io/v1
