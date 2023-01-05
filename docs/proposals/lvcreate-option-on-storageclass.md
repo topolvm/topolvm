@@ -2,7 +2,7 @@
 
 ## Summary
 
-Allow specifying LV create options on StorageClass parameter.
+Allow specifying LV create options in StorageClass parameter.
 
 ## Motivation
 
