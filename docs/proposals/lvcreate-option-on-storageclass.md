@@ -31,7 +31,7 @@ Now, we revisit the idea and conclude that it is better to specify lv create opt
 
 ## Design Detail
 
-Change lvmd.conf format as bellow:
+Change lvmd.conf format as below:
 
 ```yaml
 socket-name: /run/topolvm/lvmd.sock
