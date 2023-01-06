@@ -1,0 +1,11 @@
+--- build.make.bk	2023-01-07 14:09:17.159271556 +0000
++++ build.make	2023-01-07 14:09:29.247275614 +0000
+@@ -94,7 +94,7 @@
+ 		if ! [ $${#os_arch_seen_pre} = $${#os_arch_seen} ]; then \
+ 			continue; \
+ 		fi; \
+-		if ! (set -x; cd ./$(CMDS_DIR)/$* && CGO_ENABLED=0 GOOS="$$os" GOARCH="$$arch" go build $(GOFLAGS_VENDOR) -a -ldflags '$(FULL_LDFLAGS)' -o "$(abspath ./bin)/$*$$suffix" .); then \
++		if ! (set -x; cd ./$(CMDS_DIR)/$* && CGO_ENABLED=0 GOOS="$$os" GOARCH="$$arch" go build $(GOFLAGS_VENDOR) -ldflags '$(FULL_LDFLAGS)' -o "$(abspath ./bin)/$*$$suffix" .); then \
+ 			echo "Building $* for GOOS=$$os GOARCH=$$arch failed, see error(s) above."; \
+ 			exit 1; \
+ 		fi; \

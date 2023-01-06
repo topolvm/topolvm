@@ -7,6 +7,11 @@ ARG TARGETARCH
 COPY . /workdir
 WORKDIR /workdir
 
+ENV DEBIAN_FRONTEND=noninteractive
+RUN  apt-get update \
+    && apt-get -y install --no-install-recommends \
+        patch
+
 RUN touch csi/*.go lvmd/proto/*.go \
     && make build-topolvm TOPOLVM_VERSION=${TOPOLVM_VERSION} GOARCH=${TARGETARCH} \
     && make csi-sidecars GOARCH=${TARGETARCH}

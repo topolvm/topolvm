@@ -17,7 +17,7 @@ BINDIR := $(shell pwd)/bin
 CONTROLLER_GEN := $(BINDIR)/controller-gen
 STATICCHECK := $(BINDIR)/staticcheck
 PROTOC := PATH=$(BINDIR):$(PATH) $(BINDIR)/protoc -I=$(shell pwd)/include:.
-PACKAGES := unzip lvm2 xfsprogs thin-provisioning-tools
+PACKAGES := unzip lvm2 xfsprogs thin-provisioning-tools patch
 ENVTEST_ASSETS_DIR := $(shell pwd)/testbin
 
 GO_FILES=$(shell find -name '*.go' -not -name '*_test.go')
@@ -185,7 +185,7 @@ build/lvmd: $(GO_FILES)
 	GOARCH=$(GOARCH) CGO_ENABLED=0 go build -o $@ -ldflags "-w -s -X github.com/topolvm/topolvm.Version=$(TOPOLVM_VERSION)" ./pkg/lvmd
 
 .PHONY: csi-sidecars
-csi-sidecars: ## Build sidecar images.
+csi-sidecars: ## Build sidecar binaries.
 	mkdir -p build
 	make -f csi-sidecars.mk OUTPUT_DIR=build BUILD_PLATFORMS="linux $(GOARCH)"
 
