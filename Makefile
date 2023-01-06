@@ -198,14 +198,21 @@ image: ## Build topolvm images.
 create-docker-container: ## Create docker-container.
 	docker buildx create --use
 
-.PHONY: multiplatform-images
-multi-platform-images: ## Push multi-platform topolvm images.
+.PHONY: multi-platform-images
+multi-platform-images: multi-platform-image-normal multi-platform-image-with-sidecar ## Build or push multi-platform topolvm images.
+
+.PHONY: multi-platform-image-normal
+multi-platform-image-normal:
 	mkdir -p build
 	docker buildx build --no-cache $(BUILDX_PUSH_OPTIONS) \
 		--platform linux/amd64,linux/arm64/v8,linux/ppc64le \
 		-t $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG) \
 		--build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) \
 		.
+
+.PHONY: multi-platform-image-with-sidecar
+multi-platform-image-with-sidecar:
+	mkdir -p build
 	docker buildx build --no-cache $(BUILDX_PUSH_OPTIONS) \
 		--platform linux/amd64,linux/arm64/v8,linux/ppc64le \
 		-t $(IMAGE_PREFIX)topolvm-with-sidecar:$(IMAGE_TAG) \
@@ -255,6 +262,10 @@ setup: ## Setup local environment.
 	$(SUDO) apt-get update
 	$(SUDO) apt-get -y install --no-install-recommends $(PACKAGES)
 	$(MAKE) tools
+	$(MAKE) setup-docker-buildx
+
+.PHONY: setup-docker-buildx
+setup-docker-buildx: ## Setup docker buildx environment.
 	$(MAKE) $(HOME)/.docker/cli-plugins/docker-buildx
 	# https://github.com/tonistiigi/binfmt
 	docker run --privileged --rm tonistiigi/binfmt --install linux/amd64,linux/arm64/v8,linux/ppc64le
