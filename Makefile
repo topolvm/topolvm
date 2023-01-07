@@ -191,8 +191,8 @@ csi-sidecars: ## Build sidecar binaries.
 
 .PHONY: image
 image: ## Build topolvm images.
-	docker buildx build --no-cache --load -t $(IMAGE_PREFIX)topolvm:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) .
-	docker buildx build --no-cache --load -t $(IMAGE_PREFIX)topolvm-with-sidecar:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) -f Dockerfile.with-sidecar .
+	docker buildx build --no-cache --load -t $(IMAGE_PREFIX)topolvm:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) --target topolvm .
+	docker buildx build --no-cache --load -t $(IMAGE_PREFIX)topolvm-with-sidecar:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) --target topolvm-with-sidecar .
 
 .PHONY: create-docker-container
 create-docker-container: ## Create docker-container.
@@ -208,6 +208,7 @@ multi-platform-image-normal:
 		--platform linux/amd64,linux/arm64/v8,linux/ppc64le \
 		-t $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG) \
 		--build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) \
+		--target topolvm \
 		.
 
 .PHONY: multi-platform-image-with-sidecar
@@ -217,7 +218,7 @@ multi-platform-image-with-sidecar:
 		--platform linux/amd64,linux/arm64/v8,linux/ppc64le \
 		-t $(IMAGE_PREFIX)topolvm-with-sidecar:$(IMAGE_TAG) \
 		--build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) \
-		-f Dockerfile.with-sidecar \
+		--target topolvm-with-sidecar \
 		.
 
 .PHONY: tag
