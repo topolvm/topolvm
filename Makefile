@@ -190,8 +190,14 @@ csi-sidecars: ## Build sidecar binaries.
 	make -f csi-sidecars.mk OUTPUT_DIR=build BUILD_PLATFORMS="linux $(GOARCH)"
 
 .PHONY: image
-image: ## Build topolvm images.
+image: image-normal image-with-sidecar ## Build topolvm images.
+
+.PHONY: image-normal
+image-normal:
 	docker buildx build --no-cache --load -t $(IMAGE_PREFIX)topolvm:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) --target topolvm .
+
+.PHONY: image-with-sidecar
+image-with-sidecar:
 	docker buildx build --no-cache --load -t $(IMAGE_PREFIX)topolvm-with-sidecar:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) --target topolvm-with-sidecar .
 
 .PHONY: create-docker-container

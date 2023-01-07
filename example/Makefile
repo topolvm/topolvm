@@ -37,7 +37,7 @@ $(KUBECTL):
 	chmod 755 $(KUBECTL)
 
 build/topolvm.img: $(GO_FILES)
-	$(MAKE) -C .. image IMAGE_PREFIX=ghcr.io/topolvm/
+	$(MAKE) -C .. image-with-sidecar IMAGE_PREFIX=ghcr.io/topolvm/
 	docker tag ghcr.io/topolvm/topolvm-with-sidecar:devel ghcr.io/topolvm/topolvm-with-sidecar:$(TOPOLVM_VERSION)
 	docker save -o $@ ghcr.io/topolvm/topolvm-with-sidecar:$(TOPOLVM_VERSION)
 
