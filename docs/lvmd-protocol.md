@@ -275,7 +275,7 @@ Represents the stream output from Watch.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| free_bytes | [uint64](#uint64) |  | Free space of the default volume group in bytes. |
+| free_bytes | [uint64](#uint64) |  | Free space of the default volume group in bytes. In the case of thin pools, free space on the thinpool with overprovision in bytes. |
 | items | [WatchItem](#proto.WatchItem) | repeated |  |
 
 
