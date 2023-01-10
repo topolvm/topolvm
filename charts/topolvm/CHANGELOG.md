@@ -7,6 +7,19 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [11.0.1] - 2022-01-10
+
+### Changed
+- appVersion was changed to 0.17.0.
+- improve livenessProbe get csi-node-driver-registrar healthz by httpGet  ([#619](https://github.com/topolvm/topolvm/pull/619))
+
+### Fixed
+- fix($charts):snapshotter ClusterRoleBinding name error #635 ([#637](https://github.com/topolvm/topolvm/pull/637))
+
+### Contributors
+- @huangzynn
+- @syang1997
+
 ## [11.0.0] - 2022-12-06
 
 ### Caution
@@ -223,7 +236,8 @@ This release contains the domain name change([#592](https://github.com/topolvm/t
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.0.0...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.0.1...HEAD
+[11.0.1]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.0.0...topolvm-chart-v11.0.1
 [11.0.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v10.0.0...topolvm-chart-v11.0.0
 [10.0.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v9.1.0...topolvm-chart-v10.0.0
 [9.1.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v9.0.1...topolvm-chart-v9.1.0
