@@ -55,5 +55,5 @@ subjects:
     name: {{ template "topolvm.fullname" . }}-controller
 roleRef:
   kind: ClusterRole
-  name: topolvm-external-snapshotter-runner
+  name: {{ .Release.Namespace }}-external-snapshotter-runner
   apiGroup: rbac.authorization.k8s.io
