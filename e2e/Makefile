@@ -139,6 +139,18 @@ start-lvmd:
 		$(SUDO) lvcreate -T -n pool0 -L 4G node$${i}-myvg4; \
 	done
 
+	# Create Volume Group for testing lvcreate-option-classes.
+	# This requires 2 PVs in each VG.
+	# node{i}-myvg5: backing_store{i}_6, backing_store{i}_7
+	for i in $$(seq 3); do \
+		truncate --size=3G $(BACKING_STORE)/backing_store$${i}_6; \
+		truncate --size=3G $(BACKING_STORE)/backing_store$${i}_7; \
+		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$${i}_6; \
+		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$${i}_7; \
+		$(SUDO) vgcreate -y node$${i}-myvg5 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_6 | cut -d: -f1) \
+			$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_7 | cut -d: -f1); \
+	done
+
 	for i in $$(seq 3); do \
 		$(SUDO) systemctl reset-failed lvmd$$i.service || true; \
 		$(SUDO) systemd-run --unit=lvmd$$i.service $(shell pwd)/build/lvmd --config=$(shell pwd)/lvmd$$i.yaml; \
@@ -149,11 +161,8 @@ stop-lvmd:
 	$(MAKE) shutdown-kind
 	for i in $$(seq 3); do \
 		if systemctl is-active -q lvmd$$i.service; then $(SUDO) systemctl stop lvmd$$i.service; fi; \
-		for j in $$(seq 5); do \
-			# We have only 4 VGs per node, but 5 PVs, since node{i}-myvg3 uses both \
-			# backing_store{i}_3 and backing_store{i}_4. \
-			# I.e. there is no node{i}-myvg4. \
-			if [ "$${j}" -ne 5 ]; then \
+		for j in $$(seq 7); do \
+			if [ "$${j}" -lt 6 ]; then \
 				$(SUDO) vgremove -ffy node$${i}-myvg$${j}; \
 			fi; \
 			$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_$${j} | cut -d: -f1); \
@@ -239,14 +248,23 @@ daemonset-lvmd/create-vg:
 	$(SUDO) vgcreate -y node-myvg5 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_6 | cut -d: -f1)
 	$(SUDO) lvcreate -T -n pool0 -L 4G node-myvg5
 
+	# Create Volume Group for testing lvcreate-option-classes.
+	# This requires 2 PVs in each VG.
+	truncate --size=3G $(BACKING_STORE)/backing_store_lvmd_7
+	truncate --size=3G $(BACKING_STORE)/backing_store_lvmd_8
+	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_7
+	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_8
+	$(SUDO) vgcreate -y node-myvg6 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_7 | cut -d: -f1) \
+		$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_8 | cut -d: -f1)
+
 
 .PHONY: daemonset-lvmd/remove-vg
 daemonset-lvmd/remove-vg:
-	for i in $$(seq 6); do \
+	for i in $$(seq 8); do \
 		# We have only 5 VGs, but 6 PVs, since node-myvg4 uses both \
 		# backing_store_lvmd_4 and backing_store_lvmd_5. \
 		# I.e. there is no node-myvg5. \
-		if [ "$${i}" -ne 6 ]; then \
+		if [ "$${j}" -lt 7 ]; then \
 			$(SUDO) vgremove -ffy node-myvg$${i}; \
 		fi; \
 		$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_$${i} | cut -d: -f1); \

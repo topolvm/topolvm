@@ -35,6 +35,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 	capabilities := req.GetVolumeCapabilities()
 	source := req.GetVolumeContentSource()
 	deviceClass := req.GetParameters()[topolvm.GetDeviceClassKey()]
+	lvcreateOptionClass := req.GetParameters()[topolvm.GetLvcreateOptionClassKey()]
 
 	ctrlLogger.Info("CreateVolume called",
 		"name", req.GetName(),
@@ -194,7 +195,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 
 	name = strings.ToLower(name)
 
-	volumeID, err := s.lvService.CreateVolume(ctx, node, deviceClass, name, sourceName, requestGb)
+	volumeID, err := s.lvService.CreateVolume(ctx, node, deviceClass, lvcreateOptionClass, name, sourceName, requestGb)
 	if err != nil {
 		_, ok := status.FromError(err)
 		if !ok {

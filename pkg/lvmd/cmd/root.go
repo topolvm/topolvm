@@ -93,10 +93,11 @@ func subMain() error {
 		return err
 	}
 	grpcServer := grpc.NewServer()
-	manager := lvmd.NewDeviceClassManager(config.DeviceClasses)
-	vgService, notifier := lvmd.NewVGService(manager)
+	dcm := lvmd.NewDeviceClassManager(config.DeviceClasses)
+	ocm := lvmd.NewLvcreateOptionClassManager(config.LvcreateOptionClasses)
+	vgService, notifier := lvmd.NewVGService(dcm)
 	proto.RegisterVGServiceServer(grpcServer, vgService)
-	proto.RegisterLVServiceServer(grpcServer, lvmd.NewLVService(manager, notifier))
+	proto.RegisterLVServiceServer(grpcServer, lvmd.NewLVService(dcm, ocm, notifier))
 	grpc_health_v1.RegisterHealthServer(grpcServer, lvmd.NewHealthService())
 	well.Go(func(ctx context.Context) error {
 		return grpcServer.Serve(lis)

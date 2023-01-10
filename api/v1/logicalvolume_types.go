@@ -14,10 +14,11 @@ type LogicalVolumeSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	Name        string            `json:"name"`
-	NodeName    string            `json:"nodeName"`
-	Size        resource.Quantity `json:"size"`
-	DeviceClass string            `json:"deviceClass,omitempty"`
+	Name                string            `json:"name"`
+	NodeName            string            `json:"nodeName"`
+	Size                resource.Quantity `json:"size"`
+	DeviceClass         string            `json:"deviceClass,omitempty"`
+	LvcreateOptionClass string            `json:"lvcreateOptionClass,omitempty"`
 
 	// 'source' specifies the logicalvolume name of the source; if present.
 	// This field is populated only when LogicalVolume has a source.

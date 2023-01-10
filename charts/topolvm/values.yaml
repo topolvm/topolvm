@@ -141,6 +141,12 @@ lvmd:
       default: true
       spare-gb: 10
 
+  # lvmd.lvcreateOptionClasses -- Specify the lvcreate-option-class settings.
+  lvcreateOptionClasses: []
+  # - name: ssd
+  #   options:
+  #     - --type=raid1
+
   # lvmd.args -- Arguments to be passed to the command.
   args: []
 

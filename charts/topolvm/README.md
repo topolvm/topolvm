@@ -116,6 +116,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | lvmd.args | list | `[]` | Arguments to be passed to the command. |
 | lvmd.deviceClasses | list | `[{"default":true,"name":"ssd","spare-gb":10,"volume-group":"myvg1"}]` | Specify the device-class settings. |
 | lvmd.env | list | `[]` | extra environment variables |
+| lvmd.lvcreateOptionClasses | list | `[]` | Specify the lvcreate-option-class settings. |
 | lvmd.managed | bool | `true` | If true, set up lvmd service with DaemonSet. |
 | lvmd.nodeSelector | object | `{}` | Specify nodeSelector. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/ |
 | lvmd.priorityClassName | string | `nil` | Specify priorityClassName. |

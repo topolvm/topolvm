@@ -233,9 +233,10 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 		} else {
 			// Create a regular lv
 			resp, err := r.lvService.CreateLV(ctx, &proto.CreateLVRequest{
-				Name:        string(lv.UID),
-				DeviceClass: lv.Spec.DeviceClass,
-				SizeGb:      uint64(reqBytes >> 30),
+				Name:                string(lv.UID),
+				DeviceClass:         lv.Spec.DeviceClass,
+				LvcreateOptionClass: lv.Spec.LvcreateOptionClass,
+				SizeGb:              uint64(reqBytes >> 30),
 			})
 			if err != nil {
 				code, message := extractFromError(err)

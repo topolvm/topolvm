@@ -13,16 +13,18 @@ import (
 )
 
 // NewLVService creates a new LVServiceServer
-func NewLVService(mapper *DeviceClassManager, notifyFunc func()) proto.LVServiceServer {
+func NewLVService(dcmapper *DeviceClassManager, ocmapper *LvcreateOptionClassManager, notifyFunc func()) proto.LVServiceServer {
 	return &lvService{
-		mapper:     mapper,
+		dcmapper:   dcmapper,
+		ocmapper:   ocmapper,
 		notifyFunc: notifyFunc,
 	}
 }
 
 type lvService struct {
 	proto.UnimplementedLVServiceServer
-	mapper     *DeviceClassManager
+	dcmapper   *DeviceClassManager
+	ocmapper   *LvcreateOptionClassManager
 	notifyFunc func()
 }
 
@@ -34,7 +36,7 @@ func (s *lvService) notify() {
 }
 
 func (s *lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*proto.CreateLVResponse, error) {
-	dc, err := s.mapper.DeviceClass(req.DeviceClass)
+	dc, err := s.dcmapper.DeviceClass(req.DeviceClass)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
 	}
@@ -42,6 +44,7 @@ func (s *lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*pr
 	if err != nil {
 		return nil, err
 	}
+	oc := s.ocmapper.LvcreateOptionClass(req.LvcreateOptionClass)
 	requested := req.GetSizeGb() << 30
 	free := uint64(0)
 	var pool *command.ThinPool
@@ -85,20 +88,28 @@ func (s *lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*pr
 	}
 
 	var stripe uint
-	if dc.Stripe != nil {
-		stripe = *dc.Stripe
-	}
+	var stripeSize string
 	var lvcreateOptions []string
-	if dc.LVCreateOptions != nil {
-		lvcreateOptions = dc.LVCreateOptions
+	if oc != nil {
+		lvcreateOptions = oc.Options
+	} else if req.LvcreateOptionClass != "" {
+		return nil, status.Error(codes.Internal, fmt.Sprintf("unsupported lvcreate-option-class target: %s", req.LvcreateOptionClass))
+	} else {
+		stripeSize = dc.StripeSize
+		if dc.Stripe != nil {
+			stripe = *dc.Stripe
+		}
+		if dc.LVCreateOptions != nil {
+			lvcreateOptions = dc.LVCreateOptions
+		}
 	}
 
 	var lv *command.LogicalVolume
 	switch dc.Type {
 	case TypeThick:
-		lv, err = vg.CreateVolume(req.GetName(), requested, req.GetTags(), stripe, dc.StripeSize, lvcreateOptions)
+		lv, err = vg.CreateVolume(req.GetName(), requested, req.GetTags(), stripe, stripeSize, lvcreateOptions)
 	case TypeThin:
-		lv, err = pool.CreateVolume(req.GetName(), requested, req.GetTags(), stripe, dc.StripeSize, lvcreateOptions)
+		lv, err = pool.CreateVolume(req.GetName(), requested, req.GetTags(), stripe, stripeSize, lvcreateOptions)
 	default:
 		return nil, status.Error(codes.Internal, fmt.Sprintf("unsupported device class target: %s", dc.Type))
 	}
@@ -130,7 +141,7 @@ func (s *lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*pr
 }
 
 func (s *lvService) RemoveLV(_ context.Context, req *proto.RemoveLVRequest) (*proto.Empty, error) {
-	dc, err := s.mapper.DeviceClass(req.DeviceClass)
+	dc, err := s.dcmapper.DeviceClass(req.DeviceClass)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
 	}
@@ -166,7 +177,7 @@ func (s *lvService) RemoveLV(_ context.Context, req *proto.RemoveLVRequest) (*pr
 
 func (s *lvService) CreateLVSnapshot(_ context.Context, req *proto.CreateLVSnapshotRequest) (*proto.CreateLVSnapshotResponse, error) {
 	var snapType string
-	dc, err := s.mapper.DeviceClass(req.DeviceClass)
+	dc, err := s.dcmapper.DeviceClass(req.DeviceClass)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
 	}
@@ -267,7 +278,7 @@ func (s *lvService) CreateLVSnapshot(_ context.Context, req *proto.CreateLVSnaps
 }
 
 func (s *lvService) ResizeLV(_ context.Context, req *proto.ResizeLVRequest) (*proto.Empty, error) {
-	dc, err := s.mapper.DeviceClass(req.DeviceClass)
+	dc, err := s.dcmapper.DeviceClass(req.DeviceClass)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
 	}

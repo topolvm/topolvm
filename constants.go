@@ -45,6 +45,11 @@ func GetDeviceClassKey() string {
 	return fmt.Sprintf("%s/device-class", GetPluginName())
 }
 
+// GetDeviceClassKey returns the key used in CSI volume create requests to specify a lvcreate-option-class.
+func GetLvcreateOptionClassKey() string {
+	return fmt.Sprintf("%s/lvcreate-option-class", GetPluginName())
+}
+
 // GetResizeRequestedAtKey returns the key of LogicalVolume that represents the timestamp of the resize request.
 func GetResizeRequestedAtKey() string {
 	return fmt.Sprintf("%s/resize-requested-at", GetPluginName())
