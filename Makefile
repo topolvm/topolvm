@@ -17,7 +17,7 @@ BINDIR := $(shell pwd)/bin
 CONTROLLER_GEN := $(BINDIR)/controller-gen
 STATICCHECK := $(BINDIR)/staticcheck
 PROTOC := PATH=$(BINDIR):$(PATH) $(BINDIR)/protoc -I=$(shell pwd)/include:.
-PACKAGES := unzip lvm2 xfsprogs thin-provisioning-tools
+PACKAGES := unzip lvm2 xfsprogs thin-provisioning-tools patch
 ENVTEST_ASSETS_DIR := $(shell pwd)/testbin
 
 GO_FILES=$(shell find -name '*.go' -not -name '*_test.go')
@@ -185,32 +185,46 @@ build/lvmd: $(GO_FILES)
 	GOARCH=$(GOARCH) CGO_ENABLED=0 go build -o $@ -ldflags "-w -s -X github.com/topolvm/topolvm.Version=$(TOPOLVM_VERSION)" ./pkg/lvmd
 
 .PHONY: csi-sidecars
-csi-sidecars: ## Build sidecar images.
+csi-sidecars: ## Build sidecar binaries.
 	mkdir -p build
 	make -f csi-sidecars.mk OUTPUT_DIR=build BUILD_PLATFORMS="linux $(GOARCH)"
 
 .PHONY: image
-image: ## Build topolvm images.
-	docker buildx build --no-cache --load -t $(IMAGE_PREFIX)topolvm:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) .
-	docker buildx build --no-cache --load -t $(IMAGE_PREFIX)topolvm-with-sidecar:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) -f Dockerfile.with-sidecar .
+image: image-normal image-with-sidecar ## Build topolvm images.
+
+.PHONY: image-normal
+image-normal:
+	docker buildx build --no-cache --load -t $(IMAGE_PREFIX)topolvm:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) --target topolvm .
+
+.PHONY: image-with-sidecar
+image-with-sidecar:
+	docker buildx build --no-cache --load -t $(IMAGE_PREFIX)topolvm-with-sidecar:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) --target topolvm-with-sidecar .
 
 .PHONY: create-docker-container
 create-docker-container: ## Create docker-container.
 	docker buildx create --use
 
-.PHONY: multiplatform-images
-multi-platform-images: ## Push multi-platform topolvm images.
+.PHONY: multi-platform-images
+multi-platform-images: multi-platform-image-normal multi-platform-image-with-sidecar ## Build or push multi-platform topolvm images.
+
+.PHONY: multi-platform-image-normal
+multi-platform-image-normal:
 	mkdir -p build
 	docker buildx build --no-cache $(BUILDX_PUSH_OPTIONS) \
 		--platform linux/amd64,linux/arm64/v8,linux/ppc64le \
 		-t $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG) \
 		--build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) \
+		--target topolvm \
 		.
+
+.PHONY: multi-platform-image-with-sidecar
+multi-platform-image-with-sidecar:
+	mkdir -p build
 	docker buildx build --no-cache $(BUILDX_PUSH_OPTIONS) \
 		--platform linux/amd64,linux/arm64/v8,linux/ppc64le \
 		-t $(IMAGE_PREFIX)topolvm-with-sidecar:$(IMAGE_TAG) \
 		--build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) \
-		-f Dockerfile.with-sidecar \
+		--target topolvm-with-sidecar \
 		.
 
 .PHONY: tag
@@ -255,6 +269,10 @@ setup: ## Setup local environment.
 	$(SUDO) apt-get update
 	$(SUDO) apt-get -y install --no-install-recommends $(PACKAGES)
 	$(MAKE) tools
+	$(MAKE) setup-docker-buildx
+
+.PHONY: setup-docker-buildx
+setup-docker-buildx: ## Setup docker buildx environment.
 	$(MAKE) $(HOME)/.docker/cli-plugins/docker-buildx
 	# https://github.com/tonistiigi/binfmt
 	docker run --privileged --rm tonistiigi/binfmt --install linux/amd64,linux/arm64/v8,linux/ppc64le
