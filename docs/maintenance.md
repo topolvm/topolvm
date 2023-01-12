@@ -65,6 +65,15 @@ $ go mod tidy
 
 These are minimal changes for the Kubernetes upgrade, but if there are some breaking changes found in the release notes, you have to handle them as well in this step.
 
+#### Go
+
+Choose the same version of Go [used by the latest Kubernetes](https://github.com/kubernetes/kubernetes/blob/master/go.mod) supported by TopoLVM.
+
+Edit the following files.
+- go.mod
+- Dockerfile
+- Dockerfile.with-sidecar
+
 #### CSI sidecars
 
 TopoLVM does not use all the sidecars listed [here](https://kubernetes-csi.github.io/docs/sidecar-containers.html).
