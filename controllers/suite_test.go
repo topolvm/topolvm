@@ -2,13 +2,16 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -27,10 +30,27 @@ var k8sClient client.Client
 var testEnv *envtest.Environment
 var scheme = runtime.NewScheme()
 
+var namespaceCounter = 0 // EnvTest cannot delete namespace. So, we have to use another new namespace.
+func createNamespace() string {
+	namespaceCounter += 1
+	name := fmt.Sprintf("test-%d", namespaceCounter)
+	ns := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+	err := k8sClient.Create(context.Background(), &ns)
+	Expect(err).NotTo(HaveOccurred())
+	return name
+}
+
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
-
-	RunSpecs(t, "Controller Suite")
+	SetDefaultEventuallyTimeout(time.Minute)
+	suiteConfig, _ := GinkgoConfiguration()
+	suiteConfig.Timeout = 10 * time.Minute
+	suiteConfig.FailFast = true
+	RunSpecs(t, "Controller Suite", suiteConfig)
 }
 
 var _ = BeforeSuite(func() {

@@ -7,6 +7,9 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+- Revert "add a test to check the PVC finalizer is deleted." ([#620](https://github.com/topolvm/topolvm/pull/620))
+  - **Note**: The PVC finalizer is not added to the existing PVCs. If the problem explained in [issue #614](https://github.com/topolvm/topolvm/issues/614) happens for those PVCs, you need to resolve it manually.
+
 ## [0.17.0] - 2023-01-10
 
 ### Added

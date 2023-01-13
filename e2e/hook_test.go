@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/topolvm/topolvm"
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const nsHookTest = "hook-test"
@@ -20,6 +21,10 @@ var podWithPVCYAML []byte
 
 //go:embed testdata/hook/generic-ephemeral-volume.yaml
 var hookGenericEphemeralVolumeYAML []byte
+
+func hasTopoLVMFinalizer(pvc *corev1.PersistentVolumeClaim) bool {
+	return controllerutil.ContainsFinalizer(pvc, topolvm.PVCFinalizer)
+}
 
 func testHook() {
 	var cc CleanupContext
@@ -82,6 +87,19 @@ func testHook() {
 
 			return nil
 		}).Should(Succeed())
+
+		By("checking pvc has TopoLVM finalizer")
+		result, stderr, err := kubectl("get", "-n", nsHookTest, "pvc", "-o=json")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", result, stderr)
+
+		var pvcList corev1.PersistentVolumeClaimList
+		err = json.Unmarshal(result, &pvcList)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		for _, pvc := range pvcList.Items {
+			hasFinalizer := hasTopoLVMFinalizer(&pvc)
+			Expect(hasFinalizer).Should(Equal(true), "finalizer is not set: pvc=%s finalizers=%v", pvc.Name, pvc.ObjectMeta.Finalizers)
+		}
 	})
 
 	It("should test hooks for generic ephemeral volumes", func() {
