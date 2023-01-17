@@ -6,7 +6,7 @@ Allow specifying LV create options in StorageClass parameter.
 
 ## Motivation
 
-We want to specify different LV create options for a VG, however, it is not
+We want to specify different LV create options for a VG, however, it is
 impossible because the options exist for each device-class on lvmd.conf and
 each device-class can not share the same VG in the current implementation.
 
