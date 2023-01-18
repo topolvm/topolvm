@@ -30,9 +30,6 @@ spec:
         {{- include "topolvm.selectorLabels" . | nindent 8 }}
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/lvmd/configmap.yaml") . | sha256sum }}
-        {{- if and .Values.node.metrics.enabled .Values.node.metrics.annotations }}
-        {{- toYaml .Values.node.metrics.annotations | nindent 8 }}
-        {{- end }}
     spec:
       {{- with .Values.lvmd.priorityClassName }}
       priorityClassName: {{ . }}
