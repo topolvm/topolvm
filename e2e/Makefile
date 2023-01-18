@@ -10,6 +10,9 @@ EXTERNAL_SNAPSHOTTER_VERSION ?= v6.0.1
 MINIKUBE_VERSION := v1.28.0
 CERT_MANAGER_VERSION := v1.7.0
 KUSTOMIZE_VERSION := v4.5.5
+CNI_PLUGINS_VERSION := v1.1.1
+CRI_DOCKERD_VERSION := v0.2.6
+CRICTL_VERSION := v1.25.0
 
 BINDIR := $(shell pwd)/bin
 SUDO := sudo
@@ -210,6 +213,34 @@ setup:
 	$(CURL) -o $(BINDIR)/kubectl https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl
 	chmod a+x $(BINDIR)/kubectl
 	$(CURL) https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F$(KUSTOMIZE_VERSION)/kustomize_$(KUSTOMIZE_VERSION)_linux_amd64.tar.gz | tar zxf - -C $(BINDIR)
+	# Install dependencies of minikube
+	# These tools are required to use minikube for Kubernetes v1.24+
+	# For CNI plugins, see https://github.com/Mirantis/cri-dockerd/blob/v0.2.6/README.md#important
+	# These tools are required to use minikube for Kubernetes v1.24+
+	$(SUDO) mkdir -p /opt/cni/bin
+	$(CURL) https://github.com/containernetworking/plugins/releases/download/$(CNI_PLUGINS_VERSION)/cni-plugins-linux-amd64-$(CNI_PLUGINS_VERSION).tgz | tar zxf - -C /opt/cni/bin
+	# Install cri-docker
+	mkdir -p /tmp/topolvm
+	cd /tmp/topolvm \
+		&& git clone https://github.com/Mirantis/cri-dockerd -b $(CRI_DOCKERD_VERSION) \
+		&& cd cri-dockerd \
+		&& mkdir bin \
+		&& go get \
+		&& go build -o bin/cri-dockerd \
+		&& mkdir -p /usr/local/bin \
+		&& $(SUDO) install -o root -g root -m 0755 bin/cri-dockerd /usr/local/bin/cri-dockerd \
+		&& $(SUDO) cp -a packaging/systemd/* /etc/systemd/system \
+		&& $(SUDO) sed -i -e 's,/usr/bin/cri-dockerd,/usr/local/bin/cri-dockerd,' /etc/systemd/system/cri-docker.service
+	rm -fr /tmp/topolvm/cri-dockerd
+	# This is a workaround for the following issue.
+	# https://github.com/kubernetes/minikube/issues/15265
+	if [ ! -L /usr/bin/cri-dockerd ]; then \
+		$(SUDO) ln -s /usr/local/bin/cri-dockerd /usr/bin/cri-dockerd; \
+	fi
+	$(SUDO) systemctl daemon-reload
+	$(SUDO) systemctl enable cri-docker.service
+	$(SUDO) systemctl enable --now cri-docker.socket
+	$(CURL) https://github.com/kubernetes-sigs/cri-tools/releases/download/$(CRICTL_VERSION)/crictl-$(CRICTL_VERSION)-linux-amd64.tar.gz | tar zxvf - -C /usr/local/bin
 
 .PHONY: daemonset-lvmd/create-vg
 daemonset-lvmd/create-vg:
