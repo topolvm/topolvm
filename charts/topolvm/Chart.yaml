@@ -22,5 +22,3 @@ annotations:
     - name: topolvm-with
       image: ghcr.io/topolvm/topolvm:0.17.0
   artifacthub.io/license: Apache-2.0
-  artifacthub.io/operator: "true"
-  artifacthub.io/operatorCapabilities: deep insights
