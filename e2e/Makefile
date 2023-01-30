@@ -261,9 +261,6 @@ daemonset-lvmd/create-vg:
 .PHONY: daemonset-lvmd/remove-vg
 daemonset-lvmd/remove-vg:
 	for i in $$(seq 8); do \
-		# We have only 5 VGs, but 6 PVs, since node-myvg4 uses both \
-		# backing_store_lvmd_4 and backing_store_lvmd_5. \
-		# I.e. there is no node-myvg5. \
 		if [ "$${j}" -lt 7 ]; then \
 			$(SUDO) vgremove -ffy node-myvg$${i}; \
 		fi; \
