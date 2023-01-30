@@ -7,7 +7,7 @@ PROTOC_VERSION=21.10
 KIND_VERSION=v0.17.0
 HELM_VERSION=3.10.2
 HELM_DOCS_VERSION=1.11.0
-CHART_TESTING_VERSION = 3.7.1
+CHART_TESTING_VERSION=3.7.1
 YQ_VERSION=4.18.1
 BUILDX_VERSION=0.9.1
 GINKGO_VERSION := $(shell awk '/github.com\/onsi\/ginkgo\/v2/ {print substr($$2, 2)}' go.mod)
@@ -229,6 +229,7 @@ tag: ## Tag topolvm images.
 ct-lint: ## Lint and validate a chart.
 	docker run \
 		--rm \
+		--user $(shell id -u $(USER)) \
 		--workdir /data \
 		--volume $(shell pwd):/data \
 		quay.io/helmpack/chart-testing:v$(CHART_TESTING_VERSION) \
