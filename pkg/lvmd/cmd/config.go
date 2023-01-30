@@ -15,7 +15,7 @@ type Config struct {
 	SocketName string `json:"socket-name"`
 	// DeviceClasses is
 	DeviceClasses []*lvmd.DeviceClass `json:"device-classes"`
-	// LvcreateOptionClasses are classes that define options for the lvcreate command.
+	// LvcreateOptionClasses are classes that define options for the lvcreate command
 	LvcreateOptionClasses []*lvmd.LvcreateOptionClass `json:"lvcreate-option-classes"`
 }
 
