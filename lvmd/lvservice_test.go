@@ -71,7 +71,7 @@ func TestLVService(t *testing.T) {
 					},
 				},
 			},
-		), notifier)
+		), NewLvcreateOptionClassManager([]*LvcreateOptionClass{}), notifier)
 
 	// thick logical volume validations
 	res, err := lvService.CreateLV(context.Background(), &proto.CreateLVRequest{

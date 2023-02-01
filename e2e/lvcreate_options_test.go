@@ -65,4 +65,40 @@ func testLVCreateOptions() {
 		// lv_attr bit 1 represents the volume type, where 'r' is for raid
 		Expect(attribute_bit1).To(Equal("r"))
 	})
+
+	It("should use lvcreate-option-classes when creating LV", func() {
+		By("creating Pod with PVC using raid1 device-class")
+		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc-raid1", "Filesystem", 1, "topolvm-provisioner-raid1"))
+		podYaml := []byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu2", "topo-pvc-raid1"))
+
+		stdout, stderr, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		stdout, stderr, err = kubectlWithInput(podYaml, "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+		By("finding the corresponding LV")
+
+		var lvName string
+		Eventually(func() error {
+			stdout, stderr, err = kubectl("get", "pvc", "-n", ns, "topo-pvc-raid1", "-o=template", "--template={{.spec.volumeName}}")
+			if err != nil {
+				return fmt.Errorf("failed to get PVC. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+			volumeName := strings.TrimSpace(string(stdout))
+
+			stdout, stderr, err = kubectl("get", "logicalvolumes", "-n", "topolvm-system", volumeName, "-o=template", "--template={{.metadata.uid}}")
+			if err != nil {
+				return fmt.Errorf("failed to get logicalvolume. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+			lvName = strings.TrimSpace(string(stdout))
+			return nil
+		}).Should(Succeed())
+
+		By("checking that the LV is of type raid")
+		stdout, err = exec.Command("sudo", "lvs", "-o", "lv_attr", "--noheadings", "--select", "lv_name="+lvName).Output()
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		attribute_bit1 := string(strings.TrimSpace(string(stdout))[0])
+		// lv_attr bit 1 represents the volume type, where 'r' is for raid
+		Expect(attribute_bit1).To(Equal("r"))
+	})
 }

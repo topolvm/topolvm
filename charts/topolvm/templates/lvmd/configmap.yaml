@@ -19,6 +19,9 @@ data:
     {{- if $lvmd.deviceClasses }}
     device-classes: {{ toYaml $lvmd.deviceClasses | nindent 6 }}
     {{- end }}
+    {{- if $lvmd.lvcreateOptionClasses }}
+    lvcreate-option-classes: {{ toYaml $lvmd.lvcreateOptionClasses | nindent 6 }}
+    {{- end }}
 ---
     {{- end }}
   {{- end }}

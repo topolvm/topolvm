@@ -27,6 +27,7 @@ message CreateLVRequest {
     uint64 size_gb = 2;           // Volume size in GiB.
     repeated string tags = 3;     // Tags to add to the volume during creation
     string device_class = 4;
+    string lvcreate_option_class = 5;
 }
 
 // Represents the response of CreateLV.

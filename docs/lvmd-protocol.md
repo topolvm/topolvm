@@ -50,6 +50,7 @@ Represents the input for CreateLV.
 | size_gb | [uint64](#uint64) |  | Volume size in GiB. |
 | tags | [string](#string) | repeated | Tags to add to the volume during creation |
 | device_class | [string](#string) |  |  |
+| lvcreate_option_class | [string](#string) |  |  |
 
 
 

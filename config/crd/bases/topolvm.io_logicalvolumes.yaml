@@ -43,6 +43,8 @@ spec:
                 type: string
               deviceClass:
                 type: string
+              lvcreateOptionClass:
+                type: string
               name:
                 type: string
               nodeName:
