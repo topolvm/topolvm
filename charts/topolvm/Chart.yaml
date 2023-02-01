@@ -14,3 +14,11 @@ dependencies:
     repository: https://charts.jetstack.io
     version: 1.7.0
     condition: cert-manager.enabled
+
+annotations:
+  artifacthub.io/images: |
+    - name: topolvm-with-sidecar
+      image: ghcr.io/topolvm/topolvm-with-sidecar:0.17.0
+    - name: topolvm-with
+      image: ghcr.io/topolvm/topolvm:0.17.0
+  artifacthub.io/license: Apache-2.0

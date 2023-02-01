@@ -124,6 +124,8 @@ This will prevent the TopoLVM version from going up just by modifying the Helm C
     ```console
     $ sed -r -i "s/appVersion: [[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/appVersion: ${APPVERSION}/g" charts/topolvm/Chart.yaml
     $ sed -r -i "s/^version: [[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/version: ${CHARTVERSION}/g" charts/topolvm/Chart.yaml
+    $ sed -r -i "s/ghcr.io\/topolvm\/topolvm-with-sidecar:[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/ghcr.io\/topolvm\/topolvm-with-sidecar:${APPVERSION}/g" charts/topolvm/Chart.yaml
+    $ sed -r -i "s/ghcr.io\/topolvm\/topolvm:[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/ghcr.io\/topolvm\/topolvm:${APPVERSION}/g" charts/topolvm/Chart.yaml
     ```
 
 4. Edit `charts/topolvm/CHANGELOG.md` for the new version ([example][]).
