@@ -7,8 +7,38 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
-- Revert "add a test to check the PVC finalizer is deleted." ([#620](https://github.com/topolvm/topolvm/pull/620))
+## [0.18.0] - 2023-02-20
+
+### Added
+
+- add proposal to specify lvcreate options on SC ([#627](https://github.com/topolvm/topolvm/pull/627))
+- Add CONTRIBUTING.md ([#631](https://github.com/topolvm/topolvm/pull/631))
+- add a note describing how to maintain go version ([#633](https://github.com/topolvm/topolvm/pull/633))
+- Add the lvcreate-option-on-storageclass proposal implementation ([#640](https://github.com/topolvm/topolvm/pull/640))
+- artifacthub ([#641](https://github.com/topolvm/topolvm/pull/641))
+
+### Changed
+
+- Revert "Drop a PVC finalizer to delete pods(#536)" ([#620](https://github.com/topolvm/topolvm/pull/620))
   - **Note**: The PVC finalizer is not added to the existing PVCs. If the problem explained in [issue #614](https://github.com/topolvm/topolvm/issues/614) happens for those PVCs, you need to resolve it manually.
+- build(deps): bump actions/stale from 6 to 7 ([#628](https://github.com/topolvm/topolvm/pull/628))
+- Update go directive and use the version for setup-go ([#629](https://github.com/topolvm/topolvm/pull/629))
+- Make CI faster again ([#638](https://github.com/topolvm/topolvm/pull/638))
+- try to update go 1.19 to fix ci ([#652](https://github.com/topolvm/topolvm/pull/652))
+
+### Fixed
+
+- fix the proposal ([#642](https://github.com/topolvm/topolvm/pull/642))
+- fix: set default capacity to thin class capacity when default ([#632](https://github.com/topolvm/topolvm/pull/632))
+
+### Contributors
+
+- @bells17
+- @cupnes
+- @llamerada-jp
+- @peng225
+- @suleymanakbas91
+- @toshipp
 
 ## [0.17.0] - 2023-01-10
 
@@ -675,7 +705,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.17.0...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.18.0...HEAD
+[0.18.0]: https://github.com/topolvm/topolvm/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/topolvm/topolvm/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/topolvm/topolvm/compare/v0.15.3...v0.16.0
 [0.15.3]: https://github.com/topolvm/topolvm/compare/v0.15.2...v0.15.3
