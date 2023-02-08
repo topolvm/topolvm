@@ -88,7 +88,7 @@ func testCleanup() {
 		By("getting target pvcs/pods")
 		var targetPod *corev1.Pod
 		targetNode := "topolvm-e2e-worker3"
-		stdout, stderr, err = kubectl("-n", cleanupTest, "get", "pods", "-o=json")
+		stdout, _, err = kubectl("-n", cleanupTest, "get", "pods", "-o=json")
 		Expect(err).ShouldNot(HaveOccurred())
 		var pods corev1.PodList
 		err = json.Unmarshal(stdout, &pods)
