@@ -7,10 +7,11 @@ import (
 )
 
 type vg struct {
-	name string
-	uuid string
-	size uint64
-	free uint64
+	name    string
+	uuid    string
+	size    uint64
+	free    uint64
+	pvCount uint64
 }
 
 type lv struct {
@@ -37,10 +38,11 @@ func (u *lv) isThinPool() bool {
 
 func (u *vg) UnmarshalJSON(data []byte) error {
 	type vgInternal struct {
-		Name string `json:"vg_name"`
-		UUID string `json:"vg_uuid"`
-		Size string `json:"vg_size"`
-		Free string `json:"vg_free"`
+		Name    string `json:"vg_name"`
+		UUID    string `json:"vg_uuid"`
+		Size    string `json:"vg_size"`
+		Free    string `json:"vg_free"`
+		PvCount string `json:"pv_count"`
 	}
 
 	var temp vgInternal
@@ -57,6 +59,11 @@ func (u *vg) UnmarshalJSON(data []byte) error {
 		return convErr
 	}
 	u.free, convErr = strconv.ParseUint(temp.Free, 10, 64)
+	if convErr != nil {
+		return convErr
+	}
+
+	u.pvCount, convErr = strconv.ParseUint(temp.PvCount, 10, 64)
 	if convErr != nil {
 		return convErr
 	}
@@ -162,7 +169,7 @@ func getLVMState() ([]vg, []lv, error) {
 	args := []string{
 		"--reportformat", "json",
 		"--units", "b", "--nosuffix",
-		"--configreport", "vg", "-o", "vg_name,vg_uuid,vg_size,vg_free",
+		"--configreport", "vg", "-o", "vg_name,vg_uuid,vg_size,vg_free,pv_count",
 		"--configreport", "lv", "-o", "lv_uuid,lv_name,lv_full_name,lv_path,lv_size," +
 			"lv_kernel_major,lv_kernel_minor,origin,origin_size,pool_lv,lv_tags," +
 			"lv_attr,vg_name,data_percent,metadata_percent,pool_lv",

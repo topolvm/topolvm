@@ -261,6 +261,7 @@ Represents the response corresponding to device class targets.
 | free_bytes | [uint64](#uint64) |  | Free space in the volume group in bytes. |
 | device_class | [string](#string) |  |  |
 | size_bytes | [uint64](#uint64) |  | Size of volume group in bytes. |
+| pv_count | [uint64](#uint64) |  | Number of PVs in volume group. |
 | thin_pool | [ThinPoolItem](#proto.ThinPoolItem) |  |  |
 
 

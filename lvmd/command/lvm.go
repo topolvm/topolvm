@@ -102,6 +102,10 @@ func (g *VolumeGroup) Free() (uint64, error) {
 	return g.state.free, nil
 }
 
+func (g *VolumeGroup) PVCount() (uint64, error) {
+	return g.state.pvCount, nil
+}
+
 // CreateVolumeGroup calls "vgcreate" to create a volume group.
 // name is for creating volume name. device is path to a PV.
 func CreateVolumeGroup(name, device string) (*VolumeGroup, error) {

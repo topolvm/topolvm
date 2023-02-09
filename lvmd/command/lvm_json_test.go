@@ -17,7 +17,8 @@ func TestLvmJSON(t *testing.T) {
 				"vg_name": "myvg1",
 				"vg_uuid": "P8en82-LNUe-MERd-mOTT-XlAS-fkp8-1bleiB",
 				"vg_size": "2199014866944",
-				"vg_free": "2198482190336"
+				"vg_free": "2198482190336",
+			  	"pv_count": "5"
 			  }
 			],
 			"pv": [
@@ -161,6 +162,10 @@ func TestLvmJSON(t *testing.T) {
 	if vg.free != 2198482190336 {
 		t.Fatal("Incorrect vg.free: ", vg.free)
 	}
+
+	if vg.pvCount != 5 {
+		t.Fatal("Incorrect vg.pvCount: ", vg.pvCount)
+	}
 }
 
 func TestLvmInactiveMajorMinor(t *testing.T) {
@@ -173,7 +178,8 @@ func TestLvmInactiveMajorMinor(t *testing.T) {
 			  "vg_name": "myvg1",
 			  "vg_uuid": "P8en82-LNUe-MERd-mOTT-XlAS-fkp8-1bleiB",
 			  "vg_size": "2199014866944",
-			  "vg_free": "2198482190336"
+			  "vg_free": "2198482190336",
+			  "pv_count": "5"
 			}
 		  ],
 		  "pv": [

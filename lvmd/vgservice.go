@@ -150,6 +150,10 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 		if err != nil {
 			return status.Error(codes.Internal, err.Error())
 		}
+		pvCount, err := vg.PVCount()
+		if err != nil {
+			return status.Error(codes.Internal, err.Error())
+		}
 
 		for _, pool := range vg.ListPools() {
 			dc, err := s.dcManager.FindDeviceClassByThinPoolName(vg.Name(), pool.Name())
@@ -188,6 +192,7 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 				DeviceClass: dc.Name,
 				FreeBytes:   vgFree,
 				SizeBytes:   vgSize,
+				PvCount:     pvCount,
 				ThinPool:    tpi,
 			})
 		}
@@ -212,6 +217,7 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 			DeviceClass: dc.Name,
 			FreeBytes:   vgFree,
 			SizeBytes:   vgSize,
+			PvCount:     pvCount,
 		})
 	}
 	return server.Send(res)

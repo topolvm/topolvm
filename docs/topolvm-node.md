@@ -53,6 +53,14 @@ free space in the LVM volume group in bytes.
 | `node`         | The node resource name |
 | `device_class` | The device class name. |
 
+### `topolvm_volumegroup_pv_count`
+
+`topolvm_volumegroup_pv_count` is a Gauge that indicates the number of Phyiscal Volumes in the LVM volume group.
+
+| Label          | Description            |
+| -------------- | ---------------------- |
+| `node`         | The node resource name |
+| `device_class` | The device class name. |
 
 ### `topolvm_thinpool_data_percent`
 

@@ -34,6 +34,7 @@ type NodeMetrics struct {
 	MetadataPercent    float64
 	FreeBytes          uint64
 	SizeBytes          uint64
+	PVCount            uint64
 	ThinPoolSizeBytes  uint64
 	OverProvisionBytes uint64
 	DeviceClass        string
@@ -54,6 +55,7 @@ type metricsExporter struct {
 	vgService      proto.VGServiceClient
 	availableBytes *prometheus.GaugeVec
 	sizeBytes      *prometheus.GaugeVec
+	pvCount        *prometheus.GaugeVec
 	thinPool       *thinPoolMetricsExporter
 }
 
@@ -81,6 +83,15 @@ func NewMetricsExporter(conn *grpc.ClientConn, client client.Client, nodeName st
 		ConstLabels: prometheus.Labels{"node": nodeName},
 	}, []string{"device_class"})
 	metrics.Registry.MustRegister(sizeBytes)
+
+	pvCount := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace:   metricsNamespace,
+		Subsystem:   "volumegroup",
+		Name:        "pv_count",
+		Help:        "PV count in LVM VG under lvmd management",
+		ConstLabels: prometheus.Labels{"node": nodeName},
+	}, []string{"device_class"})
+	metrics.Registry.MustRegister(pvCount)
 
 	// metrics available under thinpool subsystem
 	tpSizeBytes := prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -125,6 +136,7 @@ func NewMetricsExporter(conn *grpc.ClientConn, client client.Client, nodeName st
 		vgService:      proto.NewVGServiceClient(conn),
 		availableBytes: availableBytes,
 		sizeBytes:      sizeBytes,
+		pvCount:        pvCount,
 		thinPool: &thinPoolMetricsExporter{
 			tpSizeBytes:      tpSizeBytes,
 			dataPercent:      dataPercent,
@@ -147,6 +159,7 @@ func (m *metricsExporter) Start(ctx context.Context) error {
 				// metrics for volumegroup subsystem, these are exported from thinpool type as well
 				m.availableBytes.WithLabelValues(met.DeviceClass).Set(float64(met.FreeBytes))
 				m.sizeBytes.WithLabelValues(met.DeviceClass).Set(float64(met.SizeBytes))
+				m.pvCount.WithLabelValues(met.DeviceClass).Set(float64(met.PVCount))
 
 				if met.DeviceClassType == TypeThin {
 					// metrics for thinpool subsystem exclusively
@@ -190,6 +203,7 @@ func (m *metricsExporter) updateNode(ctx context.Context, wc proto.VGService_Wat
 					DeviceClass:        item.DeviceClass,
 					FreeBytes:          item.FreeBytes,
 					SizeBytes:          item.SizeBytes,
+					PVCount:            item.PvCount,
 					ThinPoolSizeBytes:  item.ThinPool.SizeBytes,
 					DataPercent:        item.ThinPool.DataPercent,
 					MetadataPercent:    item.ThinPool.MetadataPercent,
@@ -201,6 +215,7 @@ func (m *metricsExporter) updateNode(ctx context.Context, wc proto.VGService_Wat
 					DeviceClass:     item.DeviceClass,
 					FreeBytes:       item.FreeBytes,
 					SizeBytes:       item.SizeBytes,
+					PVCount:         item.PvCount,
 					DeviceClassType: TypeThick,
 				}
 			}

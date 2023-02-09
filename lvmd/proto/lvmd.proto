@@ -101,7 +101,8 @@ message WatchItem {
     uint64 free_bytes = 1; // Free space in the volume group in bytes.
     string device_class = 2;
     uint64 size_bytes = 3; // Size of volume group in bytes.
-    ThinPoolItem thin_pool = 4;
+    uint64 pv_count = 4; // Number of PVs in volume group.
+    ThinPoolItem thin_pool = 5;
 }
 
 // Service to manage logical volumes of the volume group.
