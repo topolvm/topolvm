@@ -1,6 +1,6 @@
 // Package v1 contains API Schema definitions for the topolvm v1 API group
-//+kubebuilder:object:generate=true
-//+groupName=topolvm.io
+// +kubebuilder:object:generate=true
+// +groupName=topolvm.io
 package v1
 
 import (
