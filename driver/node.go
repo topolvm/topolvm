@@ -389,7 +389,7 @@ func (s *nodeService) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVo
 
 	var sfs unix.Statfs_t
 	if err := filesystem.Statfs(p, &sfs); err != nil {
-		return nil, status.Errorf(codes.Internal, "statvfs on %s was failed: %v", p, err)
+		return nil, status.Errorf(codes.Internal, "statfs on %s was failed: %v", p, err)
 	}
 
 	var usage []*csi.VolumeUsage
