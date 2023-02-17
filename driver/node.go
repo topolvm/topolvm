@@ -272,13 +272,13 @@ func (s *nodeService) getLvFromContext(ctx context.Context, deviceClass, volumeI
 }
 
 func (s *nodeService) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
-	volID := req.GetVolumeId()
+	volumeID := req.GetVolumeId()
 	target := req.GetTargetPath()
 	nodeLogger.Info("NodeUnpublishVolume called",
-		"volume_id", volID,
+		"volume_id", volumeID,
 		"target_path", target)
 
-	if len(volID) == 0 {
+	if len(volumeID) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "no volume_id is provided")
 	}
 	if len(target) == 0 {
@@ -288,7 +288,7 @@ func (s *nodeService) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	device := filepath.Join(DeviceDirectory, volID)
+	device := filepath.Join(DeviceDirectory, volumeID)
 
 	info, err := os.Stat(target)
 	if os.IsNotExist(err) {
@@ -350,34 +350,34 @@ func (s *nodeService) nodeUnpublishBlockVolume(req *csi.NodeUnpublishVolumeReque
 }
 
 func (s *nodeService) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
-	volID := req.GetVolumeId()
-	p := req.GetVolumePath()
-	nodeLogger.Info("NodeGetVolumeStats is called", "volume_id", volID, "volume_path", p)
-	if len(volID) == 0 {
+	volumeID := req.GetVolumeId()
+	volumePath := req.GetVolumePath()
+	nodeLogger.Info("NodeGetVolumeStats is called", "volume_id", volumeID, "volume_path", volumePath)
+	if len(volumeID) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "no volume_id is provided")
 	}
-	if len(p) == 0 {
+	if len(volumePath) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "no volume_path is provided")
 	}
 
 	var st unix.Stat_t
-	switch err := filesystem.Stat(p, &st); err {
+	switch err := filesystem.Stat(volumePath, &st); err {
 	case unix.ENOENT:
-		return nil, status.Error(codes.NotFound, "Volume is not found at "+p)
+		return nil, status.Error(codes.NotFound, "Volume is not found at "+volumePath)
 	case nil:
 	default:
-		return nil, status.Errorf(codes.Internal, "stat on %s was failed: %v", p, err)
+		return nil, status.Errorf(codes.Internal, "stat on %s was failed: %v", volumePath, err)
 	}
 
 	if (st.Mode & unix.S_IFMT) == unix.S_IFBLK {
-		f, err := os.Open(p)
+		f, err := os.Open(volumePath)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "open on %s was failed: %v", p, err)
+			return nil, status.Errorf(codes.Internal, "open on %s was failed: %v", volumePath, err)
 		}
 		defer f.Close()
 		pos, err := f.Seek(0, io.SeekEnd)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "seek on %s was failed: %v", p, err)
+			return nil, status.Errorf(codes.Internal, "seek on %s was failed: %v", volumePath, err)
 		}
 		return &csi.NodeGetVolumeStatsResponse{
 			Usage: []*csi.VolumeUsage{{Total: pos, Unit: csi.VolumeUsage_BYTES}},
@@ -385,12 +385,12 @@ func (s *nodeService) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVo
 	}
 
 	if st.Mode&unix.S_IFDIR == 0 {
-		return nil, status.Errorf(codes.Internal, "invalid mode bits for %s: %d", p, st.Mode)
+		return nil, status.Errorf(codes.Internal, "invalid mode bits for %s: %d", volumePath, st.Mode)
 	}
 
 	var sfs unix.Statfs_t
-	if err := filesystem.Statfs(p, &sfs); err != nil {
-		return nil, status.Errorf(codes.Internal, "statfs on %s was failed: %v", p, err)
+	if err := filesystem.Statfs(volumePath, &sfs); err != nil {
+		return nil, status.Errorf(codes.Internal, "statfs on %s was failed: %v", volumePath, err)
 	}
 
 	var usage []*csi.VolumeUsage
@@ -414,20 +414,20 @@ func (s *nodeService) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVo
 }
 
 func (s *nodeService) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
-	vid := req.GetVolumeId()
-	vpath := req.GetVolumePath()
+	volumeID := req.GetVolumeId()
+	volumePath := req.GetVolumePath()
 
 	nodeLogger.Info("NodeExpandVolume is called",
-		"volume_id", vid,
-		"volume_path", vpath,
+		"volume_id", volumeID,
+		"volume_path", volumePath,
 		"required", req.GetCapacityRange().GetRequiredBytes(),
 		"limit", req.GetCapacityRange().GetLimitBytes(),
 	)
 
-	if len(vid) == 0 {
+	if len(volumeID) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "no volume_id is provided")
 	}
-	if len(vpath) == 0 {
+	if len(volumePath) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "no volume_path is provided")
 	}
 
@@ -440,37 +440,37 @@ func (s *nodeService) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 
 	// Device type (block or fs, fs type detection) checking will be removed after CSI v1.2.0
 	// because `volume_capability` field will be added in csi.NodeExpandVolumeRequest
-	info, err := os.Stat(vpath)
+	info, err := os.Stat(volumePath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, status.Errorf(codes.NotFound, "volume path is not exist: %s", vpath)
+			return nil, status.Errorf(codes.NotFound, "volume path is not exist: %s", volumePath)
 		}
-		return nil, status.Errorf(codes.Internal, "stat failed for %s: %v", vpath, err)
+		return nil, status.Errorf(codes.Internal, "stat failed for %s: %v", volumePath, err)
 	}
 
 	isBlock := !info.IsDir()
 	if isBlock {
 		nodeLogger.Info("NodeExpandVolume(block) is skipped",
-			"volume_id", vid,
-			"target_path", vpath,
+			"volume_id", volumeID,
+			"target_path", volumePath,
 		)
 		return &csi.NodeExpandVolumeResponse{}, nil
 	}
 
-	device := filepath.Join(DeviceDirectory, vid)
-	lvr, err := s.k8sLVService.GetVolume(ctx, vid)
+	device := filepath.Join(DeviceDirectory, volumeID)
+	lvr, err := s.k8sLVService.GetVolume(ctx, volumeID)
 	deviceClass := topolvm.DefaultDeviceClassName
 	if err == nil {
 		deviceClass = lvr.Spec.DeviceClass
 	} else if err != k8s.ErrVolumeNotFound {
 		return nil, err
 	}
-	lv, err := s.getLvFromContext(ctx, deviceClass, vid)
+	lv, err := s.getLvFromContext(ctx, deviceClass, volumeID)
 	if err != nil {
 		return nil, err
 	}
 	if lv == nil {
-		return nil, status.Errorf(codes.NotFound, "failed to find LV: %s", vid)
+		return nil, status.Errorf(codes.NotFound, "failed to find LV: %s", volumeID)
 	}
 	err = s.createDeviceIfNeeded(device, lv)
 	if err != nil {
@@ -485,20 +485,20 @@ func (s *nodeService) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 
 	devicePath := strings.TrimSpace(string(output))
 	if len(devicePath) == 0 {
-		return nil, status.Errorf(codes.Internal, "filesystem %s is not mounted at %s", vid, vpath)
+		return nil, status.Errorf(codes.Internal, "filesystem %s is not mounted at %s", volumeID, volumePath)
 	}
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	r := mountutil.NewResizeFs(s.mounter.Exec)
-	if _, err := r.Resize(device, vpath); err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to resize filesystem %s (mounted at: %s): %v", vid, vpath, err)
+	if _, err := r.Resize(device, volumePath); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to resize filesystem %s (mounted at: %s): %v", volumeID, volumePath, err)
 	}
 
 	nodeLogger.Info("NodeExpandVolume(fs) is succeeded",
-		"volume_id", vid,
-		"target_path", vpath,
+		"volume_id", volumeID,
+		"target_path", volumePath,
 	)
 
 	// `capacity_bytes` in NodeExpandVolumeResponse is defined as OPTIONAL.
