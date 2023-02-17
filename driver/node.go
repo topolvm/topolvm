@@ -301,48 +301,52 @@ func (s *nodeService) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 
 	// remove device file if target_path is device, unmount target_path otherwise
 	if info.IsDir() {
-		return s.nodeUnpublishFilesystemVolume(req, device)
+		err = s.nodeUnpublishFilesystemVolume(req, device)
 	} else {
-		return s.nodeUnpublishBlockVolume(req)
+		err = s.nodeUnpublishBlockVolume(req)
 	}
+	if err != nil {
+		return nil, err
+	}
+	return &csi.NodeUnpublishVolumeResponse{}, nil
 }
 
-func (s *nodeService) nodeUnpublishFilesystemVolume(req *csi.NodeUnpublishVolumeRequest, device string) (*csi.NodeUnpublishVolumeResponse, error) {
+func (s *nodeService) nodeUnpublishFilesystemVolume(req *csi.NodeUnpublishVolumeRequest, device string) error {
 	target := req.GetTargetPath()
 
 	mounted, err := filesystem.IsMounted(device, target)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "mount check failed: target=%s, error=%v", target, err)
+		return status.Errorf(codes.Internal, "mount check failed: target=%s, error=%v", target, err)
 	}
 	if mounted {
 		if err := s.mounter.Unmount(target); err != nil {
-			return nil, status.Errorf(codes.Internal, "unmount failed for %s: error=%v", target, err)
+			return status.Errorf(codes.Internal, "unmount failed for %s: error=%v", target, err)
 		}
 	}
 
 	if err := os.RemoveAll(target); err != nil {
-		return nil, status.Errorf(codes.Internal, "remove dir failed for %s: error=%v", target, err)
+		return status.Errorf(codes.Internal, "remove dir failed for %s: error=%v", target, err)
 	}
 
 	err = os.Remove(device)
 	if err != nil && !os.IsNotExist(err) {
-		return nil, status.Errorf(codes.Internal, "remove device failed for %s: error=%v", device, err)
+		return status.Errorf(codes.Internal, "remove device failed for %s: error=%v", device, err)
 	}
 
 	nodeLogger.Info("NodeUnpublishVolume(fs) is succeeded",
 		"volume_id", req.GetVolumeId(),
 		"target_path", target)
-	return &csi.NodeUnpublishVolumeResponse{}, nil
+	return nil
 }
 
-func (s *nodeService) nodeUnpublishBlockVolume(req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
+func (s *nodeService) nodeUnpublishBlockVolume(req *csi.NodeUnpublishVolumeRequest) error {
 	if err := os.Remove(req.GetTargetPath()); err != nil {
-		return nil, status.Errorf(codes.Internal, "remove failed for %s: error=%v", req.GetTargetPath(), err)
+		return status.Errorf(codes.Internal, "remove failed for %s: error=%v", req.GetTargetPath(), err)
 	}
 	nodeLogger.Info("NodeUnpublishVolume(block) is succeeded",
 		"volume_id", req.GetVolumeId(),
 		"target_path", req.GetTargetPath())
-	return &csi.NodeUnpublishVolumeResponse{}, nil
+	return nil
 }
 
 func (s *nodeService) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
