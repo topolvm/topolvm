@@ -7,6 +7,30 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [11.1.0] - 2023-02-20
+
+### Added
+
+- Revert "Drop a PVC finalizer to delete pods(#536)" ([#620](https://github.com/topolvm/topolvm/pull/620))
+- Add the lvcreate-option-on-storageclass proposal implementation ([#640](https://github.com/topolvm/topolvm/pull/640))
+- artifacthub ([#641](https://github.com/topolvm/topolvm/pull/641))
+
+### Changed
+
+- Remove metrics annotation from lvmd daemonset ([#643](https://github.com/topolvm/topolvm/pull/643))
+- build(deps): bump helm/chart-releaser-action from 1.4.1 to 1.5.0 ([#649](https://github.com/topolvm/topolvm/pull/649))
+
+### Fixed
+
+- fix($charts):snapshotter ClusterRoleBinding name error #635 ([#637](https://github.com/topolvm/topolvm/pull/637))
+
+### Contributors
+
+- @bells17
+- @peng225
+- @syang1997
+- @Thor77
+
 ## [11.0.1] - 2022-01-10
 
 ### Changed
@@ -236,7 +260,8 @@ This release contains the domain name change([#592](https://github.com/topolvm/t
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.0.1...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.1.0...HEAD
+[11.1.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.0.1...topolvm-chart-v11.1.0
 [11.0.1]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.0.0...topolvm-chart-v11.0.1
 [11.0.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v10.0.0...topolvm-chart-v11.0.0
 [10.0.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v9.1.0...topolvm-chart-v10.0.0
