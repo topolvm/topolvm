@@ -55,29 +55,22 @@ Bump version
     $ git checkout -b bump-$VERSION
     ```
 
-3. Update image versions in files below:
-   - example/Makefile
-   - example/README.md
-    ```console
-    $ sed -r -i "s/TOPOLVM_VERSION := [[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/TOPOLVM_VERSION := ${VERSION}/g" example/Makefile
-    $ sed -r -i "s/checkout v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/checkout v${VERSION}/g" example/README.md
-    ```
-4. Edit `CHANGELOG.md` for the new version ([example][]).
+3. Edit `CHANGELOG.md` for the new version ([example][]).
    The candidate of relevant PRs can be obtained by the following command.
    ```
    git log --merges --format="%s%x00%b" $(git tag | grep "^v" | sort -V -r | head -n 1)..main | sed -E 's|^Merge pull request #([0-9]*)[^\x0]*\x0(.*)|- \2 ([#\1](https://github.com/topolvm/topolvm/pull/\1))|' | tac
    ```
    Please remove PRs which contain changes only to the helm chart.
 
-5. Commit the change and create a pull request:
+4. Commit the change and create a pull request:
 
     ```console
     $ git commit -a -s -m "Bump version to $VERSION"
     $ git push -u origin bump-$VERSION
     ```
 
-6. Create new pull request and merge it.
-7. Add a new tag and push it as follows:
+5. Create new pull request and merge it.
+6. Add a new tag and push it as follows:
 
     ```console
     $ git checkout main
@@ -120,8 +113,12 @@ This will prevent the TopoLVM version from going up just by modifying the Helm C
     ```
 
 3. Update image versions in files below:
+   - example/Makefile
+   - example/README.md
    - charts/topolvm/Chart.yaml
     ```console
+    $ sed -r -i "s/TOPOLVM_VERSION := [[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/TOPOLVM_VERSION := ${APPVERSION}/g" example/Makefile
+    $ sed -r -i "s/checkout v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/checkout v${APPVERSION}/g" example/README.md
     $ sed -r -i "s/appVersion: [[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/appVersion: ${APPVERSION}/g" charts/topolvm/Chart.yaml
     $ sed -r -i "s/^version: [[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/version: ${CHARTVERSION}/g" charts/topolvm/Chart.yaml
     $ sed -r -i "s/ghcr.io\/topolvm\/topolvm-with-sidecar:[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/ghcr.io\/topolvm\/topolvm-with-sidecar:${APPVERSION}/g" charts/topolvm/Chart.yaml
