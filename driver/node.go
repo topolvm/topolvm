@@ -27,10 +27,6 @@ const (
 	// DeviceDirectory is a directory where TopoLVM Node service creates device files.
 	DeviceDirectory = "/dev/topolvm"
 
-	mkfsCmd          = "/sbin/mkfs"
-	mountCmd         = "/bin/mount"
-	mountpointCmd    = "/bin/mountpoint"
-	umountCmd        = "/bin/umount"
 	findmntCmd       = "/bin/findmnt"
 	devicePermission = 0600 | unix.S_IFBLK
 )
