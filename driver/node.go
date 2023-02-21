@@ -33,9 +33,9 @@ const (
 
 var nodeLogger = ctrl.Log.WithName("driver").WithName("node")
 
-// NewNodeService returns a new NodeServer.
-func NewNodeService(nodeName string, conn *grpc.ClientConn, service *k8s.LogicalVolumeService) csi.NodeServer {
-	return &nodeService{
+// NewNodeServer returns a new NodeServer.
+func NewNodeServer(nodeName string, conn *grpc.ClientConn, service *k8s.LogicalVolumeService) csi.NodeServer {
+	return &nodeServer{
 		nodeName:     nodeName,
 		client:       proto.NewVGServiceClient(conn),
 		lvService:    proto.NewLVServiceClient(conn),
@@ -47,7 +47,7 @@ func NewNodeService(nodeName string, conn *grpc.ClientConn, service *k8s.Logical
 	}
 }
 
-type nodeService struct {
+type nodeServer struct {
 	csi.UnimplementedNodeServer
 
 	nodeName     string
@@ -58,7 +58,7 @@ type nodeService struct {
 	mounter      mountutil.SafeFormatAndMount
 }
 
-func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
+func (s *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
 	volumeContext := req.GetVolumeContext()
 	volumeID := req.GetVolumeId()
 
@@ -123,7 +123,7 @@ func (s *nodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	return &csi.NodePublishVolumeResponse{}, nil
 }
 
-func (s *nodeService) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequest, lv *proto.LogicalVolume) error {
+func (s *nodeServer) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequest, lv *proto.LogicalVolume) error {
 	// Check request
 	mountOption := req.GetVolumeCapability().GetMount()
 	if mountOption.FsType == "" {
@@ -190,7 +190,7 @@ func (s *nodeService) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequ
 	return nil
 }
 
-func (s *nodeService) createDeviceIfNeeded(device string, lv *proto.LogicalVolume) error {
+func (s *nodeServer) createDeviceIfNeeded(device string, lv *proto.LogicalVolume) error {
 	var stat unix.Stat_t
 	err := filesystem.Stat(device, &stat)
 	switch err {
@@ -221,7 +221,7 @@ func (s *nodeService) createDeviceIfNeeded(device string, lv *proto.LogicalVolum
 	return nil
 }
 
-func (s *nodeService) nodePublishBlockVolume(req *csi.NodePublishVolumeRequest, lv *proto.LogicalVolume) error {
+func (s *nodeServer) nodePublishBlockVolume(req *csi.NodePublishVolumeRequest, lv *proto.LogicalVolume) error {
 	// Find lv and create a block device with it
 	targetPath := req.GetTargetPath()
 	err := s.createDeviceIfNeeded(targetPath, lv)
@@ -235,7 +235,7 @@ func (s *nodeService) nodePublishBlockVolume(req *csi.NodePublishVolumeRequest, 
 	return nil
 }
 
-func (s *nodeService) findVolumeByID(listResp *proto.GetLVListResponse, name string) *proto.LogicalVolume {
+func (s *nodeServer) findVolumeByID(listResp *proto.GetLVListResponse, name string) *proto.LogicalVolume {
 	for _, v := range listResp.Volumes {
 		if v.Name == name {
 			return v
@@ -244,7 +244,7 @@ func (s *nodeService) findVolumeByID(listResp *proto.GetLVListResponse, name str
 	return nil
 }
 
-func (s *nodeService) getLvFromContext(ctx context.Context, deviceClass, volumeID string) (*proto.LogicalVolume, error) {
+func (s *nodeServer) getLvFromContext(ctx context.Context, deviceClass, volumeID string) (*proto.LogicalVolume, error) {
 	listResp, err := s.client.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: deviceClass})
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list LV: %v", err)
@@ -252,7 +252,7 @@ func (s *nodeService) getLvFromContext(ctx context.Context, deviceClass, volumeI
 	return s.findVolumeByID(listResp, volumeID), nil
 }
 
-func (s *nodeService) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
+func (s *nodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
 	volumeID := req.GetVolumeId()
 	targetPath := req.GetTargetPath()
 	nodeLogger.Info("NodeUnpublishVolume called",
@@ -292,7 +292,7 @@ func (s *nodeService) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 	return &csi.NodeUnpublishVolumeResponse{}, nil
 }
 
-func (s *nodeService) nodeUnpublishFilesystemVolume(req *csi.NodeUnpublishVolumeRequest, device string) error {
+func (s *nodeServer) nodeUnpublishFilesystemVolume(req *csi.NodeUnpublishVolumeRequest, device string) error {
 	targetPath := req.GetTargetPath()
 
 	mounted, err := filesystem.IsMounted(device, targetPath)
@@ -320,7 +320,7 @@ func (s *nodeService) nodeUnpublishFilesystemVolume(req *csi.NodeUnpublishVolume
 	return nil
 }
 
-func (s *nodeService) nodeUnpublishBlockVolume(req *csi.NodeUnpublishVolumeRequest) error {
+func (s *nodeServer) nodeUnpublishBlockVolume(req *csi.NodeUnpublishVolumeRequest) error {
 	if err := os.Remove(req.GetTargetPath()); err != nil {
 		return status.Errorf(codes.Internal, "remove failed for %s: error=%v", req.GetTargetPath(), err)
 	}
@@ -330,7 +330,7 @@ func (s *nodeService) nodeUnpublishBlockVolume(req *csi.NodeUnpublishVolumeReque
 	return nil
 }
 
-func (s *nodeService) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
+func (s *nodeServer) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
 	volumeID := req.GetVolumeId()
 	volumePath := req.GetVolumePath()
 	nodeLogger.Info("NodeGetVolumeStats is called", "volume_id", volumeID, "volume_path", volumePath)
@@ -394,7 +394,7 @@ func (s *nodeService) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVo
 	return &csi.NodeGetVolumeStatsResponse{Usage: usage}, nil
 }
 
-func (s *nodeService) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
+func (s *nodeServer) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
 	volumeID := req.GetVolumeId()
 	volumePath := req.GetVolumePath()
 
@@ -489,7 +489,7 @@ func (s *nodeService) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 	return &csi.NodeExpandVolumeResponse{}, nil
 }
 
-func (s *nodeService) NodeGetCapabilities(context.Context, *csi.NodeGetCapabilitiesRequest) (*csi.NodeGetCapabilitiesResponse, error) {
+func (s *nodeServer) NodeGetCapabilities(context.Context, *csi.NodeGetCapabilitiesRequest) (*csi.NodeGetCapabilitiesResponse, error) {
 	capabilities := []csi.NodeServiceCapability_RPC_Type{
 		csi.NodeServiceCapability_RPC_GET_VOLUME_STATS,
 		csi.NodeServiceCapability_RPC_EXPAND_VOLUME,
@@ -511,7 +511,7 @@ func (s *nodeService) NodeGetCapabilities(context.Context, *csi.NodeGetCapabilit
 	}, nil
 }
 
-func (s *nodeService) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
+func (s *nodeServer) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
 	return &csi.NodeGetInfoResponse{
 		NodeId: s.nodeName,
 		AccessibleTopology: &csi.Topology{
