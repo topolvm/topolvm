@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/topolvm/topolvm"
@@ -26,6 +25,7 @@ import (
 var ErrVolumeNotFound = errors.New("VolumeID is not found")
 
 // LogicalVolumeService represents service for LogicalVolume.
+// This is not concurrent safe, must take lock on caller.
 type LogicalVolumeService struct {
 	writer interface {
 		client.Writer
@@ -33,7 +33,6 @@ type LogicalVolumeService struct {
 	}
 	getter       getter.Interface
 	volumeGetter *volumeGetter
-	mu           sync.Mutex
 }
 
 const (
@@ -153,8 +152,6 @@ func NewLogicalVolumeService(mgr manager.Manager) (*LogicalVolumeService, error)
 // CreateVolume creates volume
 func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, dc, oc, name, sourceName string, requestGb int64) (string, error) {
 	logger.Info("k8s.CreateVolume called", "name", name, "node", node, "size_gb", requestGb, "sourceName", sourceName)
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	var lv *topolvmv1.LogicalVolume
 	// if the create volume request has no source, proceed with regular lv creation.
 	if sourceName == "" {
@@ -304,8 +301,6 @@ func (s *LogicalVolumeService) CreateSnapshot(ctx context.Context, node, dc, sou
 // ExpandVolume expands volume
 func (s *LogicalVolumeService) ExpandVolume(ctx context.Context, volumeID string, requestGb int64) error {
 	logger.Info("k8s.ExpandVolume called", "volumeID", volumeID, "requestGb", requestGb)
-	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	lv, err := s.GetVolume(ctx, volumeID)
 	if err != nil {

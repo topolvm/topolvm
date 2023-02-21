@@ -11,7 +11,7 @@ import (
 
 	"github.com/topolvm/topolvm"
 	"github.com/topolvm/topolvm/csi"
-	"github.com/topolvm/topolvm/driver/k8s"
+	"github.com/topolvm/topolvm/driver/internal/k8s"
 	"github.com/topolvm/topolvm/filesystem"
 	"github.com/topolvm/topolvm/lvmd/proto"
 	"golang.org/x/sys/unix"
@@ -21,6 +21,7 @@ import (
 	mountutil "k8s.io/mount-utils"
 	utilexec "k8s.io/utils/exec"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 const (
@@ -34,19 +35,24 @@ const (
 var nodeLogger = ctrl.Log.WithName("driver").WithName("node")
 
 // NewNodeServer returns a new NodeServer.
-func NewNodeServer(nodeName string, conn *grpc.ClientConn, service *k8s.LogicalVolumeService) csi.NodeServer {
+func NewNodeServer(nodeName string, conn *grpc.ClientConn, mgr manager.Manager) (csi.NodeServer, error) {
+	lvService, err := k8s.NewLogicalVolumeService(mgr)
+	if err != nil {
+		return nil, err
+	}
+
 	return &nodeServer{
 		server: &nodeServerNoLocked{
 			nodeName:     nodeName,
 			client:       proto.NewVGServiceClient(conn),
 			lvService:    proto.NewLVServiceClient(conn),
-			k8sLVService: service,
+			k8sLVService: lvService,
 			mounter: mountutil.SafeFormatAndMount{
 				Interface: mountutil.New(""),
 				Exec:      utilexec.New(),
 			},
 		},
-	}
+	}, nil
 }
 
 // This is a wrapper for nodeServerNoLocked to protect concurrent method calls.

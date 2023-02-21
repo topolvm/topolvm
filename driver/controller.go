@@ -11,24 +11,30 @@ import (
 	"github.com/topolvm/topolvm"
 	v1 "github.com/topolvm/topolvm/api/v1"
 	"github.com/topolvm/topolvm/csi"
-	"github.com/topolvm/topolvm/driver/k8s"
+	"github.com/topolvm/topolvm/driver/internal/k8s"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 var ctrlLogger = ctrl.Log.WithName("driver").WithName("controller")
 
 // NewControllerServer returns a new ControllerServer.
-func NewControllerServer(lvService *k8s.LogicalVolumeService, nodeService *k8s.NodeService) csi.ControllerServer {
+func NewControllerServer(mgr manager.Manager) (csi.ControllerServer, error) {
+	lvService, err := k8s.NewLogicalVolumeService(mgr)
+	if err != nil {
+		return nil, err
+	}
+
 	return &controllerServer{
 		lockByName:     NewLockWithID(),
 		lockByVolumeID: NewLockWithID(),
 		server: &controllerServerNoLocked{
 			lvService:   lvService,
-			nodeService: nodeService,
+			nodeService: k8s.NewNodeService(mgr.GetClient()),
 		},
-	}
+	}, nil
 }
 
 // This is a wrapper for controllerServerNoLocked to protect concurrent method call.

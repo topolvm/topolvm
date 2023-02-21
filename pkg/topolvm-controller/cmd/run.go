@@ -13,7 +13,6 @@ import (
 	"github.com/topolvm/topolvm/controllers"
 	"github.com/topolvm/topolvm/csi"
 	"github.com/topolvm/topolvm/driver"
-	"github.com/topolvm/topolvm/driver/k8s"
 	"github.com/topolvm/topolvm/hook"
 	"github.com/topolvm/topolvm/runners"
 	"google.golang.org/grpc"
@@ -114,15 +113,13 @@ func subMain() error {
 	}
 
 	// Add gRPC server to manager.
-	s, err := k8s.NewLogicalVolumeService(mgr)
+	grpcServer := grpc.NewServer()
+	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityServer(checker.Ready))
+	controllerSever, err := driver.NewControllerServer(mgr)
 	if err != nil {
 		return err
 	}
-	n := k8s.NewNodeService(client)
-
-	grpcServer := grpc.NewServer()
-	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityServer(checker.Ready))
-	csi.RegisterControllerServer(grpcServer, driver.NewControllerServer(s, n))
+	csi.RegisterControllerServer(grpcServer, controllerSever)
 
 	// gRPC service itself should run even when the manager is *not* a leader
 	// because CSI sidecar containers choose a leader.
