@@ -13,23 +13,23 @@ import (
 
 var idLogger = ctrl.Log.WithName("driver").WithName("identity")
 
-// NewIdentityService returns a new IdentityServer.
+// NewIdentityServer returns a new IdentityServer.
 //
 // ready is a function to check the plugin status.
 // It should return non-nil error if the plugin is not healthy.
 // If the plugin is not yet ready, it should return (false, nil).
 // Otherwise, return (true, nil).
-func NewIdentityService(ready func() (bool, error)) csi.IdentityServer {
-	return &identityService{ready: ready}
+func NewIdentityServer(ready func() (bool, error)) csi.IdentityServer {
+	return &identityServer{ready: ready}
 }
 
-type identityService struct {
+type identityServer struct {
 	csi.UnimplementedIdentityServer
 
 	ready func() (bool, error)
 }
 
-func (s identityService) GetPluginInfo(ctx context.Context, req *csi.GetPluginInfoRequest) (*csi.GetPluginInfoResponse, error) {
+func (s identityServer) GetPluginInfo(ctx context.Context, req *csi.GetPluginInfoRequest) (*csi.GetPluginInfoResponse, error) {
 	idLogger.Info("GetPluginInfo", "req", req.String())
 	return &csi.GetPluginInfoResponse{
 		Name:          topolvm.GetPluginName(),
@@ -37,7 +37,7 @@ func (s identityService) GetPluginInfo(ctx context.Context, req *csi.GetPluginIn
 	}, nil
 }
 
-func (s identityService) GetPluginCapabilities(ctx context.Context, req *csi.GetPluginCapabilitiesRequest) (*csi.GetPluginCapabilitiesResponse, error) {
+func (s identityServer) GetPluginCapabilities(ctx context.Context, req *csi.GetPluginCapabilitiesRequest) (*csi.GetPluginCapabilitiesResponse, error) {
 	idLogger.Info("GetPluginCapabilities", "req", req.String())
 	return &csi.GetPluginCapabilitiesResponse{
 		Capabilities: []*csi.PluginCapability{
@@ -73,7 +73,7 @@ func (s identityService) GetPluginCapabilities(ctx context.Context, req *csi.Get
 	}, nil
 }
 
-func (s identityService) Probe(ctx context.Context, req *csi.ProbeRequest) (*csi.ProbeResponse, error) {
+func (s identityServer) Probe(ctx context.Context, req *csi.ProbeRequest) (*csi.ProbeResponse, error) {
 	idLogger.Info("Probe", "req", req.String())
 	ok, err := s.ready()
 	if err != nil {

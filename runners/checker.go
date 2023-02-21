@@ -64,7 +64,7 @@ func (c *readinessCheck) NeedLeaderElection() bool {
 	return false
 }
 
-// Ready can be passed to driver.NewIdentityService.
+// Ready can be passed to driver.NewIdentityServer.
 func (c *readinessCheck) Ready() (bool, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()

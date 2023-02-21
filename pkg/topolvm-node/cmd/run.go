@@ -103,7 +103,7 @@ func subMain() error {
 		return err
 	}
 	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(ErrorLoggingInterceptor))
-	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityService(checker.Ready))
+	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityServer(checker.Ready))
 	csi.RegisterNodeServer(grpcServer, driver.NewNodeServer(nodename, conn, s))
 	err = mgr.Add(runners.NewGRPCRunner(grpcServer, config.csiSocket, false))
 	if err != nil {
