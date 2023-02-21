@@ -122,7 +122,7 @@ func subMain() error {
 
 	grpcServer := grpc.NewServer()
 	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityServer(checker.Ready))
-	csi.RegisterControllerServer(grpcServer, driver.NewControllerService(s, n))
+	csi.RegisterControllerServer(grpcServer, driver.NewControllerServer(s, n))
 
 	// gRPC service itself should run even when the manager is *not* a leader
 	// because CSI sidecar containers choose a leader.
