@@ -36,29 +36,82 @@ var nodeLogger = ctrl.Log.WithName("driver").WithName("node")
 // NewNodeServer returns a new NodeServer.
 func NewNodeServer(nodeName string, conn *grpc.ClientConn, service *k8s.LogicalVolumeService) csi.NodeServer {
 	return &nodeServer{
-		nodeName:     nodeName,
-		client:       proto.NewVGServiceClient(conn),
-		lvService:    proto.NewLVServiceClient(conn),
-		k8sLVService: service,
-		mounter: mountutil.SafeFormatAndMount{
-			Interface: mountutil.New(""),
-			Exec:      utilexec.New(),
+		server: &nodeServerNoLocked{
+			nodeName:     nodeName,
+			client:       proto.NewVGServiceClient(conn),
+			lvService:    proto.NewLVServiceClient(conn),
+			k8sLVService: service,
+			mounter: mountutil.SafeFormatAndMount{
+				Interface: mountutil.New(""),
+				Exec:      utilexec.New(),
+			},
 		},
 	}
 }
 
+// This is a wrapper for nodeServerNoLocked to protect concurrent method calls.
 type nodeServer struct {
+	csi.UnimplementedNodeServer
+
+	// This protects concurrent nodeServerNoLocked method calls.
+	// We use a global lock because it assumes that each method does not take a long time,
+	// and we scare about wired behaviors from concurrent device or filesystem operations.
+	mu     sync.Mutex
+	server *nodeServerNoLocked
+}
+
+func (s *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return s.server.NodePublishVolume(ctx, req)
+}
+
+func (s *nodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return s.server.NodeUnpublishVolume(ctx, req)
+}
+
+func (s *nodeServer) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return s.server.NodeGetVolumeStats(ctx, req)
+}
+
+func (s *nodeServer) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return s.server.NodeExpandVolume(ctx, req)
+}
+
+func (s *nodeServer) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetCapabilitiesRequest) (*csi.NodeGetCapabilitiesResponse, error) {
+	// This returns constant value only, it is unnecessary to take lock.
+	return s.server.NodeGetCapabilities(ctx, req)
+}
+
+func (s *nodeServer) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
+	// This returns unmodified value only, it is unnecessary to take lock.
+	return s.server.NodeGetInfo(ctx, req)
+}
+
+// nodeServerNoLocked implements csi.NodeServer.
+// It does not take any lock, gRPC calls may be interleaved.
+// Therefore, must not use it directly.
+type nodeServerNoLocked struct {
 	csi.UnimplementedNodeServer
 
 	nodeName     string
 	client       proto.VGServiceClient
 	lvService    proto.LVServiceClient
 	k8sLVService *k8s.LogicalVolumeService
-	mu           sync.Mutex
 	mounter      mountutil.SafeFormatAndMount
 }
 
-func (s *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
+func (s *nodeServerNoLocked) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
 	volumeContext := req.GetVolumeContext()
 	volumeID := req.GetVolumeId()
 
@@ -94,9 +147,6 @@ func (s *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublish
 		return nil, status.Errorf(codes.FailedPrecondition, "unsupported access mode: %s (%d)", modeName, accessMode)
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	var lv *proto.LogicalVolume
 	var err error
 
@@ -123,7 +173,7 @@ func (s *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublish
 	return &csi.NodePublishVolumeResponse{}, nil
 }
 
-func (s *nodeServer) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequest, lv *proto.LogicalVolume) error {
+func (s *nodeServerNoLocked) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequest, lv *proto.LogicalVolume) error {
 	// Check request
 	mountOption := req.GetVolumeCapability().GetMount()
 	if mountOption.FsType == "" {
@@ -190,7 +240,7 @@ func (s *nodeServer) nodePublishFilesystemVolume(req *csi.NodePublishVolumeReque
 	return nil
 }
 
-func (s *nodeServer) createDeviceIfNeeded(device string, lv *proto.LogicalVolume) error {
+func (s *nodeServerNoLocked) createDeviceIfNeeded(device string, lv *proto.LogicalVolume) error {
 	var stat unix.Stat_t
 	err := filesystem.Stat(device, &stat)
 	switch err {
@@ -221,7 +271,7 @@ func (s *nodeServer) createDeviceIfNeeded(device string, lv *proto.LogicalVolume
 	return nil
 }
 
-func (s *nodeServer) nodePublishBlockVolume(req *csi.NodePublishVolumeRequest, lv *proto.LogicalVolume) error {
+func (s *nodeServerNoLocked) nodePublishBlockVolume(req *csi.NodePublishVolumeRequest, lv *proto.LogicalVolume) error {
 	// Find lv and create a block device with it
 	targetPath := req.GetTargetPath()
 	err := s.createDeviceIfNeeded(targetPath, lv)
@@ -235,7 +285,7 @@ func (s *nodeServer) nodePublishBlockVolume(req *csi.NodePublishVolumeRequest, l
 	return nil
 }
 
-func (s *nodeServer) findVolumeByID(listResp *proto.GetLVListResponse, name string) *proto.LogicalVolume {
+func (s *nodeServerNoLocked) findVolumeByID(listResp *proto.GetLVListResponse, name string) *proto.LogicalVolume {
 	for _, v := range listResp.Volumes {
 		if v.Name == name {
 			return v
@@ -244,7 +294,7 @@ func (s *nodeServer) findVolumeByID(listResp *proto.GetLVListResponse, name stri
 	return nil
 }
 
-func (s *nodeServer) getLvFromContext(ctx context.Context, deviceClass, volumeID string) (*proto.LogicalVolume, error) {
+func (s *nodeServerNoLocked) getLvFromContext(ctx context.Context, deviceClass, volumeID string) (*proto.LogicalVolume, error) {
 	listResp, err := s.client.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: deviceClass})
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list LV: %v", err)
@@ -252,7 +302,7 @@ func (s *nodeServer) getLvFromContext(ctx context.Context, deviceClass, volumeID
 	return s.findVolumeByID(listResp, volumeID), nil
 }
 
-func (s *nodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
+func (s *nodeServerNoLocked) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
 	volumeID := req.GetVolumeId()
 	targetPath := req.GetTargetPath()
 	nodeLogger.Info("NodeUnpublishVolume called",
@@ -265,9 +315,6 @@ func (s *nodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpub
 	if len(targetPath) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "no target_path is provided")
 	}
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	device := filepath.Join(DeviceDirectory, volumeID)
 
@@ -292,7 +339,7 @@ func (s *nodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpub
 	return &csi.NodeUnpublishVolumeResponse{}, nil
 }
 
-func (s *nodeServer) nodeUnpublishFilesystemVolume(req *csi.NodeUnpublishVolumeRequest, device string) error {
+func (s *nodeServerNoLocked) nodeUnpublishFilesystemVolume(req *csi.NodeUnpublishVolumeRequest, device string) error {
 	targetPath := req.GetTargetPath()
 
 	mounted, err := filesystem.IsMounted(device, targetPath)
@@ -320,7 +367,7 @@ func (s *nodeServer) nodeUnpublishFilesystemVolume(req *csi.NodeUnpublishVolumeR
 	return nil
 }
 
-func (s *nodeServer) nodeUnpublishBlockVolume(req *csi.NodeUnpublishVolumeRequest) error {
+func (s *nodeServerNoLocked) nodeUnpublishBlockVolume(req *csi.NodeUnpublishVolumeRequest) error {
 	if err := os.Remove(req.GetTargetPath()); err != nil {
 		return status.Errorf(codes.Internal, "remove failed for %s: error=%v", req.GetTargetPath(), err)
 	}
@@ -330,7 +377,7 @@ func (s *nodeServer) nodeUnpublishBlockVolume(req *csi.NodeUnpublishVolumeReques
 	return nil
 }
 
-func (s *nodeServer) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
+func (s *nodeServerNoLocked) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
 	volumeID := req.GetVolumeId()
 	volumePath := req.GetVolumePath()
 	nodeLogger.Info("NodeGetVolumeStats is called", "volume_id", volumeID, "volume_path", volumePath)
@@ -394,7 +441,7 @@ func (s *nodeServer) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVol
 	return &csi.NodeGetVolumeStatsResponse{Usage: usage}, nil
 }
 
-func (s *nodeServer) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
+func (s *nodeServerNoLocked) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
 	volumeID := req.GetVolumeId()
 	volumePath := req.GetVolumePath()
 
@@ -469,9 +516,6 @@ func (s *nodeServer) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVo
 		return nil, status.Errorf(codes.Internal, "filesystem %s is not mounted at %s", volumeID, volumePath)
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	r := mountutil.NewResizeFs(s.mounter.Exec)
 	if _, err := r.Resize(device, volumePath); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to resize filesystem %s (mounted at: %s): %v", volumeID, volumePath, err)
@@ -489,7 +533,7 @@ func (s *nodeServer) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVo
 	return &csi.NodeExpandVolumeResponse{}, nil
 }
 
-func (s *nodeServer) NodeGetCapabilities(context.Context, *csi.NodeGetCapabilitiesRequest) (*csi.NodeGetCapabilitiesResponse, error) {
+func (s *nodeServerNoLocked) NodeGetCapabilities(context.Context, *csi.NodeGetCapabilitiesRequest) (*csi.NodeGetCapabilitiesResponse, error) {
 	capabilities := []csi.NodeServiceCapability_RPC_Type{
 		csi.NodeServiceCapability_RPC_GET_VOLUME_STATS,
 		csi.NodeServiceCapability_RPC_EXPAND_VOLUME,
@@ -511,7 +555,7 @@ func (s *nodeServer) NodeGetCapabilities(context.Context, *csi.NodeGetCapabiliti
 	}, nil
 }
 
-func (s *nodeServer) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
+func (s *nodeServerNoLocked) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
 	return &csi.NodeGetInfoResponse{
 		NodeId: s.nodeName,
 		AccessibleTopology: &csi.Topology{
