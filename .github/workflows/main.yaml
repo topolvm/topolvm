@@ -47,6 +47,24 @@ jobs:
       - run: make setup-docker-buildx
       - run: make multi-platform-image-${{ matrix.image }}
 
+  container-structure-test:
+    name: "container-structure-test"
+    needs: build
+    runs-on: "ubuntu-20.04"
+    strategy:
+      fail-fast: true
+      matrix:
+        image:
+          - "normal"
+          - "with-sidecar"
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - run: make install-container-structure-test
+      - run: make image-${{ matrix.image }}
+      - run: make container-structure-test STRUCTURE_TEST_TARGET=${{ matrix.image }}
+
   example:
     name: "example"
     runs-on: "ubuntu-20.04"

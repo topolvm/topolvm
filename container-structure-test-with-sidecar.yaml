@@ -1,0 +1,22 @@
+schemaVersion: '2.0.0'
+fileExistenceTests:
+- name: '/csi-provisioner'
+  path: '/csi-provisioner'
+  shouldExist: true
+  isExecutableBy: 'owner'
+- name: '/csi-node-driver-registrar'
+  path: '/csi-node-driver-registrar'
+  shouldExist: true
+  isExecutableBy: 'owner'
+- name: '/csi-resizer'
+  path: '/csi-resizer'
+  shouldExist: true
+  isExecutableBy: 'owner'
+- name: '/csi-snapshotter'
+  path: '/csi-snapshotter'
+  shouldExist: true
+  isExecutableBy: 'owner'
+- name: '/livenessprobe'
+  path: '/livenessprobe'
+  shouldExist: true
+  isExecutableBy: 'owner'

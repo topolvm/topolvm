@@ -10,6 +10,7 @@ HELM_DOCS_VERSION=1.11.0
 CHART_TESTING_VERSION=3.7.1
 YQ_VERSION=4.18.1
 BUILDX_VERSION=0.9.1
+CONTAINER_STRUCTURE_TEST_VERSION=1.14.0
 GINKGO_VERSION := $(shell awk '/github.com\/onsi\/ginkgo\/v2/ {print substr($$2, 2)}' go.mod)
 
 SUDO := sudo
@@ -17,6 +18,7 @@ CURL := curl -sSLf
 BINDIR := $(shell pwd)/bin
 CONTROLLER_GEN := $(BINDIR)/controller-gen
 STATICCHECK := $(BINDIR)/staticcheck
+CONTAINER_STRUCTURE_TEST := $(BINDIR)/container-structure-test
 PROTOC := PATH=$(BINDIR):$(PATH) $(BINDIR)/protoc -I=$(shell pwd)/include:.
 PACKAGES := unzip lvm2 xfsprogs thin-provisioning-tools patch
 ENVTEST_ASSETS_DIR := $(shell pwd)/testbin
@@ -31,6 +33,7 @@ BUILD_TARGET=hypertopolvm
 TOPOLVM_VERSION ?= devel
 IMAGE_TAG ?= latest
 ORIGINAL_IMAGE_TAG ?=
+STRUCTURE_TEST_TARGET ?= normal
 
 ENVTEST_KUBERNETES_VERSION=1.25
 
@@ -63,6 +66,11 @@ define LEGACY_CRD_TEMPLATE
 
 endef
 export LEGACY_CRD_TEMPLATE
+
+CONTAINER_STRUCTURE_TEST_IMAGE=$(IMAGE_PREFIX)topolvm:devel
+ifeq ($(STRUCTURE_TEST_TARGET),with-sidecar)
+CONTAINER_STRUCTURE_TEST_IMAGE=$(IMAGE_PREFIX)topolvm-with-sidecar:devel
+endif
 
 ##@ General
 
@@ -201,6 +209,17 @@ image-normal:
 image-with-sidecar:
 	docker buildx build --no-cache --load -t $(IMAGE_PREFIX)topolvm-with-sidecar:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) --target topolvm-with-sidecar .
 
+.PHONY: container-structure-test
+container-structure-test: ## Run container-structure-test.
+	$(CONTAINER_STRUCTURE_TEST) test \
+		--image $(CONTAINER_STRUCTURE_TEST_IMAGE) \
+		--config container-structure-test.yaml
+ifeq ($(STRUCTURE_TEST_TARGET),with-sidecar)
+	$(CONTAINER_STRUCTURE_TEST) test \
+		--image $(CONTAINER_STRUCTURE_TEST_IMAGE) \
+		--config container-structure-test-with-sidecar.yaml
+endif
+
 .PHONY: create-docker-container
 create-docker-container: ## Create docker-container.
 	docker buildx create --use
@@ -255,8 +274,15 @@ ct-lint: ## Lint and validate a chart.
 install-kind:
 	GOBIN=$(BINDIR) go install sigs.k8s.io/kind@$(KIND_VERSION)
 
+.PHONY: install-container-structure-test
+install-container-structure-test:
+	mkdir -p $(BINDIR)
+	$(CURL) -o $(CONTAINER_STRUCTURE_TEST) \
+		https://storage.googleapis.com/container-structure-test/v$(CONTAINER_STRUCTURE_TEST_VERSION)/container-structure-test-linux-amd64 \
+    && chmod +x $(CONTAINER_STRUCTURE_TEST)
+
 .PHONY: tools
-tools: install-kind ## Install development tools.
+tools: install-kind install-container-structure-test ## Install development tools.
 	GOBIN=$(BINDIR) go install honnef.co/go/tools/cmd/staticcheck@latest
 	# Follow the official documentation to install the `latest` version, because explicitly specifying the version will get an error.
 	GOBIN=$(BINDIR) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
