@@ -11,27 +11,107 @@ import (
 	"github.com/topolvm/topolvm"
 	v1 "github.com/topolvm/topolvm/api/v1"
 	"github.com/topolvm/topolvm/csi"
-	"github.com/topolvm/topolvm/driver/k8s"
+	"github.com/topolvm/topolvm/driver/internal/k8s"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 var ctrlLogger = ctrl.Log.WithName("driver").WithName("controller")
 
-// NewControllerService returns a new ControllerServer.
-func NewControllerService(lvService *k8s.LogicalVolumeService, nodeService *k8s.NodeService) csi.ControllerServer {
-	return &controllerService{lvService: lvService, nodeService: nodeService}
+// NewControllerServer returns a new ControllerServer.
+func NewControllerServer(mgr manager.Manager) (csi.ControllerServer, error) {
+	lvService, err := k8s.NewLogicalVolumeService(mgr)
+	if err != nil {
+		return nil, err
+	}
+
+	return &controllerServer{
+		lockByName:     NewLockWithID(),
+		lockByVolumeID: NewLockWithID(),
+		server: &controllerServerNoLocked{
+			lvService:   lvService,
+			nodeService: k8s.NewNodeService(mgr.GetClient()),
+		},
+	}, nil
 }
 
-type controllerService struct {
+// This is a wrapper for controllerServerNoLocked to protect concurrent method call.
+type controllerServer struct {
+	csi.UnimplementedControllerServer
+
+	// This protects server methods using a volume name.
+	lockByName *LockByID
+	// This protects server methods using a volume id.
+	lockByVolumeID *LockByID
+	server         *controllerServerNoLocked
+}
+
+func (s *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
+	s.lockByName.LockByID(req.GetName())
+	defer s.lockByName.UnlockByID(req.GetName())
+
+	return s.server.CreateVolume(ctx, req)
+}
+
+func (s *controllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
+	s.lockByVolumeID.LockByID(req.GetVolumeId())
+	defer s.lockByVolumeID.UnlockByID(req.GetVolumeId())
+
+	return s.server.DeleteVolume(ctx, req)
+}
+
+func (s *controllerServer) ValidateVolumeCapabilities(ctx context.Context, req *csi.ValidateVolumeCapabilitiesRequest) (*csi.ValidateVolumeCapabilitiesResponse, error) {
+	s.lockByVolumeID.LockByID(req.GetVolumeId())
+	defer s.lockByVolumeID.UnlockByID(req.GetVolumeId())
+
+	return s.server.ValidateVolumeCapabilities(ctx, req)
+}
+
+func (s *controllerServer) GetCapacity(ctx context.Context, req *csi.GetCapacityRequest) (*csi.GetCapacityResponse, error) {
+	// This reads kube-apiserver only and even if reads dirty state, it is not harmless.
+	// Therefore, it is unnecessary to take lock.
+	return s.server.GetCapacity(ctx, req)
+}
+
+func (s *controllerServer) ControllerGetCapabilities(ctx context.Context, req *csi.ControllerGetCapabilitiesRequest) (*csi.ControllerGetCapabilitiesResponse, error) {
+	// This returns constants only, it is unnecessary to take lock.
+	return s.server.ControllerGetCapabilities(ctx, req)
+}
+
+func (s *controllerServer) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequest) (*csi.CreateSnapshotResponse, error) {
+	s.lockByName.LockByID(req.GetName())
+	defer s.lockByName.UnlockByID(req.GetName())
+
+	return s.server.CreateSnapshot(ctx, req)
+}
+
+func (s *controllerServer) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnapshotRequest) (*csi.DeleteSnapshotResponse, error) {
+	s.lockByVolumeID.LockByID(req.GetSnapshotId())
+	defer s.lockByVolumeID.UnlockByID(req.GetSnapshotId())
+
+	return s.server.DeleteSnapshot(ctx, req)
+}
+
+func (s *controllerServer) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
+	s.lockByVolumeID.LockByID(req.GetVolumeId())
+	defer s.lockByVolumeID.UnlockByID(req.GetVolumeId())
+
+	return s.server.ControllerExpandVolume(ctx, req)
+}
+
+// controllerServerNoLocked implements csi.ControllerServer.
+// It does not take any lock, gRPC calls may be interleaved.
+// Therefore, must not use it directly.
+type controllerServerNoLocked struct {
 	csi.UnimplementedControllerServer
 
 	lvService   *k8s.LogicalVolumeService
 	nodeService *k8s.NodeService
 }
 
-func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
+func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	capabilities := req.GetVolumeCapabilities()
 	source := req.GetVolumeContentSource()
 	deviceClass := req.GetParameters()[topolvm.GetDeviceClassKey()]
@@ -219,7 +299,7 @@ func (s controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolu
 }
 
 // validateContentSource checks if the request has a data source and returns source volume information.
-func (s controllerService) validateContentSource(ctx context.Context, req *csi.CreateVolumeRequest) (*v1.LogicalVolume, string, error) {
+func (s controllerServerNoLocked) validateContentSource(ctx context.Context, req *csi.CreateVolumeRequest) (*v1.LogicalVolume, string, error) {
 	volumeSource := req.VolumeContentSource
 
 	switch volumeSource.Type.(type) {
@@ -257,7 +337,7 @@ func (s controllerService) validateContentSource(ctx context.Context, req *csi.C
 }
 
 // CreateSnapshot creates a logical volume snapshot.
-func (s controllerService) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequest) (*csi.CreateSnapshotResponse, error) {
+func (s controllerServerNoLocked) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequest) (*csi.CreateSnapshotResponse, error) {
 	// Since the kubernetes snapshots are Read-Only, we set accessType as 'ro' to activate thin-snapshots as read-only volumes
 	accessType := "ro"
 
@@ -314,7 +394,7 @@ func (s controllerService) CreateSnapshot(ctx context.Context, req *csi.CreateSn
 }
 
 // DeleteSnapshot deletes an existing logical volume snapshot.
-func (s controllerService) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnapshotRequest) (*csi.DeleteSnapshotResponse, error) {
+func (s controllerServerNoLocked) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnapshotRequest) (*csi.DeleteSnapshotResponse, error) {
 	ctrlLogger.Info("DeleteSnapshot called",
 		"snapshot_id", req.GetSnapshotId(),
 		"num_secrets", len(req.GetSecrets()))
@@ -355,7 +435,7 @@ func convertRequestCapacity(requestBytes, limitBytes int64) (int64, error) {
 	return (requestBytes-1)>>30 + 1, nil
 }
 
-func (s controllerService) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
+func (s controllerServerNoLocked) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
 	ctrlLogger.Info("DeleteVolume called",
 		"volume_id", req.GetVolumeId(),
 		"num_secrets", len(req.GetSecrets()))
@@ -376,7 +456,7 @@ func (s controllerService) DeleteVolume(ctx context.Context, req *csi.DeleteVolu
 	return &csi.DeleteVolumeResponse{}, nil
 }
 
-func (s controllerService) ValidateVolumeCapabilities(ctx context.Context, req *csi.ValidateVolumeCapabilitiesRequest) (*csi.ValidateVolumeCapabilitiesResponse, error) {
+func (s controllerServerNoLocked) ValidateVolumeCapabilities(ctx context.Context, req *csi.ValidateVolumeCapabilitiesRequest) (*csi.ValidateVolumeCapabilitiesResponse, error) {
 	ctrlLogger.Info("ValidateVolumeCapabilities called",
 		"volume_id", req.GetVolumeId(),
 		"volume_context", req.GetVolumeContext(),
@@ -410,7 +490,7 @@ func (s controllerService) ValidateVolumeCapabilities(ctx context.Context, req *
 	}, nil
 }
 
-func (s controllerService) GetCapacity(ctx context.Context, req *csi.GetCapacityRequest) (*csi.GetCapacityResponse, error) {
+func (s controllerServerNoLocked) GetCapacity(ctx context.Context, req *csi.GetCapacityRequest) (*csi.GetCapacityResponse, error) {
 	topology := req.GetAccessibleTopology()
 	capabilities := req.GetVolumeCapabilities()
 	ctrlLogger.Info("GetCapacity called",
@@ -458,7 +538,7 @@ func (s controllerService) GetCapacity(ctx context.Context, req *csi.GetCapacity
 	}, nil
 }
 
-func (s controllerService) ControllerGetCapabilities(context.Context, *csi.ControllerGetCapabilitiesRequest) (*csi.ControllerGetCapabilitiesResponse, error) {
+func (s controllerServerNoLocked) ControllerGetCapabilities(context.Context, *csi.ControllerGetCapabilitiesRequest) (*csi.ControllerGetCapabilitiesResponse, error) {
 	capabilities := []csi.ControllerServiceCapability_RPC_Type{
 		csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
 		csi.ControllerServiceCapability_RPC_CLONE_VOLUME,
@@ -483,7 +563,7 @@ func (s controllerService) ControllerGetCapabilities(context.Context, *csi.Contr
 	}, nil
 }
 
-func (s controllerService) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
+func (s controllerServerNoLocked) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
 	volumeID := req.GetVolumeId()
 	ctrlLogger.Info("ControllerExpandVolume called",
 		"volumeID", volumeID,

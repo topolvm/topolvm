@@ -113,7 +113,7 @@ manifests: generate-legacy-api ## Generate WebhookConfiguration, ClusterRole and
 		crd:crdVersions=v1 \
 		rbac:roleName=topolvm-controller \
 		webhook \
-		paths="./api/...;./controllers;./hook;./driver/k8s;./pkg/..." \
+		paths="./api/...;./controllers;./hook;./driver/internal/k8s;./pkg/..." \
 		output:crd:artifacts:config=config/crd/bases
 	$(BINDIR)/yq eval 'del(.status)' config/crd/bases/topolvm.io_logicalvolumes.yaml | xargs -d"	" printf "$$CRD_TEMPLATE" > charts/topolvm/templates/crds/topolvm.io_logicalvolumes.yaml
 	$(BINDIR)/yq eval 'del(.status)' config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml | xargs -d"	" printf "$$LEGACY_CRD_TEMPLATE" > charts/topolvm/templates/crds/topolvm.cybozu.com_logicalvolumes.yaml

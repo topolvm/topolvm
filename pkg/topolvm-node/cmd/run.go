@@ -15,7 +15,6 @@ import (
 	"github.com/topolvm/topolvm/controllers"
 	"github.com/topolvm/topolvm/csi"
 	"github.com/topolvm/topolvm/driver"
-	"github.com/topolvm/topolvm/driver/k8s"
 	"github.com/topolvm/topolvm/lvmd/proto"
 	"github.com/topolvm/topolvm/runners"
 	"google.golang.org/grpc"
@@ -95,16 +94,16 @@ func subMain() error {
 	}
 
 	// Add gRPC server to manager.
-	s, err := k8s.NewLogicalVolumeService(mgr)
-	if err != nil {
-		return err
-	}
 	if err := os.MkdirAll(driver.DeviceDirectory, 0755); err != nil {
 		return err
 	}
 	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(ErrorLoggingInterceptor))
-	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityService(checker.Ready))
-	csi.RegisterNodeServer(grpcServer, driver.NewNodeService(nodename, conn, s))
+	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityServer(checker.Ready))
+	nodeServer, err := driver.NewNodeServer(nodename, conn, mgr)
+	if err != nil {
+		return err
+	}
+	csi.RegisterNodeServer(grpcServer, nodeServer)
 	err = mgr.Add(runners.NewGRPCRunner(grpcServer, config.csiSocket, false))
 	if err != nil {
 		return err

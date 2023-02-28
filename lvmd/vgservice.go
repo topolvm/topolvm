@@ -27,6 +27,7 @@ type vgService struct {
 	proto.UnimplementedVGServiceServer
 	dcManager *DeviceClassManager
 
+	// mu protects watcherCounter and watchers. must take it when use them.
 	mu             sync.Mutex
 	watcherCounter int
 	watchers       map[int]chan struct{}
