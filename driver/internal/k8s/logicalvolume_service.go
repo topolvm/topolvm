@@ -307,7 +307,7 @@ func (s *LogicalVolumeService) ExpandVolume(ctx context.Context, volumeID string
 		return err
 	}
 
-	err = s.UpdateSpecSize(ctx, volumeID, resource.NewQuantity(requestGb<<30, resource.BinarySI))
+	err = s.updateSpecSize(ctx, volumeID, resource.NewQuantity(requestGb<<30, resource.BinarySI))
 	if err != nil {
 		return err
 	}
@@ -348,8 +348,8 @@ func (s *LogicalVolumeService) GetVolume(ctx context.Context, volumeID string) (
 	return s.volumeGetter.Get(ctx, volumeID)
 }
 
-// UpdateSpecSize updates .Spec.Size of LogicalVolume.
-func (s *LogicalVolumeService) UpdateSpecSize(ctx context.Context, volumeID string, size *resource.Quantity) error {
+// updateSpecSize updates .Spec.Size of LogicalVolume.
+func (s *LogicalVolumeService) updateSpecSize(ctx context.Context, volumeID string, size *resource.Quantity) error {
 	for {
 		select {
 		case <-ctx.Done():
