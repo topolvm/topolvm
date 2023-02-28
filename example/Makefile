@@ -1,5 +1,3 @@
-USE_LEGACY ?= ""
-
 KUBERNETES_VERSION := 1.25.3
 HELM_VERSION := 3.10.2
 TOPOLVM_VERSION := 0.18.0
@@ -24,12 +22,6 @@ HELM_VALUES_FILE := values.yaml
 SCHEDULER_CONFIG := scheduler-config.yaml
 LOGICALVOLUME_GK_NAME := logicalvolume.topolvm.io
 DOMAIN_NAME := topolvm.io
-ifneq ($(USE_LEGACY),"")
-HELM_VALUES_FILE := values_legacy.yaml
-SCHEDULER_CONFIG := scheduler-config-legacy.yaml
-LOGICALVOLUME_GK_NAME := logicalvolume.topolvm.cybozu.com
-DOMAIN_NAME := topolvm.cybozu.com
-endif
 
 $(KUBECTL):
 	mkdir -p $(BINDIR)

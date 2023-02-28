@@ -67,9 +67,9 @@ func testPublishVolume() {
 		conn *grpc.ClientConn
 	)
 
-	nodeSocket := "/tmp/topolvm/worker1/plugins/topolvm.io/node/csi-topolvm.sock"
+	nodeSocket := "/tmp/topolvm/worker1/plugins/" + topolvm.GetPluginName() + "/node/csi-topolvm.sock"
 	if isDaemonsetLvmdEnvSet() {
-		nodeSocket = "/var/lib/kubelet/plugins/topolvm.io/node/csi-topolvm.sock"
+		nodeSocket = "/var/lib/kubelet/plugins/" + topolvm.GetPluginName() + "/node/csi-topolvm.sock"
 	}
 
 	var cc CleanupContext
@@ -108,7 +108,7 @@ func testPublishVolume() {
 
 		By("creating a logical volume resource")
 		name := "csi-node-test-fs"
-		lvYaml := []byte(fmt.Sprintf(lvTemplateYAML, name, name, nodeName))
+		lvYaml := []byte(fmt.Sprintf(lvTemplateYAML, topolvm.GetPluginName(), name, name, nodeName))
 		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -215,7 +215,7 @@ func testPublishVolume() {
 		}
 
 		name := "csi-node-test-block"
-		lvYaml := []byte(fmt.Sprintf(lvTemplateYAML, name, name, nodeName))
+		lvYaml := []byte(fmt.Sprintf(lvTemplateYAML, topolvm.GetPluginName(), name, name, nodeName))
 		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -362,7 +362,7 @@ func testPublishVolume() {
 		}
 
 		name := "csi-node-test-fs"
-		lvYaml := []byte(fmt.Sprintf(lvTemplateYAML, name, name, nodeName))
+		lvYaml := []byte(fmt.Sprintf(lvTemplateYAML, topolvm.GetPluginName(), name, name, nodeName))
 		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 

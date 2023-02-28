@@ -112,7 +112,7 @@ func testHook() {
 		stdout, stderr, err := kubectlWithInput(hookGenericEphemeralVolumeYAML, "-n", nsHookTest, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
-		By("checking pod is annotated with topolvm.io/capacity")
+		By("checking pod is annotated with" + topolvm.GetCapacityResource().String())
 		Eventually(func() error {
 			result, stderr, err := kubectl("get", "-n", nsHookTest, "pods/pause", "-o=json")
 			if err != nil {

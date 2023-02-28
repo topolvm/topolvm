@@ -8,6 +8,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/topolvm/topolvm"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -73,7 +74,10 @@ func testScheduler() {
 
 		ns := testNamespacePrefix + randomString(10)
 		createNamespace(ns)
-		stdout, stderr, err := kubectlWithInput([]byte(fmt.Sprintf(capacityPodTemplateYAML, ns, "1073741824")), "apply", "-f", "-")
+		stdout, stderr, err := kubectlWithInput([]byte(
+			fmt.Sprintf(capacityPodTemplateYAML, ns, topolvm.GetCapacityKeyPrefix(), "1073741824",
+				topolvm.GetCapacityResource().String(), topolvm.GetCapacityResource().String())),
+			"apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		Eventually(func() error {
@@ -107,7 +111,10 @@ func testScheduler() {
 
 		ns := testNamespacePrefix + randomString(10)
 		createNamespace(ns)
-		stdout, stderr, err := kubectlWithInput([]byte(fmt.Sprintf(capacityPodTemplateYAML, ns, "21474836480")), "apply", "-f", "-")
+		stdout, stderr, err := kubectlWithInput([]byte(
+			fmt.Sprintf(capacityPodTemplateYAML, ns, topolvm.GetCapacityKeyPrefix(), "21474836480",
+				topolvm.GetCapacityResource().String(), topolvm.GetCapacityResource().String())),
+			"apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 		Eventually(func() error {
