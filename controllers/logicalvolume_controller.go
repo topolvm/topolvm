@@ -194,6 +194,7 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 		}
 		if found {
 			log.Info("set volumeID to existing LogicalVolume", "name", lv.Name, "uid", lv.UID, "status.volumeID", lv.Status.VolumeID)
+			// Don't set CurrentSize here because the Spec.Size field may be updated after the LVM LV is created.
 			lv.Status.VolumeID = string(lv.UID)
 			lv.Status.Code = codes.OK
 			lv.Status.Message = ""
@@ -274,18 +275,19 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 }
 
 func (r *LogicalVolumeReconciler) expandLV(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) error {
-	// lv.Status.CurrentSize is added in v0.4.0 and filled by topolvm-controller when resizing is triggered.
-	// The reconciliation loop of LogicalVolume may call expandLV before resizing is triggered.
-	// So, lv.Status.CurrentSize could be nil here.
-	if lv.Status.CurrentSize == nil {
+	// We denote unknown size as -1.
+	var origBytes int64 = -1
+	switch {
+	case lv.Status.CurrentSize == nil:
+		// topolvm-node may be crashed before setting Status.CurrentSize.
+		// Since the actual volume size is unknown,
+		// we need to do resizing to set Status.CurrentSize to the same value as Spec.Size.
+	case lv.Spec.Size.Cmp(*lv.Status.CurrentSize) <= 0:
 		return nil
+	default:
+		origBytes = (*lv.Status.CurrentSize).Value()
 	}
 
-	if lv.Spec.Size.Cmp(*lv.Status.CurrentSize) <= 0 {
-		return nil
-	}
-
-	origBytes := (*lv.Status.CurrentSize).Value()
 	reqBytes := lv.Spec.Size.Value()
 
 	err := func() error {
