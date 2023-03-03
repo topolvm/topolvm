@@ -7,6 +7,12 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [11.1.1] - 2023-03-03
+
+### Changed
+
+- appVersion was changed to 0.18.1.
+
 ## [11.1.0] - 2023-02-20
 
 ### Added
@@ -17,6 +23,7 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ### Changed
 
+- appVersion was changed to 0.18.0.
 - Remove metrics annotation from lvmd daemonset ([#643](https://github.com/topolvm/topolvm/pull/643))
 - build(deps): bump helm/chart-releaser-action from 1.4.1 to 1.5.0 ([#649](https://github.com/topolvm/topolvm/pull/649))
 
@@ -260,7 +267,8 @@ This release contains the domain name change([#592](https://github.com/topolvm/t
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.1.0...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.1.1...HEAD
+[11.1.1]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.1.0...topolvm-chart-v11.1.1
 [11.1.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.0.1...topolvm-chart-v11.1.0
 [11.0.1]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.0.0...topolvm-chart-v11.0.1
 [11.0.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v10.0.0...topolvm-chart-v11.0.0
