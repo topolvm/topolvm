@@ -137,10 +137,4 @@ Basically, CSI spec should NOT be upgraded aggressively.
 
 Upgrade the CSI version only if new features we should cover are introduced in newer versions, or the Kubernetes versions TopoLVM is going to support does not support the current CSI version.
 
-For updating CSI spec, we need to update `CSI_VERSION` in `Makefile`, and run the following commands.
-
-```bash
-$ rm csi.proto
-$ make csi.proto
-$ make generate
-```
+For updating CSI spec, update the version of `github.com/container-storage-interface/spec` in `go.mod`.

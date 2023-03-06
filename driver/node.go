@@ -9,8 +9,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/topolvm/topolvm"
-	"github.com/topolvm/topolvm/csi"
 	"github.com/topolvm/topolvm/driver/internal/k8s"
 	"github.com/topolvm/topolvm/filesystem"
 	"github.com/topolvm/topolvm/lvmd/proto"
