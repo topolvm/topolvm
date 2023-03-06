@@ -122,7 +122,7 @@ var _ = Describe("NodeController controller", func() {
 		// Verify
 		Eventually(func(g Gomega) error {
 			err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&node), &node)
-			if err == nil || !apierrors.IsNotFound(err) {
+			if !apierrors.IsNotFound(err) {
 				return errors.New("Node is not deleted")
 			}
 
@@ -137,12 +137,12 @@ var _ = Describe("NodeController controller", func() {
 			}
 
 			err = k8sClient.Get(ctx, client.ObjectKeyFromObject(&lv), &lv)
-			if err == nil || !apierrors.IsNotFound(err) {
+			if !apierrors.IsNotFound(err) {
 				return errors.New("LV is not deleted")
 			}
 
 			return nil
-		}).ShouldNot(HaveOccurred())
+		}).Should(Succeed())
 	})
 
 	It("should not touch PVC and LogicalVolume when the node is deleted if the finalizer is skipped", func() {
@@ -161,11 +161,11 @@ var _ = Describe("NodeController controller", func() {
 		// wait for node delete
 		Eventually(func(g Gomega) error {
 			err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&node), &node)
-			if err == nil || !apierrors.IsNotFound(err) {
+			if !apierrors.IsNotFound(err) {
 				return errors.New("Node is not deleted")
 			}
 			return nil
-		}).ShouldNot(HaveOccurred())
+		}).Should(Succeed())
 
 		err = k8sClient.Get(ctx, client.ObjectKeyFromObject(&pvc), &pvc)
 		Expect(err).NotTo(HaveOccurred())

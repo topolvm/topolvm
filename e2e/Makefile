@@ -2,7 +2,6 @@
 KUBERNETES_VERSION ?= 1.25.3
 TEST_SCHEDULER_MANIFEST ?= daemonset
 STORAGE_CAPACITY ?= false
-SKIP_NODE_FINALIZE ?= false
 SANITY_TEST_WITH_THIN_DEVICECLASS ?= false
 EXTERNAL_SNAPSHOTTER_VERSION ?= v6.0.1
 USE_LEGACY ?= ""
@@ -40,12 +39,6 @@ KIND_CONFIG="topolvm-cluster.yaml"
 MINIKUBE_FEATURE_GATES="ReadWriteOncePod=true"
 
 HELM_VALUES_FILE_LVMD := manifests/values/daemonset-lvmd-storage-capacity.yaml
-
-ifeq ($(SKIP_NODE_FINALIZE),true)
-HELM_SKIP_NODE_FINALIZE_FLAG := --set controller.nodeFinalize.skipped=true
-else
-HELM_SKIP_NODE_FINALIZE_FLAG :=
-endif
 
 ifeq ($(SANITY_TEST_WITH_THIN_DEVICECLASS),false)
 GINKGO_SKIP_SNAPSHOT_CSI_TESTS := -skip='snapshot' -skip='CreateSnapshot' -skip='DeleteSnapshot' -skip='source volume'
@@ -191,7 +184,7 @@ create-cluster: topolvm.img
 	$(HELM) repo add jetstack https://charts.jetstack.io
 	$(HELM) repo update
 	$(HELM) dependency build ../charts/topolvm/
-	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE) --set "controller.nodeSelector.kubernetes\.io/hostname"=$(KIND_CLUSTER_NAME)-worker $(HELM_SKIP_NODE_FINALIZE_FLAG)
+	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE) --set "controller.nodeSelector.kubernetes\.io/hostname"=$(KIND_CLUSTER_NAME)-worker
 	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/topolvm-controller
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system -l="app.kubernetes.io/component=controller,app.kubernetes.io/name=topolvm" pod
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system certificate/topolvm-mutatingwebhook
@@ -209,7 +202,6 @@ test: create-cluster
 	E2ETEST=1 \
 	BINDIR=$(BINDIR) \
 	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
-	SKIP_NODE_FINALIZE=$(SKIP_NODE_FINALIZE) \
 	GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn \
 	$(GINKGO) $(GINKGO_SKIP_SNAPSHOT_CSI_TESTS) --failFast -v .
 
@@ -311,7 +303,7 @@ daemonset-lvmd/test: topolvm.img
 	$(HELM) repo add jetstack https://charts.jetstack.io
 	$(HELM) repo update
 	$(HELM) dependency build ../charts/topolvm/
-	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE_LVMD) $(HELM_SKIP_NODE_FINALIZE_FLAG)
+	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE_LVMD)
 	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/topolvm-controller
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system -l="app.kubernetes.io/component=controller,app.kubernetes.io/name=topolvm" pod
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system certificate/topolvm-mutatingwebhook
@@ -326,7 +318,6 @@ daemonset-lvmd/test: topolvm.img
 	E2ETEST=1 \
 	BINDIR=$(BINDIR) \
 	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
-	SKIP_NODE_FINALIZE=$(SKIP_NODE_FINALIZE) \
 	DAEMONSET_LVMD=true \
 	GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn \
 	$(GINKGO) -skip='snapshot' -skip='CreateSnapshot' -skip='DeleteSnapshot'  -skip='source volume' --failFast -v .

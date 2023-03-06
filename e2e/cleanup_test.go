@@ -179,13 +179,8 @@ func testCleanup() {
 			if err != nil {
 				return err
 			}
-			switch {
-			case !isNodeFinalizeSkipped() && pvcAfterNodeDelete.ObjectMeta.UID == targetPVC.ObjectMeta.UID:
+			if pvcAfterNodeDelete.ObjectMeta.UID == targetPVC.ObjectMeta.UID {
 				return fmt.Errorf("pvc is not deleted but finalizer is enabled. uid: %s", string(targetPVC.ObjectMeta.UID))
-			case isNodeFinalizeSkipped() && pvcAfterNodeDelete.ObjectMeta.UID != targetPVC.ObjectMeta.UID:
-				return fmt.Errorf("pvc was deleted but finalizer is disabled. old uid: %s, new uid %s",
-					string(targetPVC.ObjectMeta.UID),
-					string(pvcAfterNodeDelete.ObjectMeta.UID))
 			}
 
 			stdout, stderr, err = kubectl("-n", cleanupTest, "get", "pod", targetPod.Name, "-o=json")
@@ -208,11 +203,6 @@ func testCleanup() {
 		//  If they takes running status, delete them for rescheduling them
 		By("confirming statefulset is ready")
 		Eventually(func() error {
-			if isNodeFinalizeSkipped() {
-				// the stateful set will never be ready if the node finalize process is skipped
-				// the stateful set will not be rescheduled due to volume node affinity conflict
-				return nil
-			}
 			stdout, stderr, err := kubectl("-n", cleanupTest, "get", "statefulset", statefulsetName, "-o=json")
 			if err != nil {
 				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, stdout, stderr)
@@ -234,38 +224,16 @@ func testCleanup() {
 		var pvcAfterNodeDelete corev1.PersistentVolumeClaim
 		err = json.Unmarshal(stdout, &pvcAfterNodeDelete)
 		Expect(err).ShouldNot(HaveOccurred())
-		if isNodeFinalizeSkipped() {
-			Expect(pvcAfterNodeDelete.ObjectMeta.UID).Should(Equal(targetPVC.ObjectMeta.UID))
-		} else {
-			Expect(pvcAfterNodeDelete.ObjectMeta.UID).ShouldNot(Equal(targetPVC.ObjectMeta.UID))
-		}
+		Expect(pvcAfterNodeDelete.ObjectMeta.UID).ShouldNot(Equal(targetPVC.ObjectMeta.UID))
 	})
 
 	It("should clean up LogicalVolume resources connected to the deleted node", func() {
-		if isNodeFinalizeSkipped() {
-			Skip("logical volumes should not be deleted when node finalize is skipped")
-		}
 		By("confirming logicalvolumes are deleted")
 		Eventually(func() error {
 			for _, lv := range targetLVs {
 				_, _, err := kubectl("get", "logicalvolumes", lv.Name)
 				if err == nil {
 					return fmt.Errorf("logicalvolume still exists: %s", lv.Name)
-				}
-			}
-			return nil
-		}).Should(Succeed())
-	})
-
-	It("should not clean up LogicalVolume resources connected to the deleted node when skipping node finalize", func() {
-		if !isNodeFinalizeSkipped() {
-			Skip("logical volumes should be deleted when node finalize is not skipped")
-		}
-		Eventually(func() error {
-			for _, lv := range targetLVs {
-				_, _, err := kubectl("get", "logicalvolumes", lv.Name)
-				if err != nil {
-					return fmt.Errorf("error getting logicalvolume (which should still exist): %s", lv.Name)
 				}
 			}
 			return nil
