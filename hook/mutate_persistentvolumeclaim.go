@@ -70,11 +70,10 @@ func (m *persistentVolumeClaimMutator) Handle(ctx context.Context, req admission
 		return admission.Allowed("no request for TopoLVM")
 	}
 
-	if controllerutil.ContainsFinalizer(pvc, topolvm.PVCFinalizer) {
+	if !controllerutil.AddFinalizer(pvc, topolvm.PVCFinalizer) {
 		return admission.Allowed("already added finalizer")
 	}
 
-	pvc.Finalizers = append(pvc.Finalizers, topolvm.PVCFinalizer)
 	marshaled, err := json.Marshal(pvc)
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)

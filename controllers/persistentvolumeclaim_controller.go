@@ -148,17 +148,9 @@ func (r *PersistentVolumeClaimReconciler) SetupWithManager(mgr ctrl.Manager) err
 }
 
 func (r *PersistentVolumeClaimReconciler) removeDeprecatedFinalizer(ctx context.Context, pvc *corev1.PersistentVolumeClaim) (bool, error) {
-	removed := false
 	// Due to the bug #310, multiple TopoLVM finalizers can exist in `pvc.Finalizers`.
 	// So we need to delete all of them.
-	for i := 0; i < len(pvc.Finalizers); {
-		if pvc.Finalizers[i] == topolvm.LegacyPVCFinalizer {
-			pvc.Finalizers = append(pvc.Finalizers[:i], pvc.Finalizers[i+1:]...)
-			removed = true
-			continue
-		}
-		i++
-	}
+	removed := controllerutil.RemoveFinalizer(pvc, topolvm.LegacyPVCFinalizer)
 	if removed {
 		if err := r.client.Update(ctx, pvc); err != nil {
 			return false, err

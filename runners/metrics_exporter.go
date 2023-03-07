@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
@@ -218,16 +219,7 @@ func (m *metricsExporter) updateNode(ctx context.Context, wc proto.VGService_Wat
 
 		node2 := node.DeepCopy()
 
-		var hasFinalizer bool
-		for _, fin := range node.Finalizers {
-			if fin == topolvm.GetNodeFinalizer() {
-				hasFinalizer = true
-				break
-			}
-		}
-		if !hasFinalizer {
-			node2.Finalizers = append(node2.Finalizers, topolvm.GetNodeFinalizer())
-		}
+		controllerutil.AddFinalizer(node2, topolvm.GetNodeFinalizer())
 
 		node2.Annotations[topolvm.GetCapacityKeyPrefix()+topolvm.DefaultDeviceClassAnnotationName] = strconv.FormatUint(res.FreeBytes, 10)
 		for _, item := range res.Items {
