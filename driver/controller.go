@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/topolvm/topolvm"
 	v1 "github.com/topolvm/topolvm/api/v1"
-	"github.com/topolvm/topolvm/csi"
 	"github.com/topolvm/topolvm/driver/internal/k8s"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
