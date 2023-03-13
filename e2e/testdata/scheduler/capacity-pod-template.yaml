@@ -6,13 +6,13 @@ metadata:
   labels:
     app.kubernetes.io/name: pause
   annotations:
-    capacity.topolvm.io/ssd: %q
+    %sssd: %q
 spec:
   containers:
   - name: pause
     image: registry.k8s.io/pause
     resources:
       requests:
-        topolvm.io/capacity: 1
+        %s: 1
       limits:
-        topolvm.io/capacity: 1
+        %s: 1

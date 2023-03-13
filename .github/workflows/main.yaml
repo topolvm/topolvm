@@ -71,12 +71,6 @@ jobs:
     defaults:
       run:
         working-directory: "example"
-    strategy:
-      fail-fast: false
-      matrix:
-        use_legacy: ["", "true"]
-    env:
-      USE_LEGACY: ${{ matrix.use_legacy }}
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v3

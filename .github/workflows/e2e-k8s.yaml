@@ -30,3 +30,7 @@ jobs:
     with:
       thin_csi_sanity: "true"
 
+  use-legacy:
+    uses: ./.github/workflows/e2e-k8s-workflow.yaml
+    with:
+      use_legacy: "true"

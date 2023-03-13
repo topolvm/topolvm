@@ -191,5 +191,5 @@ func testStorageCapacity() {
 }
 
 func buildPodPVCTemplateYAML(name, size, sc, node string) []byte {
-	return []byte(fmt.Sprintf(podPVCTemplateYAML, name, nsCapacityTest, size, sc, name, nsCapacityTest, name, node))
+	return []byte(fmt.Sprintf(podPVCTemplateYAML, name, nsCapacityTest, size, sc, name, nsCapacityTest, name, topolvm.GetTopologyNodeKey(), node))
 }

@@ -5,6 +5,7 @@ STORAGE_CAPACITY ?= false
 SKIP_NODE_FINALIZE ?= false
 SANITY_TEST_WITH_THIN_DEVICECLASS ?= false
 EXTERNAL_SNAPSHOTTER_VERSION ?= v6.0.1
+USE_LEGACY ?= ""
 
 ## Dependency versions
 MINIKUBE_VERSION := v1.28.0
@@ -52,8 +53,17 @@ else
 GINKGO_SKIP_SNAPSHOT_CSI_TESTS :=
 endif
 
-
 SCHEDULER_CONFIG := scheduler-config-$(TEST_SCHEDULER_MANIFEST).yaml
+
+DOMAIN_NAME := topolvm.io
+PROVISINER_MANIFEST := manifests/provisioner.yaml
+ifeq ($(USE_LEGACY),true)
+HELM_VALUES_FILE := manifests/values/daemonset-scheduler-legacy.yaml
+SCHEDULER_CONFIG := scheduler-config-daemonset-legacy.yaml
+DOMAIN_NAME := topolvm.cybozu.com
+PROVISINER_MANIFEST := manifests/provisioner_legacy.yaml
+endif
+
 
 GO_FILES := $(shell find .. -path ../e2e -prune -o -name '*.go' -print)
 BACKING_STORE := ./build
@@ -72,8 +82,8 @@ topolvm.img: $(GO_FILES)
 .PHONY: prepare-namespace
 prepare-namespace:
 	$(KUBECTL) create namespace topolvm-system
-	$(KUBECTL) label namespace topolvm-system topolvm.io/webhook=ignore
-	$(KUBECTL) label namespace kube-system topolvm.io/webhook=ignore
+	$(KUBECTL) label namespace topolvm-system $(DOMAIN_NAME)/webhook=ignore
+	$(KUBECTL) label namespace kube-system $(DOMAIN_NAME)/webhook=ignore
 
 .PHONY: apply-certmanager-crds
 apply-certmanager-crds:
@@ -193,7 +203,7 @@ test: create-cluster
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/rbac-snapshot-controller.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml
-	$(KUBECTL) apply -f manifests/common/
+	$(KUBECTL) apply -f $(PROVISINER_MANIFEST)
 	$(SUDO) -E env \
 	PATH=${PATH} \
 	E2ETEST=1 \
@@ -310,7 +320,7 @@ daemonset-lvmd/test: topolvm.img
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/rbac-snapshot-controller.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml
-	$(KUBECTL) apply -f manifests/common/
+	$(KUBECTL) apply -f manifests/provisioner.yaml
 	$(SUDO) -E env \
 	PATH=${PATH} \
 	E2ETEST=1 \

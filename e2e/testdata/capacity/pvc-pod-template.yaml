@@ -30,4 +30,4 @@ spec:
       persistentVolumeClaim:
         claimName: %s
   nodeSelector:
-    topology.topolvm.io/node: %s
+    %s: %s
