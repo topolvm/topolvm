@@ -1,6 +1,5 @@
 KUBERNETES_VERSION := 1.25.3
 HELM_VERSION := 3.10.2
-TOPOLVM_VERSION := 0.18.1
 CERT_MANAGER_VERSION := v1.7.0
 
 KIND_CLUSTER_NAME := topolvm-example
@@ -23,6 +22,11 @@ SCHEDULER_CONFIG := scheduler-config.yaml
 LOGICALVOLUME_GK_NAME := logicalvolume.topolvm.io
 DOMAIN_NAME := topolvm.io
 
+BUILD_IMAGE_FLAG :=
+ifeq ($(BUILD_IMAGE),true)
+BUILD_IMAGE_FLAG := --set image.tag=devel
+endif
+
 $(KUBECTL):
 	mkdir -p $(BINDIR)
 	$(CURL) https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl -o $(KUBECTL)
@@ -30,8 +34,7 @@ $(KUBECTL):
 
 build/topolvm.img: $(GO_FILES)
 	$(MAKE) -C .. image-with-sidecar IMAGE_PREFIX=ghcr.io/topolvm/
-	docker tag ghcr.io/topolvm/topolvm-with-sidecar:devel ghcr.io/topolvm/topolvm-with-sidecar:$(TOPOLVM_VERSION)
-	docker save -o $@ ghcr.io/topolvm/topolvm-with-sidecar:$(TOPOLVM_VERSION)
+	docker save -o $@ ghcr.io/topolvm/topolvm-with-sidecar:devel
 
 .PHONY: run
 run:
@@ -49,7 +52,7 @@ run:
 	$(HELM) repo add jetstack https://charts.jetstack.io
 	$(HELM) repo update
 	$(HELM) dependency build ../charts/topolvm/
-	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE)
+	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE) $(BUILD_IMAGE_FLAG)
 	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/topolvm-controller
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system -l="app.kubernetes.io/component=controller,app.kubernetes.io/name=topolvm" pod
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system certificate/topolvm-mutatingwebhook

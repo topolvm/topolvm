@@ -117,7 +117,6 @@ This will prevent the TopoLVM version from going up just by modifying the Helm C
    - example/README.md
    - charts/topolvm/Chart.yaml
     ```console
-    $ sed -r -i "s/TOPOLVM_VERSION := [[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/TOPOLVM_VERSION := ${APPVERSION}/g" example/Makefile
     $ sed -r -i "s/checkout topolvm-chart-v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/checkout topolvm-chart-v${CHARTVERSION}/g" example/README.md
     $ sed -r -i "s/appVersion: [[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/appVersion: ${APPVERSION}/g" charts/topolvm/Chart.yaml
     $ sed -r -i "s/^version: [[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/version: ${CHARTVERSION}/g" charts/topolvm/Chart.yaml
