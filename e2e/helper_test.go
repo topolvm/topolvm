@@ -38,11 +38,11 @@ func execAtLocal(cmd string, input []byte, args ...string) ([]byte, []byte, erro
 	return stdout.Bytes(), stderr.Bytes(), err
 }
 
-func kubectl(args ...string) ([]byte, []byte, error) {
+func kubectl(args ...string) (stdout []byte, stderr []byte, err error) {
 	return execAtLocal(filepath.Join(binDir, "kubectl"), nil, args...)
 }
 
-func kubectlWithInput(input []byte, args ...string) ([]byte, []byte, error) {
+func kubectlWithInput(input []byte, args ...string) (stdout []byte, stderr []byte, err error) {
 	return execAtLocal(filepath.Join(binDir, "kubectl"), input, args...)
 }
 
