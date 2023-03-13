@@ -1,11 +1,14 @@
 package filesystem
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"golang.org/x/sys/unix"
 	"k8s.io/utils/io"
@@ -24,24 +27,25 @@ func isSameDevice(dev1, dev2 string) (bool, error) {
 		return true, nil
 	}
 
-	var st1, st2 unix.Stat_t
-	if err := Stat(dev1, &st1); err != nil {
+	var fi1, fi2 fs.FileInfo
+	var err error
+	if fi1, err = os.Stat(dev1); err != nil {
 		// Some filesystems like tmpfs and nfs aren't backed by block device files.
 		// In such case, given device path does not exist,
 		// we regard it is not an error but is false.
-		if os.IsNotExist(err) {
+		if errors.Is(err, fs.ErrNotExist) {
 			return false, nil
 		}
 		return false, fmt.Errorf("stat failed for %s: %v", dev1, err)
 	}
-	if err := Stat(dev2, &st2); err != nil {
-		if os.IsNotExist(err) {
+	if fi2, err = os.Stat(dev2); err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
 			return false, nil
 		}
 		return false, fmt.Errorf("stat failed for %s: %v", dev2, err)
 	}
 
-	return st1.Rdev == st2.Rdev, nil
+	return fi1.Sys().(*syscall.Stat_t).Rdev == fi2.Sys().(*syscall.Stat_t).Rdev, nil
 }
 
 // IsMounted returns true if device is mounted on target.
@@ -117,20 +121,6 @@ func DetectFilesystem(device string) (string, error) {
 	}
 
 	return "", nil
-}
-
-// Stat wrapped a golang.org/x/sys/unix.Stat function to handle EINTR signal for Go 1.14+
-func Stat(path string, stat *unix.Stat_t) error {
-	for {
-		err := unix.Stat(path, stat)
-		if err == nil {
-			return nil
-		}
-		if e, ok := err.(temporaryer); ok && e.Temporary() {
-			continue
-		}
-		return err
-	}
 }
 
 // Mknod wrapped a golang.org/x/sys/unix.Mknod function to handle EINTR signal for Go 1.14+

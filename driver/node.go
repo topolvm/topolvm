@@ -2,12 +2,15 @@ package driver
 
 import (
 	"context"
+	"errors"
 	"io"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/topolvm/topolvm"
@@ -29,7 +32,7 @@ const (
 	DeviceDirectory = "/dev/topolvm"
 
 	findmntCmd       = "/bin/findmnt"
-	devicePermission = 0600 | unix.S_IFBLK
+	devicePermission = 0600
 )
 
 var nodeLogger = ctrl.Log.WithName("driver").WithName("node")
@@ -247,12 +250,12 @@ func (s *nodeServerNoLocked) nodePublishFilesystemVolume(req *csi.NodePublishVol
 }
 
 func (s *nodeServerNoLocked) createDeviceIfNeeded(device string, lv *proto.LogicalVolume) error {
-	var stat unix.Stat_t
-	err := filesystem.Stat(device, &stat)
-	switch err {
-	case nil:
+	fi, err := os.Stat(device)
+	switch {
+	case err == nil:
 		// a block device already exists, check its attributes
-		if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && (stat.Mode&devicePermission) == devicePermission {
+		if fi.Sys().(*syscall.Stat_t).Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) &&
+			fi.Mode()&fs.ModeType == fs.ModeDevice && fi.Mode()&fs.ModePerm == devicePermission {
 			return nil
 		}
 		err := os.Remove(device)
@@ -260,14 +263,14 @@ func (s *nodeServerNoLocked) createDeviceIfNeeded(device string, lv *proto.Logic
 			return status.Errorf(codes.Internal, "failed to remove device file %s: error=%v", device, err)
 		}
 		fallthrough
-	case unix.ENOENT:
+	case errors.Is(err, fs.ErrNotExist):
 		err = os.MkdirAll(path.Dir(device), 0755)
 		if err != nil {
 			return status.Errorf(codes.Internal, "mkdir failed: target=%s, error=%v", path.Dir(device), err)
 		}
 
 		devno := unix.Mkdev(lv.DevMajor, lv.DevMinor)
-		if err := filesystem.Mknod(device, devicePermission, int(devno)); err != nil {
+		if err := filesystem.Mknod(device, unix.S_IFBLK|devicePermission, int(devno)); err != nil {
 			return status.Errorf(codes.Internal, "mknod failed for %s. major=%d, minor=%d, error=%v",
 				device, lv.DevMajor, lv.DevMinor, err)
 		}
@@ -394,16 +397,16 @@ func (s *nodeServerNoLocked) NodeGetVolumeStats(ctx context.Context, req *csi.No
 		return nil, status.Error(codes.InvalidArgument, "no volume_path is provided")
 	}
 
-	var st unix.Stat_t
-	switch err := filesystem.Stat(volumePath, &st); err {
-	case unix.ENOENT:
-		return nil, status.Error(codes.NotFound, "Volume is not found at "+volumePath)
-	case nil:
-	default:
-		return nil, status.Errorf(codes.Internal, "stat on %s was failed: %v", volumePath, err)
+	fi, err := os.Stat(volumePath)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, status.Errorf(codes.NotFound, "Volume is not found at %s", volumePath)
+		} else {
+			return nil, status.Errorf(codes.Internal, "stat on %s was failed: %v", volumePath, err)
+		}
 	}
 
-	if (st.Mode & unix.S_IFMT) == unix.S_IFBLK {
+	if fi.Mode()&fs.ModeType == fs.ModeDevice {
 		f, err := os.Open(volumePath)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "open on %s was failed: %v", volumePath, err)
@@ -418,8 +421,8 @@ func (s *nodeServerNoLocked) NodeGetVolumeStats(ctx context.Context, req *csi.No
 		}, nil
 	}
 
-	if st.Mode&unix.S_IFDIR == 0 {
-		return nil, status.Errorf(codes.Internal, "invalid mode bits for %s: %d", volumePath, st.Mode)
+	if !fi.IsDir() {
+		return nil, status.Errorf(codes.Internal, "invalid file mode for %s: %v", volumePath, fi.Mode())
 	}
 
 	var sfs unix.Statfs_t
