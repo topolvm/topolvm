@@ -66,6 +66,7 @@ jobs:
       - run: make container-structure-test STRUCTURE_TEST_TARGET=${{ matrix.image }}
 
   example:
+    if:  startsWith(github.head_ref, 'bump-chart-')
     name: "example"
     runs-on: "ubuntu-20.04"
     defaults:
@@ -88,4 +89,4 @@ jobs:
           restore-keys: |
             go-
       - run: make setup
-      - run: make run BUILD_IMAGE=true
+      - run: make run
