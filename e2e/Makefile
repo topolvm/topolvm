@@ -9,7 +9,6 @@ USE_LEGACY ?= ""
 ## Dependency versions
 MINIKUBE_VERSION := v1.28.0
 CERT_MANAGER_VERSION := v1.7.0
-KUSTOMIZE_VERSION := v4.5.5
 
 BINDIR := $(shell pwd)/bin
 SUDO := sudo
@@ -220,7 +219,6 @@ setup:
 	mkdir -p $(BINDIR)
 	$(CURL) -o $(BINDIR)/kubectl https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl
 	chmod a+x $(BINDIR)/kubectl
-	$(CURL) https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F$(KUSTOMIZE_VERSION)/kustomize_$(KUSTOMIZE_VERSION)_linux_amd64.tar.gz | tar zxf - -C $(BINDIR)
 
 .PHONY: daemonset-lvmd/create-vg
 daemonset-lvmd/create-vg:
