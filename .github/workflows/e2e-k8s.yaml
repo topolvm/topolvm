@@ -20,11 +20,6 @@ jobs:
     with:
       test_scheduler_manifest: "deployment"
 
-  skip-node-finalize:
-    uses: ./.github/workflows/e2e-k8s-workflow.yaml
-    with:
-      skip_node_finalize: "true"
-  
   thin-snapshot-csi:
     uses: ./.github/workflows/e2e-k8s-workflow.yaml
     with:

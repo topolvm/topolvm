@@ -13,12 +13,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var reconciler *PersistentVolumeClaimReconciler
-
 var _ = Describe("PersistentVolumeClaimController controller", func() {
 	ctx := context.Background()
 	var stopFunc func()
 	errCh := make(chan error)
+
+	var reconciler *PersistentVolumeClaimReconciler
 
 	BeforeEach(func() {
 		mgr, err := ctrl.NewManager(cfg, ctrl.Options{

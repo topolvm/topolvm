@@ -78,10 +78,6 @@ func isStorageCapacity() bool {
 	return os.Getenv("STORAGE_CAPACITY") == "true"
 }
 
-func isNodeFinalizeSkipped() bool {
-	return os.Getenv("SKIP_NODE_FINALIZE") == "true"
-}
-
 func skipIfDaemonsetLvmd() {
 	if isDaemonsetLvmdEnvSet() {
 		Skip("skip because current environment is daemonset lvmd")
