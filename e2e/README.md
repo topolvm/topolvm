@@ -37,6 +37,13 @@ You can also start a cluster without running tests by the following command.
 make create-cluster
 ```
 
+Then, you can test specific suite.
+
+```console
+make prepare-test
+make run-test GINKGO_FLAGS="--focus hook"
+```
+
 You can cleanup test environment as follows:
 
 ```

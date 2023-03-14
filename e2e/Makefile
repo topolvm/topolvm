@@ -188,22 +188,31 @@ create-cluster: topolvm.img
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system -l="app.kubernetes.io/component=controller,app.kubernetes.io/name=topolvm" pod
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system certificate/topolvm-mutatingwebhook
 
-.PHONY: test
-test: create-cluster
+.PHONY: prepare-test
+prepare-test:
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/rbac-snapshot-controller.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml
 	$(KUBECTL) apply -f $(PROVISINER_MANIFEST)
+
+.PHONY: run-test
+run-test: GINKGO_FLAGS =
+run-test:
 	$(SUDO) -E env \
 	PATH=${PATH} \
 	E2ETEST=1 \
 	BINDIR=$(BINDIR) \
 	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
 	GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn \
-	$(GINKGO) $(GINKGO_SKIP_SNAPSHOT_CSI_TESTS) --failFast -v .
+	$(GINKGO) $(GINKGO_SKIP_SNAPSHOT_CSI_TESTS) --failFast -v $(GINKGO_FLAGS) .
 
+.PHONY: test
+test:
+	$(MAKE) create-cluster
+	$(MAKE) prepare-test
+	$(MAKE) run-test
 
 .PHONY: clean
 clean: stop-lvmd
