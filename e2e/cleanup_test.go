@@ -14,6 +14,7 @@ import (
 	"github.com/topolvm/topolvm/controllers"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const cleanupTest = "cleanup-test"
@@ -47,15 +48,9 @@ func testCleanup() {
 				return err
 			}
 			for _, node := range nodes.Items {
-				topolvmFinalize := false
-				for _, fn := range node.Finalizers {
-					if fn == topolvm.GetNodeFinalizer() {
-						topolvmFinalize = true
-					}
-				}
 				// Even if node finalize is skipped, the finalizer is still present on the node
 				// The finalizer is added by the metrics-exporter runner from topolvm-node
-				if !topolvmFinalize {
+				if !controllerutil.ContainsFinalizer(&node, topolvm.GetNodeFinalizer()) {
 					return errors.New("topolvm finalizer is not attached")
 				}
 			}

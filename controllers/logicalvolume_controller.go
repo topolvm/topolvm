@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	crlog "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -60,9 +61,9 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	if lv.ObjectMeta.DeletionTimestamp == nil {
-		if !containsString(lv.Finalizers, topolvm.GetLogicalVolumeFinalizer()) {
+		if !controllerutil.ContainsFinalizer(lv, topolvm.GetLogicalVolumeFinalizer()) {
 			lv2 := lv.DeepCopy()
-			lv2.Finalizers = append(lv2.Finalizers, topolvm.GetLogicalVolumeFinalizer())
+			controllerutil.AddFinalizer(lv2, topolvm.GetLogicalVolumeFinalizer())
 			patch := client.MergeFrom(lv)
 			if err := r.client.Patch(ctx, lv2, patch); err != nil {
 				log.Error(err, "failed to add finalizer", "name", lv.Name)
@@ -101,7 +102,7 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// finalization
-	if !containsString(lv.Finalizers, topolvm.GetLogicalVolumeFinalizer()) {
+	if !controllerutil.ContainsFinalizer(lv, topolvm.GetLogicalVolumeFinalizer()) {
 		// Our finalizer has finished, so the reconciler can do nothing.
 		return ctrl.Result{}, nil
 	}
@@ -113,7 +114,7 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	lv2 := lv.DeepCopy()
-	lv2.Finalizers = removeString(lv2.Finalizers, topolvm.GetLogicalVolumeFinalizer())
+	controllerutil.RemoveFinalizer(lv2, topolvm.GetLogicalVolumeFinalizer())
 	patch := client.MergeFrom(lv)
 	if err := r.client.Patch(ctx, lv2, patch); err != nil {
 		log.Error(err, "failed to remove finalizer", "name", lv.Name)
@@ -360,25 +361,6 @@ func (f logicalVolumeFilter) Update(e event.UpdateEvent) bool {
 
 func (f logicalVolumeFilter) Generic(e event.GenericEvent) bool {
 	return f.filter(e.Object)
-}
-
-func containsString(slice []string, s string) bool {
-	for _, item := range slice {
-		if item == s {
-			return true
-		}
-	}
-	return false
-}
-
-func removeString(slice []string, s string) (result []string) {
-	for _, item := range slice {
-		if item == s {
-			continue
-		}
-		result = append(result, item)
-	}
-	return
 }
 
 func extractFromError(err error) (codes.Code, string) {
