@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/google/go-cmp/cmp"
@@ -134,7 +135,7 @@ func commonAfterEach(cc CleanupContext) {
 
 type lvinfo struct {
 	lvPath string
-	size   string
+	size   int
 	vgName string
 }
 
@@ -151,9 +152,20 @@ func getLVInfo(lvName string) (*lvinfo, error) {
 	if len(lines) != 1 {
 		return nil, errors.New("found multiple lvs")
 	}
+	// lvdisplay -c format is here
+	// https://github.com/lvmteam/lvm2/blob/baf99ff974b408c59dd4f51db6e006d659c061e7/lib/display/display.c#L353
 	items := strings.Split(strings.TrimSpace(lines[0]), ":")
-	if len(items) < 4 {
+	if len(items) < 7 {
 		return nil, fmt.Errorf("invalid format: %s", lines[0])
 	}
-	return &lvinfo{lvPath: items[0], vgName: items[1], size: items[3]}, nil
+	size, err := strconv.Atoi(items[6])
+	if err != nil {
+		return nil, err
+	}
+
+	return &lvinfo{
+		lvPath: items[0],
+		vgName: items[1],
+		size:   size * 512, // lvdisplay denotes size as 512 byte block
+	}, nil
 }
