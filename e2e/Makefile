@@ -206,7 +206,7 @@ run-test:
 	BINDIR=$(BINDIR) \
 	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
 	GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn \
-	$(GINKGO) $(GINKGO_SKIP_SNAPSHOT_CSI_TESTS) --failFast -v $(GINKGO_FLAGS) .
+	$(GINKGO) $(GINKGO_SKIP_SNAPSHOT_CSI_TESTS) --fail-fast -v $(GINKGO_FLAGS) .
 
 .PHONY: test
 test:
@@ -327,7 +327,7 @@ daemonset-lvmd/test: topolvm.img
 	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
 	DAEMONSET_LVMD=true \
 	GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn \
-	$(GINKGO) -skip='snapshot' -skip='CreateSnapshot' -skip='DeleteSnapshot'  -skip='source volume' --failFast -v .
+	$(GINKGO) -skip='snapshot' -skip='CreateSnapshot' -skip='DeleteSnapshot'  -skip='source volume' --fail-fast -v .
 
 .PHONY: daemonset-lvmd/clean
 daemonset-lvmd/clean: daemonset-lvmd/delete-minikube daemonset-lvmd/remove-vg

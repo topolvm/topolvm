@@ -8,6 +8,7 @@ import (
 
 	snapapi "github.com/kubernetes-csi/external-snapshotter/client/v6/apis/volumesnapshot/v1"
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	"github.com/topolvm/topolvm"
 	corev1 "k8s.io/api/core/v1"
@@ -42,7 +43,7 @@ func testSnapRestore() {
 		createNamespace(nsSnapTest)
 	})
 	AfterEach(func() {
-		if !CurrentGinkgoTestDescription().Failed {
+		if !CurrentSpecReport().State.Is(types.SpecStateFailureStates) {
 			kubectl("delete", "namespaces/"+nsSnapTest)
 		}
 	})

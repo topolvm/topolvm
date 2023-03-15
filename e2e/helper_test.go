@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	"github.com/topolvm/topolvm"
 	corev1 "k8s.io/api/core/v1"
@@ -106,7 +107,7 @@ func commonBeforeEach() CleanupContext {
 }
 
 func commonAfterEach(cc CleanupContext) {
-	if !CurrentGinkgoTestDescription().Failed {
+	if !CurrentSpecReport().State.Is(types.SpecStateFailureStates) {
 		EventuallyWithOffset(1, func() error {
 			lvmCountAfter, err := countLVMs()
 			if err != nil {

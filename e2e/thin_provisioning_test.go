@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	"github.com/topolvm/topolvm"
 	corev1 "k8s.io/api/core/v1"
@@ -33,7 +34,7 @@ func testThinProvisioning() {
 
 	AfterEach(func() {
 		// When a test fails, I want to investigate the cause. So please don't remove the namespace!
-		if !CurrentGinkgoTestDescription().Failed {
+		if !CurrentSpecReport().State.Is(types.SpecStateFailureStates) {
 			kubectl("delete", "namespaces/"+ns)
 		}
 		commonAfterEach(cc)

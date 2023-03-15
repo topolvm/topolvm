@@ -11,6 +11,7 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	"github.com/topolvm/topolvm"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
@@ -49,7 +50,7 @@ func testE2E() {
 
 	AfterEach(func() {
 		// When a test fails, I want to investigate the cause. So please don't remove the namespace!
-		if !CurrentGinkgoTestDescription().Failed {
+		if !CurrentSpecReport().State.Is(types.SpecStateFailureStates) {
 			kubectl("delete", "namespaces/"+ns)
 		}
 
