@@ -205,7 +205,6 @@ run-test:
 	E2ETEST=1 \
 	BINDIR=$(BINDIR) \
 	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
-	GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn \
 	$(GINKGO) $(GINKGO_SKIP_SNAPSHOT_CSI_TESTS) --fail-fast -v $(GINKGO_FLAGS) .
 
 .PHONY: test
@@ -326,7 +325,6 @@ daemonset-lvmd/test: topolvm.img
 	BINDIR=$(BINDIR) \
 	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
 	DAEMONSET_LVMD=true \
-	GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn \
 	$(GINKGO) -skip='snapshot' -skip='CreateSnapshot' -skip='DeleteSnapshot'  -skip='source volume' --fail-fast -v .
 
 .PHONY: daemonset-lvmd/clean
