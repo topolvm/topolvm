@@ -9,6 +9,7 @@ USE_LEGACY ?= ""
 ## Dependency versions
 MINIKUBE_VERSION := v1.28.0
 CERT_MANAGER_VERSION := v1.7.0
+GINKGO_VERSION := $(shell awk '/github.com\/onsi\/ginkgo\/v2/ {print $$2}' ../go.mod)
 
 BINDIR := $(shell pwd)/bin
 SUDO := sudo
@@ -17,7 +18,7 @@ KIND_CLUSTER_NAME := topolvm-e2e
 KIND := ../bin/kind
 KUBECTL := $(BINDIR)/kubectl
 HELM := ../bin/helm
-GINKGO := ../bin/ginkgo
+GINKGO := $(BINDIR)/ginkgo-$(GINKGO_VERSION)
 
 MINIKUBE_HOME = $(BINDIR)
 export MINIKUBE_HOME
@@ -199,7 +200,7 @@ prepare-test:
 
 .PHONY: run-test
 run-test: GINKGO_FLAGS =
-run-test:
+run-test: $(GINKGO)
 	$(SUDO) -E env \
 	PATH=${PATH} \
 	E2ETEST=1 \
@@ -220,6 +221,10 @@ clean: stop-lvmd
 		build/ \
 		tmpbin/ \
 		/tmp/topolvm/scheduler/scheduler-config.yaml
+
+$(GINKGO):
+	GOBIN=$(BINDIR) go install github.com/onsi/ginkgo/v2/ginkgo@$(GINKGO_VERSION)
+	mv $(BINDIR)/ginkgo $@
 
 .PHONY: setup
 setup:
@@ -303,7 +308,7 @@ daemonset-lvmd/delete-minikube:
 	$(SUDO) -E $(BINDIR)/minikube delete || true
 
 .PHONY: daemonset-lvmd/test
-daemonset-lvmd/test: topolvm.img
+daemonset-lvmd/test: topolvm.img $(GINKGO)
 	$(MAKE) apply-certmanager-crds
 	$(MAKE) prepare-namespace
 	$(HELM) repo add jetstack https://charts.jetstack.io
