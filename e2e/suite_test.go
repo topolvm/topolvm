@@ -16,7 +16,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var binDir string
+var kubectlPath string
 var skipMessageForStorageCapacity string = "skip because current environment is storage capacity"
 
 func TestMtest(t *testing.T) {
@@ -99,10 +99,10 @@ func getDaemonsetLvmdNodeName() string {
 var pausePodYAML []byte
 
 var _ = BeforeSuite(func() {
-	By("Getting the directory path which contains some binaries")
-	binDir = os.Getenv("BINDIR")
-	Expect(binDir).ShouldNot(BeEmpty())
-	fmt.Println("This test uses the binaries under " + binDir)
+	By("Getting kubectl binary")
+	kubectlPath = os.Getenv("KUBECTL")
+	Expect(kubectlPath).ShouldNot(BeEmpty())
+	fmt.Println("This test uses a kubectl at " + kubectlPath)
 
 	if !isDaemonsetLvmdEnvSet() {
 		By("Waiting for kindnet to get ready")

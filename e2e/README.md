@@ -11,7 +11,6 @@ Setup environment
 1. Prepare Ubuntu machine.
 2. [Install Docker CE](https://docs.docker.com/install/linux/docker-ce/ubuntu/#install-using-the-repository).
 3. Add yourself to `docker` group.  e.g. `sudo adduser $USER docker`
-4. Run `make setup`.
 
 How to run tests
 ----------------

@@ -254,19 +254,30 @@ ct-lint: ## Lint and validate a chart.
 
 ##@ Setup
 
+$(BINDIR):
+	mkdir -p $@
+
 .PHONY: install-kind
-install-kind:
+install-kind: | $(BINDIR)
 	GOBIN=$(BINDIR) go install sigs.k8s.io/kind@$(KIND_VERSION)
 
 .PHONY: install-container-structure-test
-install-container-structure-test:
-	mkdir -p $(BINDIR)
+install-container-structure-test: | $(BINDIR)
 	$(CURL) -o $(CONTAINER_STRUCTURE_TEST) \
 		https://storage.googleapis.com/container-structure-test/v$(CONTAINER_STRUCTURE_TEST_VERSION)/container-structure-test-linux-amd64 \
     && chmod +x $(CONTAINER_STRUCTURE_TEST)
 
+.PHONY: install-helm
+install-helm: | $(BINDIR)
+	$(CURL) https://get.helm.sh/helm-v$(HELM_VERSION)-linux-amd64.tar.gz \
+		| tar xvz -C $(BINDIR) --strip-components 1 linux-amd64/helm
+
+.PHONY: install-helm-docs
+install-helm-docs: | $(BINDIR)
+	GOBIN=$(BINDIR) go install github.com/norwoodj/helm-docs/cmd/helm-docs@v$(HELM_DOCS_VERSION)
+
 .PHONY: tools
-tools: install-kind install-container-structure-test ## Install development tools.
+tools: install-kind install-container-structure-test install-helm install-helm-docs | $(BINDIR) ## Install development tools.
 	GOBIN=$(BINDIR) go install honnef.co/go/tools/cmd/staticcheck@latest
 	# Follow the official documentation to install the `latest` version, because explicitly specifying the version will get an error.
 	GOBIN=$(BINDIR) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
@@ -279,9 +290,6 @@ tools: install-kind install-container-structure-test ## Install development tool
 	GOBIN=$(BINDIR) go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v$(PROTOC_GEN_GO_GRPC_VERSION)
 	GOBIN=$(BINDIR) go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v$(PROTOC_GEN_DOC_VERSION)
 
-	GOBIN=$(BINDIR) go install github.com/norwoodj/helm-docs/cmd/helm-docs@v$(HELM_DOCS_VERSION)
-	$(CURL) https://get.helm.sh/helm-v$(HELM_VERSION)-linux-amd64.tar.gz \
-		| tar xvz -C $(BINDIR) --strip-components 1 linux-amd64/helm
 	$(CURL) https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_amd64 -o $(BINDIR)/yq \
 		&& chmod +x $(BINDIR)/yq
 

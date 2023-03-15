@@ -40,9 +40,11 @@ jobs:
             go-
       - uses: actions/cache/restore@v3
         with:
-          path: e2e/topolvm.img
-          key: e2e-topolvm-img-${{ github.sha }}
+          path: |
+            bin
+            e2e/bin
+            e2e/topolvm.img
+          key: e2e-cache-${{ github.sha }}
       - run: touch e2e/topolvm.img # update timestamp not to rebuild image
-      - run: make -C e2e setup
       - run: make -C e2e start-lvmd
       - run: make -C e2e test
