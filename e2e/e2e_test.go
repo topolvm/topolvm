@@ -420,7 +420,7 @@ func testE2E() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			target := lv.Spec.NodeName
-			Expect(containString(maxCapNodes, target)).To(Equal(true), "maxCapNodes: %v, target: %s", maxCapNodes, target)
+			Expect(target).To(BeElementOf(maxCapNodes), "maxCapNodes: %v, target: %s", maxCapNodes, target)
 		}
 	})
 

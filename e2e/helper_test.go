@@ -46,15 +46,6 @@ func kubectlWithInput(input []byte, args ...string) (stdout []byte, stderr []byt
 	return execAtLocal(kubectlPath, input, args...)
 }
 
-func containString(s []string, target string) bool {
-	for _, ss := range s {
-		if ss == target {
-			return true
-		}
-	}
-	return false
-}
-
 func countLVMs() (int, error) {
 	stdout, err := exec.Command("sudo", "lvs", "-o", "lv_name", "--noheadings").Output()
 	if err != nil {
