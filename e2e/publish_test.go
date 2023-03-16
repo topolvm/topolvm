@@ -114,9 +114,9 @@ func testPublishVolume() {
 
 		var volumeID string
 		Eventually(func() error {
-			stdout, stderr, err := kubectl("get", "logicalvolumes", name, "-o", "yaml")
+			stdout, _, err := kubectl("get", "logicalvolumes", name, "-o", "yaml")
 			if err != nil {
-				return fmt.Errorf("failed to get logical volume. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+				return fmt.Errorf("failed to get logical volume. err: %v", err)
 			}
 
 			var lv topolvmv1.LogicalVolume
@@ -201,8 +201,8 @@ func testPublishVolume() {
 		cl.unregister(volumeID, mountTargetPath)
 
 		By("cleaning logicalvolume")
-		stdout, stderr, err := kubectl("delete", "logicalvolumes", "csi-node-test-fs")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, _, err = kubectl("delete", "logicalvolumes", "csi-node-test-fs")
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	It("should be worked NodePublishVolume successfully to create a block device", func() {
@@ -221,9 +221,9 @@ func testPublishVolume() {
 
 		var volumeID string
 		Eventually(func() error {
-			stdout, stderr, err := kubectl("get", "logicalvolumes", name, "-o", "yaml")
+			stdout, _, err := kubectl("get", "logicalvolumes", name, "-o", "yaml")
 			if err != nil {
-				return fmt.Errorf("failed to get logical volume. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+				return fmt.Errorf("failed to get logical volume. err: %v", err)
 			}
 
 			var lv topolvmv1.LogicalVolume
@@ -292,8 +292,8 @@ func testPublishVolume() {
 		cl.unregister(volumeID, deviceTargetPath)
 
 		By("cleaning logicalvolume")
-		stdout, stderr, err := kubectl("delete", "logicalvolumes", "csi-node-test-block")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, _, err = kubectl("delete", "logicalvolumes", "csi-node-test-block")
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	It("should publish filesystem with mount option", func() {
@@ -302,9 +302,9 @@ func testPublishVolume() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
-			stdout, stderr, err := kubectl("get", "pod", "pause-mount-option", "-o", "yaml")
+			stdout, _, err := kubectl("get", "pod", "pause-mount-option", "-o", "yaml")
 			if err != nil {
-				return fmt.Errorf("failed to get pod. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+				return fmt.Errorf("failed to get pod. err: %v", err)
 			}
 
 			var pod corev1.Pod
@@ -321,15 +321,15 @@ func testPublishVolume() {
 		}).Should(Succeed())
 
 		By("check mount option")
-		stdout, stderr, err := kubectl("get", "pvc", "topo-pvc-mount-option", "-o", "yaml")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		stdout, _, err := kubectl("get", "pvc", "topo-pvc-mount-option", "-o", "yaml")
+		Expect(err).ShouldNot(HaveOccurred())
 
 		var pvc corev1.PersistentVolumeClaim
 		err = yaml.Unmarshal(stdout, &pvc)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		stdout, stderr, err = execAtLocal("cat", nil, "/proc/mounts")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		stdout, _, err = execAtLocal("cat", nil, "/proc/mounts")
+		Expect(err).ShouldNot(HaveOccurred())
 
 		var isExistingOption bool
 		lines := strings.Split(string(stdout), "\n")
@@ -348,8 +348,8 @@ func testPublishVolume() {
 		Expect(isExistingOption).Should(BeTrue())
 
 		By("cleaning pvc/pod")
-		stdout, stderr, err = kubectlWithInput(podWithMountOptionPVCYAML, "delete", "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, _, err = kubectlWithInput(podWithMountOptionPVCYAML, "delete", "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	It("validate mount options", func() {
@@ -368,9 +368,9 @@ func testPublishVolume() {
 
 		var volumeID string
 		Eventually(func() error {
-			stdout, stderr, err := kubectl("get", "logicalvolumes", name, "-o", "yaml")
+			stdout, _, err := kubectl("get", "logicalvolumes", name, "-o", "yaml")
 			if err != nil {
-				return fmt.Errorf("failed to get logical volume. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+				return fmt.Errorf("failed to get logical volume. err: %v", err)
 			}
 
 			var lv topolvmv1.LogicalVolume
@@ -412,7 +412,7 @@ func testPublishVolume() {
 		Expect(err).Should(HaveOccurred())
 
 		By("cleaning logicalvolume")
-		stdout, stderr, err := kubectl("delete", "logicalvolumes", "csi-node-test-fs")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, _, err = kubectl("delete", "logicalvolumes", "csi-node-test-fs")
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 }

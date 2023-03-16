@@ -33,9 +33,9 @@ func testScheduler() {
 		}
 
 		Eventually(func() error {
-			result, stderr, err := kubectl("get", "-n=topolvm-system", "pods", "--selector=app.kubernetes.io/component=scheduler,app.kubernetes.io/name=topolvm", "-o=json")
+			result, _, err := kubectl("get", "-n=topolvm-system", "pods", "--selector=app.kubernetes.io/component=scheduler,app.kubernetes.io/name=topolvm", "-o=json")
 			if err != nil {
-				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
+				return err
 			}
 
 			var podlist corev1.PodList
@@ -74,16 +74,16 @@ func testScheduler() {
 
 		ns := testNamespacePrefix + randomString(10)
 		createNamespace(ns)
-		stdout, stderr, err := kubectlWithInput([]byte(
+		_, _, err := kubectlWithInput([]byte(
 			fmt.Sprintf(capacityPodTemplateYAML, ns, topolvm.GetCapacityKeyPrefix(), "1073741824",
 				topolvm.GetCapacityResource().String(), topolvm.GetCapacityResource().String())),
 			"apply", "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		Expect(err).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
-			result, stderr, err := kubectl("get", "-n", ns, "pods/pause", "-o=json")
+			result, _, err := kubectl("get", "-n", ns, "pods/pause", "-o=json")
 			if err != nil {
-				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
+				return err
 			}
 
 			var pod corev1.Pod
@@ -111,16 +111,16 @@ func testScheduler() {
 
 		ns := testNamespacePrefix + randomString(10)
 		createNamespace(ns)
-		stdout, stderr, err := kubectlWithInput([]byte(
+		_, _, err := kubectlWithInput([]byte(
 			fmt.Sprintf(capacityPodTemplateYAML, ns, topolvm.GetCapacityKeyPrefix(), "21474836480",
 				topolvm.GetCapacityResource().String(), topolvm.GetCapacityResource().String())),
 			"apply", "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		Expect(err).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
-			result, stderr, err := kubectl("get", "-n", ns, "pods/pause", "-o=json")
+			result, _, err := kubectl("get", "-n", ns, "pods/pause", "-o=json")
 			if err != nil {
-				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
+				return err
 			}
 
 			var pod corev1.Pod

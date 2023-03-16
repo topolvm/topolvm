@@ -47,23 +47,23 @@ func testPVCClone() {
 		}
 		var volumeName string
 		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSize))
-		stdout, stderr, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsCloneTest, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, _, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsCloneTest, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
 		thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod", volName, topolvm.GetTopologyNodeKey(), nodeName))
-		stdout, stderr, err = kubectlWithInput(thinPodYAML, "apply", "-n", nsCloneTest, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, _, err = kubectlWithInput(thinPodYAML, "apply", "-n", nsCloneTest, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 		By("confirming if the source PVC is created")
 		Eventually(func() error {
-			stdout, stderr, err := kubectl("get", "-n", nsCloneTest, "pvc", volName, "-o", "json")
+			stdout, _, err := kubectl("get", "-n", nsCloneTest, "pvc", volName, "-o", "json")
 			if err != nil {
-				return fmt.Errorf("failed to get PVC. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+				return fmt.Errorf("failed to get PVC. err: %v", err)
 			}
 
 			var pvc corev1.PersistentVolumeClaim
 			err = json.Unmarshal(stdout, &pvc)
 			if err != nil {
-				return fmt.Errorf("failed to unmarshal PVC. stdout: %s, err: %v", stdout, err)
+				return fmt.Errorf("failed to unmarshal PVC. data: %s, err: %v", stdout, err)
 			}
 			if pvc.Status.Phase != corev1.ClaimBound {
 				return fmt.Errorf("PVC %s is not bound", volName)
@@ -74,35 +74,35 @@ func testPVCClone() {
 		By("writing a file on mountpath")
 		writePath := "/test1/bootstrap.log"
 		Eventually(func() error {
-			stdout, stderr, err = kubectl("exec", "-n", nsCloneTest, "thinpod", "--", "cp", "/var/log/bootstrap.log", writePath)
+			_, _, err := kubectl("exec", "-n", nsCloneTest, "thinpod", "--", "cp", "/var/log/bootstrap.log", writePath)
 			return err
 		}).Should(Succeed())
 
-		stdout, stderr, err = kubectl("exec", "-n", nsCloneTest, "thinpod", "--", "sync")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		stdout, stderr, err = kubectl("exec", "-n", nsCloneTest, "thinpod", "--", "cat", writePath)
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, _, err = kubectl("exec", "-n", nsCloneTest, "thinpod", "--", "sync")
+		Expect(err).ShouldNot(HaveOccurred())
+		stdout, _, err := kubectl("exec", "-n", nsCloneTest, "thinpod", "--", "cat", writePath)
+		Expect(err).ShouldNot(HaveOccurred())
 		Expect(strings.TrimSpace(string(stdout))).ShouldNot(BeEmpty())
 
 		thinPVCCloneYAML := []byte(fmt.Sprintf(thinPvcCloneTemplateYAML, thinClonePVCName, volName, pvcSize))
-		stdout, stderr, err = kubectlWithInput(thinPVCCloneYAML, "apply", "-n", nsCloneTest, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, _, err = kubectlWithInput(thinPVCCloneYAML, "apply", "-n", nsCloneTest, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
 		thinPodCloneYAML := []byte(fmt.Sprintf(thinPodCloneTemplateYAML, thinClonePodName, thinClonePVCName, topolvm.GetTopologyNodeKey(), nodeName))
-		stdout, stderr, err = kubectlWithInput(thinPodCloneYAML, "apply", "-n", nsCloneTest, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, _, err = kubectlWithInput(thinPodCloneYAML, "apply", "-n", nsCloneTest, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
 		By("confirming that the lv for cloned volume was created in the thin volume group and pool")
 		Eventually(func() error {
-			stdout, stderr, err := kubectl("get", "-n", nsCloneTest, "pvc", thinClonePVCName, "-o", "json")
+			stdout, _, err := kubectl("get", "-n", nsCloneTest, "pvc", thinClonePVCName, "-o", "json")
 			if err != nil {
-				return fmt.Errorf("failed to get PVC. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+				return fmt.Errorf("failed to get PVC. err: %v", err)
 			}
 
 			var pvc corev1.PersistentVolumeClaim
 			err = json.Unmarshal(stdout, &pvc)
 			if err != nil {
-				return fmt.Errorf("failed to unmarshal PVC. stdout: %s, err: %v", stdout, err)
+				return fmt.Errorf("failed to unmarshal PVC. data: %s, err: %v", stdout, err)
 			}
 			if pvc.Status.Phase != corev1.ClaimBound {
 				return fmt.Errorf("PVC %s is not bound", thinClonePVCName)
@@ -131,19 +131,19 @@ func testPVCClone() {
 
 		By("confirming that the file exists in the cloned volume")
 		Eventually(func() error {
-			stdout, stderr, err = kubectl("get", "pvc", thinClonePVCName, "-n", nsCloneTest)
+			_, _, err := kubectl("get", "pvc", thinClonePVCName, "-n", nsCloneTest)
 			if err != nil {
-				return fmt.Errorf("failed to get PVC. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+				return fmt.Errorf("failed to get PVC. err: %v", err)
 			}
 
-			stdout, stderr, err = kubectl("get", "pods", thinClonePodName, "-n", nsCloneTest)
+			_, _, err = kubectl("get", "pods", thinClonePodName, "-n", nsCloneTest)
 			if err != nil {
-				return fmt.Errorf("failed to get Pod. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+				return fmt.Errorf("failed to get Pod. err: %v", err)
 			}
 
-			stdout, stderr, err = kubectl("exec", "-n", nsCloneTest, thinClonePodName, "--", "cat", writePath)
+			stdout, _, err := kubectl("exec", "-n", nsCloneTest, thinClonePodName, "--", "cat", writePath)
 			if err != nil {
-				return fmt.Errorf("failed to cat. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+				return fmt.Errorf("failed to cat. err: %v", err)
 			}
 			if len(strings.TrimSpace(string(stdout))) == 0 {
 				return fmt.Errorf(writePath + " is empty")
@@ -162,22 +162,22 @@ func testPVCClone() {
 		By("creating a PVC")
 		var volumeName string
 		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSize))
-		stdout, stderr, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsCloneTest, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, _, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsCloneTest, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
 		thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod", volName, topolvm.GetTopologyNodeKey(), nodeName))
-		stdout, stderr, err = kubectlWithInput(thinPodYAML, "apply", "-n", nsCloneTest, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, _, err = kubectlWithInput(thinPodYAML, "apply", "-n", nsCloneTest, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() error {
-			stdout, stderr, err := kubectl("get", "-n", nsCloneTest, "pvc", volName, "-o", "json")
+			stdout, _, err := kubectl("get", "-n", nsCloneTest, "pvc", volName, "-o", "json")
 			if err != nil {
-				return fmt.Errorf("failed to get PVC. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+				return fmt.Errorf("failed to get PVC. err: %v", err)
 			}
 
 			var pvc corev1.PersistentVolumeClaim
 			err = json.Unmarshal(stdout, &pvc)
 			if err != nil {
-				return fmt.Errorf("failed to unmarshal PVC. stdout: %s, err: %v", stdout, err)
+				return fmt.Errorf("failed to unmarshal PVC. data: %s, err: %v", stdout, err)
 			}
 			if pvc.Status.Phase != corev1.ClaimBound {
 				return fmt.Errorf("PVC %s is not bound", volName)
@@ -187,24 +187,24 @@ func testPVCClone() {
 
 		By("creating clone of the PVC")
 		thinPVCCloneYAML := []byte(fmt.Sprintf(thinPvcCloneTemplateYAML, thinClonePVCName, volName, pvcSize))
-		stdout, stderr, err = kubectlWithInput(thinPVCCloneYAML, "apply", "-n", nsCloneTest, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, _, err = kubectlWithInput(thinPVCCloneYAML, "apply", "-n", nsCloneTest, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
 		thinPodCloneYAML := []byte(fmt.Sprintf(thinPodCloneTemplateYAML, thinClonePodName, thinClonePVCName, topolvm.GetTopologyNodeKey(), nodeName))
-		stdout, stderr, err = kubectlWithInput(thinPodCloneYAML, "apply", "-n", nsCloneTest, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, _, err = kubectlWithInput(thinPodCloneYAML, "apply", "-n", nsCloneTest, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
 		By("validating that the cloned volume is present")
 		Eventually(func() error {
-			stdout, stderr, err := kubectl("get", "-n", nsCloneTest, "pvc", thinClonePVCName, "-o", "json")
+			stdout, _, err := kubectl("get", "-n", nsCloneTest, "pvc", thinClonePVCName, "-o", "json")
 			if err != nil {
-				return fmt.Errorf("failed to get PVC. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+				return fmt.Errorf("failed to get PVC. err: %v", err)
 			}
 
 			var pvc corev1.PersistentVolumeClaim
 			err = json.Unmarshal(stdout, &pvc)
 			if err != nil {
-				return fmt.Errorf("failed to unmarshal PVC. stdout: %s, err: %v", stdout, err)
+				return fmt.Errorf("failed to unmarshal PVC. data: %s, err: %v", stdout, err)
 			}
 			if pvc.Status.Phase != corev1.ClaimBound {
 				return fmt.Errorf("PVC %s is not bound", thinClonePVCName)
@@ -233,11 +233,11 @@ func testPVCClone() {
 		Expect(poolName).Should(Equal(lv.poolName))
 
 		By("deleting the source volume and application")
-		stdout, stderr, err = kubectlWithInput(thinPodYAML, "delete", "-n", nsCloneTest, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, _, err = kubectlWithInput(thinPodYAML, "delete", "-n", nsCloneTest, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
-		stdout, stderr, err = kubectlWithInput(thinPvcYAML, "delete", "-n", nsCloneTest, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, _, err = kubectlWithInput(thinPvcYAML, "delete", "-n", nsCloneTest, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
 		By("validating if the cloned volume is present and is not deleted")
 		volumeName, err = getVolumeNameofPVC(thinClonePVCName, nsCloneTest)

@@ -62,9 +62,9 @@ func testStorageCapacity() {
 		_, _, err = kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() error {
-			result, stderr, err := kubectl("-n="+nsCapacityTest, "get", "pvc", name, "-o=json")
+			result, _, err := kubectl("-n="+nsCapacityTest, "get", "pvc", name, "-o=json")
 			if err != nil {
-				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
+				return err
 			}
 
 			var pvc corev1.PersistentVolumeClaim
@@ -76,9 +76,9 @@ func testStorageCapacity() {
 				return errors.New("pvc status is not bound")
 			}
 
-			result, stderr, err = kubectl("-n="+nsCapacityTest, "get", "pods", name, "-o=json")
+			result, _, err = kubectl("-n="+nsCapacityTest, "get", "pods", name, "-o=json")
 			if err != nil {
-				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
+				return err
 			}
 
 			var pod corev1.Pod
@@ -103,9 +103,9 @@ func testStorageCapacity() {
 		_, _, err = kubectlWithInput(lvYaml2, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() error {
-			result, stderr, err := kubectl("-n="+nsCapacityTest, "get", "pods", name2, "-o=json")
+			result, _, err := kubectl("-n="+nsCapacityTest, "get", "pods", name2, "-o=json")
 			if err != nil {
-				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
+				return err
 			}
 
 			var pod corev1.Pod
@@ -120,9 +120,9 @@ func testStorageCapacity() {
 				}
 			}
 
-			podInfo, stderr, err := kubectl("-n="+nsCapacityTest, "describe", "pods", name2)
+			podInfo, _, err := kubectl("-n="+nsCapacityTest, "describe", "pods", name2)
 			if err != nil {
-				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
+				return err
 			}
 			if !strings.Contains(string(podInfo), "did not have enough free storage") {
 				return errors.New("scheduling failed message is not found")
@@ -154,9 +154,9 @@ func testStorageCapacity() {
 		_, _, err = kubectlWithInput(lvYaml3, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() error {
-			result, stderr, err := kubectl("-n="+nsCapacityTest, "get", "pvc", name3, "-o=json")
+			result, _, err := kubectl("-n="+nsCapacityTest, "get", "pvc", name3, "-o=json")
 			if err != nil {
-				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
+				return err
 			}
 
 			var pvc corev1.PersistentVolumeClaim
@@ -168,9 +168,9 @@ func testStorageCapacity() {
 				return errors.New("pvc status is not bound")
 			}
 
-			result, stderr, err = kubectl("-n="+nsCapacityTest, "get", "pods", name3, "-o=json")
+			result, _, err = kubectl("-n="+nsCapacityTest, "get", "pods", name3, "-o=json")
 			if err != nil {
-				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
+				return err
 			}
 
 			var pod corev1.Pod

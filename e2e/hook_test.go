@@ -40,15 +40,15 @@ func testHook() {
 	It("should test hooks", func() {
 		By("creating pod with TopoLVM PVC")
 		Eventually(func() error {
-			stdout, stderr, err := kubectlWithInput(podWithPVCYAML, "-n", nsHookTest, "apply", "-f", "-", "--dry-run=server")
+			_, _, err := kubectlWithInput(podWithPVCYAML, "-n", nsHookTest, "apply", "-f", "-", "--dry-run=server")
 			if err != nil {
-				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, stdout, stderr)
+				return err
 			}
 			return nil
 		}).Should(Succeed())
 
-		stdout, stderr, err := kubectlWithInput(podWithPVCYAML, "-n", nsHookTest, "apply", "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, _, err := kubectlWithInput(podWithPVCYAML, "-n", nsHookTest, "apply", "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
 		By("checking pod is properly annotated")
 		Eventually(func() error {
@@ -56,9 +56,9 @@ func testHook() {
 				return nil
 			}
 
-			result, stderr, err := kubectl("get", "-n", nsHookTest, "pods/pause", "-o=json")
+			result, _, err := kubectl("get", "-n", nsHookTest, "pods/pause", "-o=json")
 			if err != nil {
-				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
+				return err
 			}
 
 			var pod corev1.Pod
@@ -89,8 +89,8 @@ func testHook() {
 		}).Should(Succeed())
 
 		By("checking pvc has TopoLVM finalizer")
-		result, stderr, err := kubectl("get", "-n", nsHookTest, "pvc", "-o=json")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", result, stderr)
+		result, _, err := kubectl("get", "-n", nsHookTest, "pvc", "-o=json")
+		Expect(err).ShouldNot(HaveOccurred())
 
 		var pvcList corev1.PersistentVolumeClaimList
 		err = json.Unmarshal(result, &pvcList)
@@ -109,14 +109,14 @@ func testHook() {
 		}
 
 		By("creating pod with TopoLVM generic ephemeral volumes")
-		stdout, stderr, err := kubectlWithInput(hookGenericEphemeralVolumeYAML, "-n", nsHookTest, "apply", "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, _, err := kubectlWithInput(hookGenericEphemeralVolumeYAML, "-n", nsHookTest, "apply", "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
 		By("checking pod is annotated with" + topolvm.GetCapacityResource().String())
 		Eventually(func() error {
-			result, stderr, err := kubectl("get", "-n", nsHookTest, "pods/pause", "-o=json")
+			result, _, err := kubectl("get", "-n", nsHookTest, "pods/pause", "-o=json")
 			if err != nil {
-				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
+				return err
 			}
 
 			var pod corev1.Pod

@@ -39,17 +39,17 @@ func testReadWriteOncePod() {
 
 		By("Create a pod and a PVC with a ReadWriteOncePod access mode")
 		pvcYaml := buildPVCTemplateYAML(pvcName, ns, size)
-		stdout, stderr, err := kubectlWithInput(pvcYaml, "apply", "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, _, err := kubectlWithInput(pvcYaml, "apply", "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 		podYaml := buildPodTemplateYAML(podName, ns, pvcName)
-		stdout, stderr, err = kubectlWithInput(podYaml, "apply", "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, _, err = kubectlWithInput(podYaml, "apply", "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
 		By("Checking the pod is running")
 		Eventually(func() error {
-			result, stderr, err := kubectl("-n="+ns, "get", "pvc", pvcName, "-o=json")
+			result, _, err := kubectl("-n="+ns, "get", "pvc", pvcName, "-o=json")
 			if err != nil {
-				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
+				return err
 			}
 
 			var pvc corev1.PersistentVolumeClaim
@@ -61,9 +61,9 @@ func testReadWriteOncePod() {
 				return errors.New("pvc status is not bound")
 			}
 
-			result, stderr, err = kubectl("-n="+ns, "get", "pods", podName, "-o=json")
+			result, _, err = kubectl("-n="+ns, "get", "pods", podName, "-o=json")
 			if err != nil {
-				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
+				return err
 			}
 
 			var pod corev1.Pod
@@ -84,14 +84,14 @@ func testReadWriteOncePod() {
 		By("Create a pod with a ReadWriteOncePod access mode and the already used PVC")
 		podName = "testpod-2"
 		podYaml = buildPodTemplateYAML(podName, ns, pvcName)
-		stdout, stderr, err = kubectlWithInput(podYaml, "apply", "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, _, err = kubectlWithInput(podYaml, "apply", "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
 		By("Checking the pod is not running")
 		Eventually(func() error {
-			result, stderr, err := kubectl("-n="+ns, "get", "pods", podName, "-o=json")
+			result, _, err := kubectl("-n="+ns, "get", "pods", podName, "-o=json")
 			if err != nil {
-				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
+				return err
 			}
 
 			var pod corev1.Pod
