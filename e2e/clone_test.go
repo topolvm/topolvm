@@ -2,7 +2,6 @@ package e2e
 
 import (
 	_ "embed"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -55,15 +54,10 @@ func testPVCClone() {
 		Expect(err).ShouldNot(HaveOccurred())
 		By("confirming if the source PVC is created")
 		Eventually(func() error {
-			stdout, _, err := kubectl("get", "-n", nsCloneTest, "pvc", volName, "-o", "json")
-			if err != nil {
-				return fmt.Errorf("failed to get PVC. err: %v", err)
-			}
-
 			var pvc corev1.PersistentVolumeClaim
-			err = json.Unmarshal(stdout, &pvc)
+			err = getObjects(&pvc, "pvc", "-n", nsCloneTest, volName)
 			if err != nil {
-				return fmt.Errorf("failed to unmarshal PVC. data: %s, err: %v", stdout, err)
+				return fmt.Errorf("failed to get PVC. err: %w", err)
 			}
 			if pvc.Status.Phase != corev1.ClaimBound {
 				return fmt.Errorf("PVC %s is not bound", volName)
@@ -94,15 +88,10 @@ func testPVCClone() {
 
 		By("confirming that the lv for cloned volume was created in the thin volume group and pool")
 		Eventually(func() error {
-			stdout, _, err := kubectl("get", "-n", nsCloneTest, "pvc", thinClonePVCName, "-o", "json")
-			if err != nil {
-				return fmt.Errorf("failed to get PVC. err: %v", err)
-			}
-
 			var pvc corev1.PersistentVolumeClaim
-			err = json.Unmarshal(stdout, &pvc)
+			err := getObjects(&pvc, "pvc", "-n", nsCloneTest, thinClonePVCName)
 			if err != nil {
-				return fmt.Errorf("failed to unmarshal PVC. data: %s, err: %v", stdout, err)
+				return fmt.Errorf("failed to get PVC. err: %w", err)
 			}
 			if pvc.Status.Phase != corev1.ClaimBound {
 				return fmt.Errorf("PVC %s is not bound", thinClonePVCName)
@@ -131,16 +120,6 @@ func testPVCClone() {
 
 		By("confirming that the file exists in the cloned volume")
 		Eventually(func() error {
-			_, _, err := kubectl("get", "pvc", thinClonePVCName, "-n", nsCloneTest)
-			if err != nil {
-				return fmt.Errorf("failed to get PVC. err: %v", err)
-			}
-
-			_, _, err = kubectl("get", "pods", thinClonePodName, "-n", nsCloneTest)
-			if err != nil {
-				return fmt.Errorf("failed to get Pod. err: %v", err)
-			}
-
 			stdout, _, err := kubectl("exec", "-n", nsCloneTest, thinClonePodName, "--", "cat", writePath)
 			if err != nil {
 				return fmt.Errorf("failed to cat. err: %v", err)
@@ -169,15 +148,10 @@ func testPVCClone() {
 		_, _, err = kubectlWithInput(thinPodYAML, "apply", "-n", nsCloneTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() error {
-			stdout, _, err := kubectl("get", "-n", nsCloneTest, "pvc", volName, "-o", "json")
-			if err != nil {
-				return fmt.Errorf("failed to get PVC. err: %v", err)
-			}
-
 			var pvc corev1.PersistentVolumeClaim
-			err = json.Unmarshal(stdout, &pvc)
+			err := getObjects(&pvc, "pvc", "-n", nsCloneTest, volName)
 			if err != nil {
-				return fmt.Errorf("failed to unmarshal PVC. data: %s, err: %v", stdout, err)
+				return fmt.Errorf("failed to get PVC. err: %w", err)
 			}
 			if pvc.Status.Phase != corev1.ClaimBound {
 				return fmt.Errorf("PVC %s is not bound", volName)
@@ -196,15 +170,10 @@ func testPVCClone() {
 
 		By("validating that the cloned volume is present")
 		Eventually(func() error {
-			stdout, _, err := kubectl("get", "-n", nsCloneTest, "pvc", thinClonePVCName, "-o", "json")
-			if err != nil {
-				return fmt.Errorf("failed to get PVC. err: %v", err)
-			}
-
 			var pvc corev1.PersistentVolumeClaim
-			err = json.Unmarshal(stdout, &pvc)
+			err := getObjects(&pvc, "pvc", "-n", nsCloneTest, thinClonePVCName)
 			if err != nil {
-				return fmt.Errorf("failed to unmarshal PVC. data: %s, err: %v", stdout, err)
+				return fmt.Errorf("failed to get PVC. err: %w", err)
 			}
 			if pvc.Status.Phase != corev1.ClaimBound {
 				return fmt.Errorf("PVC %s is not bound", thinClonePVCName)

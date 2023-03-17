@@ -2,7 +2,6 @@ package e2e
 
 import (
 	_ "embed"
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -33,19 +32,10 @@ func testScheduler() {
 		}
 
 		Eventually(func() error {
-			result, _, err := kubectl("get", "-n=topolvm-system", "pods", "--selector=app.kubernetes.io/component=scheduler,app.kubernetes.io/name=topolvm", "-o=json")
-			if err != nil {
-				return err
-			}
-
 			var podlist corev1.PodList
-			err = json.Unmarshal(result, &podlist)
+			err := getObjects(&podlist, "pods", "-n", "topolvm-system", "--selector=app.kubernetes.io/component=scheduler,app.kubernetes.io/name=topolvm")
 			if err != nil {
 				return err
-			}
-
-			if len(podlist.Items) == 0 {
-				return errors.New("pod is not found")
 			}
 
 			for _, pod := range podlist.Items {
@@ -81,13 +71,8 @@ func testScheduler() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
-			result, _, err := kubectl("get", "-n", ns, "pods/pause", "-o=json")
-			if err != nil {
-				return err
-			}
-
 			var pod corev1.Pod
-			err = json.Unmarshal(result, &pod)
+			err := getObjects(&pod, "pod", "-n", ns, "pause")
 			if err != nil {
 				return err
 			}
@@ -118,13 +103,8 @@ func testScheduler() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
-			result, _, err := kubectl("get", "-n", ns, "pods/pause", "-o=json")
-			if err != nil {
-				return err
-			}
-
 			var pod corev1.Pod
-			err = json.Unmarshal(result, &pod)
+			err := getObjects(&pod, "pods", "-n", ns, "pause")
 			if err != nil {
 				return err
 			}

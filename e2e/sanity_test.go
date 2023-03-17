@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -34,11 +33,7 @@ func testSanity() {
 
 		Eventually(func() error {
 			var ds appsv1.DaemonSet
-			stdout, _, err := kubectl("get", "-n", "topolvm-system", "ds", "topolvm-node", "-o", "json")
-			if err != nil {
-				return err
-			}
-			err = json.Unmarshal(stdout, &ds)
+			err := getObjects(&ds, "ds", "-n", "topolvm-system", "topolvm-node")
 			if err != nil {
 				return err
 			}

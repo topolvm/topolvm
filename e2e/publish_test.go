@@ -16,7 +16,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	corev1 "k8s.io/api/core/v1"
-	"sigs.k8s.io/yaml"
 )
 
 //go:embed testdata/publish/lv-template.yaml
@@ -114,15 +113,10 @@ func testPublishVolume() {
 
 		var volumeID string
 		Eventually(func() error {
-			stdout, _, err := kubectl("get", "logicalvolumes", name, "-o", "yaml")
+			var lv topolvmv1.LogicalVolume
+			err := getObjects(&lv, "logicalvolumes", name)
 			if err != nil {
 				return fmt.Errorf("failed to get logical volume. err: %v", err)
-			}
-
-			var lv topolvmv1.LogicalVolume
-			err = yaml.Unmarshal(stdout, &lv)
-			if err != nil {
-				return err
 			}
 
 			if len(lv.Status.VolumeID) == 0 {
@@ -221,15 +215,10 @@ func testPublishVolume() {
 
 		var volumeID string
 		Eventually(func() error {
-			stdout, _, err := kubectl("get", "logicalvolumes", name, "-o", "yaml")
-			if err != nil {
-				return fmt.Errorf("failed to get logical volume. err: %v", err)
-			}
-
 			var lv topolvmv1.LogicalVolume
-			err = yaml.Unmarshal(stdout, &lv)
+			err = getObjects(&lv, "logicalvolumes", name)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to get logical volume. err: %w", err)
 			}
 
 			if len(lv.Status.VolumeID) == 0 {
@@ -302,15 +291,10 @@ func testPublishVolume() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
-			stdout, _, err := kubectl("get", "pod", "pause-mount-option", "-o", "yaml")
+			var pod corev1.Pod
+			err := getObjects(&pod, "pod", "pause-mount-option")
 			if err != nil {
 				return fmt.Errorf("failed to get pod. err: %v", err)
-			}
-
-			var pod corev1.Pod
-			err = yaml.Unmarshal(stdout, &pod)
-			if err != nil {
-				return err
 			}
 
 			if pod.Status.Phase != corev1.PodRunning {
@@ -321,14 +305,11 @@ func testPublishVolume() {
 		}).Should(Succeed())
 
 		By("check mount option")
-		stdout, _, err := kubectl("get", "pvc", "topo-pvc-mount-option", "-o", "yaml")
-		Expect(err).ShouldNot(HaveOccurred())
-
 		var pvc corev1.PersistentVolumeClaim
-		err = yaml.Unmarshal(stdout, &pvc)
+		err = getObjects(&pvc, "pvc", "topo-pvc-mount-option")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		stdout, _, err = execAtLocal("cat", nil, "/proc/mounts")
+		stdout, _, err := execAtLocal("cat", nil, "/proc/mounts")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		var isExistingOption bool
@@ -368,15 +349,10 @@ func testPublishVolume() {
 
 		var volumeID string
 		Eventually(func() error {
-			stdout, _, err := kubectl("get", "logicalvolumes", name, "-o", "yaml")
+			var lv topolvmv1.LogicalVolume
+			err := getObjects(&lv, "logicalvolumes", name)
 			if err != nil {
 				return fmt.Errorf("failed to get logical volume. err: %v", err)
-			}
-
-			var lv topolvmv1.LogicalVolume
-			err = yaml.Unmarshal(stdout, &lv)
-			if err != nil {
-				return err
 			}
 
 			if len(lv.Status.VolumeID) == 0 {

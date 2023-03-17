@@ -2,7 +2,6 @@ package e2e
 
 import (
 	_ "embed"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -36,7 +35,7 @@ const (
 
 func testSnapRestore() {
 	var nsSnapTest string
-	var snapshot *snapapi.VolumeSnapshot
+	var snapshot snapapi.VolumeSnapshot
 
 	BeforeEach(func() {
 		nsSnapTest = "snap-test-" + randomString(10)
@@ -66,15 +65,10 @@ func testSnapRestore() {
 
 		By("confirming if the resources have been created")
 		Eventually(func() error {
-			stdout, _, err := kubectl("get", "-n", nsSnapTest, "pvc", volName, "-o", "json")
+			var pvc corev1.PersistentVolumeClaim
+			err := getObjects(&pvc, "pvc", "-n", nsSnapTest, volName)
 			if err != nil {
 				return fmt.Errorf("failed to get PVC. err: %v", err)
-			}
-
-			var pvc corev1.PersistentVolumeClaim
-			err = json.Unmarshal(stdout, &pvc)
-			if err != nil {
-				return fmt.Errorf("failed to unmarshal PVC. data: %s, err: %v", stdout, err)
 			}
 			if pvc.Status.Phase != corev1.ClaimBound {
 				return fmt.Errorf("PVC %s is not bound", volName)
@@ -101,13 +95,9 @@ func testSnapRestore() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
-			stdout, _, err = kubectl("get", "vs", snapName, "-n", nsSnapTest, "-o", "json")
+			err := getObjects(&snapshot, "vs", snapName, "-n", nsSnapTest)
 			if err != nil {
 				return fmt.Errorf("failed to get VolumeSnapshot. err: %v", err)
-			}
-			err = json.Unmarshal(stdout, &snapshot)
-			if err != nil {
-				return fmt.Errorf("failed to unmarshal Volumesnapshot. data: %s, err: %v", stdout, err)
 			}
 			if snapshot.Status == nil {
 				return fmt.Errorf("waiting for snapshot status")
@@ -129,15 +119,10 @@ func testSnapRestore() {
 
 		By("verifying if the restored PVC is created")
 		Eventually(func() error {
-			stdout, _, err := kubectl("get", "-n", nsSnapTest, "pvc", restorePVCName, "-o", "json")
+			var pvc corev1.PersistentVolumeClaim
+			err := getObjects(&pvc, "pvc", "-n", nsSnapTest, restorePVCName)
 			if err != nil {
 				return fmt.Errorf("failed to get PVC. err: %v", err)
-			}
-
-			var pvc corev1.PersistentVolumeClaim
-			err = json.Unmarshal(stdout, &pvc)
-			if err != nil {
-				return fmt.Errorf("failed to unmarshal PVC. data: %s, err: %v", stdout, err)
 			}
 			if pvc.Status.Phase != corev1.ClaimBound {
 				return fmt.Errorf("PVC %s is not bound", restorePVCName)
@@ -198,15 +183,10 @@ func testSnapRestore() {
 		Expect(err).ShouldNot(HaveOccurred())
 		By("verifying if the PVC is created")
 		Eventually(func() error {
-			stdout, _, err := kubectl("get", "-n", nsSnapTest, "pvc", volName, "-o", "json")
+			var pvc corev1.PersistentVolumeClaim
+			err := getObjects(&pvc, "pvc", "-n", nsSnapTest, volName)
 			if err != nil {
 				return fmt.Errorf("failed to get PVC. err: %v", err)
-			}
-
-			var pvc corev1.PersistentVolumeClaim
-			err = json.Unmarshal(stdout, &pvc)
-			if err != nil {
-				return fmt.Errorf("failed to unmarshal PVC. data: %s, err: %v", stdout, err)
 			}
 			if pvc.Status.Phase != corev1.ClaimBound {
 				return fmt.Errorf("PVC %s is not bound", volName)
@@ -219,13 +199,9 @@ func testSnapRestore() {
 		_, _, err = kubectlWithInput(thinSnapshotYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() error {
-			stdout, _, err := kubectl("get", "vs", snapName, "-n", nsSnapTest, "-o", "json")
+			err := getObjects(&snapshot, "vs", snapName, "-n", nsSnapTest)
 			if err != nil {
 				return fmt.Errorf("failed to get VolumeSnapshot. err: %v", err)
-			}
-			err = json.Unmarshal(stdout, &snapshot)
-			if err != nil {
-				return fmt.Errorf("failed to unmarshal Volumesnapshot. data: %s, err: %v", stdout, err)
 			}
 			if snapshot.Status == nil {
 				return fmt.Errorf("waiting for snapshot status")
@@ -247,15 +223,10 @@ func testSnapRestore() {
 
 		By("verifying if the restored PVC is created")
 		Eventually(func() error {
-			stdout, _, err := kubectl("get", "-n", nsSnapTest, "pvc", restorePVCName, "-o", "json")
+			var pvc corev1.PersistentVolumeClaim
+			err := getObjects(&pvc, "pvc", "-n", nsSnapTest, "pvc", restorePVCName)
 			if err != nil {
 				return fmt.Errorf("failed to get PVC. err: %v", err)
-			}
-
-			var pvc corev1.PersistentVolumeClaim
-			err = json.Unmarshal(stdout, &pvc)
-			if err != nil {
-				return fmt.Errorf("failed to unmarshal PVC. data: %s, err: %v", stdout, err)
 			}
 			if pvc.Status.Phase != corev1.ClaimBound {
 				return fmt.Errorf("PVC %s is not bound", restorePVCName)

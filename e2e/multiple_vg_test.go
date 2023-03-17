@@ -2,7 +2,6 @@ package e2e
 
 import (
 	_ "embed"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -10,6 +9,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
+	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -50,22 +50,23 @@ func testMultipleVolumeGroups() {
 		By("confirming that the lv was created on specified volume group")
 		var volName string
 		Eventually(func() error {
-			stdout, _, err := kubectl("get", "pvc", "-n", ns, "topo-pvc", "-o=template", "--template={{.spec.volumeName}}")
+			var pvc corev1.PersistentVolumeClaim
+			err := getObjects(&pvc, "pvc", "-n", ns, "topo-pvc")
 			if err != nil {
 				return fmt.Errorf("failed to get pvc. err: %v", err)
 			}
-			volName = strings.TrimSpace(string(stdout))
-			if len(volName) == 0 || volName == "<no value>" {
+			volName = pvc.Spec.VolumeName
+			if len(volName) == 0 {
 				return errors.New("failed to get volume name")
 			}
 			return nil
 		}).Should(Succeed())
-		stdout, _, err := kubectl("get", "logicalvolumes", "-n", "topolvm-system", volName, "-o=template", "--template={{.metadata.uid}}")
+		var logicalvolume topolvmv1.LogicalVolume
+		err = getObjects(&logicalvolume, "logicalvolumes", volName)
 		Expect(err).ShouldNot(HaveOccurred())
-		lvName := strings.TrimSpace(string(stdout))
 		var lv *lvinfo
 		Eventually(func() error {
-			lv, err = getLVInfo(lvName)
+			lv, err = getLVInfo(string(logicalvolume.UID))
 			return err
 		}).Should(Succeed())
 
@@ -90,12 +91,9 @@ func testMultipleVolumeGroups() {
 
 		By("confirming that the pod wasn't scheduled")
 		Eventually(func() error {
-			stdout, _, err := kubectl("get", "-n", ns, "pod", "pause", "-o", "json")
-			Expect(err).ShouldNot(HaveOccurred())
-
 			var pod corev1.Pod
-			err = json.Unmarshal(stdout, &pod)
-			Expect(err).ShouldNot(HaveOccurred(), "data=%s", stdout)
+			err := getObjects(&pod, "pod", "-n", ns, "pause")
+			Expect(err).ShouldNot(HaveOccurred())
 
 			for _, c := range pod.Status.Conditions {
 				if c.Type == corev1.PodScheduled && c.Status == corev1.ConditionFalse && strings.Contains(c.Message, expectMessage) {

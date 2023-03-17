@@ -7,6 +7,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
+	topolvmv1 "github.com/topolvm/topolvm/api/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
 func testLVCreateOptions() {
@@ -44,17 +46,18 @@ func testLVCreateOptions() {
 
 		var lvName string
 		Eventually(func() error {
-			stdout, _, err := kubectl("get", "pvc", "-n", ns, "topo-pvc", "-o=template", "--template={{.spec.volumeName}}")
+			var pvc corev1.PersistentVolumeClaim
+			err := getObjects(&pvc, "pvc", "-n", ns, "topo-pvc")
 			if err != nil {
 				return fmt.Errorf("failed to get PVC. err: %v", err)
 			}
-			volumeName := strings.TrimSpace(string(stdout))
 
-			stdout, _, err = kubectl("get", "logicalvolumes", "-n", "topolvm-system", volumeName, "-o=template", "--template={{.metadata.uid}}")
+			var lv topolvmv1.LogicalVolume
+			err = getObjects(&lv, "logicalvolumes", pvc.Spec.VolumeName)
 			if err != nil {
 				return fmt.Errorf("failed to get logicalvolume. err: %v", err)
 			}
-			lvName = strings.TrimSpace(string(stdout))
+			lvName = string(lv.UID)
 			return nil
 		}).Should(Succeed())
 
@@ -80,17 +83,18 @@ func testLVCreateOptions() {
 
 		var lvName string
 		Eventually(func() error {
-			stdout, _, err := kubectl("get", "pvc", "-n", ns, "topo-pvc-raid1", "-o=template", "--template={{.spec.volumeName}}")
+			var pvc corev1.PersistentVolumeClaim
+			err := getObjects(&pvc, "pvc", "-n", ns, "topo-pvc-raid1")
 			if err != nil {
 				return fmt.Errorf("failed to get PVC. err: %v", err)
 			}
-			volumeName := strings.TrimSpace(string(stdout))
 
-			stdout, _, err = kubectl("get", "logicalvolumes", "-n", "topolvm-system", volumeName, "-o=template", "--template={{.metadata.uid}}")
+			var lv topolvmv1.LogicalVolume
+			err = getObjects(&lv, "logicalvolumes", pvc.Spec.VolumeName)
 			if err != nil {
 				return fmt.Errorf("failed to get logicalvolume. err: %v", err)
 			}
-			lvName = strings.TrimSpace(string(stdout))
+			lvName = string(lv.UID)
 			return nil
 		}).Should(Succeed())
 

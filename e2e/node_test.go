@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -26,13 +25,8 @@ func testNode() {
 
 	It("should be deployed", func() {
 		Eventually(func() error {
-			result, _, err := kubectl("get", "-n=topolvm-system", "pods", "--selector=app.kubernetes.io/component=node,app.kubernetes.io/name=topolvm", "-o=json")
-			if err != nil {
-				return err
-			}
-
 			var podlist corev1.PodList
-			err = json.Unmarshal(result, &podlist)
+			err := getObjects(&podlist, "pods", "-n", "topolvm-system", "--selector=app.kubernetes.io/component=node,app.kubernetes.io/name=topolvm")
 			if err != nil {
 				return err
 			}
@@ -63,16 +57,13 @@ func testNode() {
 	})
 
 	It("should annotate capacity to node", func() {
-		stdout, _, err := kubectl("get", "nodes", "-o=json")
-		Expect(err).ShouldNot(HaveOccurred())
-
 		count := 4
 		if isDaemonsetLvmdEnvSet() {
 			count = 1
 		}
 
 		var nodes corev1.NodeList
-		err = json.Unmarshal(stdout, &nodes)
+		err := getObjects(&nodes, "nodes")
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(nodes.Items)).To(Equal(count))
 
@@ -125,15 +116,12 @@ func testNode() {
 	})
 
 	It("should expose Prometheus metrics", func() {
-		stdout, _, err := kubectl("get", "pods", "-n=topolvm-system", "-l=app.kubernetes.io/component=node,app.kubernetes.io/name=topolvm", "-o=json")
-		Expect(err).ShouldNot(HaveOccurred())
-
 		var pods corev1.PodList
-		err = json.Unmarshal(stdout, &pods)
+		err := getObjects(&pods, "pods", "-n", "topolvm-system", "-l=app.kubernetes.io/component=node,app.kubernetes.io/name=topolvm")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		pod := pods.Items[0]
-		stdout, _, err = kubectl("exec", "-n", "topolvm-system", pod.Name, "-c=topolvm-node", "--", "curl", "http://localhost:8080/metrics")
+		stdout, _, err := kubectl("exec", "-n", "topolvm-system", pod.Name, "-c=topolvm-node", "--", "curl", "http://localhost:8080/metrics")
 		Expect(err).ShouldNot(HaveOccurred())
 		var parser expfmt.TextParser
 		metricFamilies, err := parser.TextToMetricFamilies(bytes.NewReader(stdout))
@@ -164,11 +152,8 @@ func testNode() {
 			}
 			Expect(family.Metric).Should(HaveLen(length))
 
-			stdout, _, err := kubectl("get", "node", pod.Spec.NodeName, "-o=json")
-			Expect(err).ShouldNot(HaveOccurred())
-
 			var node corev1.Node
-			err = json.Unmarshal(stdout, &node)
+			err = getObjects(&node, "node", pod.Spec.NodeName)
 			Expect(err).ShouldNot(HaveOccurred())
 			for k, v := range node.Annotations {
 				if !strings.HasPrefix(k, topolvm.GetCapacityKeyPrefix()) {

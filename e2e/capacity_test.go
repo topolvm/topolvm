@@ -2,7 +2,6 @@ package e2e
 
 import (
 	_ "embed"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -43,11 +42,8 @@ func testStorageCapacity() {
 		}
 
 		By("checking the pod having a PVC that is able to schedule is running")
-		result, _, err := kubectl("get", "node", nodeName, "-o=json")
-		Expect(err).ShouldNot(HaveOccurred())
-
 		var node corev1.Node
-		err = json.Unmarshal(result, &node)
+		err := getObjects(&node, "node", nodeName)
 		Expect(err).ShouldNot(HaveOccurred())
 		size := func() string {
 			sizeStr, exists := node.Annotations[topolvm.GetCapacityKeyPrefix()+"00default"]
@@ -62,13 +58,8 @@ func testStorageCapacity() {
 		_, _, err = kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() error {
-			result, _, err := kubectl("-n="+nsCapacityTest, "get", "pvc", name, "-o=json")
-			if err != nil {
-				return err
-			}
-
 			var pvc corev1.PersistentVolumeClaim
-			err = json.Unmarshal(result, &pvc)
+			err := getObjects(&pvc, "pvc", "-n", nsCapacityTest, name)
 			if err != nil {
 				return err
 			}
@@ -76,13 +67,8 @@ func testStorageCapacity() {
 				return errors.New("pvc status is not bound")
 			}
 
-			result, _, err = kubectl("-n="+nsCapacityTest, "get", "pods", name, "-o=json")
-			if err != nil {
-				return err
-			}
-
 			var pod corev1.Pod
-			err = json.Unmarshal(result, &pod)
+			err = getObjects(&pod, "pods", "-n", nsCapacityTest, name)
 			if err != nil {
 				return err
 			}
@@ -103,13 +89,8 @@ func testStorageCapacity() {
 		_, _, err = kubectlWithInput(lvYaml2, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() error {
-			result, _, err := kubectl("-n="+nsCapacityTest, "get", "pods", name2, "-o=json")
-			if err != nil {
-				return err
-			}
-
 			var pod corev1.Pod
-			err = json.Unmarshal(result, &pod)
+			err := getObjects(&pod, "pods", "-n", nsCapacityTest, name2)
 			if err != nil {
 				return err
 			}
@@ -134,10 +115,7 @@ func testStorageCapacity() {
 		By("checking the pod having a PVC that is able to schedule because it using an another device class is running")
 		name3 := name + "3"
 
-		result, _, err = kubectl("get", "node", nodeName, "-o=json")
-		Expect(err).ShouldNot(HaveOccurred())
-
-		err = json.Unmarshal(result, &node)
+		err = getObjects(&node, "node", nodeName)
 		Expect(err).ShouldNot(HaveOccurred())
 		size = func() string {
 			sizeStr, exists := node.Annotations[topolvm.GetCapacityKeyPrefix()+"hdd1"]
@@ -154,13 +132,8 @@ func testStorageCapacity() {
 		_, _, err = kubectlWithInput(lvYaml3, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() error {
-			result, _, err := kubectl("-n="+nsCapacityTest, "get", "pvc", name3, "-o=json")
-			if err != nil {
-				return err
-			}
-
 			var pvc corev1.PersistentVolumeClaim
-			err = json.Unmarshal(result, &pvc)
+			err := getObjects(&pvc, "pvc", "-n", nsCapacityTest, name3)
 			if err != nil {
 				return err
 			}
@@ -168,13 +141,8 @@ func testStorageCapacity() {
 				return errors.New("pvc status is not bound")
 			}
 
-			result, _, err = kubectl("-n="+nsCapacityTest, "get", "pods", name3, "-o=json")
-			if err != nil {
-				return err
-			}
-
 			var pod corev1.Pod
-			err = json.Unmarshal(result, &pod)
+			err = getObjects(&pod, "pods", "-n", nsCapacityTest, name3)
 			if err != nil {
 				return err
 			}

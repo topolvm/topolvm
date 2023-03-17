@@ -2,7 +2,6 @@ package e2e
 
 import (
 	_ "embed"
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"os"
@@ -52,13 +51,8 @@ func randomString(n int) string {
 }
 
 func waitKindnet() error {
-	stdout, _, err := kubectl("-n=kube-system", "get", "ds/kindnet", "-o", "json")
-	if err != nil {
-		return err
-	}
-
 	var ds appsv1.DaemonSet
-	err = json.Unmarshal(stdout, &ds)
+	err := getObjects(&ds, "ds", "-n", "kube-system", "kindnet")
 	if err != nil {
 		return err
 	}
@@ -84,11 +78,8 @@ func skipIfDaemonsetLvmd() {
 }
 
 func getDaemonsetLvmdNodeName() string {
-	stdout, _, err := kubectl("get", "nodes", "-o=json")
-	Expect(err).ShouldNot(HaveOccurred())
-
 	var nodes corev1.NodeList
-	err = json.Unmarshal(stdout, &nodes)
+	err := getObjects(&nodes, "nodes")
 	Expect(err).ShouldNot(HaveOccurred())
 	Expect(nodes.Items).Should(HaveLen(1))
 	return nodes.Items[0].Name

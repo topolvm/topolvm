@@ -2,7 +2,6 @@ package e2e
 
 import (
 	_ "embed"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -47,13 +46,8 @@ func testReadWriteOncePod() {
 
 		By("Checking the pod is running")
 		Eventually(func() error {
-			result, _, err := kubectl("-n="+ns, "get", "pvc", pvcName, "-o=json")
-			if err != nil {
-				return err
-			}
-
 			var pvc corev1.PersistentVolumeClaim
-			err = json.Unmarshal(result, &pvc)
+			err := getObjects(&pvc, "pvc", "-n", ns, pvcName)
 			if err != nil {
 				return err
 			}
@@ -61,13 +55,8 @@ func testReadWriteOncePod() {
 				return errors.New("pvc status is not bound")
 			}
 
-			result, _, err = kubectl("-n="+ns, "get", "pods", podName, "-o=json")
-			if err != nil {
-				return err
-			}
-
 			var pod corev1.Pod
-			err = json.Unmarshal(result, &pod)
+			err = getObjects(&pod, "pods", "-n", ns, podName)
 			if err != nil {
 				return err
 			}
@@ -89,13 +78,8 @@ func testReadWriteOncePod() {
 
 		By("Checking the pod is not running")
 		Eventually(func() error {
-			result, _, err := kubectl("-n="+ns, "get", "pods", podName, "-o=json")
-			if err != nil {
-				return err
-			}
-
 			var pod corev1.Pod
-			err = json.Unmarshal(result, &pod)
+			err := getObjects(&pod, "pods", "-n", ns, podName)
 			if err != nil {
 				return err
 			}

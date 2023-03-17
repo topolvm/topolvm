@@ -2,7 +2,6 @@ package e2e
 
 import (
 	_ "embed"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -41,12 +40,8 @@ func testMetrics() {
 		By("waiting for the new Pod to be running")
 		var nodeIP string
 		Eventually(func() error {
-			stdout, _, err := kubectl("-n", nsMetricsTest, "get", "pods", "pause", "-o", "json")
-			if err != nil {
-				return err
-			}
 			var pod corev1.Pod
-			err = json.Unmarshal(stdout, &pod)
+			err := getObjects(&pod, "pods", "-n", nsMetricsTest, "pause")
 			if err != nil {
 				return err
 			}

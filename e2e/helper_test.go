@@ -68,13 +68,8 @@ func countLVMs() (int, error) {
 }
 
 func getNodeAnnotationMapWithPrefix(prefix string) (map[string]map[string]string, error) {
-	stdout, _, err := kubectl("get", "node", "-o", "json")
-	if err != nil {
-		return nil, err
-	}
-
 	var nodeList corev1.NodeList
-	err = json.Unmarshal(stdout, &nodeList)
+	err := getObjects(&nodeList, "node")
 	if err != nil {
 		return nil, err
 	}
@@ -94,6 +89,22 @@ func getNodeAnnotationMapWithPrefix(prefix string) (map[string]map[string]string
 		}
 	}
 	return capacities, nil
+}
+
+var ErrObjectNotFound = errors.New("no such object")
+
+// getObjects get kubernetes objects into obj.
+// obj can be an object (e.g. Pod) or a list of objects (e.g. PodList).
+// If any objects are not found, return ErrObjectNotFound error.
+func getObjects(obj any, kind string, args ...string) error {
+	stdout, _, err := kubectl(append([]string{"get", "-ojson", "--ignore-not-found", kind}, args...)...)
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(string(stdout)) == "" {
+		return ErrObjectNotFound
+	}
+	return json.Unmarshal(stdout, obj)
 }
 
 func commonBeforeEach() CleanupContext {
@@ -118,11 +129,6 @@ func commonAfterEach(cc CleanupContext) {
 			}
 			if cc.LvmCount != lvmCountAfter {
 				return fmt.Errorf("lvm num mismatched. before: %d, after: %d", cc.LvmCount, lvmCountAfter)
-			}
-
-			_, _, err = kubectl("get", "node", "-o", "json")
-			if err != nil {
-				return err
 			}
 
 			capacitiesAfter, err := getNodeAnnotationMapWithPrefix(topolvm.GetCapacityKeyPrefix())
