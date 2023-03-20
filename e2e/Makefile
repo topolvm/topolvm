@@ -9,7 +9,6 @@ USE_LEGACY ?= ""
 ## Dependency versions
 MINIKUBE_VERSION := v1.28.0
 CERT_MANAGER_VERSION := v1.7.0
-KUSTOMIZE_VERSION := v4.5.5
 
 BINDIR := $(shell pwd)/bin
 SUDO := sudo
@@ -189,22 +188,30 @@ create-cluster: topolvm.img
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system -l="app.kubernetes.io/component=controller,app.kubernetes.io/name=topolvm" pod
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system certificate/topolvm-mutatingwebhook
 
-.PHONY: test
-test: create-cluster
+.PHONY: prepare-test
+prepare-test:
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/rbac-snapshot-controller.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml
 	$(KUBECTL) apply -f $(PROVISINER_MANIFEST)
+
+.PHONY: run-test
+run-test: GINKGO_FLAGS =
+run-test:
 	$(SUDO) -E env \
 	PATH=${PATH} \
 	E2ETEST=1 \
 	BINDIR=$(BINDIR) \
 	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
-	GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn \
-	$(GINKGO) $(GINKGO_SKIP_SNAPSHOT_CSI_TESTS) --failFast -v .
+	$(GINKGO) $(GINKGO_SKIP_SNAPSHOT_CSI_TESTS) --fail-fast -v $(GINKGO_FLAGS) .
 
+.PHONY: test
+test:
+	$(MAKE) create-cluster
+	$(MAKE) prepare-test
+	$(MAKE) run-test
 
 .PHONY: clean
 clean: stop-lvmd
@@ -220,7 +227,6 @@ setup:
 	mkdir -p $(BINDIR)
 	$(CURL) -o $(BINDIR)/kubectl https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl
 	chmod a+x $(BINDIR)/kubectl
-	$(CURL) https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F$(KUSTOMIZE_VERSION)/kustomize_$(KUSTOMIZE_VERSION)_linux_amd64.tar.gz | tar zxf - -C $(BINDIR)
 
 .PHONY: daemonset-lvmd/create-vg
 daemonset-lvmd/create-vg:
@@ -319,8 +325,7 @@ daemonset-lvmd/test: topolvm.img
 	BINDIR=$(BINDIR) \
 	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
 	DAEMONSET_LVMD=true \
-	GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn \
-	$(GINKGO) -skip='snapshot' -skip='CreateSnapshot' -skip='DeleteSnapshot'  -skip='source volume' --failFast -v .
+	$(GINKGO) -skip='snapshot' -skip='CreateSnapshot' -skip='DeleteSnapshot'  -skip='source volume' --fail-fast -v .
 
 .PHONY: daemonset-lvmd/clean
 daemonset-lvmd/clean: daemonset-lvmd/delete-minikube daemonset-lvmd/remove-vg

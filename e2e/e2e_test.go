@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"bytes"
 	_ "embed"
 	"encoding/json"
 	"errors"
@@ -12,6 +11,7 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	"github.com/topolvm/topolvm"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
@@ -50,7 +50,7 @@ func testE2E() {
 
 	AfterEach(func() {
 		// When a test fails, I want to investigate the cause. So please don't remove the namespace!
-		if !CurrentGinkgoTestDescription().Failed {
+		if !CurrentSpecReport().State.Is(types.SpecStateFailureStates) {
 			kubectl("delete", "namespaces/"+ns)
 		}
 
@@ -915,41 +915,4 @@ func checkLVIsDeletedInLVM(volName string) error {
 		return fmt.Errorf("target LV exists %s", volName)
 	}
 	return nil
-}
-
-func countLVMs() (int, error) {
-	stdout, err := exec.Command("sudo", "lvs", "-o", "lv_name", "--noheadings").Output()
-	if err != nil {
-		return -1, fmt.Errorf("failed to lvs. stdout %s, err %v", stdout, err)
-	}
-	return bytes.Count(stdout, []byte("\n")), nil
-}
-
-func getNodeAnnotationMapWithPrefix(prefix string) (map[string]map[string]string, error) {
-	stdout, stderr, err := kubectl("get", "node", "-o", "json")
-	if err != nil {
-		return nil, fmt.Errorf("stdout=%sr stderr=%s, err=%v", stdout, stderr, err)
-	}
-
-	var nodeList corev1.NodeList
-	err = json.Unmarshal(stdout, &nodeList)
-	if err != nil {
-		return nil, err
-	}
-
-	capacities := make(map[string]map[string]string)
-	for _, node := range nodeList.Items {
-		if node.Name == "topolvm-e2e-control-plane" {
-			continue
-		}
-
-		capacities[node.Name] = make(map[string]string)
-		for k, v := range node.Annotations {
-			if !strings.HasPrefix(k, prefix) {
-				continue
-			}
-			capacities[node.Name][k] = v
-		}
-	}
-	return capacities, nil
 }

@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os/exec"
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -35,7 +35,7 @@ func testMultipleVolumeGroups() {
 
 	AfterEach(func() {
 		// When a test fails, I want to investigate the cause. So please don't remove the namespace!
-		if !CurrentGinkgoTestDescription().Failed {
+		if !CurrentSpecReport().State.Is(types.SpecStateFailureStates) {
 			kubectl("delete", "namespaces/"+ns)
 		}
 	})
@@ -60,9 +60,12 @@ func testMultipleVolumeGroups() {
 			}
 			return nil
 		}).Should(Succeed())
+		stdout, stderr, err = kubectl("get", "logicalvolumes", "-n", "topolvm-system", volName, "-o=template", "--template={{.metadata.uid}}")
+		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		lvName := strings.TrimSpace(string(stdout))
 		var lv *lvinfo
 		Eventually(func() error {
-			lv, err = getLVInfo(volName)
+			lv, err = getLVInfo(lvName)
 			return err
 		}).Should(Succeed())
 
@@ -102,35 +105,4 @@ func testMultipleVolumeGroups() {
 			return errors.New("pod doesn't have PodScheduled status")
 		}).Should(Succeed())
 	})
-}
-
-type lvinfo struct {
-	lvPath string
-	size   string
-	vgName string
-}
-
-func getLVInfo(volName string) (*lvinfo, error) {
-	stdout, stderr, err := kubectl("get", "logicalvolumes", "-n", "topolvm-system", volName, "-o=template", "--template={{.metadata.uid}}")
-	if err != nil {
-		return nil, fmt.Errorf("err=%v, stdout=%s, stderr=%s", err, stdout, stderr)
-	}
-	lvName := strings.TrimSpace(string(stdout))
-	stdout, err = exec.Command("sudo", "lvdisplay", "-c", "--select", "lv_name="+lvName).Output()
-	if err != nil {
-		return nil, fmt.Errorf("err=%v, stdout=%s", err, stdout)
-	}
-	output := strings.TrimSpace(string(stdout))
-	if output == "" {
-		return nil, fmt.Errorf("lv_name ( %s ) not found", lvName)
-	}
-	lines := strings.Split(output, "\n")
-	if len(lines) != 1 {
-		return nil, errors.New("found multiple lvs")
-	}
-	items := strings.Split(strings.TrimSpace(lines[0]), ":")
-	if len(items) < 4 {
-		return nil, fmt.Errorf("invalid format: %s", lines[0])
-	}
-	return &lvinfo{lvPath: items[0], vgName: items[1], size: items[3]}, nil
 }

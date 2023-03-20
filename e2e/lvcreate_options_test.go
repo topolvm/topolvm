@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 )
 
@@ -23,7 +24,7 @@ func testLVCreateOptions() {
 
 	AfterEach(func() {
 		// When a test fails, I want to investigate the cause. So please don't remove the namespace!
-		if !CurrentGinkgoTestDescription().Failed {
+		if !CurrentSpecReport().State.Is(types.SpecStateFailureStates) {
 			kubectl("delete", "namespaces/"+ns)
 		}
 
