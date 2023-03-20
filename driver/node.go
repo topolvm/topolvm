@@ -253,7 +253,7 @@ func (s *nodeServerNoLocked) createDeviceIfNeeded(device string, lv *proto.Logic
 	switch err {
 	case nil:
 		// a block device already exists, check its attributes
-		if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && (stat.Mode&deviceMode) == deviceMode {
+		if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && stat.Uid == uint32(os.Getuid()) && stat.Mode == deviceMode {
 			return nil
 		}
 		err := os.Remove(device)
