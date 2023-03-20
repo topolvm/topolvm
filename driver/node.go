@@ -514,7 +514,7 @@ func (s *nodeServerNoLocked) NodeExpandVolume(ctx context.Context, req *csi.Node
 	args := []string{"-o", "source", "--noheadings", "--target", req.GetVolumePath()}
 	output, err := s.mounter.Exec.Command(findmntCmd, args...).Output()
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "findmnt error occured: %v", err)
+		return nil, status.Errorf(codes.Internal, "findmnt error occurred: %v", err)
 	}
 
 	devicePath := strings.TrimSpace(string(output))
@@ -535,7 +535,7 @@ func (s *nodeServerNoLocked) NodeExpandVolume(ctx context.Context, req *csi.Node
 	// `capacity_bytes` in NodeExpandVolumeResponse is defined as OPTIONAL.
 	// If this field needs to be filled, the value should be equal to `.status.currentSize` of the corresponding
 	// `LogicalVolume`, but currently the node plugin does not have an access to the resource.
-	// In addtion to this, Kubernetes does not care if the field is blank or not, so leave it blank.
+	// In addition to this, Kubernetes does not care if the field is blank or not, so leave it blank.
 	return &csi.NodeExpandVolumeResponse{}, nil
 }
 
