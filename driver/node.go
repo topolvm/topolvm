@@ -28,8 +28,9 @@ const (
 	// DeviceDirectory is a directory where TopoLVM Node service creates device files.
 	DeviceDirectory = "/dev/topolvm"
 
-	findmntCmd       = "/bin/findmnt"
-	devicePermission = 0600 | unix.S_IFBLK
+	findmntCmd = "/bin/findmnt"
+
+	deviceMode = 0600 | unix.S_IFBLK
 )
 
 var nodeLogger = ctrl.Log.WithName("driver").WithName("node")
@@ -252,7 +253,7 @@ func (s *nodeServerNoLocked) createDeviceIfNeeded(device string, lv *proto.Logic
 	switch err {
 	case nil:
 		// a block device already exists, check its attributes
-		if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && (stat.Mode&devicePermission) == devicePermission {
+		if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && (stat.Mode&deviceMode) == deviceMode {
 			return nil
 		}
 		err := os.Remove(device)
@@ -267,7 +268,7 @@ func (s *nodeServerNoLocked) createDeviceIfNeeded(device string, lv *proto.Logic
 		}
 
 		devno := unix.Mkdev(lv.DevMajor, lv.DevMinor)
-		if err := filesystem.Mknod(device, devicePermission, int(devno)); err != nil {
+		if err := filesystem.Mknod(device, deviceMode, int(devno)); err != nil {
 			return status.Errorf(codes.Internal, "mknod failed for %s. major=%d, minor=%d, error=%v",
 				device, lv.DevMajor, lv.DevMinor, err)
 		}
