@@ -35,6 +35,10 @@ spec:
       {{- with .Values.scheduler.priorityClassName }}
       priorityClassName: {{ . }}
       {{- end }}
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       serviceAccountName: {{ template "topolvm.fullname" . }}-scheduler
       containers:
         - name: topolvm-scheduler

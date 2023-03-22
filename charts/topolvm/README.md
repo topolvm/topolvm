@@ -110,6 +110,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | image.csi.livenessProbe | string | `nil` | Specify livenessprobe image. If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used. |
 | image.csi.nodeDriverRegistrar | string | `nil` | Specify csi-node-driver-registrar: image. If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used. |
 | image.pullPolicy | string | `nil` | TopoLVM image pullPolicy. |
+| image.pullSecrets | list | `[]` | List of imagePullSecrets. |
 | image.repository | string | `"ghcr.io/topolvm/topolvm-with-sidecar"` | TopoLVM image repository to use. |
 | image.tag | string | `{{ .Chart.AppVersion }}` | TopoLVM image tag to use. |
 | lvmd.additionalConfigs | list | `[]` | Define additional LVM Daemon configs if you have additional types of nodes. Please ensure nodeSelectors are non overlapping. |
