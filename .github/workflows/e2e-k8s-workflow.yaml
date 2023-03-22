@@ -29,8 +29,6 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version-file: "go.mod"
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
       - name: cache go dependencies
         uses: actions/cache@v3
         with:
@@ -40,14 +38,13 @@ jobs:
           key: go-${{ hashFiles('go.sum', 'Makefile') }}
           restore-keys: |
             go-
-      - name: cache e2e sidecar binaries
-        uses: actions/cache@v3
+      - uses: actions/cache/restore@v3
         with:
           path: |
-            e2e/tmpbin
-          key: e2e-sidecars-${{ hashFiles('csi-sidecars.mk') }}
-          restore-keys: |
-            e2e-sidecars-
-      - run: make -C e2e setup
+            bin
+            e2e/bin
+            e2e/topolvm.img
+          key: e2e-cache-${{ github.sha }}
+      - run: touch e2e/topolvm.img # update timestamp not to rebuild image
       - run: make -C e2e start-lvmd
       - run: make -C e2e test

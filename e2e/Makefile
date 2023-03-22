@@ -9,15 +9,16 @@ USE_LEGACY ?= ""
 ## Dependency versions
 MINIKUBE_VERSION := v1.28.0
 CERT_MANAGER_VERSION := v1.7.0
+GINKGO_VERSION := $(shell awk '/github.com\/onsi\/ginkgo\/v2/ {print $$2}' ../go.mod)
 
 BINDIR := $(shell pwd)/bin
 SUDO := sudo
 CURL := curl -sSLf
 KIND_CLUSTER_NAME := topolvm-e2e
 KIND := ../bin/kind
-KUBECTL := $(BINDIR)/kubectl
+KUBECTL := $(BINDIR)/kubectl-$(KUBERNETES_VERSION)
 HELM := ../bin/helm
-GINKGO := ../bin/ginkgo
+GINKGO := $(BINDIR)/ginkgo-$(GINKGO_VERSION)
 
 MINIKUBE_HOME = $(BINDIR)
 export MINIKUBE_HOME
@@ -72,23 +73,23 @@ topolvm.img: $(GO_FILES)
 	sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|topolvm-e2e-worker|" $< > $@
 
 .PHONY: prepare-namespace
-prepare-namespace:
+prepare-namespace: $(KUBECTL)
 	$(KUBECTL) create namespace topolvm-system
 	$(KUBECTL) label namespace topolvm-system $(DOMAIN_NAME)/webhook=ignore
 	$(KUBECTL) label namespace kube-system $(DOMAIN_NAME)/webhook=ignore
 
 .PHONY: apply-certmanager-crds
-apply-certmanager-crds:
+apply-certmanager-crds: $(KUBECTL)
 	$(KUBECTL) apply -f https://github.com/cert-manager/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
 
 .PHONY: launch-kind
-launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml
+launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml $(KIND)
 	$(SUDO) rm -rf /tmp/topolvm/controller /tmp/topolvm/worker*
 	sed -e "s|@KUBERNETES_VERSION@|$(KUBERNETES_VERSION)|" $(KIND_CONFIG) > /tmp/$(KIND_CONFIG)
 	$(KIND) create cluster --name=$(KIND_CLUSTER_NAME) --config /tmp/$(KIND_CONFIG) --image $(KIND_NODE_IMAGE)
 
 .PHONY: shutdown-kind
-shutdown-kind:
+shutdown-kind: $(KIND)
 	$(KIND) delete cluster --name=$(KIND_CLUSTER_NAME) || true
 	sleep 2
 	for d in $$($(SUDO) find /tmp/topolvm -type d); do \
@@ -174,7 +175,7 @@ stop-lvmd:
 	done
 
 .PHONY: create-cluster
-create-cluster: topolvm.img
+create-cluster: topolvm.img $(HELM) $(KIND) $(KUBECTL)
 	$(MAKE) shutdown-kind
 	$(MAKE) launch-kind
 	$(MAKE) apply-certmanager-crds
@@ -189,7 +190,7 @@ create-cluster: topolvm.img
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system certificate/topolvm-mutatingwebhook
 
 .PHONY: prepare-test
-prepare-test:
+prepare-test: $(KUBECTL)
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
@@ -199,11 +200,11 @@ prepare-test:
 
 .PHONY: run-test
 run-test: GINKGO_FLAGS =
-run-test:
+run-test: $(GINKGO)
 	$(SUDO) -E env \
 	PATH=${PATH} \
 	E2ETEST=1 \
-	BINDIR=$(BINDIR) \
+	KUBECTL=$(KUBECTL) \
 	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
 	$(GINKGO) $(GINKGO_SKIP_SNAPSHOT_CSI_TESTS) --fail-fast -v $(GINKGO_FLAGS) .
 
@@ -223,10 +224,27 @@ clean: stop-lvmd
 
 .PHONY: setup
 setup:
-	cd ..; $(MAKE) setup
-	mkdir -p $(BINDIR)
-	$(CURL) -o $(BINDIR)/kubectl https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl
-	chmod a+x $(BINDIR)/kubectl
+	$(MAKE) $(GINKGO)
+	$(MAKE) $(HELM)
+	$(MAKE) $(KIND)
+	$(MAKE) $(KUBECTL)
+
+$(BINDIR):
+	mkdir -p $@
+
+$(GINKGO): | $(BINDIR)
+	GOBIN=$(BINDIR) go install github.com/onsi/ginkgo/v2/ginkgo@$(GINKGO_VERSION)
+	mv $(BINDIR)/ginkgo $@
+
+$(HELM):
+	$(MAKE) -C .. install-helm
+
+$(KIND):
+	$(MAKE) -C .. install-kind
+
+$(KUBECTL): | $(BINDIR)
+	$(CURL) -o $@ https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl
+	chmod a+x $@
 
 .PHONY: daemonset-lvmd/create-vg
 daemonset-lvmd/create-vg:
@@ -303,7 +321,7 @@ daemonset-lvmd/delete-minikube:
 	$(SUDO) -E $(BINDIR)/minikube delete || true
 
 .PHONY: daemonset-lvmd/test
-daemonset-lvmd/test: topolvm.img
+daemonset-lvmd/test: topolvm.img $(GINKGO) $(HELM) $(KUBECTL)
 	$(MAKE) apply-certmanager-crds
 	$(MAKE) prepare-namespace
 	$(HELM) repo add jetstack https://charts.jetstack.io
@@ -322,7 +340,7 @@ daemonset-lvmd/test: topolvm.img
 	$(SUDO) -E env \
 	PATH=${PATH} \
 	E2ETEST=1 \
-	BINDIR=$(BINDIR) \
+	KUBECTL=$(KUBECTL) \
 	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
 	DAEMONSET_LVMD=true \
 	$(GINKGO) -skip='snapshot' -skip='CreateSnapshot' -skip='DeleteSnapshot'  -skip='source volume' --fail-fast -v .

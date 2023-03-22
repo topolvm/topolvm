@@ -78,7 +78,6 @@ jobs:
           CRICTL_VERSION="v1.25.0"
           curl -L https://github.com/kubernetes-sigs/cri-tools/releases/download/$CRICTL_VERSION/crictl-${CRICTL_VERSION}-linux-amd64.tar.gz --output crictl-${CRICTL_VERSION}-linux-amd64.tar.gz
           sudo tar zxvf crictl-$CRICTL_VERSION-linux-amd64.tar.gz -C /usr/local/bin
-      - run: make -C e2e setup
       - run: make -C e2e daemonset-lvmd/create-vg
       - run: make -C e2e daemonset-lvmd/setup-minikube
       - run: make -C e2e daemonset-lvmd/launch-minikube

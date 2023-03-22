@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -40,11 +39,11 @@ func execAtLocal(cmd string, input []byte, args ...string) ([]byte, []byte, erro
 }
 
 func kubectl(args ...string) (stdout []byte, stderr []byte, err error) {
-	return execAtLocal(filepath.Join(binDir, "kubectl"), nil, args...)
+	return execAtLocal(kubectlPath, nil, args...)
 }
 
 func kubectlWithInput(input []byte, args ...string) (stdout []byte, stderr []byte, err error) {
-	return execAtLocal(filepath.Join(binDir, "kubectl"), input, args...)
+	return execAtLocal(kubectlPath, input, args...)
 }
 
 func containString(s []string, target string) bool {
