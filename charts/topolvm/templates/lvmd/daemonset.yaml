@@ -39,6 +39,9 @@ spec:
       containers:
         - name: lvmd
           image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          {{- with .Values.image.pullPolicy }}
+          imagePullPolicy: {{ . }}
+          {{- end }}
           securityContext:
             privileged: true
           command:
