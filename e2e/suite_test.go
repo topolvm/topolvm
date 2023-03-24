@@ -3,7 +3,6 @@ package e2e
 import (
 	_ "embed"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math/rand"
 	"os"
@@ -34,8 +33,8 @@ func TestMtest(t *testing.T) {
 }
 
 func createNamespace(ns string) {
-	stdout, stderr, err := kubectl("create", "namespace", ns)
-	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+	_, _, err := kubectl("create", "namespace", ns)
+	Expect(err).ShouldNot(HaveOccurred())
 	Eventually(func() error {
 		return waitCreatingDefaultSA(ns)
 	}).Should(Succeed())
@@ -53,9 +52,9 @@ func randomString(n int) string {
 }
 
 func waitKindnet() error {
-	stdout, stderr, err := kubectl("-n=kube-system", "get", "ds/kindnet", "-o", "json")
+	stdout, _, err := kubectl("-n=kube-system", "get", "ds/kindnet", "-o", "json")
 	if err != nil {
-		return errors.New(string(stderr))
+		return err
 	}
 
 	var ds appsv1.DaemonSet
@@ -85,8 +84,8 @@ func skipIfDaemonsetLvmd() {
 }
 
 func getDaemonsetLvmdNodeName() string {
-	stdout, stderr, err := kubectl("get", "nodes", "-o=json")
-	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+	stdout, _, err := kubectl("get", "nodes", "-o=json")
+	Expect(err).ShouldNot(HaveOccurred())
 
 	var nodes corev1.NodeList
 	err = json.Unmarshal(stdout, &nodes)
@@ -115,14 +114,14 @@ var _ = BeforeSuite(func() {
 
 	By("Waiting for mutating webhook to get ready")
 	Eventually(func() error {
-		_, stderr, err := kubectlWithInput(pausePodYAML, "apply", "-f", "-")
+		_, _, err := kubectlWithInput(pausePodYAML, "apply", "-f", "-")
 		if err != nil {
-			return errors.New(string(stderr))
+			return err
 		}
 		return nil
 	}).Should(Succeed())
-	stdout, stderr, err := kubectlWithInput(pausePodYAML, "delete", "-f", "-")
-	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+	_, _, err := kubectlWithInput(pausePodYAML, "delete", "-f", "-")
+	Expect(err).ShouldNot(HaveOccurred())
 })
 
 var _ = Describe("TopoLVM", func() {

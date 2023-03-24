@@ -46,8 +46,8 @@ func testLogicalVolume() {
 	It("should set Status.CurrentSize", func() {
 		pvcName := "check-current-size"
 		pvcYaml := fmt.Sprintf(pvcTemplateYAMLForLV, pvcName)
-		stdout, stderr, err := kubectlWithInput([]byte(pvcYaml), "apply", "-n", nsLogicalVolumeTest, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, _, err := kubectlWithInput([]byte(pvcYaml), "apply", "-n", nsLogicalVolumeTest, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
 		By("checking that Status.CurrentSize exists")
 		var pvc corev1.PersistentVolumeClaim
@@ -76,9 +76,9 @@ func testLogicalVolume() {
 		By("clearing Status.CurrentSize and changing Spec.Size to 2Gi")
 		stopTopoLVMNode(lv.Spec.NodeName)
 		clearCurrentSize(k8sClient, lv.Name)
-		stdout, stderr, err = kubectl("patch", "logicalvolumes", lv.Name, "--type=json", "-p",
+		_, _, err = kubectl("patch", "logicalvolumes", lv.Name, "--type=json", "-p",
 			`[{"op": "replace", "path": "/spec/size", "value": "2Gi"}]`)
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		Expect(err).ShouldNot(HaveOccurred())
 
 		By("checking that Status.CurrentSize is set to resized size if it is missing and spec.Size is modified")
 		startTopoLVMNode()
@@ -129,9 +129,9 @@ func waitForSettingCurrentSize(lvName string) int64 {
 }
 
 func getObject(obj interface{}, args ...string) error {
-	stdout, stderr, err := kubectl(append([]string{"get", "-ojson"}, args...)...)
+	stdout, _, err := kubectl(append([]string{"get", "-ojson"}, args...)...)
 	if err != nil {
-		return fmt.Errorf("kubectl failed. stdout=%s, stderr=%s, err=%w", stdout, stderr, err)
+		return err
 	}
 	return json.Unmarshal(stdout, obj)
 }
@@ -143,8 +143,8 @@ func getLogicalVolume(lvName string) (*topolvmv1.LogicalVolume, error) {
 }
 
 func waitForTopoLVMNodeDSPatched(patch string, patchType string) {
-	stdout, stderr, err := kubectl("patch", "-n", "topolvm-system", "daemonset", "topolvm-node", "--type", patchType, "-p", patch)
-	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+	_, _, err := kubectl("patch", "-n", "topolvm-system", "daemonset", "topolvm-node", "--type", patchType, "-p", patch)
+	Expect(err).ShouldNot(HaveOccurred())
 
 	Eventually(func(g Gomega) {
 		var ds appsv1.DaemonSet

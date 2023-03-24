@@ -24,49 +24,53 @@ type CleanupContext struct {
 	CapacityAnnotations map[string]map[string]string
 }
 
-func execAtLocal(cmd string, input []byte, args ...string) ([]byte, []byte, error) {
-	var stdout, stderr bytes.Buffer
+// execAtLocal executes cmd.
+// If the cmd is failed, stdout and stderr is included in the error.
+// Therefore you don't need to print the returned stdout and stderr,
+// just print err itself.
+func execAtLocal(cmd string, input []byte, args ...string) (stdout []byte, stderr []byte, err error) {
+	var stdoutBuf, stderrBuf bytes.Buffer
 	command := exec.Command(cmd, args...)
-	command.Stdout = &stdout
-	command.Stderr = &stderr
+	command.Stdout = &stdoutBuf
+	command.Stderr = &stderrBuf
 
 	if len(input) != 0 {
 		command.Stdin = bytes.NewReader(input)
 	}
 
-	err := command.Run()
-	return stdout.Bytes(), stderr.Bytes(), err
+	err = command.Run()
+	stdout = stdoutBuf.Bytes()
+	stderr = stderrBuf.Bytes()
+	if err != nil {
+		err = fmt.Errorf("%s failed. stdout=%s, stderr=%s, err=%w", cmd, stdout, stderr, err)
+	}
+	return
 }
 
+// kubectl executes kubectl command.
+// Same as execAtLocal, just print err instead of stdout and stderr if an error happens.
 func kubectl(args ...string) (stdout []byte, stderr []byte, err error) {
 	return execAtLocal(kubectlPath, nil, args...)
 }
 
+// kubectlWithInput executes kubectl command with stdin input.
+// Same as execAtLocal, just print err instead of stdout and stderr if an error happens.
 func kubectlWithInput(input []byte, args ...string) (stdout []byte, stderr []byte, err error) {
 	return execAtLocal(kubectlPath, input, args...)
 }
 
-func containString(s []string, target string) bool {
-	for _, ss := range s {
-		if ss == target {
-			return true
-		}
-	}
-	return false
-}
-
 func countLVMs() (int, error) {
-	stdout, err := exec.Command("sudo", "lvs", "-o", "lv_name", "--noheadings").Output()
+	stdout, _, err := execAtLocal("sudo", nil, "lvs", "-o", "lv_name", "--noheadings")
 	if err != nil {
-		return -1, fmt.Errorf("failed to lvs. stdout %s, err %v", stdout, err)
+		return -1, err
 	}
 	return bytes.Count(stdout, []byte("\n")), nil
 }
 
 func getNodeAnnotationMapWithPrefix(prefix string) (map[string]map[string]string, error) {
-	stdout, stderr, err := kubectl("get", "node", "-o", "json")
+	stdout, _, err := kubectl("get", "node", "-o", "json")
 	if err != nil {
-		return nil, fmt.Errorf("stdout=%sr stderr=%s, err=%v", stdout, stderr, err)
+		return nil, err
 	}
 
 	var nodeList corev1.NodeList
@@ -116,9 +120,9 @@ func commonAfterEach(cc CleanupContext) {
 				return fmt.Errorf("lvm num mismatched. before: %d, after: %d", cc.LvmCount, lvmCountAfter)
 			}
 
-			stdout, stderr, err := kubectl("get", "node", "-o", "json")
+			_, _, err = kubectl("get", "node", "-o", "json")
 			if err != nil {
-				return fmt.Errorf("stdout=%s, stderr=%s", stdout, stderr)
+				return err
 			}
 
 			capacitiesAfter, err := getNodeAnnotationMapWithPrefix(topolvm.GetCapacityKeyPrefix())
@@ -140,9 +144,9 @@ type lvinfo struct {
 }
 
 func getLVInfo(lvName string) (*lvinfo, error) {
-	stdout, err := exec.Command("sudo", "lvdisplay", "-c", "--select", "lv_name="+lvName).Output()
+	stdout, _, err := execAtLocal("sudo", nil, "lvdisplay", "-c", "--select", "lv_name="+lvName)
 	if err != nil {
-		return nil, fmt.Errorf("err=%v, stdout=%s", err, stdout)
+		return nil, err
 	}
 	output := strings.TrimSpace(string(stdout))
 	if output == "" {

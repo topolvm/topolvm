@@ -26,9 +26,9 @@ func testNode() {
 
 	It("should be deployed", func() {
 		Eventually(func() error {
-			result, stderr, err := kubectl("get", "-n=topolvm-system", "pods", "--selector=app.kubernetes.io/component=node,app.kubernetes.io/name=topolvm", "-o=json")
+			result, _, err := kubectl("get", "-n=topolvm-system", "pods", "--selector=app.kubernetes.io/component=node,app.kubernetes.io/name=topolvm", "-o=json")
 			if err != nil {
-				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
+				return err
 			}
 
 			var podlist corev1.PodList
@@ -63,8 +63,8 @@ func testNode() {
 	})
 
 	It("should annotate capacity to node", func() {
-		stdout, stderr, err := kubectl("get", "nodes", "-o=json")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		stdout, _, err := kubectl("get", "nodes", "-o=json")
+		Expect(err).ShouldNot(HaveOccurred())
 
 		count := 4
 		if isDaemonsetLvmdEnvSet() {
@@ -98,15 +98,14 @@ func testNode() {
 			}
 
 			By("checking " + node.Name)
-			targetBytes, stderr, err := execAtLocal("sudo", nil, "vgs",
+			targetBytes, _, err := execAtLocal("sudo", nil, "vgs",
 				"-o", "vg_free",
 				"--noheadings",
 				"--units=b",
 				"--nosuffix",
 				vgName,
 			)
-
-			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", targetBytes, stderr)
+			Expect(err).ShouldNot(HaveOccurred())
 
 			free, err := strconv.Atoi(strings.TrimSpace(string(targetBytes)))
 			Expect(err).ShouldNot(HaveOccurred())
@@ -126,23 +125,23 @@ func testNode() {
 	})
 
 	It("should expose Prometheus metrics", func() {
-		stdout, stderr, err := kubectl("get", "pods", "-n=topolvm-system", "-l=app.kubernetes.io/component=node,app.kubernetes.io/name=topolvm", "-o=json")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		stdout, _, err := kubectl("get", "pods", "-n=topolvm-system", "-l=app.kubernetes.io/component=node,app.kubernetes.io/name=topolvm", "-o=json")
+		Expect(err).ShouldNot(HaveOccurred())
 
 		var pods corev1.PodList
 		err = json.Unmarshal(stdout, &pods)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		pod := pods.Items[0]
-		stdout, stderr, err = kubectl("exec", "-n", "topolvm-system", pod.Name, "-c=topolvm-node", "--", "curl", "http://localhost:8080/metrics")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		stdout, _, err = kubectl("exec", "-n", "topolvm-system", pod.Name, "-c=topolvm-node", "--", "curl", "http://localhost:8080/metrics")
+		Expect(err).ShouldNot(HaveOccurred())
 		var parser expfmt.TextParser
 		metricFamilies, err := parser.TextToMetricFamilies(bytes.NewReader(stdout))
 		Expect(err).ShouldNot(HaveOccurred())
 
 		// For CSI sidecar metrics access checking
-		stdout, stderr, err = kubectl("exec", "-n", "topolvm-system", pod.Name, "-c=topolvm-node", "--", "curl", "http://localhost:9808/metrics")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, _, err = kubectl("exec", "-n", "topolvm-system", pod.Name, "-c=topolvm-node", "--", "curl", "http://localhost:9808/metrics")
+		Expect(err).ShouldNot(HaveOccurred())
 
 		foundSize := false
 		for _, family := range metricFamilies {
@@ -165,8 +164,8 @@ func testNode() {
 			}
 			Expect(family.Metric).Should(HaveLen(length))
 
-			stdout, stderr, err := kubectl("get", "node", pod.Spec.NodeName, "-o=json")
-			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+			stdout, _, err := kubectl("get", "node", pod.Spec.NodeName, "-o=json")
+			Expect(err).ShouldNot(HaveOccurred())
 
 			var node corev1.Node
 			err = json.Unmarshal(stdout, &node)

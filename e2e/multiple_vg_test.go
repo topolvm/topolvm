@@ -42,17 +42,17 @@ func testMultipleVolumeGroups() {
 
 	It("should use specified device-class", func() {
 		By("deploying Pod with PVC")
-		stdout, stderr, err := kubectlWithInput(deviceClassPVCYAML, "apply", "-n", ns, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		stdout, stderr, err = kubectlWithInput(deviceClassPodYAML, "apply", "-n", ns, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, _, err := kubectlWithInput(deviceClassPVCYAML, "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+		_, _, err = kubectlWithInput(deviceClassPodYAML, "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
 		By("confirming that the lv was created on specified volume group")
 		var volName string
 		Eventually(func() error {
-			stdout, stderr, err = kubectl("get", "pvc", "-n", ns, "topo-pvc", "-o=template", "--template={{.spec.volumeName}}")
+			stdout, _, err := kubectl("get", "pvc", "-n", ns, "topo-pvc", "-o=template", "--template={{.spec.volumeName}}")
 			if err != nil {
-				return fmt.Errorf("failed to get pvc. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+				return fmt.Errorf("failed to get pvc. err: %v", err)
 			}
 			volName = strings.TrimSpace(string(stdout))
 			if len(volName) == 0 || volName == "<no value>" {
@@ -60,8 +60,8 @@ func testMultipleVolumeGroups() {
 			}
 			return nil
 		}).Should(Succeed())
-		stdout, stderr, err = kubectl("get", "logicalvolumes", "-n", "topolvm-system", volName, "-o=template", "--template={{.metadata.uid}}")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		stdout, _, err := kubectl("get", "logicalvolumes", "-n", "topolvm-system", volName, "-o=template", "--template={{.metadata.uid}}")
+		Expect(err).ShouldNot(HaveOccurred())
 		lvName := strings.TrimSpace(string(stdout))
 		var lv *lvinfo
 		Eventually(func() error {
@@ -78,10 +78,10 @@ func testMultipleVolumeGroups() {
 
 	It("should not schedule pod because there are no nodes that have specified device-classes", func() {
 		By("deploying Pod with PVC")
-		stdout, stderr, err := kubectlWithInput(noNodesDeviceClassPVCYAML, "apply", "-n", ns, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		stdout, stderr, err = kubectlWithInput(noNodesDeviceClassPodYAML, "apply", "-n", ns, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, _, err := kubectlWithInput(noNodesDeviceClassPVCYAML, "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+		_, _, err = kubectlWithInput(noNodesDeviceClassPodYAML, "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
 		expectMessage := "no capacity annotation"
 		if isStorageCapacity() {
@@ -90,12 +90,12 @@ func testMultipleVolumeGroups() {
 
 		By("confirming that the pod wasn't scheduled")
 		Eventually(func() error {
-			stdout, stderr, err = kubectl("get", "-n", ns, "pod", "pause", "-o", "json")
-			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+			stdout, _, err := kubectl("get", "-n", ns, "pod", "pause", "-o", "json")
+			Expect(err).ShouldNot(HaveOccurred())
 
 			var pod corev1.Pod
 			err = json.Unmarshal(stdout, &pod)
-			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+			Expect(err).ShouldNot(HaveOccurred(), "data=%s", stdout)
 
 			for _, c := range pod.Status.Conditions {
 				if c.Type == corev1.PodScheduled && c.Status == corev1.ConditionFalse && strings.Contains(c.Message, expectMessage) {
