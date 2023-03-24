@@ -42,9 +42,9 @@ func testMultipleVolumeGroups() {
 
 	It("should use specified device-class", func() {
 		By("deploying Pod with PVC")
-		_, _, err := kubectlWithInput(deviceClassPVCYAML, "apply", "-n", ns, "-f", "-")
+		_, err := kubectlWithInput(deviceClassPVCYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
-		_, _, err = kubectlWithInput(deviceClassPodYAML, "apply", "-n", ns, "-f", "-")
+		_, err = kubectlWithInput(deviceClassPodYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("confirming that the lv was created on specified volume group")
@@ -79,9 +79,9 @@ func testMultipleVolumeGroups() {
 
 	It("should not schedule pod because there are no nodes that have specified device-classes", func() {
 		By("deploying Pod with PVC")
-		_, _, err := kubectlWithInput(noNodesDeviceClassPVCYAML, "apply", "-n", ns, "-f", "-")
+		_, err := kubectlWithInput(noNodesDeviceClassPVCYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
-		_, _, err = kubectlWithInput(noNodesDeviceClassPodYAML, "apply", "-n", ns, "-f", "-")
+		_, err = kubectlWithInput(noNodesDeviceClassPodYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		expectMessage := "no capacity annotation"

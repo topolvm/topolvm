@@ -46,11 +46,11 @@ func testPVCClone() {
 		}
 		var volumeName string
 		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSize))
-		_, _, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsCloneTest, "-f", "-")
+		_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsCloneTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod", volName, topolvm.GetTopologyNodeKey(), nodeName))
-		_, _, err = kubectlWithInput(thinPodYAML, "apply", "-n", nsCloneTest, "-f", "-")
+		_, err = kubectlWithInput(thinPodYAML, "apply", "-n", nsCloneTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		By("confirming if the source PVC is created")
 		Eventually(func() error {
@@ -68,22 +68,22 @@ func testPVCClone() {
 		By("writing a file on mountpath")
 		writePath := "/test1/bootstrap.log"
 		Eventually(func() error {
-			_, _, err := kubectl("exec", "-n", nsCloneTest, "thinpod", "--", "cp", "/var/log/bootstrap.log", writePath)
+			_, err := kubectl("exec", "-n", nsCloneTest, "thinpod", "--", "cp", "/var/log/bootstrap.log", writePath)
 			return err
 		}).Should(Succeed())
 
-		_, _, err = kubectl("exec", "-n", nsCloneTest, "thinpod", "--", "sync")
+		_, err = kubectl("exec", "-n", nsCloneTest, "thinpod", "--", "sync")
 		Expect(err).ShouldNot(HaveOccurred())
-		stdout, _, err := kubectl("exec", "-n", nsCloneTest, "thinpod", "--", "cat", writePath)
+		stdout, err := kubectl("exec", "-n", nsCloneTest, "thinpod", "--", "cat", writePath)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(strings.TrimSpace(string(stdout))).ShouldNot(BeEmpty())
 
 		thinPVCCloneYAML := []byte(fmt.Sprintf(thinPvcCloneTemplateYAML, thinClonePVCName, volName, pvcSize))
-		_, _, err = kubectlWithInput(thinPVCCloneYAML, "apply", "-n", nsCloneTest, "-f", "-")
+		_, err = kubectlWithInput(thinPVCCloneYAML, "apply", "-n", nsCloneTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		thinPodCloneYAML := []byte(fmt.Sprintf(thinPodCloneTemplateYAML, thinClonePodName, thinClonePVCName, topolvm.GetTopologyNodeKey(), nodeName))
-		_, _, err = kubectlWithInput(thinPodCloneYAML, "apply", "-n", nsCloneTest, "-f", "-")
+		_, err = kubectlWithInput(thinPodCloneYAML, "apply", "-n", nsCloneTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("confirming that the lv for cloned volume was created in the thin volume group and pool")
@@ -120,7 +120,7 @@ func testPVCClone() {
 
 		By("confirming that the file exists in the cloned volume")
 		Eventually(func() error {
-			stdout, _, err := kubectl("exec", "-n", nsCloneTest, thinClonePodName, "--", "cat", writePath)
+			stdout, err := kubectl("exec", "-n", nsCloneTest, thinClonePodName, "--", "cat", writePath)
 			if err != nil {
 				return fmt.Errorf("failed to cat. err: %v", err)
 			}
@@ -141,11 +141,11 @@ func testPVCClone() {
 		By("creating a PVC")
 		var volumeName string
 		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSize))
-		_, _, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsCloneTest, "-f", "-")
+		_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsCloneTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod", volName, topolvm.GetTopologyNodeKey(), nodeName))
-		_, _, err = kubectlWithInput(thinPodYAML, "apply", "-n", nsCloneTest, "-f", "-")
+		_, err = kubectlWithInput(thinPodYAML, "apply", "-n", nsCloneTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() error {
 			var pvc corev1.PersistentVolumeClaim
@@ -161,11 +161,11 @@ func testPVCClone() {
 
 		By("creating clone of the PVC")
 		thinPVCCloneYAML := []byte(fmt.Sprintf(thinPvcCloneTemplateYAML, thinClonePVCName, volName, pvcSize))
-		_, _, err = kubectlWithInput(thinPVCCloneYAML, "apply", "-n", nsCloneTest, "-f", "-")
+		_, err = kubectlWithInput(thinPVCCloneYAML, "apply", "-n", nsCloneTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		thinPodCloneYAML := []byte(fmt.Sprintf(thinPodCloneTemplateYAML, thinClonePodName, thinClonePVCName, topolvm.GetTopologyNodeKey(), nodeName))
-		_, _, err = kubectlWithInput(thinPodCloneYAML, "apply", "-n", nsCloneTest, "-f", "-")
+		_, err = kubectlWithInput(thinPodCloneYAML, "apply", "-n", nsCloneTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("validating that the cloned volume is present")
@@ -202,10 +202,10 @@ func testPVCClone() {
 		Expect(poolName).Should(Equal(lv.poolName))
 
 		By("deleting the source volume and application")
-		_, _, err = kubectlWithInput(thinPodYAML, "delete", "-n", nsCloneTest, "-f", "-")
+		_, err = kubectlWithInput(thinPodYAML, "delete", "-n", nsCloneTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		_, _, err = kubectlWithInput(thinPvcYAML, "delete", "-n", nsCloneTest, "-f", "-")
+		_, err = kubectlWithInput(thinPvcYAML, "delete", "-n", nsCloneTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("validating if the cloned volume is present and is not deleted")

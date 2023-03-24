@@ -108,7 +108,7 @@ func testPublishVolume() {
 		By("creating a logical volume resource")
 		name := "csi-node-test-fs"
 		lvYaml := []byte(fmt.Sprintf(lvTemplateYAML, topolvm.GetPluginName(), name, name, nodeName))
-		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
+		_, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		var volumeID string
@@ -195,7 +195,7 @@ func testPublishVolume() {
 		cl.unregister(volumeID, mountTargetPath)
 
 		By("cleaning logicalvolume")
-		_, _, err = kubectl("delete", "logicalvolumes", "csi-node-test-fs")
+		_, err = kubectl("delete", "logicalvolumes", "csi-node-test-fs")
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -210,7 +210,7 @@ func testPublishVolume() {
 
 		name := "csi-node-test-block"
 		lvYaml := []byte(fmt.Sprintf(lvTemplateYAML, topolvm.GetPluginName(), name, name, nodeName))
-		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
+		_, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		var volumeID string
@@ -281,13 +281,13 @@ func testPublishVolume() {
 		cl.unregister(volumeID, deviceTargetPath)
 
 		By("cleaning logicalvolume")
-		_, _, err = kubectl("delete", "logicalvolumes", "csi-node-test-block")
+		_, err = kubectl("delete", "logicalvolumes", "csi-node-test-block")
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	It("should publish filesystem with mount option", func() {
 		By("creating a PVC and Pod")
-		_, _, err := kubectlWithInput(podWithMountOptionPVCYAML, "apply", "-f", "-")
+		_, err := kubectlWithInput(podWithMountOptionPVCYAML, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
@@ -309,7 +309,7 @@ func testPublishVolume() {
 		err = getObjects(&pvc, "pvc", "topo-pvc-mount-option")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		stdout, _, err := execAtLocal("cat", nil, "/proc/mounts")
+		stdout, err := execAtLocal("cat", nil, "/proc/mounts")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		var isExistingOption bool
@@ -329,7 +329,7 @@ func testPublishVolume() {
 		Expect(isExistingOption).Should(BeTrue())
 
 		By("cleaning pvc/pod")
-		_, _, err = kubectlWithInput(podWithMountOptionPVCYAML, "delete", "-f", "-")
+		_, err = kubectlWithInput(podWithMountOptionPVCYAML, "delete", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -344,7 +344,7 @@ func testPublishVolume() {
 
 		name := "csi-node-test-fs"
 		lvYaml := []byte(fmt.Sprintf(lvTemplateYAML, topolvm.GetPluginName(), name, name, nodeName))
-		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
+		_, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		var volumeID string
@@ -388,7 +388,7 @@ func testPublishVolume() {
 		Expect(err).Should(HaveOccurred())
 
 		By("cleaning logicalvolume")
-		_, _, err = kubectl("delete", "logicalvolumes", "csi-node-test-fs")
+		_, err = kubectl("delete", "logicalvolumes", "csi-node-test-fs")
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 }

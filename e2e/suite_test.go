@@ -32,7 +32,7 @@ func TestMtest(t *testing.T) {
 }
 
 func createNamespace(ns string) {
-	_, _, err := kubectl("create", "namespace", ns)
+	_, err := kubectl("create", "namespace", ns)
 	Expect(err).ShouldNot(HaveOccurred())
 	Eventually(func() error {
 		return waitCreatingDefaultSA(ns)
@@ -105,13 +105,13 @@ var _ = BeforeSuite(func() {
 
 	By("Waiting for mutating webhook to get ready")
 	Eventually(func() error {
-		_, _, err := kubectlWithInput(pausePodYAML, "apply", "-f", "-")
+		_, err := kubectlWithInput(pausePodYAML, "apply", "-f", "-")
 		if err != nil {
 			return err
 		}
 		return nil
 	}).Should(Succeed())
-	_, _, err := kubectlWithInput(pausePodYAML, "delete", "-f", "-")
+	_, err := kubectlWithInput(pausePodYAML, "delete", "-f", "-")
 	Expect(err).ShouldNot(HaveOccurred())
 })
 

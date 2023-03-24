@@ -38,10 +38,10 @@ func testReadWriteOncePod() {
 
 		By("Create a pod and a PVC with a ReadWriteOncePod access mode")
 		pvcYaml := buildPVCTemplateYAML(pvcName, ns, size)
-		_, _, err := kubectlWithInput(pvcYaml, "apply", "-f", "-")
+		_, err := kubectlWithInput(pvcYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		podYaml := buildPodTemplateYAML(podName, ns, pvcName)
-		_, _, err = kubectlWithInput(podYaml, "apply", "-f", "-")
+		_, err = kubectlWithInput(podYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("Checking the pod is running")
@@ -73,7 +73,7 @@ func testReadWriteOncePod() {
 		By("Create a pod with a ReadWriteOncePod access mode and the already used PVC")
 		podName = "testpod-2"
 		podYaml = buildPodTemplateYAML(podName, ns, pvcName)
-		_, _, err = kubectlWithInput(podYaml, "apply", "-f", "-")
+		_, err = kubectlWithInput(podYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("Checking the pod is not running")

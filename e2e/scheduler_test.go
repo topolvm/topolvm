@@ -64,7 +64,7 @@ func testScheduler() {
 
 		ns := testNamespacePrefix + randomString(10)
 		createNamespace(ns)
-		_, _, err := kubectlWithInput([]byte(
+		_, err := kubectlWithInput([]byte(
 			fmt.Sprintf(capacityPodTemplateYAML, ns, topolvm.GetCapacityKeyPrefix(), "1073741824",
 				topolvm.GetCapacityResource().String(), topolvm.GetCapacityResource().String())),
 			"apply", "-f", "-")
@@ -96,7 +96,7 @@ func testScheduler() {
 
 		ns := testNamespacePrefix + randomString(10)
 		createNamespace(ns)
-		_, _, err := kubectlWithInput([]byte(
+		_, err := kubectlWithInput([]byte(
 			fmt.Sprintf(capacityPodTemplateYAML, ns, topolvm.GetCapacityKeyPrefix(), "21474836480",
 				topolvm.GetCapacityResource().String(), topolvm.GetCapacityResource().String())),
 			"apply", "-f", "-")

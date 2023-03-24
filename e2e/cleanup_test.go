@@ -56,7 +56,7 @@ func testCleanup() {
 		statefulsetName := "test-sts"
 		By("applying statefulset")
 		statefulsetYAML := []byte(fmt.Sprintf(statefulSetTemplateYAML, statefulsetName, statefulsetName))
-		_, _, err := kubectlWithInput(statefulsetYAML, "-n", cleanupTest, "apply", "-f", "-")
+		_, err := kubectlWithInput(statefulsetYAML, "-n", cleanupTest, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
@@ -124,7 +124,7 @@ func testCleanup() {
 		}
 
 		By("setting unschedule flag to Node topolvm-e2e-worker3")
-		_, _, err = kubectl("cordon", targetNode)
+		_, err = kubectl("cordon", targetNode)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("deleting topolvm-node pod")
@@ -139,11 +139,11 @@ func testCleanup() {
 			}
 		}
 		Expect(targetTopolvmNode).ShouldNot(Equal(""), "cannot get topolmv-node name on topolvm-e2e-worker3")
-		_, _, err = kubectl("-n", "topolvm-system", "delete", "pod", targetTopolvmNode)
+		_, err = kubectl("-n", "topolvm-system", "delete", "pod", targetTopolvmNode)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("deleting Node topolvm-e2e-worker3")
-		_, _, err = kubectl("delete", "node", targetNode, "--wait=true")
+		_, err = kubectl("delete", "node", targetNode, "--wait=true")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		// Confirming if the finalizer of the node resources works by checking by deleted pod's uid and pvc's uid if exist
@@ -207,18 +207,18 @@ func testCleanup() {
 	})
 
 	It("should delete namespace", func() {
-		_, _, err := kubectl("delete", "ns", cleanupTest)
+		_, err := kubectl("delete", "ns", cleanupTest)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	It("should stop undeleted container in case that the container is undeleted", func() {
-		_, _, err := execAtLocal(
+		_, err := execAtLocal(
 			"docker", nil, "exec", "topolvm-e2e-worker3",
 			"systemctl", "stop", "kubelet.service",
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		stdout, _, err := execAtLocal(
+		stdout, err := execAtLocal(
 			"docker", nil, "exec", "topolvm-e2e-worker3",
 			"/usr/local/bin/crictl", "ps", "-o=json",
 		)
@@ -237,7 +237,7 @@ func testCleanup() {
 		Expect(err).ShouldNot(HaveOccurred(), "data=%s", stdout)
 
 		for _, c := range l.Containers {
-			_, _, err := execAtLocal(
+			_, err := execAtLocal(
 				"docker", nil,
 				"exec", "topolvm-e2e-worker3", "/usr/local/bin/crictl", "stop", c.ID,
 			)
@@ -248,10 +248,10 @@ func testCleanup() {
 
 	It("should cleanup volumes", func() {
 		for _, lv := range targetLVs {
-			_, _, err := execAtLocal("sudo", nil, "umount", "/dev/topolvm/"+lv.Status.VolumeID)
+			_, err := execAtLocal("sudo", nil, "umount", "/dev/topolvm/"+lv.Status.VolumeID)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			_, _, err = execAtLocal("sudo", nil, "lvremove", "-y", "--select", "lv_name="+lv.Status.VolumeID)
+			_, err = execAtLocal("sudo", nil, "lvremove", "-y", "--select", "lv_name="+lv.Status.VolumeID)
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 	})

@@ -34,7 +34,7 @@ func testMetrics() {
 
 	It("should export volume metrics", func() {
 		By("creating a PVC and Pod")
-		_, _, err := kubectlWithInput(metricsManifest, "apply", "-f", "-")
+		_, err := kubectlWithInput(metricsManifest, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("waiting for the new Pod to be running")

@@ -89,7 +89,7 @@ func testNode() {
 			}
 
 			By("checking " + node.Name)
-			targetBytes, _, err := execAtLocal("sudo", nil, "vgs",
+			targetBytes, err := execAtLocal("sudo", nil, "vgs",
 				"-o", "vg_free",
 				"--noheadings",
 				"--units=b",
@@ -121,14 +121,14 @@ func testNode() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		pod := pods.Items[0]
-		stdout, _, err := kubectl("exec", "-n", "topolvm-system", pod.Name, "-c=topolvm-node", "--", "curl", "http://localhost:8080/metrics")
+		stdout, err := kubectl("exec", "-n", "topolvm-system", pod.Name, "-c=topolvm-node", "--", "curl", "http://localhost:8080/metrics")
 		Expect(err).ShouldNot(HaveOccurred())
 		var parser expfmt.TextParser
 		metricFamilies, err := parser.TextToMetricFamilies(bytes.NewReader(stdout))
 		Expect(err).ShouldNot(HaveOccurred())
 
 		// For CSI sidecar metrics access checking
-		_, _, err = kubectl("exec", "-n", "topolvm-system", pod.Name, "-c=topolvm-node", "--", "curl", "http://localhost:9808/metrics")
+		_, err = kubectl("exec", "-n", "topolvm-system", pod.Name, "-c=topolvm-node", "--", "curl", "http://localhost:9808/metrics")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		foundSize := false

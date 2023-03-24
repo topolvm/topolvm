@@ -55,7 +55,7 @@ func testStorageCapacity() {
 		}()
 
 		lvYaml := buildPodPVCTemplateYAML(name, size, "topolvm-provisioner-default", nodeName)
-		_, _, err = kubectlWithInput(lvYaml, "apply", "-f", "-")
+		_, err = kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() error {
 			var pvc corev1.PersistentVolumeClaim
@@ -86,7 +86,7 @@ func testStorageCapacity() {
 		name2 := name + "2"
 
 		lvYaml2 := buildPodPVCTemplateYAML(name2, size, "topolvm-provisioner-default", nodeName)
-		_, _, err = kubectlWithInput(lvYaml2, "apply", "-f", "-")
+		_, err = kubectlWithInput(lvYaml2, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() error {
 			var pod corev1.Pod
@@ -101,7 +101,7 @@ func testStorageCapacity() {
 				}
 			}
 
-			podInfo, _, err := kubectl("-n="+nsCapacityTest, "describe", "pods", name2)
+			podInfo, err := kubectl("-n="+nsCapacityTest, "describe", "pods", name2)
 			if err != nil {
 				return err
 			}
@@ -129,7 +129,7 @@ func testStorageCapacity() {
 		}()
 
 		lvYaml3 := buildPodPVCTemplateYAML(name3, size, "topolvm-provisioner2", nodeName)
-		_, _, err = kubectlWithInput(lvYaml3, "apply", "-f", "-")
+		_, err = kubectlWithInput(lvYaml3, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() error {
 			var pvc corev1.PersistentVolumeClaim

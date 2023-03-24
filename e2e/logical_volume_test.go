@@ -45,7 +45,7 @@ func testLogicalVolume() {
 	It("should set Status.CurrentSize", func() {
 		pvcName := "check-current-size"
 		pvcYaml := fmt.Sprintf(pvcTemplateYAMLForLV, pvcName)
-		_, _, err := kubectlWithInput([]byte(pvcYaml), "apply", "-n", nsLogicalVolumeTest, "-f", "-")
+		_, err := kubectlWithInput([]byte(pvcYaml), "apply", "-n", nsLogicalVolumeTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("checking that Status.CurrentSize exists")
@@ -75,7 +75,7 @@ func testLogicalVolume() {
 		By("clearing Status.CurrentSize and changing Spec.Size to 2Gi")
 		stopTopoLVMNode(lv.Spec.NodeName)
 		clearCurrentSize(k8sClient, lv.Name)
-		_, _, err = kubectl("patch", "logicalvolumes", lv.Name, "--type=json", "-p",
+		_, err = kubectl("patch", "logicalvolumes", lv.Name, "--type=json", "-p",
 			`[{"op": "replace", "path": "/spec/size", "value": "2Gi"}]`)
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -134,7 +134,7 @@ func getLogicalVolume(lvName string) (*topolvmv1.LogicalVolume, error) {
 }
 
 func waitForTopoLVMNodeDSPatched(patch string, patchType string) {
-	_, _, err := kubectl("patch", "-n", "topolvm-system", "daemonset", "topolvm-node", "--type", patchType, "-p", patch)
+	_, err := kubectl("patch", "-n", "topolvm-system", "daemonset", "topolvm-node", "--type", patchType, "-p", patch)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	Eventually(func(g Gomega) {

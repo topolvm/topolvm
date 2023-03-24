@@ -25,10 +25,7 @@ type CleanupContext struct {
 }
 
 // execAtLocal executes cmd.
-// If the cmd is failed, stdout and stderr is included in the error.
-// Therefore you don't need to print the returned stdout and stderr,
-// just print err itself.
-func execAtLocal(cmd string, input []byte, args ...string) (stdout []byte, stderr []byte, err error) {
+func execAtLocal(cmd string, input []byte, args ...string) (stdout []byte, err error) {
 	var stdoutBuf, stderrBuf bytes.Buffer
 	command := exec.Command(cmd, args...)
 	command.Stdout = &stdoutBuf
@@ -40,7 +37,7 @@ func execAtLocal(cmd string, input []byte, args ...string) (stdout []byte, stder
 
 	err = command.Run()
 	stdout = stdoutBuf.Bytes()
-	stderr = stderrBuf.Bytes()
+	stderr := stderrBuf.Bytes()
 	if err != nil {
 		err = fmt.Errorf("%s failed. stdout=%s, stderr=%s, err=%w", cmd, stdout, stderr, err)
 	}
@@ -48,19 +45,17 @@ func execAtLocal(cmd string, input []byte, args ...string) (stdout []byte, stder
 }
 
 // kubectl executes kubectl command.
-// Same as execAtLocal, just print err instead of stdout and stderr if an error happens.
-func kubectl(args ...string) (stdout []byte, stderr []byte, err error) {
+func kubectl(args ...string) (stdout []byte, err error) {
 	return execAtLocal(kubectlPath, nil, args...)
 }
 
 // kubectlWithInput executes kubectl command with stdin input.
-// Same as execAtLocal, just print err instead of stdout and stderr if an error happens.
-func kubectlWithInput(input []byte, args ...string) (stdout []byte, stderr []byte, err error) {
+func kubectlWithInput(input []byte, args ...string) (stdout []byte, err error) {
 	return execAtLocal(kubectlPath, input, args...)
 }
 
 func countLVMs() (int, error) {
-	stdout, _, err := execAtLocal("sudo", nil, "lvs", "-o", "lv_name", "--noheadings")
+	stdout, err := execAtLocal("sudo", nil, "lvs", "-o", "lv_name", "--noheadings")
 	if err != nil {
 		return -1, err
 	}
@@ -97,7 +92,7 @@ var ErrObjectNotFound = errors.New("no such object")
 // obj can be an object (e.g. Pod) or a list of objects (e.g. PodList).
 // If any objects are not found, return ErrObjectNotFound error.
 func getObjects(obj any, kind string, args ...string) error {
-	stdout, _, err := kubectl(append([]string{"get", "-ojson", "--ignore-not-found", kind}, args...)...)
+	stdout, err := kubectl(append([]string{"get", "-ojson", "--ignore-not-found", kind}, args...)...)
 	if err != nil {
 		return err
 	}
@@ -150,7 +145,7 @@ type lvinfo struct {
 }
 
 func getLVInfo(lvName string) (*lvinfo, error) {
-	stdout, _, err := execAtLocal("sudo", nil, "lvdisplay", "-c", "--select", "lv_name="+lvName)
+	stdout, err := execAtLocal("sudo", nil, "lvdisplay", "-c", "--select", "lv_name="+lvName)
 	if err != nil {
 		return nil, err
 	}

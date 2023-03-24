@@ -37,9 +37,9 @@ func testLVCreateOptions() {
 		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1, "topolvm-provisioner-raid"))
 		podYaml := []byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu", "topo-pvc"))
 
-		_, _, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
+		_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
-		_, _, err = kubectlWithInput(podYaml, "apply", "-n", ns, "-f", "-")
+		_, err = kubectlWithInput(podYaml, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("finding the corresponding LV")
@@ -62,7 +62,7 @@ func testLVCreateOptions() {
 		}).Should(Succeed())
 
 		By("checking that the LV is of type raid")
-		stdout, _, err := execAtLocal("sudo", nil, "lvs", "-o", "lv_attr", "--noheadings", "--select", "lv_name="+lvName)
+		stdout, err := execAtLocal("sudo", nil, "lvs", "-o", "lv_attr", "--noheadings", "--select", "lv_name="+lvName)
 		Expect(err).ShouldNot(HaveOccurred())
 		attribute_bit1 := string(strings.TrimSpace(string(stdout))[0])
 		// lv_attr bit 1 represents the volume type, where 'r' is for raid
@@ -74,9 +74,9 @@ func testLVCreateOptions() {
 		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc-raid1", "Filesystem", 1, "topolvm-provisioner-raid1"))
 		podYaml := []byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu2", "topo-pvc-raid1"))
 
-		_, _, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
+		_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
-		_, _, err = kubectlWithInput(podYaml, "apply", "-n", ns, "-f", "-")
+		_, err = kubectlWithInput(podYaml, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("finding the corresponding LV")
@@ -99,7 +99,7 @@ func testLVCreateOptions() {
 		}).Should(Succeed())
 
 		By("checking that the LV is of type raid")
-		stdout, _, err := execAtLocal("sudo", nil, "lvs", "-o", "lv_attr", "--noheadings", "--select", "lv_name="+lvName)
+		stdout, err := execAtLocal("sudo", nil, "lvs", "-o", "lv_attr", "--noheadings", "--select", "lv_name="+lvName)
 		Expect(err).ShouldNot(HaveOccurred())
 		attribute_bit1 := string(strings.TrimSpace(string(stdout))[0])
 		// lv_attr bit 1 represents the volume type, where 'r' is for raid
