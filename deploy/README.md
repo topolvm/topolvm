@@ -175,23 +175,23 @@ Otherwise, `topolvm-scheduler` should be run as Deployment and Service.
 Set the `scheduler.type=daemonset` in the Helm Chart values.
 The default is daemonset.
 
-    ```yaml
-    <snip>
-    scheduler:
-      type: daemonset
-    <snip>
-    ```
+```yaml
+<snip>
+scheduler:
+  type: daemonset
+<snip>
+```
 
 #### Running topolvm-scheduler using Deployment and Service
 
 In this case, you can set the `scheduler.type=deployment` in the Helm Chart values.
 
-    ```yaml
-    <snip>
-    scheduler:
-      type: deployment
-    <snip>
-    ```
+```yaml
+<snip>
+scheduler:
+  type: deployment
+<snip>
+```
 
 This way, `topolvm-scheduler` is exposed by LoadBalancer service.
 
@@ -252,20 +252,20 @@ You can see the limitations of using Storage Capacity Tracking from [here](https
 If you want to use Storage Capacity Tracking instead of using topolvm-scheduler,
 you need to set the `controller.storageCapacityTracking.enabled=true`, `scheduler.enabled=false` and `webhook.podMutatingWebhook.enabled=false` in the Helm Chart values.
 
-    ```yaml
-    <snip>
-    controller:
-      storageCapacityTracking:
-        enabled: true
-    <snip>
-    scheduler:
-      enabled: false
-    <snip>
-    webhook:
-      podMutatingWebhook:
-        enabled: false
-    <snip>
-    ```
+```yaml
+<snip>
+controller:
+  storageCapacityTracking:
+    enabled: true
+<snip>
+scheduler:
+  enabled: false
+<snip>
+webhook:
+  podMutatingWebhook:
+    enabled: false
+<snip>
+```
 
 ## Protect system namespaces from TopoLVM webhook
 
