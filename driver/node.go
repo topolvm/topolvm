@@ -28,8 +28,9 @@ const (
 	// DeviceDirectory is a directory where TopoLVM Node service creates device files.
 	DeviceDirectory = "/dev/topolvm"
 
-	findmntCmd       = "/bin/findmnt"
-	devicePermission = 0600 | unix.S_IFBLK
+	findmntCmd = "/bin/findmnt"
+
+	deviceMode = 0600 | unix.S_IFBLK
 )
 
 var nodeLogger = ctrl.Log.WithName("driver").WithName("node")
@@ -252,7 +253,7 @@ func (s *nodeServerNoLocked) createDeviceIfNeeded(device string, lv *proto.Logic
 	switch err {
 	case nil:
 		// a block device already exists, check its attributes
-		if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && (stat.Mode&devicePermission) == devicePermission {
+		if stat.Rdev == unix.Mkdev(lv.DevMajor, lv.DevMinor) && stat.Uid == uint32(os.Getuid()) && stat.Mode == deviceMode {
 			return nil
 		}
 		err := os.Remove(device)
@@ -267,7 +268,7 @@ func (s *nodeServerNoLocked) createDeviceIfNeeded(device string, lv *proto.Logic
 		}
 
 		devno := unix.Mkdev(lv.DevMajor, lv.DevMinor)
-		if err := filesystem.Mknod(device, devicePermission, int(devno)); err != nil {
+		if err := filesystem.Mknod(device, deviceMode, int(devno)); err != nil {
 			return status.Errorf(codes.Internal, "mknod failed for %s. major=%d, minor=%d, error=%v",
 				device, lv.DevMajor, lv.DevMinor, err)
 		}
@@ -514,7 +515,7 @@ func (s *nodeServerNoLocked) NodeExpandVolume(ctx context.Context, req *csi.Node
 	args := []string{"-o", "source", "--noheadings", "--target", req.GetVolumePath()}
 	output, err := s.mounter.Exec.Command(findmntCmd, args...).Output()
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "findmnt error occured: %v", err)
+		return nil, status.Errorf(codes.Internal, "findmnt error occurred: %v", err)
 	}
 
 	devicePath := strings.TrimSpace(string(output))
@@ -535,7 +536,7 @@ func (s *nodeServerNoLocked) NodeExpandVolume(ctx context.Context, req *csi.Node
 	// `capacity_bytes` in NodeExpandVolumeResponse is defined as OPTIONAL.
 	// If this field needs to be filled, the value should be equal to `.status.currentSize` of the corresponding
 	// `LogicalVolume`, but currently the node plugin does not have an access to the resource.
-	// In addtion to this, Kubernetes does not care if the field is blank or not, so leave it blank.
+	// In addition to this, Kubernetes does not care if the field is blank or not, so leave it blank.
 	return &csi.NodeExpandVolumeResponse{}, nil
 }
 
