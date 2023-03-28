@@ -56,16 +56,15 @@ func testThinProvisioning() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("confirming that the lv was created in the thin volume group and pool")
-		var volumeName string
-
+		var lvName string
 		Eventually(func() error {
-			volumeName, err = getVolumeNameofPVC("thinvol", ns)
+			lvName, err = getLVNameOfPVC("thinvol", ns)
 			return err
 		}).Should(Succeed())
 
 		var lv *thinlvinfo
 		Eventually(func() error {
-			lv, err = getThinLVInfo(volumeName)
+			lv, err = getThinLVInfo(lvName)
 			return err
 		}).Should(Succeed())
 
@@ -87,20 +86,20 @@ func testThinProvisioning() {
 		By("confirming that the PV is deleted")
 		Eventually(func() error {
 			var pv corev1.PersistentVolume
-			err := getObjects(&pv, "pv", volumeName)
+			err := getObjects(&pv, "pv", lvName)
 			switch {
 			case err == ErrObjectNotFound:
 				return nil
 			case err != nil:
-				return fmt.Errorf("failed to get pv/%s. err: %w", volumeName, err)
+				return fmt.Errorf("failed to get pv/%s. err: %w", lvName, err)
 			default:
-				return fmt.Errorf("target pv exists %s", volumeName)
+				return fmt.Errorf("target pv exists %s", lvName)
 			}
 		}).Should(Succeed())
 
 		By("confirming that the lv correspond to LogicalVolume is deleted")
 		Eventually(func() error {
-			return checkLVIsDeletedInLVM(volumeName)
+			return checkLVIsDeletedInLVM(lvName)
 		}).Should(Succeed())
 	})
 
@@ -127,18 +126,18 @@ func testThinProvisioning() {
 		By("confirming that the volumes have been created in the thinpool")
 
 		for i := 0; i < 5; i++ {
-			var volumeName string
+			var lvName string
 			var err error
 
 			num := strconv.Itoa(i)
 			Eventually(func() error {
-				volumeName, err = getVolumeNameofPVC("thinvol"+num, ns)
+				lvName, err = getLVNameOfPVC("thinvol"+num, ns)
 				return err
 			}).Should(Succeed())
 
 			var lv *thinlvinfo
 			Eventually(func() error {
-				lv, err = getThinLVInfo(volumeName)
+				lv, err = getThinLVInfo(lvName)
 				return err
 			}).Should(Succeed())
 
@@ -207,15 +206,15 @@ func testThinProvisioning() {
 		_, err = kubectlWithInput(thinPodYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		var volumeName string
+		var lvName string
 		Eventually(func() error {
-			volumeName, err = getVolumeNameofPVC("thinvol", ns)
+			lvName, err = getLVNameOfPVC("thinvol", ns)
 			return err
 		}).Should(Succeed())
 
 		var lv *thinlvinfo
 		Eventually(func() error {
-			lv, err = getThinLVInfo(volumeName)
+			lv, err = getThinLVInfo(lvName)
 			return err
 		}).Should(Succeed())
 
@@ -324,14 +323,7 @@ type thinlvinfo struct {
 	vgName   string
 }
 
-func getThinLVInfo(volName string) (*thinlvinfo, error) {
-	var lv topolvmv1.LogicalVolume
-	err := getObjects(&lv, "logicalvolume", volName)
-	if err != nil {
-		return nil, err
-	}
-
-	lvName := string(lv.UID)
+func getThinLVInfo(lvName string) (*thinlvinfo, error) {
 	stdout, err := execAtLocal("sudo", nil, "lvs", "--noheadings", "-o", "lv_name,pool_lv,vg_name", "--select", "lv_name="+lvName)
 	if err != nil {
 		return nil, err
@@ -351,7 +343,7 @@ func getThinLVInfo(volName string) (*thinlvinfo, error) {
 	return &thinlvinfo{lvName: items[0], poolName: items[1], vgName: items[2]}, nil
 }
 
-func getVolumeNameofPVC(pvcName, ns string) (volName string, err error) {
+func getLVNameOfPVC(pvcName, ns string) (lvName string, err error) {
 	var pvc corev1.PersistentVolumeClaim
 	err = getObjects(&pvc, "pvc", "-n", ns, pvcName)
 	if err != nil {
@@ -365,6 +357,11 @@ func getVolumeNameofPVC(pvcName, ns string) (volName string, err error) {
 		return "", errors.New("pvc.Spec.VolumeName should not be empty")
 	}
 
-	volumeName := pvc.Spec.VolumeName
-	return volumeName, nil
+	var lv topolvmv1.LogicalVolume
+	err = getObjects(&lv, "logicalvolume", pvc.Spec.VolumeName)
+	if err != nil {
+		return "", fmt.Errorf("failed to get LV. err: %w", err)
+	}
+
+	return string(lv.UID), nil
 }

@@ -44,7 +44,6 @@ func testPVCClone() {
 		if isDaemonsetLvmdEnvSet() {
 			nodeName = getDaemonsetLvmdNodeName()
 		}
-		var volumeName string
 		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSize))
 		_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsCloneTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -98,14 +97,15 @@ func testPVCClone() {
 			}
 			return nil
 		}).Should(Succeed())
+		var lvName string
 		Eventually(func() error {
-			volumeName, err = getVolumeNameofPVC(thinClonePVCName, nsCloneTest)
+			lvName, err = getLVNameOfPVC(thinClonePVCName, nsCloneTest)
 			return err
 		}).Should(Succeed())
 
 		var lv *thinlvinfo
 		Eventually(func() error {
-			lv, err = getThinLVInfo(volumeName)
+			lv, err = getThinLVInfo(lvName)
 			return err
 		}).Should(Succeed())
 
@@ -139,7 +139,6 @@ func testPVCClone() {
 			nodeName = getDaemonsetLvmdNodeName()
 		}
 		By("creating a PVC")
-		var volumeName string
 		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSize))
 		_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsCloneTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -181,14 +180,15 @@ func testPVCClone() {
 			return nil
 		}).Should(Succeed())
 
+		var lvName string
 		Eventually(func() error {
-			volumeName, err = getVolumeNameofPVC(thinClonePVCName, nsCloneTest)
+			lvName, err = getLVNameOfPVC(thinClonePVCName, nsCloneTest)
 			return err
 		}).Should(Succeed())
 
 		var lv *thinlvinfo
 		Eventually(func() error {
-			lv, err = getThinLVInfo(volumeName)
+			lv, err = getThinLVInfo(lvName)
 			return err
 		}).Should(Succeed())
 
@@ -209,10 +209,10 @@ func testPVCClone() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("validating if the cloned volume is present and is not deleted")
-		volumeName, err = getVolumeNameofPVC(thinClonePVCName, nsCloneTest)
+		lvName, err = getLVNameOfPVC(thinClonePVCName, nsCloneTest)
 		Expect(err).Should(Succeed())
 
-		_, err = getThinLVInfo(volumeName)
+		_, err = getThinLVInfo(lvName)
 		Expect(err).Should(Succeed())
 	})
 
