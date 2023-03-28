@@ -16,6 +16,7 @@ import (
 	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	"github.com/topolvm/topolvm"
+	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -138,6 +139,14 @@ func commonAfterEach(cc CleanupContext) {
 	}
 }
 
+type ErrLVNotFound struct {
+	lvName string
+}
+
+func (e ErrLVNotFound) Error() string {
+	return fmt.Sprintf("lv_name ( %s ) not found", e.lvName)
+}
+
 type lvinfo struct {
 	lvPath string
 	size   int
@@ -151,7 +160,7 @@ func getLVInfo(lvName string) (*lvinfo, error) {
 	}
 	output := strings.TrimSpace(string(stdout))
 	if output == "" {
-		return nil, fmt.Errorf("lv_name ( %s ) not found", lvName)
+		return nil, ErrLVNotFound{lvName: lvName}
 	}
 	lines := strings.Split(output, "\n")
 	if len(lines) != 1 {
@@ -173,4 +182,25 @@ func getLVInfo(lvName string) (*lvinfo, error) {
 		vgName: items[1],
 		size:   size * 512, // lvdisplay denotes size as 512 byte block
 	}, nil
+}
+
+func checkLVIsRegisteredInLVM(volName string) error {
+	var lv topolvmv1.LogicalVolume
+	err := getObjects(&lv, "logicalvolumes", volName)
+	if err != nil {
+		return err
+	}
+	_, err = getLVInfo(string(lv.UID))
+	return err
+}
+
+func checkLVIsDeletedInLVM(lvName string) error {
+	_, err := getLVInfo(lvName)
+	if err != nil {
+		if _, ok := err.(ErrLVNotFound); ok {
+			return nil
+		}
+		return err
+	}
+	return fmt.Errorf("target LV exists %s", lvName)
 }

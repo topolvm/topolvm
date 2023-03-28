@@ -792,31 +792,3 @@ func waitCreatingPodWithPVC(podName, ns string) (string, error) {
 
 	return pod.Spec.NodeName, nil
 }
-
-func checkLVIsRegisteredInLVM(volName string) error {
-	var lv topolvmv1.LogicalVolume
-	err := getObjects(&lv, "logicalvolumes", volName)
-	if err != nil {
-		return err
-	}
-	lvName := string(lv.UID)
-	stdout, err := execAtLocal("sudo", nil, "lvdisplay", "--select", "lv_name="+lvName)
-	if err != nil {
-		return err
-	}
-	if strings.TrimSpace(string(stdout)) == "" {
-		return fmt.Errorf("lv_name ( %s ) not found", lvName)
-	}
-	return nil
-}
-
-func checkLVIsDeletedInLVM(volName string) error {
-	stdout, err := execAtLocal("sudo", nil, "lvdisplay", "--select", "lv_name="+volName)
-	if err != nil {
-		return err
-	}
-	if len(strings.TrimSpace(string(stdout))) != 0 {
-		return fmt.Errorf("target LV exists %s", volName)
-	}
-	return nil
-}
