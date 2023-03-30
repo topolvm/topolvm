@@ -7,10 +7,13 @@ image:
 
   # image.tag -- TopoLVM image tag to use.
   # @default -- `{{ .Chart.AppVersion }}`
-  tag:  # 0.8.3
+  tag:  # 0.18.1
 
   # image.pullPolicy -- TopoLVM image pullPolicy.
   pullPolicy:  # Always
+
+  # image.pullSecrets -- List of imagePullSecrets.
+  pullSecrets: []
 
   csi:
     # image.csi.nodeDriverRegistrar -- Specify csi-node-driver-registrar: image.

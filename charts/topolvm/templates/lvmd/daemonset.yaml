@@ -34,11 +34,18 @@ spec:
       {{- with .Values.lvmd.priorityClassName }}
       priorityClassName: {{ . }}
       {{- end }}
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       serviceAccountName: {{ template "topolvm.fullname" . }}-lvmd
       hostPID: true
       containers:
         - name: lvmd
           image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          {{- with .Values.image.pullPolicy }}
+          imagePullPolicy: {{ . }}
+          {{- end }}
           securityContext:
             privileged: true
           command:

@@ -32,6 +32,10 @@ spec:
       {{- with .Values.controller.priorityClassName }}
       priorityClassName: {{ . }}
       {{- end }}
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       serviceAccountName: {{ template "topolvm.fullname" . }}-controller
       containers:
         - name: topolvm-controller

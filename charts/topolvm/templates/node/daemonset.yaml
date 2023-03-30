@@ -25,6 +25,10 @@ spec:
       {{- with .Values.node.priorityClassName }}
       priorityClassName: {{ . }}
       {{- end }}
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       serviceAccountName: {{ template "topolvm.fullname" . }}-node
       containers:
         - name: topolvm-node
