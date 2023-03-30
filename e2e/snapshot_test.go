@@ -68,7 +68,7 @@ func testSnapRestore() {
 			var pvc corev1.PersistentVolumeClaim
 			err := getObjects(&pvc, "pvc", "-n", nsSnapTest, volName)
 			if err != nil {
-				return fmt.Errorf("failed to get PVC. err: %v", err)
+				return fmt.Errorf("failed to get PVC. err: %w", err)
 			}
 			if pvc.Status.Phase != corev1.ClaimBound {
 				return fmt.Errorf("PVC %s is not bound", volName)
@@ -97,7 +97,7 @@ func testSnapRestore() {
 		Eventually(func() error {
 			err := getObjects(&snapshot, "vs", snapName, "-n", nsSnapTest)
 			if err != nil {
-				return fmt.Errorf("failed to get VolumeSnapshot. err: %v", err)
+				return fmt.Errorf("failed to get VolumeSnapshot. err: %w", err)
 			}
 			if snapshot.Status == nil {
 				return fmt.Errorf("waiting for snapshot status")
@@ -122,7 +122,7 @@ func testSnapRestore() {
 			var pvc corev1.PersistentVolumeClaim
 			err := getObjects(&pvc, "pvc", "-n", nsSnapTest, restorePVCName)
 			if err != nil {
-				return fmt.Errorf("failed to get PVC. err: %v", err)
+				return fmt.Errorf("failed to get PVC. err: %w", err)
 			}
 			if pvc.Status.Phase != corev1.ClaimBound {
 				return fmt.Errorf("PVC %s is not bound", restorePVCName)
@@ -154,7 +154,7 @@ func testSnapRestore() {
 		Eventually(func() error {
 			stdout, err = kubectl("exec", "-n", nsSnapTest, restorePodName, "--", "cat", writePath)
 			if err != nil {
-				return fmt.Errorf("failed to cat. err: %v", err)
+				return fmt.Errorf("failed to cat. err: %w", err)
 			}
 			if len(strings.TrimSpace(string(stdout))) == 0 {
 				return fmt.Errorf(writePath + " is empty")
@@ -186,7 +186,7 @@ func testSnapRestore() {
 			var pvc corev1.PersistentVolumeClaim
 			err := getObjects(&pvc, "pvc", "-n", nsSnapTest, volName)
 			if err != nil {
-				return fmt.Errorf("failed to get PVC. err: %v", err)
+				return fmt.Errorf("failed to get PVC. err: %w", err)
 			}
 			if pvc.Status.Phase != corev1.ClaimBound {
 				return fmt.Errorf("PVC %s is not bound", volName)
@@ -201,7 +201,7 @@ func testSnapRestore() {
 		Eventually(func() error {
 			err := getObjects(&snapshot, "vs", snapName, "-n", nsSnapTest)
 			if err != nil {
-				return fmt.Errorf("failed to get VolumeSnapshot. err: %v", err)
+				return fmt.Errorf("failed to get VolumeSnapshot. err: %w", err)
 			}
 			if snapshot.Status == nil {
 				return fmt.Errorf("waiting for snapshot status")
@@ -226,7 +226,7 @@ func testSnapRestore() {
 			var pvc corev1.PersistentVolumeClaim
 			err := getObjects(&pvc, "pvc", "-n", nsSnapTest, "pvc", restorePVCName)
 			if err != nil {
-				return fmt.Errorf("failed to get PVC. err: %v", err)
+				return fmt.Errorf("failed to get PVC. err: %w", err)
 			}
 			if pvc.Status.Phase != corev1.ClaimBound {
 				return fmt.Errorf("PVC %s is not bound", restorePVCName)

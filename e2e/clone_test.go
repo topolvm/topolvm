@@ -122,7 +122,7 @@ func testPVCClone() {
 		Eventually(func() error {
 			stdout, err := kubectl("exec", "-n", nsCloneTest, thinClonePodName, "--", "cat", writePath)
 			if err != nil {
-				return fmt.Errorf("failed to cat. err: %v", err)
+				return fmt.Errorf("failed to cat. err: %w", err)
 			}
 			if len(strings.TrimSpace(string(stdout))) == 0 {
 				return fmt.Errorf(writePath + " is empty")

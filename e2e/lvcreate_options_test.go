@@ -49,13 +49,13 @@ func testLVCreateOptions() {
 			var pvc corev1.PersistentVolumeClaim
 			err := getObjects(&pvc, "pvc", "-n", ns, "topo-pvc")
 			if err != nil {
-				return fmt.Errorf("failed to get PVC. err: %v", err)
+				return fmt.Errorf("failed to get PVC. err: %w", err)
 			}
 
 			var lv topolvmv1.LogicalVolume
 			err = getObjects(&lv, "logicalvolumes", pvc.Spec.VolumeName)
 			if err != nil {
-				return fmt.Errorf("failed to get logicalvolume. err: %v", err)
+				return fmt.Errorf("failed to get logicalvolume. err: %w", err)
 			}
 			lvName = string(lv.UID)
 			return nil
@@ -86,13 +86,13 @@ func testLVCreateOptions() {
 			var pvc corev1.PersistentVolumeClaim
 			err := getObjects(&pvc, "pvc", "-n", ns, "topo-pvc-raid1")
 			if err != nil {
-				return fmt.Errorf("failed to get PVC. err: %v", err)
+				return fmt.Errorf("failed to get PVC. err: %w", err)
 			}
 
 			var lv topolvmv1.LogicalVolume
 			err = getObjects(&lv, "logicalvolumes", pvc.Spec.VolumeName)
 			if err != nil {
-				return fmt.Errorf("failed to get logicalvolume. err: %v", err)
+				return fmt.Errorf("failed to get logicalvolume. err: %w", err)
 			}
 			lvName = string(lv.UID)
 			return nil

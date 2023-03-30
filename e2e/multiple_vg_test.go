@@ -53,7 +53,7 @@ func testMultipleVolumeGroups() {
 			var pvc corev1.PersistentVolumeClaim
 			err := getObjects(&pvc, "pvc", "-n", ns, "topo-pvc")
 			if err != nil {
-				return fmt.Errorf("failed to get pvc. err: %v", err)
+				return fmt.Errorf("failed to get pvc. err: %w", err)
 			}
 			volName = pvc.Spec.VolumeName
 			if len(volName) == 0 {

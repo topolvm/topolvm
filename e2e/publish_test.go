@@ -116,7 +116,7 @@ func testPublishVolume() {
 			var lv topolvmv1.LogicalVolume
 			err := getObjects(&lv, "logicalvolumes", name)
 			if err != nil {
-				return fmt.Errorf("failed to get logical volume. err: %v", err)
+				return fmt.Errorf("failed to get logical volume. err: %w", err)
 			}
 
 			if len(lv.Status.VolumeID) == 0 {
@@ -294,7 +294,7 @@ func testPublishVolume() {
 			var pod corev1.Pod
 			err := getObjects(&pod, "pod", "pause-mount-option")
 			if err != nil {
-				return fmt.Errorf("failed to get pod. err: %v", err)
+				return fmt.Errorf("failed to get pod. err: %w", err)
 			}
 
 			if pod.Status.Phase != corev1.PodRunning {
@@ -352,7 +352,7 @@ func testPublishVolume() {
 			var lv topolvmv1.LogicalVolume
 			err := getObjects(&lv, "logicalvolumes", name)
 			if err != nil {
-				return fmt.Errorf("failed to get logical volume. err: %v", err)
+				return fmt.Errorf("failed to get logical volume. err: %w", err)
 			}
 
 			if len(lv.Status.VolumeID) == 0 {

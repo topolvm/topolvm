@@ -69,7 +69,7 @@ func testE2E() {
 		Eventually(func() error {
 			_, err = kubectl("exec", "-n", ns, "ubuntu", "--", "mountpoint", "-d", "/test1")
 			if err != nil {
-				return fmt.Errorf("failed to check mount point. err: %v", err)
+				return fmt.Errorf("failed to check mount point. err: %w", err)
 			}
 
 			stdout, err := kubectl("exec", "-n", ns, "ubuntu", "grep", "/test1", "/proc/mounts")
@@ -103,7 +103,7 @@ func testE2E() {
 		Eventually(func() error {
 			stdout, err = kubectl("exec", "-n", ns, "ubuntu", "--", "cat", writePath)
 			if err != nil {
-				return fmt.Errorf("failed to cat. err: %v", err)
+				return fmt.Errorf("failed to cat. err: %w", err)
 			}
 			if len(strings.TrimSpace(string(stdout))) == 0 {
 				return fmt.Errorf(writePath + " is empty")
@@ -168,7 +168,7 @@ func testE2E() {
 			var pvc corev1.PersistentVolumeClaim
 			err := getObjects(&pvc, "pvc", "-n", ns, "pause-generic-ephemeral-volume1")
 			if err != nil {
-				return fmt.Errorf("failed to get PVC. err: %v", err)
+				return fmt.Errorf("failed to get PVC. err: %w", err)
 			}
 			if pvc.Status.Phase != corev1.ClaimBound {
 				return errors.New("PVC is not bound")
@@ -226,7 +226,7 @@ func testE2E() {
 			_, err = kubectl("exec", "-n", ns, "ubuntu", "--", "test", "-b", deviceFile)
 			if err != nil {
 				podinfo, _ := kubectl("-n", ns, "describe", "pod", "ubuntu")
-				return fmt.Errorf("failed to test. err: %v; ubuntu pod info output: %s", err, podinfo)
+				return fmt.Errorf("failed to test. ubuntu pod info output: %s; err: %w", podinfo, err)
 			}
 			return nil
 		}).Should(Succeed())
@@ -251,7 +251,7 @@ func testE2E() {
 		Eventually(func() error {
 			stdout, err = kubectl("exec", "-n", ns, "ubuntu", "--", "dd", "if="+deviceFile, "of=/dev/stdout", "bs=6", "count=1", "status=none")
 			if err != nil {
-				return fmt.Errorf("failed to cat. err: %v", err)
+				return fmt.Errorf("failed to cat. err: %w", err)
 			}
 			if string(stdout) != "ubuntu" {
 				return fmt.Errorf("expected: ubuntu, actual: %s", string(stdout))
@@ -281,7 +281,7 @@ func testE2E() {
 			case err == ErrObjectNotFound:
 				return nil
 			case err != nil:
-				return fmt.Errorf("failed to get pv/%s. err: %v", volName, err)
+				return fmt.Errorf("failed to get pv/%s. err: %w", volName, err)
 			default:
 				return fmt.Errorf("target PV exists %s", volName)
 			}
@@ -584,12 +584,12 @@ func testE2E() {
 		Eventually(func() error {
 			stdout, err := kubectl("exec", "-n", ns, "ubuntu", "--", "df", "--output=size", "/test1")
 			if err != nil {
-				return fmt.Errorf("failed to get volume size. err: %v", err)
+				return fmt.Errorf("failed to get volume size. err: %w", err)
 			}
 			dfFields := strings.Fields(string(stdout))
 			volSize, err := strconv.Atoi(dfFields[1])
 			if err != nil {
-				return fmt.Errorf("failed to convert volume size string. data: %s, err: %v", stdout, err)
+				return fmt.Errorf("failed to convert volume size string. data: %s, err: %w", stdout, err)
 			}
 			if volSize != 2086912 {
 				return fmt.Errorf("failed to match volume size. actual: %d, expected: %d", volSize, 2086912)
@@ -614,12 +614,12 @@ func testE2E() {
 		Eventually(func() error {
 			stdout, err := kubectl("exec", "-n", ns, "ubuntu", "--", "df", "--output=size", "/test1")
 			if err != nil {
-				return fmt.Errorf("failed to get volume size. err: %v", err)
+				return fmt.Errorf("failed to get volume size. err: %w", err)
 			}
 			dfFields := strings.Fields((string(stdout)))
 			volSize, err := strconv.Atoi(dfFields[1])
 			if err != nil {
-				return fmt.Errorf("failed to convert volume size string. data: %s, err: %v", stdout, err)
+				return fmt.Errorf("failed to convert volume size string. data: %s, err: %w", stdout, err)
 			}
 			if volSize != 3135488 {
 				return fmt.Errorf("failed to match volume size. actual: %d, expected: %d", volSize, 3135488)
@@ -640,12 +640,12 @@ func testE2E() {
 		Eventually(func() error {
 			stdout, err := kubectl("exec", "-n", ns, "ubuntu", "--", "df", "--output=size", "/test1")
 			if err != nil {
-				return fmt.Errorf("failed to get volume size. err: %v", err)
+				return fmt.Errorf("failed to get volume size. err: %w", err)
 			}
 			dfFields := strings.Fields(string(stdout))
 			volSize, err := strconv.Atoi(dfFields[1])
 			if err != nil {
-				return fmt.Errorf("failed to convert volume size string. data: %s, err: %v", stdout, err)
+				return fmt.Errorf("failed to convert volume size string. data: %s, err: %w", stdout, err)
 			}
 			if volSize != 4184064 {
 				return fmt.Errorf("failed to match volume size. actual: %d, expected: %d", volSize, 4184064)
@@ -702,7 +702,7 @@ func testE2E() {
 		Eventually(func() error {
 			_, err = kubectl("exec", "-n", ns, "ubuntu", "--", "test", "-b", deviceFile)
 			if err != nil {
-				return fmt.Errorf("failed to test. err: %v", err)
+				return fmt.Errorf("failed to test. err: %w", err)
 			}
 			return nil
 		}).Should(Succeed())
@@ -717,11 +717,11 @@ func testE2E() {
 		Eventually(func() error {
 			stdout, err := kubectl("exec", "-n", ns, "ubuntu", "--", "blockdev", "--getsize64", deviceFile)
 			if err != nil {
-				return fmt.Errorf("failed to get volume size. err: %v", err)
+				return fmt.Errorf("failed to get volume size. err: %w", err)
 			}
 			volSize, err := strconv.Atoi(strings.TrimSpace(string(stdout)))
 			if err != nil {
-				return fmt.Errorf("failed to convert volume size string. data: %s, err: %v", stdout, err)
+				return fmt.Errorf("failed to convert volume size string. data: %s, err: %w", stdout, err)
 			}
 			if volSize != 2147483648 {
 				return fmt.Errorf("failed to match volume size. actual: %d, expected: %d", volSize, 2147483648)
@@ -765,7 +765,7 @@ func testE2E() {
 func verifyMountExists(ns string, pod string, mount string) error {
 	_, err := kubectl("exec", "-n", ns, pod, "--", "mountpoint", "-d", mount)
 	if err != nil {
-		return fmt.Errorf("failed to check mount point. err: %v", err)
+		return fmt.Errorf("failed to check mount point. err: %w", err)
 	}
 	return nil
 }
@@ -783,7 +783,7 @@ func waitCreatingPodWithPVC(podName, ns string) (string, error) {
 	var pod corev1.Pod
 	err := getObjects(&pod, "pod", "-n", ns, podName)
 	if err != nil {
-		return "", fmt.Errorf("failed to create pod. err: %v", err)
+		return "", fmt.Errorf("failed to create pod. err: %w", err)
 	}
 
 	if pod.Spec.NodeName == "" {

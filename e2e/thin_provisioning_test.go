@@ -92,7 +92,7 @@ func testThinProvisioning() {
 			case err == ErrObjectNotFound:
 				return nil
 			case err != nil:
-				return fmt.Errorf("failed to get pv/%s. err: %v", volumeName, err)
+				return fmt.Errorf("failed to get pv/%s. err: %w", volumeName, err)
 			default:
 				return fmt.Errorf("target pv exists %s", volumeName)
 			}
@@ -241,7 +241,7 @@ func testThinProvisioning() {
 			var pvc corev1.PersistentVolumeClaim
 			err = getObjects(&pvc, "pvc", "-n", ns, "thinvol2")
 			if err != nil {
-				return fmt.Errorf("failed to get PVC. err: %v", err)
+				return fmt.Errorf("failed to get PVC. err: %w", err)
 			}
 			if pvc.Status.Phase == corev1.ClaimBound {
 				return fmt.Errorf("PVC should not be bound")
@@ -355,7 +355,7 @@ func getVolumeNameofPVC(pvcName, ns string) (volName string, err error) {
 	var pvc corev1.PersistentVolumeClaim
 	err = getObjects(&pvc, "pvc", "-n", ns, pvcName)
 	if err != nil {
-		return "", fmt.Errorf("failed to get PVC. err: %v", err)
+		return "", fmt.Errorf("failed to get PVC. err: %w", err)
 	}
 
 	if pvc.Status.Phase != corev1.ClaimBound {
