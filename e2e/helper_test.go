@@ -148,13 +148,16 @@ func (e ErrLVNotFound) Error() string {
 }
 
 type lvinfo struct {
-	lvPath string
-	size   int
-	vgName string
+	size     int
+	poolName string
+	vgName   string
 }
 
 func getLVInfo(lvName string) (*lvinfo, error) {
-	stdout, err := execAtLocal("sudo", nil, "lvdisplay", "-c", "--select", "lv_name="+lvName)
+	stdout, err := execAtLocal("sudo", nil,
+		"lvs", "--noheadings", "-o", "lv_size,pool_lv,vg_name",
+		"--units", "b", "--nosuffix", "--separator", ":",
+		"--select", "lv_name="+lvName)
 	if err != nil {
 		return nil, err
 	}
@@ -162,25 +165,21 @@ func getLVInfo(lvName string) (*lvinfo, error) {
 	if output == "" {
 		return nil, ErrLVNotFound{lvName: lvName}
 	}
-	lines := strings.Split(output, "\n")
-	if len(lines) != 1 {
+	if strings.Contains(output, "\n") {
 		return nil, errors.New("found multiple lvs")
 	}
-	// lvdisplay -c format is here
-	// https://github.com/lvmteam/lvm2/blob/baf99ff974b408c59dd4f51db6e006d659c061e7/lib/display/display.c#L353
-	items := strings.Split(strings.TrimSpace(lines[0]), ":")
-	if len(items) < 7 {
-		return nil, fmt.Errorf("invalid format: %s", lines[0])
+	items := strings.Split(output, ":")
+	if len(items) != 3 {
+		return nil, fmt.Errorf("invalid format: %s", output)
 	}
-	size, err := strconv.Atoi(items[6])
+	size, err := strconv.Atoi(items[0])
 	if err != nil {
 		return nil, err
 	}
-
 	return &lvinfo{
-		lvPath: items[0],
-		vgName: items[1],
-		size:   size * 512, // lvdisplay denotes size as 512 byte block
+		size:     size,
+		poolName: items[1],
+		vgName:   items[2],
 	}, nil
 }
 
@@ -203,4 +202,27 @@ func checkLVIsDeletedInLVM(lvName string) error {
 		return err
 	}
 	return fmt.Errorf("target LV exists %s", lvName)
+}
+
+func getLVNameOfPVC(pvcName, ns string) (lvName string, err error) {
+	var pvc corev1.PersistentVolumeClaim
+	err = getObjects(&pvc, "pvc", "-n", ns, pvcName)
+	if err != nil {
+		return "", fmt.Errorf("failed to get PVC. err: %w", err)
+	}
+
+	if pvc.Status.Phase != corev1.ClaimBound {
+		return "", errors.New("pvc status is not bound")
+	}
+	if pvc.Spec.VolumeName == "" {
+		return "", errors.New("pvc.Spec.VolumeName should not be empty")
+	}
+
+	var lv topolvmv1.LogicalVolume
+	err = getObjects(&lv, "logicalvolume", pvc.Spec.VolumeName)
+	if err != nil {
+		return "", fmt.Errorf("failed to get LV. err: %w", err)
+	}
+
+	return string(lv.UID), nil
 }

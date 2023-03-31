@@ -5,13 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	"github.com/topolvm/topolvm"
-	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -62,9 +60,9 @@ func testThinProvisioning() {
 			return err
 		}).Should(Succeed())
 
-		var lv *thinlvinfo
+		var lv *lvinfo
 		Eventually(func() error {
-			lv, err = getThinLVInfo(lvName)
+			lv, err = getLVInfo(lvName)
 			return err
 		}).Should(Succeed())
 
@@ -135,9 +133,9 @@ func testThinProvisioning() {
 				return err
 			}).Should(Succeed())
 
-			var lv *thinlvinfo
+			var lv *lvinfo
 			Eventually(func() error {
-				lv, err = getThinLVInfo(lvName)
+				lv, err = getLVInfo(lvName)
 				return err
 			}).Should(Succeed())
 
@@ -212,9 +210,9 @@ func testThinProvisioning() {
 			return err
 		}).Should(Succeed())
 
-		var lv *thinlvinfo
+		var lv *lvinfo
 		Eventually(func() error {
-			lv, err = getThinLVInfo(lvName)
+			lv, err = getLVInfo(lvName)
 			return err
 		}).Should(Succeed())
 
@@ -315,53 +313,4 @@ func testThinProvisioning() {
 			}
 		}).Should(Succeed())
 	})
-}
-
-type thinlvinfo struct {
-	lvName   string
-	poolName string
-	vgName   string
-}
-
-func getThinLVInfo(lvName string) (*thinlvinfo, error) {
-	stdout, err := execAtLocal("sudo", nil, "lvs", "--noheadings", "-o", "lv_name,pool_lv,vg_name", "--select", "lv_name="+lvName)
-	if err != nil {
-		return nil, err
-	}
-	output := strings.TrimSpace(string(stdout))
-	if output == "" {
-		return nil, fmt.Errorf("lv_name ( %s ) not found", lvName)
-	}
-	lines := strings.Split(output, "\n")
-	if len(lines) != 1 {
-		return nil, errors.New("found multiple lvs")
-	}
-	items := strings.Fields(strings.TrimSpace(lines[0]))
-	if len(items) < 3 {
-		return nil, fmt.Errorf("invalid format: %s", lines[0])
-	}
-	return &thinlvinfo{lvName: items[0], poolName: items[1], vgName: items[2]}, nil
-}
-
-func getLVNameOfPVC(pvcName, ns string) (lvName string, err error) {
-	var pvc corev1.PersistentVolumeClaim
-	err = getObjects(&pvc, "pvc", "-n", ns, pvcName)
-	if err != nil {
-		return "", fmt.Errorf("failed to get PVC. err: %w", err)
-	}
-
-	if pvc.Status.Phase != corev1.ClaimBound {
-		return "", errors.New("pvc status is not bound")
-	}
-	if pvc.Spec.VolumeName == "" {
-		return "", errors.New("pvc.Spec.VolumeName should not be empty")
-	}
-
-	var lv topolvmv1.LogicalVolume
-	err = getObjects(&lv, "logicalvolume", pvc.Spec.VolumeName)
-	if err != nil {
-		return "", fmt.Errorf("failed to get LV. err: %w", err)
-	}
-
-	return string(lv.UID), nil
 }

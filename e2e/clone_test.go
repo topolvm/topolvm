@@ -103,9 +103,9 @@ func testPVCClone() {
 			return err
 		}).Should(Succeed())
 
-		var lv *thinlvinfo
+		var lv *lvinfo
 		Eventually(func() error {
-			lv, err = getThinLVInfo(lvName)
+			lv, err = getLVInfo(lvName)
 			return err
 		}).Should(Succeed())
 
@@ -186,9 +186,9 @@ func testPVCClone() {
 			return err
 		}).Should(Succeed())
 
-		var lv *thinlvinfo
+		var lv *lvinfo
 		Eventually(func() error {
-			lv, err = getThinLVInfo(lvName)
+			lv, err = getLVInfo(lvName)
 			return err
 		}).Should(Succeed())
 
@@ -212,7 +212,7 @@ func testPVCClone() {
 		lvName, err = getLVNameOfPVC(thinClonePVCName, nsCloneTest)
 		Expect(err).Should(Succeed())
 
-		_, err = getThinLVInfo(lvName)
+		_, err = getLVInfo(lvName)
 		Expect(err).Should(Succeed())
 	})
 
