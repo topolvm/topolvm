@@ -10,7 +10,7 @@ jobs:
     runs-on: "ubuntu-20.04"
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version-file: "go.mod"
       - name: Set up Docker Buildx
@@ -74,7 +74,7 @@ jobs:
         working-directory: "example"
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version-file: "go.mod"
       - name: Set up Docker Buildx

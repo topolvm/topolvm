@@ -25,7 +25,7 @@ jobs:
           if [ "${{ secrets.IMAGE_PREFIX }}" != "" ]; then IMAGE_PREFIX=${{ secrets.IMAGE_PREFIX }}; else IMAGE_PREFIX=ghcr.io/topolvm/; fi
           echo "IMAGE_PREFIX=${IMAGE_PREFIX}" >> $GITHUB_ENV
       - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version-file: "go.mod"
       - name: Set up Docker Buildx
