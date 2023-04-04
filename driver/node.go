@@ -180,6 +180,27 @@ func (s *nodeServerNoLocked) NodePublishVolume(ctx context.Context, req *csi.Nod
 	return &csi.NodePublishVolumeResponse{}, nil
 }
 
+func makeMountOptions(readOnly bool, mountOption *csi.VolumeCapability_MountVolume) ([]string, error) {
+	var mountOptions []string
+	if readOnly {
+		mountOptions = append(mountOptions, "ro")
+	}
+
+	for _, f := range mountOption.MountFlags {
+		if f == "rw" && readOnly {
+			return nil, status.Error(codes.InvalidArgument, "mount option \"rw\" is specified even though read only mode is specified")
+		}
+		mountOptions = append(mountOptions, f)
+	}
+
+	// avoid duplicate UUIDs
+	if mountOption.FsType == "xfs" {
+		mountOptions = append(mountOptions, "nouuid")
+	}
+
+	return mountOptions, nil
+}
+
 func (s *nodeServerNoLocked) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequest, lv *proto.LogicalVolume) error {
 	// Check request
 	mountOption := req.GetVolumeCapability().GetMount()
@@ -194,16 +215,9 @@ func (s *nodeServerNoLocked) nodePublishFilesystemVolume(req *csi.NodePublishVol
 		return err
 	}
 
-	var mountOptions []string
-	if req.GetReadonly() {
-		mountOptions = append(mountOptions, "ro")
-	}
-
-	for _, f := range mountOption.MountFlags {
-		if f == "rw" && req.GetReadonly() {
-			return status.Error(codes.InvalidArgument, "mount option \"rw\" is specified even though read only mode is specified")
-		}
-		mountOptions = append(mountOptions, f)
+	mountOptions, err := makeMountOptions(req.GetReadonly(), mountOption)
+	if err != nil {
+		return err
 	}
 
 	err = os.MkdirAll(req.GetTargetPath(), 0755)
@@ -218,11 +232,6 @@ func (s *nodeServerNoLocked) nodePublishFilesystemVolume(req *csi.NodePublishVol
 
 	if fsType != "" && fsType != mountOption.FsType {
 		return status.Errorf(codes.Internal, "target device is already formatted with different filesystem: volume=%s, current=%s, new:%s", req.GetVolumeId(), fsType, mountOption.FsType)
-	}
-
-	// avoid duplicate UUIDs
-	if mountOption.FsType == "xfs" {
-		mountOptions = append(mountOptions, "nouuid")
 	}
 
 	mounted, err := filesystem.IsMounted(device, req.GetTargetPath())
