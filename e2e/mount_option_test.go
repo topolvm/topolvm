@@ -4,6 +4,8 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"io"
+	"os"
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -11,10 +13,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-//go:embed testdata/publish/pod-with-mount-option-pvc.yaml
+//go:embed testdata/mount_option/pod-with-mount-option-pvc.yaml
 var podWithMountOptionPVCYAML []byte
 
-func testPublishVolume() {
+func testMountOption() {
 	var cc CleanupContext
 
 	BeforeEach(func() {
@@ -49,11 +51,14 @@ func testPublishVolume() {
 		err = getObjects(&pvc, "pvc", "topo-pvc-mount-option")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		stdout, err := execAtLocal("cat", nil, "/proc/mounts")
+		f, err := os.Open("/proc/mounts")
+		Expect(err).ShouldNot(HaveOccurred())
+		defer f.Close()
+		mounts, err := io.ReadAll(f)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		var isExistingOption bool
-		lines := strings.Split(string(stdout), "\n")
+		lines := strings.Split(string(mounts), "\n")
 		for _, line := range lines {
 			if strings.Contains(line, pvc.Spec.VolumeName) {
 				fields := strings.Split(line, " ")

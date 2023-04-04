@@ -121,7 +121,7 @@ var _ = Describe("TopoLVM", func() {
 		Context("topolvm-controller", testController)
 		Context("scheduling", testScheduling)
 		Context("metrics", testMetrics)
-		Context("publish", testPublishVolume)
+		Context("mount option", testMountOption)
 		Context("ReadWriteOncePod", testReadWriteOncePod)
 		Context("e2e", testE2E)
 		Context("multiple-vg", testMultipleVolumeGroups)
