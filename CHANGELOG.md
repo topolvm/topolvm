@@ -7,6 +7,36 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.18.2] - 2023-04-04
+
+### Added
+
+- Add tests for NodeReconciler ([#670](https://github.com/topolvm/topolvm/pull/670))
+- add a workflow job to check the do-not-merge label ([#677](https://github.com/topolvm/topolvm/pull/677))
+
+### Changed
+
+- Use csi go module instead of generating sources from proto ([#669](https://github.com/topolvm/topolvm/pull/669))
+- move legacy mode test to e2e test ([#665](https://github.com/topolvm/topolvm/pull/665))
+- Refactor: use controllerutil to operate finalizers ([#671](https://github.com/topolvm/topolvm/pull/671))
+- test the example only when the helm chart is released  ([#673](https://github.com/topolvm/topolvm/pull/673))
+- Fill Status.CurrentSize ([#666](https://github.com/topolvm/topolvm/pull/666))
+- ci: reuse topolvm.img in e2e test matrix ([#675](https://github.com/topolvm/topolvm/pull/675))
+- Refactor e2e ([#678](https://github.com/topolvm/topolvm/pull/678))
+- Remove hook test from e2e ([#684](https://github.com/topolvm/topolvm/pull/684))
+- build(deps): bump helm/chart-testing-action from 2.3.1 to 2.4.0 ([#686](https://github.com/topolvm/topolvm/pull/686))
+- build(deps): bump actions/setup-go from 3 to 4 ([#687](https://github.com/topolvm/topolvm/pull/687))
+
+### Fixed
+
+- driver/node: recreate device if owner or device mode is unexpected ([#680](https://github.com/topolvm/topolvm/pull/680))
+
+### Contributors
+
+- @toshipp
+- @peng225
+- @daichimukai
+
 ## [0.18.1] - 2023-03-03
 
 ### Added
@@ -722,7 +752,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.18.1...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.18.2...HEAD
+[0.18.2]: https://github.com/topolvm/topolvm/compare/v0.18.1...v0.18.2
 [0.18.1]: https://github.com/topolvm/topolvm/compare/v0.18.0...v0.18.1
 [0.18.0]: https://github.com/topolvm/topolvm/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/topolvm/topolvm/compare/v0.16.0...v0.17.0
