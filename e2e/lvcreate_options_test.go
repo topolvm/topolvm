@@ -7,6 +7,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
+	topolvmv1 "github.com/topolvm/topolvm/api/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
 func testLVCreateOptions() {
@@ -35,31 +37,32 @@ func testLVCreateOptions() {
 		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1, "topolvm-provisioner-raid"))
 		podYaml := []byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu", "topo-pvc"))
 
-		_, _, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
+		_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
-		_, _, err = kubectlWithInput(podYaml, "apply", "-n", ns, "-f", "-")
+		_, err = kubectlWithInput(podYaml, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("finding the corresponding LV")
 
 		var lvName string
 		Eventually(func() error {
-			stdout, _, err := kubectl("get", "pvc", "-n", ns, "topo-pvc", "-o=template", "--template={{.spec.volumeName}}")
+			var pvc corev1.PersistentVolumeClaim
+			err := getObjects(&pvc, "pvc", "-n", ns, "topo-pvc")
 			if err != nil {
-				return fmt.Errorf("failed to get PVC. err: %v", err)
+				return fmt.Errorf("failed to get PVC. err: %w", err)
 			}
-			volumeName := strings.TrimSpace(string(stdout))
 
-			stdout, _, err = kubectl("get", "logicalvolumes", "-n", "topolvm-system", volumeName, "-o=template", "--template={{.metadata.uid}}")
+			var lv topolvmv1.LogicalVolume
+			err = getObjects(&lv, "logicalvolumes", pvc.Spec.VolumeName)
 			if err != nil {
-				return fmt.Errorf("failed to get logicalvolume. err: %v", err)
+				return fmt.Errorf("failed to get logicalvolume. err: %w", err)
 			}
-			lvName = strings.TrimSpace(string(stdout))
+			lvName = string(lv.UID)
 			return nil
 		}).Should(Succeed())
 
 		By("checking that the LV is of type raid")
-		stdout, _, err := execAtLocal("sudo", nil, "lvs", "-o", "lv_attr", "--noheadings", "--select", "lv_name="+lvName)
+		stdout, err := execAtLocal("sudo", nil, "lvs", "-o", "lv_attr", "--noheadings", "--select", "lv_name="+lvName)
 		Expect(err).ShouldNot(HaveOccurred())
 		attribute_bit1 := string(strings.TrimSpace(string(stdout))[0])
 		// lv_attr bit 1 represents the volume type, where 'r' is for raid
@@ -71,31 +74,32 @@ func testLVCreateOptions() {
 		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc-raid1", "Filesystem", 1, "topolvm-provisioner-raid1"))
 		podYaml := []byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu2", "topo-pvc-raid1"))
 
-		_, _, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
+		_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
-		_, _, err = kubectlWithInput(podYaml, "apply", "-n", ns, "-f", "-")
+		_, err = kubectlWithInput(podYaml, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("finding the corresponding LV")
 
 		var lvName string
 		Eventually(func() error {
-			stdout, _, err := kubectl("get", "pvc", "-n", ns, "topo-pvc-raid1", "-o=template", "--template={{.spec.volumeName}}")
+			var pvc corev1.PersistentVolumeClaim
+			err := getObjects(&pvc, "pvc", "-n", ns, "topo-pvc-raid1")
 			if err != nil {
-				return fmt.Errorf("failed to get PVC. err: %v", err)
+				return fmt.Errorf("failed to get PVC. err: %w", err)
 			}
-			volumeName := strings.TrimSpace(string(stdout))
 
-			stdout, _, err = kubectl("get", "logicalvolumes", "-n", "topolvm-system", volumeName, "-o=template", "--template={{.metadata.uid}}")
+			var lv topolvmv1.LogicalVolume
+			err = getObjects(&lv, "logicalvolumes", pvc.Spec.VolumeName)
 			if err != nil {
-				return fmt.Errorf("failed to get logicalvolume. err: %v", err)
+				return fmt.Errorf("failed to get logicalvolume. err: %w", err)
 			}
-			lvName = strings.TrimSpace(string(stdout))
+			lvName = string(lv.UID)
 			return nil
 		}).Should(Succeed())
 
 		By("checking that the LV is of type raid")
-		stdout, _, err := execAtLocal("sudo", nil, "lvs", "-o", "lv_attr", "--noheadings", "--select", "lv_name="+lvName)
+		stdout, err := execAtLocal("sudo", nil, "lvs", "-o", "lv_attr", "--noheadings", "--select", "lv_name="+lvName)
 		Expect(err).ShouldNot(HaveOccurred())
 		attribute_bit1 := string(strings.TrimSpace(string(stdout))[0])
 		// lv_attr bit 1 represents the volume type, where 'r' is for raid

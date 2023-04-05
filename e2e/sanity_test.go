@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -26,19 +25,15 @@ func testSanity() {
 
 		if os.Getenv("SANITY_TEST_WITH_THIN_DEVICECLASS") == "true" {
 			// Normally this node is deleted in testCleanup
-			_, _, err := kubectl("delete", "nodes", "topolvm-e2e-worker3")
+			_, err := kubectl("delete", "nodes", "topolvm-e2e-worker3")
 			Expect(err).ShouldNot(HaveOccurred())
 		}
-		_, _, err := kubectl("delete", "nodes", "topolvm-e2e-worker2")
+		_, err := kubectl("delete", "nodes", "topolvm-e2e-worker2")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
 			var ds appsv1.DaemonSet
-			stdout, _, err := kubectl("get", "-n", "topolvm-system", "ds", "topolvm-node", "-o", "json")
-			if err != nil {
-				return err
-			}
-			err = json.Unmarshal(stdout, &ds)
+			err := getObjects(&ds, "ds", "-n", "topolvm-system", "topolvm-node")
 			if err != nil {
 				return err
 			}
@@ -58,19 +53,19 @@ func testSanity() {
 	tc.TestVolumeSize = 1073741824
 	tc.IDGen = &sanity.DefaultIDGenerator{}
 	tc.CheckPath = func(path string) (sanity.PathKind, error) {
-		_, _, err := kubectl("exec", "-n", "topolvm-system", "daemonset/topolvm-node", "--", "test", "-f", path)
+		_, err := kubectl("exec", "-n", "topolvm-system", "daemonset/topolvm-node", "--", "test", "-f", path)
 		if err == nil {
 			return sanity.PathIsFile, nil
 		}
-		_, _, err = kubectl("exec", "-n", "topolvm-system", "daemonset/topolvm-node", "--", "test", "-d", path)
+		_, err = kubectl("exec", "-n", "topolvm-system", "daemonset/topolvm-node", "--", "test", "-d", path)
 		if err == nil {
 			return sanity.PathIsDir, nil
 		}
-		_, _, err = kubectl("exec", "-n", "topolvm-system", "daemonset/topolvm-node", "--", "test", "!", "-e", path)
+		_, err = kubectl("exec", "-n", "topolvm-system", "daemonset/topolvm-node", "--", "test", "!", "-e", path)
 		if err == nil {
 			return sanity.PathIsNotFound, nil
 		}
-		_, _, err = kubectl("exec", "-n", "topolvm-system", "daemonset/topolvm-node", "--", "test", "-e", path)
+		_, err = kubectl("exec", "-n", "topolvm-system", "daemonset/topolvm-node", "--", "test", "-e", path)
 		return sanity.PathIsOther, err
 	}
 

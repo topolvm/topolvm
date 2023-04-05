@@ -16,7 +16,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	corev1 "k8s.io/api/core/v1"
-	"sigs.k8s.io/yaml"
 )
 
 //go:embed testdata/publish/lv-template.yaml
@@ -109,20 +108,15 @@ func testPublishVolume() {
 		By("creating a logical volume resource")
 		name := "csi-node-test-fs"
 		lvYaml := []byte(fmt.Sprintf(lvTemplateYAML, topolvm.GetPluginName(), name, name, nodeName))
-		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
+		_, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		var volumeID string
 		Eventually(func() error {
-			stdout, _, err := kubectl("get", "logicalvolumes", name, "-o", "yaml")
-			if err != nil {
-				return fmt.Errorf("failed to get logical volume. err: %v", err)
-			}
-
 			var lv topolvmv1.LogicalVolume
-			err = yaml.Unmarshal(stdout, &lv)
+			err := getObjects(&lv, "logicalvolumes", name)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to get logical volume. err: %w", err)
 			}
 
 			if len(lv.Status.VolumeID) == 0 {
@@ -201,7 +195,7 @@ func testPublishVolume() {
 		cl.unregister(volumeID, mountTargetPath)
 
 		By("cleaning logicalvolume")
-		_, _, err = kubectl("delete", "logicalvolumes", "csi-node-test-fs")
+		_, err = kubectl("delete", "logicalvolumes", "csi-node-test-fs")
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -216,20 +210,15 @@ func testPublishVolume() {
 
 		name := "csi-node-test-block"
 		lvYaml := []byte(fmt.Sprintf(lvTemplateYAML, topolvm.GetPluginName(), name, name, nodeName))
-		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
+		_, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		var volumeID string
 		Eventually(func() error {
-			stdout, _, err := kubectl("get", "logicalvolumes", name, "-o", "yaml")
-			if err != nil {
-				return fmt.Errorf("failed to get logical volume. err: %v", err)
-			}
-
 			var lv topolvmv1.LogicalVolume
-			err = yaml.Unmarshal(stdout, &lv)
+			err = getObjects(&lv, "logicalvolumes", name)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to get logical volume. err: %w", err)
 			}
 
 			if len(lv.Status.VolumeID) == 0 {
@@ -292,25 +281,20 @@ func testPublishVolume() {
 		cl.unregister(volumeID, deviceTargetPath)
 
 		By("cleaning logicalvolume")
-		_, _, err = kubectl("delete", "logicalvolumes", "csi-node-test-block")
+		_, err = kubectl("delete", "logicalvolumes", "csi-node-test-block")
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	It("should publish filesystem with mount option", func() {
 		By("creating a PVC and Pod")
-		_, _, err := kubectlWithInput(podWithMountOptionPVCYAML, "apply", "-f", "-")
+		_, err := kubectlWithInput(podWithMountOptionPVCYAML, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
-			stdout, _, err := kubectl("get", "pod", "pause-mount-option", "-o", "yaml")
-			if err != nil {
-				return fmt.Errorf("failed to get pod. err: %v", err)
-			}
-
 			var pod corev1.Pod
-			err = yaml.Unmarshal(stdout, &pod)
+			err := getObjects(&pod, "pod", "pause-mount-option")
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to get pod. err: %w", err)
 			}
 
 			if pod.Status.Phase != corev1.PodRunning {
@@ -321,14 +305,11 @@ func testPublishVolume() {
 		}).Should(Succeed())
 
 		By("check mount option")
-		stdout, _, err := kubectl("get", "pvc", "topo-pvc-mount-option", "-o", "yaml")
-		Expect(err).ShouldNot(HaveOccurred())
-
 		var pvc corev1.PersistentVolumeClaim
-		err = yaml.Unmarshal(stdout, &pvc)
+		err = getObjects(&pvc, "pvc", "topo-pvc-mount-option")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		stdout, _, err = execAtLocal("cat", nil, "/proc/mounts")
+		stdout, err := execAtLocal("cat", nil, "/proc/mounts")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		var isExistingOption bool
@@ -348,7 +329,7 @@ func testPublishVolume() {
 		Expect(isExistingOption).Should(BeTrue())
 
 		By("cleaning pvc/pod")
-		_, _, err = kubectlWithInput(podWithMountOptionPVCYAML, "delete", "-f", "-")
+		_, err = kubectlWithInput(podWithMountOptionPVCYAML, "delete", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -363,20 +344,15 @@ func testPublishVolume() {
 
 		name := "csi-node-test-fs"
 		lvYaml := []byte(fmt.Sprintf(lvTemplateYAML, topolvm.GetPluginName(), name, name, nodeName))
-		_, _, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
+		_, err := kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		var volumeID string
 		Eventually(func() error {
-			stdout, _, err := kubectl("get", "logicalvolumes", name, "-o", "yaml")
-			if err != nil {
-				return fmt.Errorf("failed to get logical volume. err: %v", err)
-			}
-
 			var lv topolvmv1.LogicalVolume
-			err = yaml.Unmarshal(stdout, &lv)
+			err := getObjects(&lv, "logicalvolumes", name)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to get logical volume. err: %w", err)
 			}
 
 			if len(lv.Status.VolumeID) == 0 {
@@ -412,7 +388,7 @@ func testPublishVolume() {
 		Expect(err).Should(HaveOccurred())
 
 		By("cleaning logicalvolume")
-		_, _, err = kubectl("delete", "logicalvolumes", "csi-node-test-fs")
+		_, err = kubectl("delete", "logicalvolumes", "csi-node-test-fs")
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 }

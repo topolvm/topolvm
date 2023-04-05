@@ -3,7 +3,6 @@ package e2e
 import (
 	"context"
 	_ "embed"
-	"encoding/json"
 	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -46,13 +45,13 @@ func testLogicalVolume() {
 	It("should set Status.CurrentSize", func() {
 		pvcName := "check-current-size"
 		pvcYaml := fmt.Sprintf(pvcTemplateYAMLForLV, pvcName)
-		_, _, err := kubectlWithInput([]byte(pvcYaml), "apply", "-n", nsLogicalVolumeTest, "-f", "-")
+		_, err := kubectlWithInput([]byte(pvcYaml), "apply", "-n", nsLogicalVolumeTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("checking that Status.CurrentSize exists")
 		var pvc corev1.PersistentVolumeClaim
 		Eventually(func(g Gomega) {
-			g.Expect(getObject(&pvc, "pvc", "-n", nsLogicalVolumeTest, pvcName)).Should(Succeed())
+			g.Expect(getObjects(&pvc, "pvc", "-n", nsLogicalVolumeTest, pvcName)).Should(Succeed())
 			g.Expect(pvc.Spec.VolumeName).NotTo(BeEmpty())
 		}).Should(Succeed())
 		lv, err := getLogicalVolume(pvc.Spec.VolumeName)
@@ -76,7 +75,7 @@ func testLogicalVolume() {
 		By("clearing Status.CurrentSize and changing Spec.Size to 2Gi")
 		stopTopoLVMNode(lv.Spec.NodeName)
 		clearCurrentSize(k8sClient, lv.Name)
-		_, _, err = kubectl("patch", "logicalvolumes", lv.Name, "--type=json", "-p",
+		_, err = kubectl("patch", "logicalvolumes", lv.Name, "--type=json", "-p",
 			`[{"op": "replace", "path": "/spec/size", "value": "2Gi"}]`)
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -128,27 +127,19 @@ func waitForSettingCurrentSize(lvName string) int64 {
 	return lv.Status.CurrentSize.Value()
 }
 
-func getObject(obj interface{}, args ...string) error {
-	stdout, _, err := kubectl(append([]string{"get", "-ojson"}, args...)...)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(stdout, obj)
-}
-
 func getLogicalVolume(lvName string) (*topolvmv1.LogicalVolume, error) {
 	var lv topolvmv1.LogicalVolume
-	err := getObject(&lv, "logicalvolumes", lvName)
+	err := getObjects(&lv, "logicalvolumes", lvName)
 	return &lv, err
 }
 
 func waitForTopoLVMNodeDSPatched(patch string, patchType string) {
-	_, _, err := kubectl("patch", "-n", "topolvm-system", "daemonset", "topolvm-node", "--type", patchType, "-p", patch)
+	_, err := kubectl("patch", "-n", "topolvm-system", "daemonset", "topolvm-node", "--type", patchType, "-p", patch)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	Eventually(func(g Gomega) {
 		var ds appsv1.DaemonSet
-		err := getObject(&ds, "-n", "topolvm-system", "daemonset", "topolvm-node")
+		err := getObjects(&ds, "-n", "topolvm-system", "daemonset", "topolvm-node")
 		g.Expect(err).ShouldNot(HaveOccurred())
 		g.Expect(ds.Status.NumberReady).To(BeEquivalentTo(ds.Status.DesiredNumberScheduled))
 	}).Should(Succeed())

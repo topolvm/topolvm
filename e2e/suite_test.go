@@ -2,7 +2,6 @@ package e2e
 
 import (
 	_ "embed"
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"os"
@@ -33,7 +32,7 @@ func TestMtest(t *testing.T) {
 }
 
 func createNamespace(ns string) {
-	_, _, err := kubectl("create", "namespace", ns)
+	_, err := kubectl("create", "namespace", ns)
 	Expect(err).ShouldNot(HaveOccurred())
 	Eventually(func() error {
 		return waitCreatingDefaultSA(ns)
@@ -52,13 +51,8 @@ func randomString(n int) string {
 }
 
 func waitKindnet() error {
-	stdout, _, err := kubectl("-n=kube-system", "get", "ds/kindnet", "-o", "json")
-	if err != nil {
-		return err
-	}
-
 	var ds appsv1.DaemonSet
-	err = json.Unmarshal(stdout, &ds)
+	err := getObjects(&ds, "ds", "-n", "kube-system", "kindnet")
 	if err != nil {
 		return err
 	}
@@ -84,11 +78,8 @@ func skipIfDaemonsetLvmd() {
 }
 
 func getDaemonsetLvmdNodeName() string {
-	stdout, _, err := kubectl("get", "nodes", "-o=json")
-	Expect(err).ShouldNot(HaveOccurred())
-
 	var nodes corev1.NodeList
-	err = json.Unmarshal(stdout, &nodes)
+	err := getObjects(&nodes, "nodes")
 	Expect(err).ShouldNot(HaveOccurred())
 	Expect(nodes.Items).Should(HaveLen(1))
 	return nodes.Items[0].Name
@@ -114,13 +105,13 @@ var _ = BeforeSuite(func() {
 
 	By("Waiting for mutating webhook to get ready")
 	Eventually(func() error {
-		_, _, err := kubectlWithInput(pausePodYAML, "apply", "-f", "-")
+		_, err := kubectlWithInput(pausePodYAML, "apply", "-f", "-")
 		if err != nil {
 			return err
 		}
 		return nil
 	}).Should(Succeed())
-	_, _, err := kubectlWithInput(pausePodYAML, "delete", "-f", "-")
+	_, err := kubectlWithInput(pausePodYAML, "delete", "-f", "-")
 	Expect(err).ShouldNot(HaveOccurred())
 })
 

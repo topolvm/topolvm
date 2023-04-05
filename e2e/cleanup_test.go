@@ -38,12 +38,8 @@ func testCleanup() {
 	It("should finalize the delete node if and only if the node finalize isn't skipped", func() {
 		By("checking Node finalizer")
 		Eventually(func() error {
-			stdout, _, err := kubectl("get", "nodes", "-l=node-role.kubernetes.io/control-plane!=", "-o=json")
-			if err != nil {
-				return err
-			}
 			var nodes corev1.NodeList
-			err = json.Unmarshal(stdout, &nodes)
+			err := getObjects(&nodes, "nodes", "-l=node-role.kubernetes.io/control-plane!=")
 			if err != nil {
 				return err
 			}
@@ -60,18 +56,14 @@ func testCleanup() {
 		statefulsetName := "test-sts"
 		By("applying statefulset")
 		statefulsetYAML := []byte(fmt.Sprintf(statefulSetTemplateYAML, statefulsetName, statefulsetName))
-		_, _, err := kubectlWithInput(statefulsetYAML, "-n", cleanupTest, "apply", "-f", "-")
+		_, err := kubectlWithInput(statefulsetYAML, "-n", cleanupTest, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
-			stdout, _, err := kubectl("-n", cleanupTest, "get", "statefulset", statefulsetName, "-o=json")
+			var st appsv1.StatefulSet
+			err := getObjects(&st, "statefulset", "-n", cleanupTest, statefulsetName)
 			if err != nil {
 				return err
-			}
-			var st appsv1.StatefulSet
-			err = json.Unmarshal(stdout, &st)
-			if err != nil {
-				return fmt.Errorf("failed to unmarshal")
 			}
 			if st.Status.ReadyReplicas != 3 {
 				return fmt.Errorf("statefulset replica is not 3: %d", st.Status.ReadyReplicas)
@@ -83,10 +75,8 @@ func testCleanup() {
 		By("getting target pvcs/pods")
 		var targetPod *corev1.Pod
 		targetNode := "topolvm-e2e-worker3"
-		stdout, _, err := kubectl("-n", cleanupTest, "get", "pods", "-o=json")
-		Expect(err).ShouldNot(HaveOccurred())
 		var pods corev1.PodList
-		err = json.Unmarshal(stdout, &pods)
+		err = getObjects(&pods, "pods", "-n", cleanupTest)
 		Expect(err).ShouldNot(HaveOccurred())
 
 	Outer:
@@ -106,10 +96,8 @@ func testCleanup() {
 		}
 		Expect(targetPod).ShouldNot(BeNil())
 
-		stdout, _, err = kubectl("-n", cleanupTest, "get", "pvc", "-o=json")
-		Expect(err).ShouldNot(HaveOccurred())
 		var pvcs corev1.PersistentVolumeClaimList
-		err = json.Unmarshal(stdout, &pvcs)
+		err = getObjects(&pvcs, "pvc", "-n", cleanupTest)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		var targetPVC *corev1.PersistentVolumeClaim
@@ -125,10 +113,8 @@ func testCleanup() {
 		}
 		Expect(targetPVC).ShouldNot(BeNil())
 
-		stdout, _, err = kubectl("get", "logicalvolumes", "-o=json")
-		Expect(err).ShouldNot(HaveOccurred())
 		var logicalVolumeList topolvmv1.LogicalVolumeList
-		err = json.Unmarshal(stdout, &logicalVolumeList)
+		err = getObjects(&logicalVolumeList, "logicalvolumes")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		for _, lv := range logicalVolumeList.Items {
@@ -138,13 +124,11 @@ func testCleanup() {
 		}
 
 		By("setting unschedule flag to Node topolvm-e2e-worker3")
-		_, _, err = kubectl("cordon", targetNode)
+		_, err = kubectl("cordon", targetNode)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("deleting topolvm-node pod")
-		stdout, _, err = kubectl("-n", "topolvm-system", "get", "pods", "-o=json")
-		Expect(err).ShouldNot(HaveOccurred())
-		err = json.Unmarshal(stdout, &pods)
+		err = getObjects(&pods, "pods", "-n", "topolvm-system")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		var targetTopolvmNode string
@@ -155,37 +139,29 @@ func testCleanup() {
 			}
 		}
 		Expect(targetTopolvmNode).ShouldNot(Equal(""), "cannot get topolmv-node name on topolvm-e2e-worker3")
-		_, _, err = kubectl("-n", "topolvm-system", "delete", "pod", targetTopolvmNode)
+		_, err = kubectl("-n", "topolvm-system", "delete", "pod", targetTopolvmNode)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("deleting Node topolvm-e2e-worker3")
-		_, _, err = kubectl("delete", "node", targetNode, "--wait=true")
+		_, err = kubectl("delete", "node", targetNode, "--wait=true")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		// Confirming if the finalizer of the node resources works by checking by deleted pod's uid and pvc's uid if exist
 		By("confirming pvc/pod are deleted and recreated if and only if node finalize is not skipped")
 		Eventually(func() error {
-			stdout, _, err = kubectl("-n", cleanupTest, "get", "pvc", targetPVC.Name, "-o=json")
+			var pvcAfterNodeDelete corev1.PersistentVolumeClaim
+			err := getObjects(&pvcAfterNodeDelete, "pvc", "-n", cleanupTest, targetPVC.Name)
 			if err != nil {
 				return fmt.Errorf("can not get target pvc: err=%w", err)
-			}
-			var pvcAfterNodeDelete corev1.PersistentVolumeClaim
-			err = json.Unmarshal(stdout, &pvcAfterNodeDelete)
-			if err != nil {
-				return err
 			}
 			if pvcAfterNodeDelete.ObjectMeta.UID == targetPVC.ObjectMeta.UID {
 				return fmt.Errorf("pvc is not deleted but finalizer is enabled. uid: %s", string(targetPVC.ObjectMeta.UID))
 			}
 
-			stdout, _, err = kubectl("-n", cleanupTest, "get", "pod", targetPod.Name, "-o=json")
+			var rescheduledPod corev1.Pod
+			err = getObjects(&rescheduledPod, "pod", "-n", cleanupTest, targetPod.Name)
 			if err != nil {
 				return fmt.Errorf("can not get target pod: err=%w", err)
-			}
-			var rescheduledPod corev1.Pod
-			err = json.Unmarshal(stdout, &rescheduledPod)
-			if err != nil {
-				return err
 			}
 			if rescheduledPod.ObjectMeta.UID == targetPod.ObjectMeta.UID {
 				return fmt.Errorf("pod is not deleted. uid: %s", string(targetPVC.ObjectMeta.UID))
@@ -198,12 +174,8 @@ func testCleanup() {
 		//  If they takes running status, delete them for rescheduling them
 		By("confirming statefulset is ready")
 		Eventually(func() error {
-			stdout, _, err := kubectl("-n", cleanupTest, "get", "statefulset", statefulsetName, "-o=json")
-			if err != nil {
-				return err
-			}
 			var st appsv1.StatefulSet
-			err = json.Unmarshal(stdout, &st)
+			err := getObjects(&st, "statefulset", "-n", cleanupTest, statefulsetName)
 			if err != nil {
 				return fmt.Errorf("failed to unmarshal")
 			}
@@ -214,10 +186,8 @@ func testCleanup() {
 		}).Should(Succeed())
 
 		By("confirming pvc is recreated if and only if the node finalizer is enabled")
-		stdout, _, err = kubectl("-n", cleanupTest, "get", "pvc", targetPVC.Name, "-o=json")
-		Expect(err).ShouldNot(HaveOccurred())
 		var pvcAfterNodeDelete corev1.PersistentVolumeClaim
-		err = json.Unmarshal(stdout, &pvcAfterNodeDelete)
+		err = getObjects(&pvcAfterNodeDelete, "pvc", "-n", cleanupTest, targetPVC.Name)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(pvcAfterNodeDelete.ObjectMeta.UID).ShouldNot(Equal(targetPVC.ObjectMeta.UID))
 	})
@@ -226,7 +196,8 @@ func testCleanup() {
 		By("confirming logicalvolumes are deleted")
 		Eventually(func() error {
 			for _, lv := range targetLVs {
-				_, _, err := kubectl("get", "logicalvolumes", lv.Name)
+				var logicalVolume topolvmv1.LogicalVolume
+				err := getObjects(&logicalVolume, "logicalvolumes", lv.Name)
 				if err == nil {
 					return fmt.Errorf("logicalvolume still exists: %s", lv.Name)
 				}
@@ -236,18 +207,18 @@ func testCleanup() {
 	})
 
 	It("should delete namespace", func() {
-		_, _, err := kubectl("delete", "ns", cleanupTest)
+		_, err := kubectl("delete", "ns", cleanupTest)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	It("should stop undeleted container in case that the container is undeleted", func() {
-		_, _, err := execAtLocal(
+		_, err := execAtLocal(
 			"docker", nil, "exec", "topolvm-e2e-worker3",
 			"systemctl", "stop", "kubelet.service",
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		stdout, _, err := execAtLocal(
+		stdout, err := execAtLocal(
 			"docker", nil, "exec", "topolvm-e2e-worker3",
 			"/usr/local/bin/crictl", "ps", "-o=json",
 		)
@@ -266,7 +237,7 @@ func testCleanup() {
 		Expect(err).ShouldNot(HaveOccurred(), "data=%s", stdout)
 
 		for _, c := range l.Containers {
-			_, _, err := execAtLocal(
+			_, err := execAtLocal(
 				"docker", nil,
 				"exec", "topolvm-e2e-worker3", "/usr/local/bin/crictl", "stop", c.ID,
 			)
@@ -277,10 +248,10 @@ func testCleanup() {
 
 	It("should cleanup volumes", func() {
 		for _, lv := range targetLVs {
-			_, _, err := execAtLocal("sudo", nil, "umount", "/dev/topolvm/"+lv.Status.VolumeID)
+			_, err := execAtLocal("sudo", nil, "umount", "/dev/topolvm/"+lv.Status.VolumeID)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			_, _, err = execAtLocal("sudo", nil, "lvremove", "-y", "--select", "lv_name="+lv.Status.VolumeID)
+			_, err = execAtLocal("sudo", nil, "lvremove", "-y", "--select", "lv_name="+lv.Status.VolumeID)
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 	})
