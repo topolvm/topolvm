@@ -16,6 +16,7 @@ import (
 	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	"github.com/topolvm/topolvm"
+	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -138,39 +139,90 @@ func commonAfterEach(cc CleanupContext) {
 	}
 }
 
+type ErrLVNotFound struct {
+	lvName string
+}
+
+func (e ErrLVNotFound) Error() string {
+	return fmt.Sprintf("lv_name ( %s ) not found", e.lvName)
+}
+
 type lvinfo struct {
-	lvPath string
-	size   int
-	vgName string
+	size     int
+	poolName string
+	vgName   string
 }
 
 func getLVInfo(lvName string) (*lvinfo, error) {
-	stdout, err := execAtLocal("sudo", nil, "lvdisplay", "-c", "--select", "lv_name="+lvName)
+	stdout, err := execAtLocal("sudo", nil,
+		"lvs", "--noheadings", "-o", "lv_size,pool_lv,vg_name",
+		"--units", "b", "--nosuffix", "--separator", ":",
+		"--select", "lv_name="+lvName)
 	if err != nil {
 		return nil, err
 	}
 	output := strings.TrimSpace(string(stdout))
 	if output == "" {
-		return nil, fmt.Errorf("lv_name ( %s ) not found", lvName)
+		return nil, ErrLVNotFound{lvName: lvName}
 	}
-	lines := strings.Split(output, "\n")
-	if len(lines) != 1 {
+	if strings.Contains(output, "\n") {
 		return nil, errors.New("found multiple lvs")
 	}
-	// lvdisplay -c format is here
-	// https://github.com/lvmteam/lvm2/blob/baf99ff974b408c59dd4f51db6e006d659c061e7/lib/display/display.c#L353
-	items := strings.Split(strings.TrimSpace(lines[0]), ":")
-	if len(items) < 7 {
-		return nil, fmt.Errorf("invalid format: %s", lines[0])
+	items := strings.Split(output, ":")
+	if len(items) != 3 {
+		return nil, fmt.Errorf("invalid format: %s", output)
 	}
-	size, err := strconv.Atoi(items[6])
+	size, err := strconv.Atoi(items[0])
 	if err != nil {
 		return nil, err
 	}
-
 	return &lvinfo{
-		lvPath: items[0],
-		vgName: items[1],
-		size:   size * 512, // lvdisplay denotes size as 512 byte block
+		size:     size,
+		poolName: items[1],
+		vgName:   items[2],
 	}, nil
+}
+
+func checkLVIsRegisteredInLVM(volName string) error {
+	var lv topolvmv1.LogicalVolume
+	err := getObjects(&lv, "logicalvolumes", volName)
+	if err != nil {
+		return err
+	}
+	_, err = getLVInfo(string(lv.UID))
+	return err
+}
+
+func checkLVIsDeletedInLVM(lvName string) error {
+	_, err := getLVInfo(lvName)
+	if err != nil {
+		if _, ok := err.(ErrLVNotFound); ok {
+			return nil
+		}
+		return err
+	}
+	return fmt.Errorf("target LV exists %s", lvName)
+}
+
+func getLVNameOfPVC(pvcName, ns string) (lvName string, err error) {
+	var pvc corev1.PersistentVolumeClaim
+	err = getObjects(&pvc, "pvc", "-n", ns, pvcName)
+	if err != nil {
+		return "", fmt.Errorf("failed to get PVC. err: %w", err)
+	}
+
+	if pvc.Status.Phase != corev1.ClaimBound {
+		return "", errors.New("pvc status is not bound")
+	}
+	if pvc.Spec.VolumeName == "" {
+		return "", errors.New("pvc.Spec.VolumeName should not be empty")
+	}
+
+	var lv topolvmv1.LogicalVolume
+	err = getObjects(&lv, "logicalvolume", pvc.Spec.VolumeName)
+	if err != nil {
+		return "", fmt.Errorf("failed to get LV. err: %w", err)
+	}
+
+	return string(lv.UID), nil
 }

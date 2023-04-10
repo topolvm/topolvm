@@ -54,7 +54,6 @@ func testSnapRestore() {
 		if isDaemonsetLvmdEnvSet() {
 			nodeName = getDaemonsetLvmdNodeName()
 		}
-		var volumeName string
 		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSize))
 		_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -130,14 +129,15 @@ func testSnapRestore() {
 			return nil
 		}).Should(Succeed())
 
+		var lvName string
 		Eventually(func() error {
-			volumeName, err = getVolumeNameofPVC(restorePVCName, nsSnapTest)
+			lvName, err = getLVNameOfPVC(restorePVCName, nsSnapTest)
 			return err
 		}).Should(Succeed())
 
-		var lv *thinlvinfo
+		var lv *lvinfo
 		Eventually(func() error {
-			lv, err = getThinLVInfo(volumeName)
+			lv, err = getLVInfo(lvName)
 			return err
 		}).Should(Succeed())
 
@@ -172,7 +172,6 @@ func testSnapRestore() {
 			nodeName = getDaemonsetLvmdNodeName()
 		}
 
-		var volumeName string
 		By("creating a PVC and application")
 		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSize))
 		_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsSnapTest, "-f", "-")
@@ -235,14 +234,15 @@ func testSnapRestore() {
 		}).Should(Succeed())
 
 		By("validating if the restored volume is present")
+		var lvName string
 		Eventually(func() error {
-			volumeName, err = getVolumeNameofPVC(restorePVCName, nsSnapTest)
+			lvName, err = getLVNameOfPVC(restorePVCName, nsSnapTest)
 			return err
 		}).Should(Succeed())
 
-		var lv *thinlvinfo
+		var lv *lvinfo
 		Eventually(func() error {
-			lv, err = getThinLVInfo(volumeName)
+			lv, err = getLVInfo(lvName)
 			return err
 		}).Should(Succeed())
 
@@ -267,11 +267,10 @@ func testSnapRestore() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("validating if the restored volume is present and is not deleted.")
-		_, err = getVolumeNameofPVC(restorePVCName, nsSnapTest)
+		lvName, err = getLVNameOfPVC(restorePVCName, nsSnapTest)
 		Expect(err).Should(Succeed())
 
-		_, err = getThinLVInfo(volumeName)
+		_, err = getLVInfo(lvName)
 		Expect(err).Should(Succeed())
 	})
-
 }

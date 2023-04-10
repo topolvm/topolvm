@@ -5,13 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	"github.com/topolvm/topolvm"
-	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -56,16 +54,15 @@ func testThinProvisioning() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("confirming that the lv was created in the thin volume group and pool")
-		var volumeName string
-
+		var lvName string
 		Eventually(func() error {
-			volumeName, err = getVolumeNameofPVC("thinvol", ns)
+			lvName, err = getLVNameOfPVC("thinvol", ns)
 			return err
 		}).Should(Succeed())
 
-		var lv *thinlvinfo
+		var lv *lvinfo
 		Eventually(func() error {
-			lv, err = getThinLVInfo(volumeName)
+			lv, err = getLVInfo(lvName)
 			return err
 		}).Should(Succeed())
 
@@ -87,20 +84,20 @@ func testThinProvisioning() {
 		By("confirming that the PV is deleted")
 		Eventually(func() error {
 			var pv corev1.PersistentVolume
-			err := getObjects(&pv, "pv", volumeName)
+			err := getObjects(&pv, "pv", lvName)
 			switch {
 			case err == ErrObjectNotFound:
 				return nil
 			case err != nil:
-				return fmt.Errorf("failed to get pv/%s. err: %w", volumeName, err)
+				return fmt.Errorf("failed to get pv/%s. err: %w", lvName, err)
 			default:
-				return fmt.Errorf("target pv exists %s", volumeName)
+				return fmt.Errorf("target pv exists %s", lvName)
 			}
 		}).Should(Succeed())
 
 		By("confirming that the lv correspond to LogicalVolume is deleted")
 		Eventually(func() error {
-			return checkLVIsDeletedInLVM(volumeName)
+			return checkLVIsDeletedInLVM(lvName)
 		}).Should(Succeed())
 	})
 
@@ -127,18 +124,18 @@ func testThinProvisioning() {
 		By("confirming that the volumes have been created in the thinpool")
 
 		for i := 0; i < 5; i++ {
-			var volumeName string
+			var lvName string
 			var err error
 
 			num := strconv.Itoa(i)
 			Eventually(func() error {
-				volumeName, err = getVolumeNameofPVC("thinvol"+num, ns)
+				lvName, err = getLVNameOfPVC("thinvol"+num, ns)
 				return err
 			}).Should(Succeed())
 
-			var lv *thinlvinfo
+			var lv *lvinfo
 			Eventually(func() error {
-				lv, err = getThinLVInfo(volumeName)
+				lv, err = getLVInfo(lvName)
 				return err
 			}).Should(Succeed())
 
@@ -207,15 +204,15 @@ func testThinProvisioning() {
 		_, err = kubectlWithInput(thinPodYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		var volumeName string
+		var lvName string
 		Eventually(func() error {
-			volumeName, err = getVolumeNameofPVC("thinvol", ns)
+			lvName, err = getLVNameOfPVC("thinvol", ns)
 			return err
 		}).Should(Succeed())
 
-		var lv *thinlvinfo
+		var lv *lvinfo
 		Eventually(func() error {
-			lv, err = getThinLVInfo(volumeName)
+			lv, err = getLVInfo(lvName)
 			return err
 		}).Should(Succeed())
 
@@ -316,55 +313,4 @@ func testThinProvisioning() {
 			}
 		}).Should(Succeed())
 	})
-}
-
-type thinlvinfo struct {
-	lvName   string
-	poolName string
-	vgName   string
-}
-
-func getThinLVInfo(volName string) (*thinlvinfo, error) {
-	var lv topolvmv1.LogicalVolume
-	err := getObjects(&lv, "logicalvolume", volName)
-	if err != nil {
-		return nil, err
-	}
-
-	lvName := string(lv.UID)
-	stdout, err := execAtLocal("sudo", nil, "lvs", "--noheadings", "-o", "lv_name,pool_lv,vg_name", "--select", "lv_name="+lvName)
-	if err != nil {
-		return nil, err
-	}
-	output := strings.TrimSpace(string(stdout))
-	if output == "" {
-		return nil, fmt.Errorf("lv_name ( %s ) not found", lvName)
-	}
-	lines := strings.Split(output, "\n")
-	if len(lines) != 1 {
-		return nil, errors.New("found multiple lvs")
-	}
-	items := strings.Fields(strings.TrimSpace(lines[0]))
-	if len(items) < 3 {
-		return nil, fmt.Errorf("invalid format: %s", lines[0])
-	}
-	return &thinlvinfo{lvName: items[0], poolName: items[1], vgName: items[2]}, nil
-}
-
-func getVolumeNameofPVC(pvcName, ns string) (volName string, err error) {
-	var pvc corev1.PersistentVolumeClaim
-	err = getObjects(&pvc, "pvc", "-n", ns, pvcName)
-	if err != nil {
-		return "", fmt.Errorf("failed to get PVC. err: %w", err)
-	}
-
-	if pvc.Status.Phase != corev1.ClaimBound {
-		return "", errors.New("pvc status is not bound")
-	}
-	if pvc.Spec.VolumeName == "" {
-		return "", errors.New("pvc.Spec.VolumeName should not be empty")
-	}
-
-	volumeName := pvc.Spec.VolumeName
-	return volumeName, nil
 }
