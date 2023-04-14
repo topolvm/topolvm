@@ -111,8 +111,6 @@ start-lvmd:
 		truncate --size=20G $(BACKING_STORE)/backing_store$${i}_1; \
 		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$${i}_1; \
 		$(SUDO) vgcreate -y node$${i}-myvg1 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_1 | cut -d: -f1); \
-		$(SUDO) lvcreate -y -n csi-node-test-block -L 1G node$${i}-myvg1; \
-		$(SUDO) lvcreate -y -n csi-node-test-fs -L 1G node$${i}-myvg1; \
 	done
 
 	# Create additional Volume Groups
@@ -255,8 +253,6 @@ daemonset-lvmd/create-vg:
 		truncate --size=20G $(BACKING_STORE)/backing_store_lvmd_$${i}; \
 		$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_$${i}; \
 		$(SUDO) vgcreate -y node-myvg$${i} $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_$${i} | cut -d: -f1); \
-		$(SUDO) lvcreate -y -n csi-node-test-block -L 1G node-myvg$${i}; \
-		$(SUDO) lvcreate -y -n csi-node-test-fs -L 1G node-myvg$${i}; \
 	done
 
 	# Create Volume Group for testing raid1 volumes.
