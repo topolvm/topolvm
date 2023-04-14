@@ -2,7 +2,6 @@ package e2e
 
 import (
 	_ "embed"
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -16,7 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-const cleanupTest = "cleanup-test"
+const nsCleanupTest = "cleanup-test"
 
 //go:embed testdata/cleanup/statefulset-template.yaml
 var statefulSetTemplateYAML string
@@ -26,10 +25,12 @@ func testCleanup() {
 	BeforeEach(func() {
 		// Skip because cleanup tests require multiple nodes but there is just one node in daemonset lvmd test environment.
 		skipIfDaemonsetLvmd()
+
+		createNamespace(nsCleanupTest)
 	})
 
-	It("should create cleanup-test namespace", func() {
-		createNamespace(cleanupTest)
+	AfterEach(func() {
+		kubectl("delete", "namespaces/"+nsCleanupTest)
 	})
 
 	var targetLVs []topolvmv1.LogicalVolume
@@ -55,12 +56,12 @@ func testCleanup() {
 		statefulsetName := "test-sts"
 		By("applying statefulset")
 		statefulsetYAML := []byte(fmt.Sprintf(statefulSetTemplateYAML, statefulsetName, statefulsetName))
-		_, err := kubectlWithInput(statefulsetYAML, "-n", cleanupTest, "apply", "-f", "-")
+		_, err := kubectlWithInput(statefulsetYAML, "-n", nsCleanupTest, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
 			var st appsv1.StatefulSet
-			err := getObjects(&st, "statefulset", "-n", cleanupTest, statefulsetName)
+			err := getObjects(&st, "statefulset", "-n", nsCleanupTest, statefulsetName)
 			if err != nil {
 				return err
 			}
@@ -75,7 +76,7 @@ func testCleanup() {
 		var targetPod *corev1.Pod
 		targetNode := "topolvm-e2e-worker3"
 		var pods corev1.PodList
-		err = getObjects(&pods, "pods", "-n", cleanupTest)
+		err = getObjects(&pods, "pods", "-n", nsCleanupTest)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		for _, pod := range pods.Items {
@@ -87,7 +88,7 @@ func testCleanup() {
 		Expect(targetPod).ShouldNot(BeNil())
 
 		var pvcs corev1.PersistentVolumeClaimList
-		err = getObjects(&pvcs, "pvc", "-n", cleanupTest)
+		err = getObjects(&pvcs, "pvc", "-n", nsCleanupTest)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		var targetPVC *corev1.PersistentVolumeClaim
@@ -121,7 +122,7 @@ func testCleanup() {
 		By("confirming pvc/pod are deleted and recreated if and only if node finalize is not skipped")
 		Eventually(func() error {
 			var pvcAfterNodeDelete corev1.PersistentVolumeClaim
-			err := getObjects(&pvcAfterNodeDelete, "pvc", "-n", cleanupTest, targetPVC.Name)
+			err := getObjects(&pvcAfterNodeDelete, "pvc", "-n", nsCleanupTest, targetPVC.Name)
 			if err != nil {
 				return fmt.Errorf("can not get target pvc: err=%w", err)
 			}
@@ -130,7 +131,7 @@ func testCleanup() {
 			}
 
 			var rescheduledPod corev1.Pod
-			err = getObjects(&rescheduledPod, "pod", "-n", cleanupTest, targetPod.Name)
+			err = getObjects(&rescheduledPod, "pod", "-n", nsCleanupTest, targetPod.Name)
 			if err != nil {
 				return fmt.Errorf("can not get target pod: err=%w", err)
 			}
@@ -146,7 +147,7 @@ func testCleanup() {
 		By("confirming statefulset is ready")
 		Eventually(func() error {
 			var st appsv1.StatefulSet
-			err := getObjects(&st, "statefulset", "-n", cleanupTest, statefulsetName)
+			err := getObjects(&st, "statefulset", "-n", nsCleanupTest, statefulsetName)
 			if err != nil {
 				return fmt.Errorf("failed to unmarshal")
 			}
@@ -158,56 +159,15 @@ func testCleanup() {
 
 		By("confirming pvc is recreated if and only if the node finalizer is enabled")
 		var pvcAfterNodeDelete corev1.PersistentVolumeClaim
-		err = getObjects(&pvcAfterNodeDelete, "pvc", "-n", cleanupTest, targetPVC.Name)
+		err = getObjects(&pvcAfterNodeDelete, "pvc", "-n", nsCleanupTest, targetPVC.Name)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(pvcAfterNodeDelete.ObjectMeta.UID).ShouldNot(Equal(targetPVC.ObjectMeta.UID))
-	})
 
-	It("should delete namespace", func() {
-		_, err := kubectl("delete", "ns", cleanupTest)
-		Expect(err).ShouldNot(HaveOccurred())
-	})
-
-	It("should stop undeleted container in case that the container is undeleted", func() {
-		_, err := execAtLocal(
-			"docker", nil, "exec", "topolvm-e2e-worker3",
-			"systemctl", "stop", "kubelet.service",
-		)
+		By("cleaning up LVMs that the deleted node had")
+		_, err = execAtLocal("docker", nil, "stop", "topolvm-e2e-worker3")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		stdout, err := execAtLocal(
-			"docker", nil, "exec", "topolvm-e2e-worker3",
-			"/usr/local/bin/crictl", "ps", "-o=json",
-		)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		type containerList struct {
-			Containers []struct {
-				ID       string `json:"id"`
-				Metadata struct {
-					Name string `json:"name"`
-				}
-			} `json:"containers"`
-		}
-		var l containerList
-		err = json.Unmarshal(stdout, &l)
-		Expect(err).ShouldNot(HaveOccurred(), "data=%s", stdout)
-
-		for _, c := range l.Containers {
-			_, err := execAtLocal(
-				"docker", nil,
-				"exec", "topolvm-e2e-worker3", "/usr/local/bin/crictl", "stop", c.ID,
-			)
-			Expect(err).ShouldNot(HaveOccurred())
-			fmt.Printf("stop pause container with id=%s\n", c.ID)
-		}
-	})
-
-	It("should cleanup volumes", func() {
 		for _, lv := range targetLVs {
-			_, err := execAtLocal("sudo", nil, "umount", "/dev/topolvm/"+lv.Status.VolumeID)
-			Expect(err).ShouldNot(HaveOccurred())
-
 			_, err = execAtLocal("sudo", nil, "lvremove", "-y", "--select", "lv_name="+lv.Status.VolumeID)
 			Expect(err).ShouldNot(HaveOccurred())
 		}
