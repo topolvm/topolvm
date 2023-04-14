@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -113,25 +112,6 @@ func testCleanup() {
 				targetLVs = append(targetLVs, lv)
 			}
 		}
-
-		By("setting unschedule flag to Node topolvm-e2e-worker3")
-		_, err = kubectl("cordon", targetNode)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		By("deleting topolvm-node pod")
-		err = getObjects(&pods, "pods", "-n", "topolvm-system")
-		Expect(err).ShouldNot(HaveOccurred())
-
-		var targetTopolvmNode string
-		for _, pod := range pods.Items {
-			if strings.HasPrefix(pod.Name, "topolvm-node-") && pod.Spec.NodeName == targetNode {
-				targetTopolvmNode = pod.Name
-				break
-			}
-		}
-		Expect(targetTopolvmNode).ShouldNot(Equal(""), "cannot get topolmv-node name on topolvm-e2e-worker3")
-		_, err = kubectl("-n", "topolvm-system", "delete", "pod", targetTopolvmNode)
-		Expect(err).ShouldNot(HaveOccurred())
 
 		By("deleting Node topolvm-e2e-worker3")
 		_, err = kubectl("delete", "node", targetNode, "--wait=true")
