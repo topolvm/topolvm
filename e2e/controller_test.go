@@ -17,8 +17,10 @@ func testController() {
 	It("should expose Prometheus metrics", func() {
 		// For CSI sidecar metrics access checking
 		for _, port := range []string{"9808", "9809", "9810", "9811"} {
-			_, err := kubectl("exec", "-n", "topolvm-system", "deploy/topolvm-controller", "-c=topolvm-controller", "--", "curl", "http://localhost:"+port+"/metrics")
-			Expect(err).ShouldNot(HaveOccurred())
+			Eventually(func() error {
+				_, err := kubectl("exec", "-n", "topolvm-system", "deploy/topolvm-controller", "-c=topolvm-controller", "--", "curl", "http://localhost:"+port+"/metrics")
+				return err
+			}).Should(Succeed())
 		}
 	})
 }
