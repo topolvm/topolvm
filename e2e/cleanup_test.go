@@ -79,19 +79,10 @@ func testCleanup() {
 		err = getObjects(&pods, "pods", "-n", cleanupTest)
 		Expect(err).ShouldNot(HaveOccurred())
 
-	Outer:
 		for _, pod := range pods.Items {
-			if pod.Spec.NodeName != targetNode {
-				continue
-			}
-			for _, volume := range pod.Spec.Volumes {
-				if volume.PersistentVolumeClaim == nil {
-					continue
-				}
-				if strings.Contains(volume.PersistentVolumeClaim.ClaimName, "test-sts-pvc") {
-					targetPod = &pod
-					break Outer
-				}
+			if pod.Spec.NodeName == targetNode {
+				targetPod = &pod
+				break
 			}
 		}
 		Expect(targetPod).ShouldNot(BeNil())
