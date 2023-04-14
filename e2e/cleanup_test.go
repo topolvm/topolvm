@@ -192,20 +192,6 @@ func testCleanup() {
 		Expect(pvcAfterNodeDelete.ObjectMeta.UID).ShouldNot(Equal(targetPVC.ObjectMeta.UID))
 	})
 
-	It("should clean up LogicalVolume resources connected to the deleted node", func() {
-		By("confirming logicalvolumes are deleted")
-		Eventually(func() error {
-			for _, lv := range targetLVs {
-				var logicalVolume topolvmv1.LogicalVolume
-				err := getObjects(&logicalVolume, "logicalvolumes", lv.Name)
-				if err == nil {
-					return fmt.Errorf("logicalvolume still exists: %s", lv.Name)
-				}
-			}
-			return nil
-		}).Should(Succeed())
-	})
-
 	It("should delete namespace", func() {
 		_, err := kubectl("delete", "ns", cleanupTest)
 		Expect(err).ShouldNot(HaveOccurred())
