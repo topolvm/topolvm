@@ -14,26 +14,26 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-const nsCleanupTest = "cleanup-test"
+const nsNodeDeleteTest = "node-delete-test"
 
-//go:embed testdata/cleanup/statefulset-template.yaml
+//go:embed testdata/node_delete/statefulset-template.yaml
 var statefulSetTemplateYAML string
 
-func testCleanup() {
+func testNodeDelete() {
 
 	BeforeEach(func() {
-		// Skip because cleanup tests require multiple nodes but there is just one node in daemonset lvmd test environment.
+		// Skip because this test require multiple nodes but there is just one node in daemonset lvmd test environment.
 		skipIfDaemonsetLvmd()
 
-		createNamespace(nsCleanupTest)
+		createNamespace(nsNodeDeleteTest)
 	})
 
 	AfterEach(func() {
-		kubectl("delete", "namespaces/"+nsCleanupTest)
+		kubectl("delete", "namespaces/"+nsNodeDeleteTest)
 	})
 
-	It("should finalize the delete node if and only if the node finalize isn't skipped", func() {
-		By("checking Node finalizer")
+	It("should re-create pods and PVCs on other nodes than the deleted node", func() {
+		By("waiting for node finalizer set")
 		Eventually(func() error {
 			var nodes corev1.NodeList
 			err := getObjects(&nodes, "nodes", "-l=node-role.kubernetes.io/control-plane!=")
@@ -41,8 +41,6 @@ func testCleanup() {
 				return err
 			}
 			for _, node := range nodes.Items {
-				// Even if node finalize is skipped, the finalizer is still present on the node
-				// The finalizer is added by the metrics-exporter runner from topolvm-node
 				if !controllerutil.ContainsFinalizer(&node, topolvm.GetNodeFinalizer()) {
 					return errors.New("topolvm finalizer is not attached")
 				}
@@ -53,12 +51,12 @@ func testCleanup() {
 		statefulsetName := "test-sts"
 		By("applying statefulset")
 		statefulsetYAML := []byte(fmt.Sprintf(statefulSetTemplateYAML, statefulsetName, statefulsetName))
-		_, err := kubectlWithInput(statefulsetYAML, "-n", nsCleanupTest, "apply", "-f", "-")
+		_, err := kubectlWithInput(statefulsetYAML, "-n", nsNodeDeleteTest, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
 			var st appsv1.StatefulSet
-			err := getObjects(&st, "statefulset", "-n", nsCleanupTest, statefulsetName)
+			err := getObjects(&st, "statefulset", "-n", nsNodeDeleteTest, statefulsetName)
 			if err != nil {
 				return err
 			}
@@ -72,7 +70,7 @@ func testCleanup() {
 		var targetPod *corev1.Pod
 		targetNode := "topolvm-e2e-worker3"
 		var pods corev1.PodList
-		err = getObjects(&pods, "pods", "-n", nsCleanupTest)
+		err = getObjects(&pods, "pods", "-n", nsNodeDeleteTest)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		for _, pod := range pods.Items {
@@ -102,7 +100,7 @@ func testCleanup() {
 		By("confirming a pod using a PVC is re-scheduled to another node")
 		Eventually(func() error {
 			var rescheduledPod corev1.Pod
-			err = getObjects(&rescheduledPod, "pod", "-n", nsCleanupTest, targetPod.Name)
+			err = getObjects(&rescheduledPod, "pod", "-n", nsNodeDeleteTest, targetPod.Name)
 			if err != nil {
 				return fmt.Errorf("can not get target pod: err=%w", err)
 			}
@@ -115,7 +113,7 @@ func testCleanup() {
 		By("confirming statefulset is ready")
 		Eventually(func() error {
 			var st appsv1.StatefulSet
-			err := getObjects(&st, "statefulset", "-n", nsCleanupTest, statefulsetName)
+			err := getObjects(&st, "statefulset", "-n", nsNodeDeleteTest, statefulsetName)
 			if err != nil {
 				return fmt.Errorf("failed to unmarshal")
 			}
