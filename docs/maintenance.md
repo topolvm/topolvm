@@ -63,6 +63,13 @@ At last, make it tidy.
 $ go mod tidy
 ```
 
+Regenerate manifests using new controller-tools.
+
+```
+$ make setup
+$ make generate
+```
+
 These are minimal changes for the Kubernetes upgrade, but if there are some breaking changes found in the release notes, you have to handle them as well in this step.
 
 #### Go
