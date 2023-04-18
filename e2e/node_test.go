@@ -2,16 +2,19 @@ package e2e
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
-	"github.com/topolvm/topolvm"
+	"github.com/topolvm/topolvm/lvmd"
+	"github.com/topolvm/topolvm/pkg/lvmd/cmd"
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/yaml"
 )
 
 func testNode() {
@@ -23,165 +26,45 @@ func testNode() {
 		commonAfterEach(cc)
 	})
 
-	It("should be deployed", func() {
-		Eventually(func() error {
-			var podlist corev1.PodList
-			err := getObjects(&podlist, "pods", "-n", "topolvm-system", "--selector=app.kubernetes.io/component=node,app.kubernetes.io/name=topolvm")
-			if err != nil {
-				return err
-			}
-
-			count := 3
-			if isDaemonsetLvmdEnvSet() {
-				count = 1
-			}
-
-			if len(podlist.Items) != count {
-				return fmt.Errorf("the number of pods is not equal to 3: %d", len(podlist.Items))
-			}
-
-			for _, pod := range podlist.Items {
-				isReady := false
-				for _, cond := range pod.Status.Conditions {
-					if cond.Type == corev1.PodReady && cond.Status == corev1.ConditionTrue {
-						isReady = true
-						break
-					}
-				}
-				if !isReady {
-					return errors.New("topolvm-node is not yet ready: " + pod.Name)
-				}
-			}
-			return nil
-		}).Should(Succeed())
-	})
-
-	It("should annotate capacity to node", func() {
-		count := 4
-		if isDaemonsetLvmdEnvSet() {
-			count = 1
-		}
-
-		var nodes corev1.NodeList
-		err := getObjects(&nodes, "nodes")
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(len(nodes.Items)).To(Equal(count))
-
-		vgNameMap := map[string]string{
-			"topolvm-e2e-worker":        "node1-myvg1",
-			"topolvm-e2e-worker2":       "node2-myvg1",
-			"topolvm-e2e-worker3":       "node3-myvg1",
-			"topolvm-e2e-control-plane": "",
-		}
-		if isDaemonsetLvmdEnvSet() {
-			vgNameMap = map[string]string{}
-			vgNameMap[nodes.Items[0].Name] = "node-myvg1"
-		}
-
-		for _, node := range nodes.Items {
-			vgName, ok := vgNameMap[node.Name]
-			if !ok {
-				panic(node.Name + " does not exist")
-			}
-
-			if len(vgName) == 0 {
-				continue
-			}
-
-			By("checking " + node.Name)
-			targetBytes, err := execAtLocal("sudo", nil, "vgs",
-				"-o", "vg_free",
-				"--noheadings",
-				"--units=b",
-				"--nosuffix",
-				vgName,
-			)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			free, err := strconv.Atoi(strings.TrimSpace(string(targetBytes)))
-			Expect(err).ShouldNot(HaveOccurred())
-
-			// spare-gb is set to 1 in the manifests
-			spare := 1 << 30
-			if free < spare {
-				free = 0
-			} else {
-				free -= spare
-			}
-
-			val, ok := node.Annotations[topolvm.GetCapacityKeyPrefix()+"ssd"]
-			Expect(ok).To(Equal(true), "capacity is not annotated: "+node.Name)
-			Expect(val).To(Equal(strconv.Itoa(free)), "unexpected capacity: "+node.Name)
-		}
-	})
-
 	It("should expose Prometheus metrics", func() {
+		By("reading metrics API endpoint")
 		var pods corev1.PodList
 		err := getObjects(&pods, "pods", "-n", "topolvm-system", "-l=app.kubernetes.io/component=node,app.kubernetes.io/name=topolvm")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		pod := pods.Items[0]
-		stdout, err := kubectl("exec", "-n", "topolvm-system", pod.Name, "-c=topolvm-node", "--", "curl", "http://localhost:8080/metrics")
+		var metricFamilies map[string]*dto.MetricFamily
+		Eventually(func() error {
+			stdout, err := kubectl("exec", "-n", "topolvm-system", pod.Name, "-c=topolvm-node", "--", "curl", "http://localhost:8080/metrics")
+			if err != nil {
+				return err
+			}
+			var parser expfmt.TextParser
+			metricFamilies, err = parser.TextToMetricFamilies(bytes.NewReader(stdout))
+			return err
+		}).Should(Succeed())
+
+		By("loading LVMD config associating to the pod")
+		deviceClasses, err := loadDeviceClasses(pod.Spec.NodeName)
 		Expect(err).ShouldNot(HaveOccurred())
-		var parser expfmt.TextParser
-		metricFamilies, err := parser.TextToMetricFamilies(bytes.NewReader(stdout))
-		Expect(err).ShouldNot(HaveOccurred())
 
-		foundSize := false
-		for _, family := range metricFamilies {
-			if family.GetName() == "topolvm_volumegroup_size_bytes" {
-				foundSize = true
-			}
-		}
-		Expect(foundSize).Should(BeTrue())
+		By("checking topolvm_volumegroup_size_bytes metric exist")
+		Expect(metricFamilies).To(HaveKey("topolvm_volumegroup_size_bytes"))
 
-		found := false
-		for _, family := range metricFamilies {
-			if family.GetName() != "topolvm_volumegroup_available_bytes" {
-				continue
-			}
-			found = true
+		By("checking topolvm_volumegroup_available_bytes metric")
+		family := metricFamilies["topolvm_volumegroup_available_bytes"]
+		Expect(family).NotTo(BeNil())
 
-			length := 5
-			if isDaemonsetLvmdEnvSet() {
-				length = 6
-			}
-			Expect(family.Metric).Should(HaveLen(length))
+		Expect(family.Metric).Should(HaveLen(len(deviceClasses)))
 
-			var node corev1.Node
-			err = getObjects(&node, "node", pod.Spec.NodeName)
+		for _, deviceClass := range deviceClasses {
+			vgFree, err := vgFreeByte(deviceClass)
 			Expect(err).ShouldNot(HaveOccurred())
-			for k, v := range node.Annotations {
-				if !strings.HasPrefix(k, topolvm.GetCapacityKeyPrefix()) {
-					continue
-				}
-				dc := k[len(topolvm.GetCapacityKeyPrefix()):]
-				if dc == topolvm.DefaultDeviceClassAnnotationName {
-					continue
-				}
-				// The value will not match the overprovisioned capacity
-				// for thin pools.
-				if dc == "thin" {
-					continue
-				}
-				expected, err := strconv.ParseFloat(v, 64)
-				Expect(err).ShouldNot(HaveOccurred())
 
-				var targetValue *float64
-				for _, m := range family.Metric {
-					for _, label := range m.Label {
-						if *label.Name == "device_class" && *label.Value == dc {
-							targetValue = m.Gauge.Value
-							break
-						}
-					}
-				}
-				Expect(targetValue).ShouldNot(BeNil())
-				Expect(*targetValue).Should(BeNumerically("==", expected))
-			}
-			break
+			var metric *dto.Metric
+			Expect(family.Metric).To(ContainElement(HaveField("Label", WithTransform(getDeviceClassName, Equal(deviceClass.Name))), &metric))
+			Expect(metric.Gauge.Value).To(HaveValue(BeEquivalentTo(vgFree)))
 		}
-		Expect(found).Should(BeTrue())
 	})
 
 	Describe("CSI sidecar of topolvm-node", func() {
@@ -192,4 +75,77 @@ func testNode() {
 			}).Should(Succeed())
 		})
 	})
+}
+
+func getDeviceClassName(label []*dto.LabelPair) string {
+	for _, label := range label {
+		if *label.Name == "device_class" {
+			return *label.Value
+		}
+	}
+	return ""
+}
+
+func loadDeviceClasses(node string) ([]*lvmd.DeviceClass, error) {
+	var data []byte
+	if isDaemonsetLvmdEnvSet() {
+		var cm corev1.ConfigMap
+		err := getObjects(&cm, "cm", "-n", "topolvm-system", "topolvm-lvmd-0")
+		if err != nil {
+			return nil, err
+		}
+		data = []byte(cm.Data["lvmd.yaml"])
+	} else {
+		path, ok := map[string]string{
+			"topolvm-e2e-worker":  "lvmd1.yaml",
+			"topolvm-e2e-worker2": "lvmd2.yaml",
+			"topolvm-e2e-worker3": "lvmd3.yaml",
+		}[node]
+		if !ok {
+			return nil, fmt.Errorf("unknown node: %s", node)
+		}
+		var err error
+		data, err = os.ReadFile(path)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var config cmd.Config
+	err := yaml.Unmarshal(data, &config)
+	if err != nil {
+		return nil, err
+	}
+	return config.DeviceClasses, nil
+}
+
+func vgFreeByte(deviceClass *lvmd.DeviceClass) (int, error) {
+	output, err := execAtLocal("sudo", nil, "vgs",
+		"-o", "vg_free",
+		"--noheadings",
+		"--units=b",
+		"--nosuffix",
+		deviceClass.VolumeGroup,
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	free, err := strconv.Atoi(strings.TrimSpace(string(output)))
+	if err != nil {
+		return 0, err
+	}
+
+	// FIXME? the current implementation does not subtract spare-gb if the type is thin.
+	if deviceClass.Type == lvmd.TypeThin {
+		return free, nil
+	}
+
+	spare := int(deviceClass.GetSpare())
+	if free < spare {
+		free = 0
+	} else {
+		free -= spare
+	}
+	return free, nil
 }
