@@ -127,10 +127,6 @@ func testNode() {
 		metricFamilies, err := parser.TextToMetricFamilies(bytes.NewReader(stdout))
 		Expect(err).ShouldNot(HaveOccurred())
 
-		// For CSI sidecar metrics access checking
-		_, err = kubectl("exec", "-n", "topolvm-system", pod.Name, "-c=topolvm-node", "--", "curl", "http://localhost:9808/metrics")
-		Expect(err).ShouldNot(HaveOccurred())
-
 		foundSize := false
 		for _, family := range metricFamilies {
 			if family.GetName() == "topolvm_volumegroup_size_bytes" {
@@ -186,5 +182,14 @@ func testNode() {
 			break
 		}
 		Expect(found).Should(BeTrue())
+	})
+
+	Describe("CSI sidecar of topolvm-node", func() {
+		It("should open a port for metrics", func() {
+			Eventually(func() error {
+				_, err := kubectl("exec", "-n", "topolvm-system", "daemonset/topolvm-node", "-c=topolvm-node", "--", "curl", "http://localhost:9808/metrics")
+				return err
+			}).Should(Succeed())
+		})
 	})
 }
