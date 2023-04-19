@@ -3,7 +3,6 @@ package e2e
 import (
 	"bytes"
 	_ "embed"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -47,48 +46,33 @@ func testMetrics() {
 
 			By("waiting for the new Pod to be running")
 			var nodeIP string
-			Eventually(func() error {
+			Eventually(func(g Gomega) {
 				var pod corev1.Pod
 				err := getObjects(&pod, "pods", "-n", nsMetricsTest, "pause")
-				if err != nil {
-					return err
-				}
-				if pod.Status.Phase != corev1.PodRunning {
-					return errors.New("pod is not running")
-				}
+				g.Expect(err).ShouldNot(HaveOccurred())
+
+				g.Expect(pod.Status.Phase).To(Equal(corev1.PodRunning))
+
 				nodeIP = pod.Status.HostIP
-				return nil
 			}).Should(Succeed())
 
 			By("parsing prometheus metrics")
-			Eventually(func() error {
+			Eventually(func(g Gomega) {
 				mfs, err := getMetricsFamily(nodeIP)
-				if err != nil {
-					return err
-				}
+				g.Expect(err).ShouldNot(HaveOccurred())
+
 				getGaugeValue := getGaugeValueWithLabels(map[string]string{
 					"namespace":             nsMetricsTest,
 					"persistentvolumeclaim": "topo-pvc",
 				})
 
-				mf, ok := mfs["kubelet_volume_stats_capacity_bytes"]
-				if !ok {
-					return errors.New("no kubelet_volume_stats_capacity_bytes metrics family")
-				}
-				capacity := getGaugeValue(mf)
-				if capacity == 0 {
-					return errors.New("no volume capacity bytes")
-				}
+				mf := mfs["kubelet_volume_stats_capacity_bytes"]
+				g.Expect(mf).NotTo(BeNil())
+				g.Expect(getGaugeValue(mf)).NotTo(BeEquivalentTo(0))
 
-				mf, ok = mfs["kubelet_volume_stats_available_bytes"]
-				if !ok {
-					return errors.New("no kubelet_volume_stats_available_bytes metrics family")
-				}
-				available := getGaugeValue(mf)
-				if available == 0 {
-					return errors.New("no volume available bytes")
-				}
-				return nil
+				mf = mfs["kubelet_volume_stats_available_bytes"]
+				g.Expect(mf).NotTo(BeNil())
+				g.Expect(getGaugeValue(mf)).NotTo(BeEquivalentTo(0))
 			}, 3*time.Minute).Should(Succeed())
 		})
 
@@ -100,14 +84,13 @@ func testMetrics() {
 
 			pod := pods.Items[0]
 			var mfs map[string]*dto.MetricFamily
-			Eventually(func() error {
+			Eventually(func(g Gomega) {
 				stdout, err := kubectl("exec", "-n", "topolvm-system", pod.Name, "-c=topolvm-node", "--", "curl", "http://localhost:8080/metrics")
-				if err != nil {
-					return err
-				}
+				g.Expect(err).ShouldNot(HaveOccurred())
+
 				var parser expfmt.TextParser
 				mfs, err = parser.TextToMetricFamilies(bytes.NewReader(stdout))
-				return err
+				g.Expect(err).ShouldNot(HaveOccurred())
 			}).Should(Succeed())
 
 			By("loading LVMD config associating to the pod")
