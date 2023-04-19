@@ -1,17 +1,24 @@
 package e2e
 
 import (
+	"bytes"
 	_ "embed"
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
+	"github.com/topolvm/topolvm/lvmd"
+	"github.com/topolvm/topolvm/pkg/lvmd/cmd"
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/yaml"
 )
 
 const nsMetricsTest = "metrics-test"
@@ -32,52 +39,120 @@ func testMetrics() {
 		commonAfterEach(cc)
 	})
 
-	It("should export volume metrics", func() {
-		By("creating a PVC and Pod")
-		_, err := kubectlWithInput(metricsManifest, "apply", "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred())
+	Describe("topolvm-node", func() {
+		It("should expose volume metrics", func() {
+			By("creating a PVC and Pod")
+			_, err := kubectlWithInput(metricsManifest, "apply", "-f", "-")
+			Expect(err).ShouldNot(HaveOccurred())
 
-		By("waiting for the new Pod to be running")
-		var nodeIP string
-		Eventually(func() error {
-			var pod corev1.Pod
-			err := getObjects(&pod, "pods", "-n", nsMetricsTest, "pause")
-			if err != nil {
+			By("waiting for the new Pod to be running")
+			var nodeIP string
+			Eventually(func() error {
+				var pod corev1.Pod
+				err := getObjects(&pod, "pods", "-n", nsMetricsTest, "pause")
+				if err != nil {
+					return err
+				}
+				if pod.Status.Phase != corev1.PodRunning {
+					return errors.New("pod is not running")
+				}
+				nodeIP = pod.Status.HostIP
+				return nil
+			}).Should(Succeed())
+
+			By("parsing prometheus metrics")
+			Eventually(func() error {
+				mfs, err := getMetricsFamily(nodeIP)
+				if err != nil {
+					return err
+				}
+				getGaugeValue := getGaugeValueWithLabels(map[string]string{
+					"namespace":             nsMetricsTest,
+					"persistentvolumeclaim": "topo-pvc",
+				})
+
+				mf, ok := mfs["kubelet_volume_stats_capacity_bytes"]
+				if !ok {
+					return errors.New("no kubelet_volume_stats_capacity_bytes metrics family")
+				}
+				capacity := getGaugeValue(mf)
+				if capacity == 0 {
+					return errors.New("no volume capacity bytes")
+				}
+
+				mf, ok = mfs["kubelet_volume_stats_available_bytes"]
+				if !ok {
+					return errors.New("no kubelet_volume_stats_available_bytes metrics family")
+				}
+				available := getGaugeValue(mf)
+				if available == 0 {
+					return errors.New("no volume available bytes")
+				}
+				return nil
+			}, 3*time.Minute).Should(Succeed())
+		})
+
+		It("should expose VG metrics", func() {
+			By("reading metrics API endpoint")
+			var pods corev1.PodList
+			err := getObjects(&pods, "pods", "-n", "topolvm-system", "-l=app.kubernetes.io/component=node,app.kubernetes.io/name=topolvm")
+			Expect(err).ShouldNot(HaveOccurred())
+
+			pod := pods.Items[0]
+			var mfs map[string]*dto.MetricFamily
+			Eventually(func() error {
+				stdout, err := kubectl("exec", "-n", "topolvm-system", pod.Name, "-c=topolvm-node", "--", "curl", "http://localhost:8080/metrics")
+				if err != nil {
+					return err
+				}
+				var parser expfmt.TextParser
+				mfs, err = parser.TextToMetricFamilies(bytes.NewReader(stdout))
 				return err
-			}
-			if pod.Status.Phase != corev1.PodRunning {
-				return errors.New("pod is not running")
-			}
-			nodeIP = pod.Status.HostIP
-			return nil
-		}).Should(Succeed())
+			}).Should(Succeed())
 
-		By("parsing prometheus metrics")
-		Eventually(func() error {
-			mfs, err := getMetricsFamily(nodeIP)
-			if err != nil {
+			By("loading LVMD config associating to the pod")
+			deviceClasses, err := loadDeviceClasses(pod.Spec.NodeName)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			By("checking topolvm_volumegroup_size_bytes metric exist")
+			Expect(mfs).To(HaveKey("topolvm_volumegroup_size_bytes"))
+
+			By("checking topolvm_volumegroup_available_bytes metric")
+			mf := mfs["topolvm_volumegroup_available_bytes"]
+			Expect(mf).NotTo(BeNil())
+
+			Expect(mf.Metric).Should(HaveLen(len(deviceClasses)))
+
+			for _, deviceClass := range deviceClasses {
+				vgFree, err := vgFreeByte(deviceClass)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				available := getGaugeValueWithLabels(map[string]string{
+					"device_class": deviceClass.Name,
+				})(mf)
+				Expect(available).To(Equal(vgFree))
+			}
+		})
+	})
+
+	Describe("CSI sidecar of topolvm-node", func() {
+		It("should open a port for metrics", func() {
+			Eventually(func() error {
+				_, err := kubectl("exec", "-n", "topolvm-system", "daemonset/topolvm-node", "-c=topolvm-node", "--", "curl", "http://localhost:9808/metrics")
 				return err
-			}
+			}).Should(Succeed())
+		})
+	})
 
-			mf, ok := mfs["kubelet_volume_stats_capacity_bytes"]
-			if !ok {
-				return errors.New("no kubelet_volume_stats_capacity_bytes metrics family")
+	Describe("CSI sidecar of topolvm-controller", func() {
+		It("should open ports for metrics", func() {
+			for _, port := range []string{"9808", "9809", "9810", "9811"} {
+				Eventually(func() error {
+					_, err := kubectl("exec", "-n", "topolvm-system", "deploy/topolvm-controller", "-c=topolvm-controller", "--", "curl", "http://localhost:"+port+"/metrics")
+					return err
+				}).Should(Succeed())
 			}
-			capacity := getGaugeValue("topo-pvc", mf)
-			if capacity == 0 {
-				return errors.New("no volume capacity bytes")
-			}
-
-			mf, ok = mfs["kubelet_volume_stats_available_bytes"]
-			if !ok {
-				return errors.New("no kubelet_volume_stats_available_bytes metrics family")
-			}
-			available := getGaugeValue("topo-pvc", mf)
-			if available == 0 {
-				return errors.New("no volume available bytes")
-			}
-			return nil
-		}, 3*time.Minute).Should(Succeed())
+		})
 	})
 }
 
@@ -92,24 +167,22 @@ func getMetricsFamily(nodeIP string) (map[string]*dto.MetricFamily, error) {
 	return parser.TextToMetricFamilies(resp.Body)
 }
 
-func getGaugeValue(pvc string, mf *dto.MetricFamily) int64 {
-	for _, m := range mf.Metric {
-		labels := map[string]string{
-			"namespace":             nsMetricsTest,
-			"persistentvolumeclaim": pvc,
+func getGaugeValueWithLabels(labels map[string]string) func(*dto.MetricFamily) int64 {
+	return func(mf *dto.MetricFamily) int64 {
+		for _, m := range mf.Metric {
+			if !haveLabels(m, labels) {
+				continue
+			}
+			if m.Gauge == nil {
+				return 0
+			}
+			if m.Gauge.Value == nil {
+				return 0
+			}
+			return int64(*m.Gauge.Value)
 		}
-		if !haveLabels(m, labels) {
-			continue
-		}
-		if m.Gauge == nil {
-			return 0
-		}
-		if m.Gauge.Value == nil {
-			return 0
-		}
-		return int64(*m.Gauge.Value)
+		return 0
 	}
-	return 0
 }
 
 func haveLabels(m *dto.Metric, labels map[string]string) bool {
@@ -123,4 +196,68 @@ OUTER:
 		return false
 	}
 	return true
+}
+
+func loadDeviceClasses(node string) ([]*lvmd.DeviceClass, error) {
+	var data []byte
+	if isDaemonsetLvmdEnvSet() {
+		var cm corev1.ConfigMap
+		err := getObjects(&cm, "cm", "-n", "topolvm-system", "topolvm-lvmd-0")
+		if err != nil {
+			return nil, err
+		}
+		data = []byte(cm.Data["lvmd.yaml"])
+	} else {
+		path, ok := map[string]string{
+			"topolvm-e2e-worker":  "lvmd1.yaml",
+			"topolvm-e2e-worker2": "lvmd2.yaml",
+			"topolvm-e2e-worker3": "lvmd3.yaml",
+		}[node]
+		if !ok {
+			return nil, fmt.Errorf("unknown node: %s", node)
+		}
+		var err error
+		data, err = os.ReadFile(path)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var config cmd.Config
+	err := yaml.Unmarshal(data, &config)
+	if err != nil {
+		return nil, err
+	}
+	return config.DeviceClasses, nil
+}
+
+func vgFreeByte(deviceClass *lvmd.DeviceClass) (int64, error) {
+	output, err := execAtLocal("sudo", nil, "vgs",
+		"-o", "vg_free",
+		"--noheadings",
+		"--units=b",
+		"--nosuffix",
+		deviceClass.VolumeGroup,
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	free, err := strconv.Atoi(strings.TrimSpace(string(output)))
+	if err != nil {
+		return 0, err
+	}
+
+	// FIXME? the current implementation does not subtract spare-gb if the type is thin.
+	if deviceClass.Type == lvmd.TypeThin {
+		return int64(free), nil
+	}
+
+	spare := int(deviceClass.GetSpare())
+	if free < spare {
+		free = 0
+	} else {
+		free -= spare
+	}
+	return int64(free), nil
 }
