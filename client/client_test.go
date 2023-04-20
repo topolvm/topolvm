@@ -310,7 +310,35 @@ var _ = Describe("client", func() {
 				})
 			})
 
-			Context("StatusWriter", func() {
+			Context("SubResourceClient", func() {
+				Context("Get", func() {
+					It("should not be implemented", func() {
+						i := 0
+						lv := currentLV(i)
+						err := k8sDelegatedClient.Create(testCtx, lv)
+						Expect(err).ShouldNot(HaveOccurred())
+
+						c := NewWrappedClient(k8sDelegatedClient)
+						err = c.SubResource("status").Get(testCtx, lv, nil)
+						Expect(err).Should(HaveOccurred())
+					})
+				})
+
+				Context("Create", func() {
+					It("should not be implemented", func() {
+						i := 0
+						lv := currentLV(i)
+						err := k8sDelegatedClient.Create(testCtx, lv)
+						Expect(err).ShouldNot(HaveOccurred())
+
+						c := NewWrappedClient(k8sDelegatedClient)
+						err = c.SubResource("status").Create(testCtx, lv, nil)
+						Expect(err).Should(HaveOccurred())
+					})
+				})
+			})
+
+			Context("SubResourceWriter", func() {
 				Context("Update", func() {
 					It("standard case", func() {
 						i := 0
@@ -1359,7 +1387,35 @@ var _ = Describe("client", func() {
 				})
 			})
 
-			Context("StatusWriter", func() {
+			Context("SubResourceClient", func() {
+				Context("Get", func() {
+					It("should not be implemented", func() {
+						i := 0
+						lv := currentLV(i)
+						err := k8sDelegatedClient.Create(testCtx, lv)
+						Expect(err).ShouldNot(HaveOccurred())
+
+						c := NewWrappedClient(k8sDelegatedClient)
+						err = c.SubResource("status").Get(testCtx, lv, nil)
+						Expect(err).Should(HaveOccurred())
+					})
+				})
+
+				Context("Create", func() {
+					It("should not be implemented", func() {
+						i := 0
+						lv := currentLV(i)
+						err := k8sDelegatedClient.Create(testCtx, lv)
+						Expect(err).ShouldNot(HaveOccurred())
+
+						c := NewWrappedClient(k8sDelegatedClient)
+						err = c.SubResource("status").Create(testCtx, lv, nil)
+						Expect(err).Should(HaveOccurred())
+					})
+				})
+			})
+
+			Context("SubResourceWriter", func() {
 				BeforeEach(func() {
 					svc := &corev1.Service{}
 					svc.Name = configmapName
