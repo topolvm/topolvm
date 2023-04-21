@@ -7,8 +7,8 @@ EXTERNAL_SNAPSHOTTER_VERSION ?= v6.0.1
 USE_LEGACY ?= ""
 
 ## Dependency versions
-MINIKUBE_VERSION := v1.28.0
-CERT_MANAGER_VERSION := v1.7.0
+MINIKUBE_VERSION := v1.30.1
+CERT_MANAGER_VERSION := v1.11.1
 GINKGO_VERSION := $(shell awk '/github.com\/onsi\/ginkgo\/v2/ {print $$2}' ../go.mod)
 
 BINDIR := $(shell pwd)/bin

@@ -50,14 +50,14 @@ jobs:
           # These tools are required to use minikube for Kubernetes v1.24+
 
           # For CNI plugins, see https://github.com/Mirantis/cri-dockerd/blob/v0.2.6/README.md#important
-          CNI_PLUGINS_VERSION="v1.1.1"
+          CNI_PLUGINS_VERSION="v1.2.0"
           curl -L -o cni-plugins.tgz https://github.com/containernetworking/plugins/releases/download/${CNI_PLUGINS_VERSION}/cni-plugins-linux-amd64-${CNI_PLUGINS_VERSION}.tgz
           sudo mkdir -p /opt/cni/bin
           sudo tar -C /opt/cni/bin -xzf cni-plugins.tgz
 
           # Install cri-docker
           git clone -n https://github.com/Mirantis/cri-dockerd
-          CRI_DOCKERD_VERSION="v0.2.6"
+          CRI_DOCKERD_VERSION="v0.3.1"
           cd cri-dockerd
           git checkout ${CRI_DOCKERD_VERSION}
           mkdir bin
@@ -75,7 +75,7 @@ jobs:
           sudo systemctl enable cri-docker.service
           sudo systemctl enable --now cri-docker.socket
 
-          CRICTL_VERSION="v1.25.0"
+          CRICTL_VERSION="v1.27.0"
           curl -L https://github.com/kubernetes-sigs/cri-tools/releases/download/$CRICTL_VERSION/crictl-${CRICTL_VERSION}-linux-amd64.tar.gz --output crictl-${CRICTL_VERSION}-linux-amd64.tar.gz
           sudo tar zxvf crictl-$CRICTL_VERSION-linux-amd64.tar.gz -C /usr/local/bin
       - run: make -C e2e daemonset-lvmd/create-vg
