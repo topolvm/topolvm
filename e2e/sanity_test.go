@@ -1,8 +1,6 @@
 package e2e
 
 import (
-	"errors"
-	"fmt"
 	"os"
 	"path"
 
@@ -14,36 +12,24 @@ import (
 )
 
 func testSanity() {
+	BeforeEach(func() {
+		_, err := kubectl("delete", "nodes", "topolvm-e2e-worker2", "--ignore-not-found")
+		Expect(err).ShouldNot(HaveOccurred())
+		_, err = kubectl("delete", "nodes", "topolvm-e2e-worker3", "--ignore-not-found")
+		Expect(err).ShouldNot(HaveOccurred())
+
+		Eventually(func(g Gomega) {
+			var ds appsv1.DaemonSet
+			err := getObjects(&ds, "ds", "-n", "topolvm-system", "topolvm-node")
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(ds.Status.NumberAvailable).To(BeEquivalentTo(1))
+		}).Should(Succeed())
+	})
+
 	baseDir := "/tmp/topolvm/worker1/plugins/" + topolvm.GetPluginName() + "/"
 	if isDaemonsetLvmdEnvSet() {
 		baseDir = "/var/lib/kubelet/plugins/" + topolvm.GetPluginName() + "/"
 	}
-
-	It("should add node selector to node DaemonSet for CSI test", func() {
-		// Skip deleting node because there is just one node in daemonset lvmd test environment.
-		skipIfDaemonsetLvmd()
-
-		if os.Getenv("SANITY_TEST_WITH_THIN_DEVICECLASS") == "true" {
-			// Normally this node is deleted in testCleanup
-			_, err := kubectl("delete", "nodes", "topolvm-e2e-worker3")
-			Expect(err).ShouldNot(HaveOccurred())
-		}
-		_, err := kubectl("delete", "nodes", "topolvm-e2e-worker2")
-		Expect(err).ShouldNot(HaveOccurred())
-
-		Eventually(func() error {
-			var ds appsv1.DaemonSet
-			err := getObjects(&ds, "ds", "-n", "topolvm-system", "topolvm-node")
-			if err != nil {
-				return err
-			}
-			fmt.Println("topolvm-node", "ds.Status.NumberAvailable", ds.Status.NumberAvailable)
-			if ds.Status.NumberAvailable != 1 {
-				return errors.New("node daemonset is not ready")
-			}
-			return nil
-		}).Should(Succeed())
-	})
 
 	tc := sanity.NewTestConfig()
 	tc.Address = path.Join(baseDir, "/node/csi-topolvm.sock")
