@@ -16,6 +16,10 @@ import (
 
 var kubectlPath string
 
+// skipSpecs holds regexp strings that are used to skip tests.
+// It is intended to be setup by init function on each test file if necessary.
+var skipSpecs []string
+
 func TestMtest(t *testing.T) {
 	if os.Getenv("E2ETEST") == "" {
 		t.Skip("Run under e2e/")
@@ -27,7 +31,10 @@ func TestMtest(t *testing.T) {
 	SetDefaultEventuallyPollingInterval(time.Second)
 	SetDefaultEventuallyTimeout(time.Minute)
 
-	RunSpecs(t, "Test on sanity")
+	suiteConfig, _ := GinkgoConfiguration()
+	suiteConfig.SkipStrings = append(suiteConfig.SkipStrings, skipSpecs...)
+
+	RunSpecs(t, "Test on sanity", suiteConfig)
 }
 
 func createNamespace(ns string) {
@@ -112,19 +119,17 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = Describe("TopoLVM", func() {
-	if os.Getenv("SANITY_TEST_WITH_THIN_DEVICECLASS") != "true" {
-		Context("scheduling", testScheduling)
-		Context("metrics", testMetrics)
-		Context("mount option", testMountOption)
-		Context("ReadWriteOncePod", testReadWriteOncePod)
-		Context("e2e", testE2E)
-		Context("multiple-vg", testMultipleVolumeGroups)
-		Context("lvcreate-options", testLVCreateOptions)
-		Context("thin-provisioning", testThinProvisioning)
-		Context("thin-snapshot-restore", testSnapRestore)
-		Context("thin-volume-cloning", testPVCClone)
-		Context("logical-volume", testLogicalVolume)
-		Context("node delete", testNodeDelete)
-	}
+	Context("scheduling", testScheduling)
+	Context("metrics", testMetrics)
+	Context("mount option", testMountOption)
+	Context("ReadWriteOncePod", testReadWriteOncePod)
+	Context("e2e", testE2E)
+	Context("multiple-vg", testMultipleVolumeGroups)
+	Context("lvcreate-options", testLVCreateOptions)
+	Context("thin-provisioning", testThinProvisioning)
+	Context("thin-snapshot-restore", testSnapRestore)
+	Context("thin-volume-cloning", testPVCClone)
+	Context("logical-volume", testLogicalVolume)
+	Context("node delete", testNodeDelete)
 	Context("CSI sanity", testSanity)
 })

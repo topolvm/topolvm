@@ -58,12 +58,6 @@ jobs:
     with:
       test_scheduler_manifest: "deployment"
 
-  thin-snapshot-csi:
-    needs: build
-    uses: ./.github/workflows/e2e-k8s-workflow.yaml
-    with:
-      thin_csi_sanity: "true"
-
   use-legacy:
     needs: build
     uses: ./.github/workflows/e2e-k8s-workflow.yaml

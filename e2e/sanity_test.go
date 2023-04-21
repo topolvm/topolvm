@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"os"
 	"path"
 
 	"github.com/kubernetes-csi/csi-test/v5/pkg/sanity"
@@ -10,6 +9,18 @@ import (
 	"github.com/topolvm/topolvm"
 	appsv1 "k8s.io/api/apps/v1"
 )
+
+func init() {
+	// TopoLVM claims having capabilities for snapshot and clone
+	// but they are not implemented for thick volumes.
+	// Note: specify as narrow conditions as possible to avoid matching other than expected.
+	skipSpecs = append(skipSpecs,
+		"Thick LVM.*CreateVolume.*source snapshot",
+		"Thick LVM.*CreateVolume.*source volume",
+		"Thick LVM.*CreateSnapshot",
+		"Thick LVM.*DeleteSnapshot",
+	)
+}
 
 func testSanity() {
 	BeforeEach(func() {
@@ -55,12 +66,17 @@ func testSanity() {
 		return sanity.PathIsOther, err
 	}
 
-	if os.Getenv("SANITY_TEST_WITH_THIN_DEVICECLASS") == "true" {
-		// csi.storage.k8s.io/fstype=xfs,topolvm.(io|cybozu.com)/device-class=thin
-		volParams := make(map[string]string)
-		volParams["csi.storage.k8s.io/fstype"] = "xfs"
-		volParams[topolvm.GetDeviceClassKey()] = "thin"
-		tc.TestVolumeParameters = volParams
+	Context("Thick LVM", func() {
+		sanity.GinkgoTest(&tc)
+	})
+
+	thinTC := tc
+	// csi.storage.k8s.io/fstype=xfs,topolvm.(io|cybozu.com)/device-class=thin
+	thinTC.TestVolumeParameters = map[string]string{
+		"csi.storage.k8s.io/fstype": "xfs",
+		topolvm.GetDeviceClassKey(): "thin",
 	}
-	sanity.GinkgoTest(&tc)
+	Context("Thin LVM", func() {
+		sanity.GinkgoTest(&thinTC)
+	})
 }
