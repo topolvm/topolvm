@@ -50,17 +50,14 @@ func randomString(n int) string {
 	return string(b)
 }
 
-func waitKindnet() error {
+func waitKindnet(g Gomega) {
+	var nodes corev1.NodeList
+	err := getObjects(&nodes, "node")
+	g.Expect(err).ShouldNot(HaveOccurred())
 	var ds appsv1.DaemonSet
-	err := getObjects(&ds, "ds", "-n", "kube-system", "kindnet")
-	if err != nil {
-		return err
-	}
-
-	if ds.Status.NumberReady != 4 {
-		return fmt.Errorf("numberReady is not 4: %d", ds.Status.NumberReady)
-	}
-	return nil
+	err = getObjects(&ds, "ds", "-n", "kube-system", "kindnet")
+	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(ds.Status.NumberReady).To(BeEquivalentTo(len(nodes.Items)))
 }
 
 func isDaemonsetLvmdEnvSet() bool {
