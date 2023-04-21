@@ -130,7 +130,7 @@ var _ = Describe("TopoLVM", func() {
 		Context("thin-snapshot-restore", testSnapRestore)
 		Context("thin-volume-cloning", testPVCClone)
 		Context("logical-volume", testLogicalVolume)
-		Context("cleanup", testCleanup)
+		Context("node delete", testNodeDelete)
 	}
 	Context("CSI sanity", testSanity)
 })
