@@ -15,7 +15,6 @@ import (
 )
 
 var kubectlPath string
-var skipMessageForStorageCapacity string = "skip because current environment is storage capacity"
 
 func TestMtest(t *testing.T) {
 	if os.Getenv("E2ETEST") == "" {
