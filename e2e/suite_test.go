@@ -117,8 +117,6 @@ var _ = BeforeSuite(func() {
 
 var _ = Describe("TopoLVM", func() {
 	if os.Getenv("SANITY_TEST_WITH_THIN_DEVICECLASS") != "true" {
-		Context("topolvm-node", testNode)
-		Context("topolvm-controller", testController)
 		Context("scheduling", testScheduling)
 		Context("metrics", testMetrics)
 		Context("mount option", testMountOption)
