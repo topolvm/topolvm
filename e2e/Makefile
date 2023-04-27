@@ -2,7 +2,6 @@
 KUBERNETES_VERSION ?= 1.25.3
 TEST_SCHEDULER_MANIFEST ?= daemonset
 STORAGE_CAPACITY ?= false
-SANITY_TEST_WITH_THIN_DEVICECLASS ?= false
 EXTERNAL_SNAPSHOTTER_VERSION ?= v6.0.1
 USE_LEGACY ?= ""
 
@@ -39,12 +38,6 @@ KIND_CONFIG="topolvm-cluster.yaml"
 MINIKUBE_FEATURE_GATES="ReadWriteOncePod=true"
 
 HELM_VALUES_FILE_LVMD := manifests/values/daemonset-lvmd-storage-capacity.yaml
-
-ifeq ($(SANITY_TEST_WITH_THIN_DEVICECLASS),false)
-GINKGO_SKIP_SNAPSHOT_CSI_TESTS := -skip='snapshot' -skip='CreateSnapshot' -skip='DeleteSnapshot' -skip='source volume'
-else
-GINKGO_SKIP_SNAPSHOT_CSI_TESTS :=
-endif
 
 SCHEDULER_CONFIG := scheduler-config-$(TEST_SCHEDULER_MANIFEST).yaml
 
@@ -204,7 +197,7 @@ run-test: $(GINKGO)
 	E2ETEST=1 \
 	KUBECTL=$(KUBECTL) \
 	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
-	$(GINKGO) $(GINKGO_SKIP_SNAPSHOT_CSI_TESTS) --fail-fast -v $(GINKGO_FLAGS) .
+	$(GINKGO) --fail-fast -v $(GINKGO_FLAGS) .
 
 .PHONY: test
 test:
@@ -339,7 +332,7 @@ daemonset-lvmd/test: topolvm.img $(GINKGO) $(HELM) $(KUBECTL)
 	KUBECTL=$(KUBECTL) \
 	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
 	DAEMONSET_LVMD=true \
-	$(GINKGO) -skip='snapshot' -skip='CreateSnapshot' -skip='DeleteSnapshot'  -skip='source volume' --fail-fast -v .
+	$(GINKGO) --fail-fast -v .
 
 .PHONY: daemonset-lvmd/clean
 daemonset-lvmd/clean: daemonset-lvmd/delete-minikube daemonset-lvmd/remove-vg

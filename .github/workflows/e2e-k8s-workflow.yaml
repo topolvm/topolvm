@@ -4,9 +4,6 @@ on:
       test_scheduler_manifest:
         default: "daemonset"
         type: string
-      thin_csi_sanity:
-        default: "false"
-        type: string
       use_legacy:
         default: ""
         type: string
@@ -22,7 +19,6 @@ jobs:
     env:
       KUBERNETES_VERSION: ${{ matrix.kubernetes_versions }}
       TEST_SCHEDULER_MANIFEST: ${{ inputs.test_scheduler_manifest }}
-      SANITY_TEST_WITH_THIN_DEVICECLASS: ${{ inputs.thin_csi_sanity }}
       USE_LEGACY: ${{ inputs.use_legacy }}
     steps:
       - uses: actions/checkout@v3

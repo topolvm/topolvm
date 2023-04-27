@@ -35,6 +35,8 @@ var nodeCapacityPVC2YAML []byte
 var e2eGenericEphemeralVolumeYAML []byte
 
 func testE2E() {
+	skipMessageForStorageCapacity := "skip because current environment is storage capacity"
+
 	testNamespacePrefix := "e2etest-"
 	var ns string
 	var cc CleanupContext

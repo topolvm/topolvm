@@ -6,8 +6,16 @@ metadata:
     type: test
 spec:
   containers:
-    - name: pause
-      image: registry.k8s.io/pause
+    - name: ubuntu
+      image: ubuntu:20.04
+      command:
+        - bash
+        - -c
+        - |
+          sleep inf &
+          trap "kill -SIGTERM $!" SIGTERM
+          wait $!
+          exit
       volumeMounts:
       - mountPath: /test1
         name: my-volume

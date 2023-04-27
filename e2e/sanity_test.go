@@ -1,9 +1,6 @@
 package e2e
 
 import (
-	"errors"
-	"fmt"
-	"os"
 	"path"
 
 	"github.com/kubernetes-csi/csi-test/v5/pkg/sanity"
@@ -13,37 +10,37 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 )
 
+func init() {
+	// TopoLVM claims having capabilities for snapshot and clone
+	// but they are not implemented for thick volumes.
+	// Note: specify as narrow conditions as possible to avoid matching other than expected.
+	skipSpecs = append(skipSpecs,
+		"Thick LVM.*CreateVolume.*source snapshot",
+		"Thick LVM.*CreateVolume.*source volume",
+		"Thick LVM.*CreateSnapshot",
+		"Thick LVM.*DeleteSnapshot",
+	)
+}
+
 func testSanity() {
+	BeforeEach(func() {
+		_, err := kubectl("delete", "nodes", "topolvm-e2e-worker2", "--ignore-not-found")
+		Expect(err).ShouldNot(HaveOccurred())
+		_, err = kubectl("delete", "nodes", "topolvm-e2e-worker3", "--ignore-not-found")
+		Expect(err).ShouldNot(HaveOccurred())
+
+		Eventually(func(g Gomega) {
+			var ds appsv1.DaemonSet
+			err := getObjects(&ds, "ds", "-n", "topolvm-system", "topolvm-node")
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(ds.Status.NumberAvailable).To(BeEquivalentTo(1))
+		}).Should(Succeed())
+	})
+
 	baseDir := "/tmp/topolvm/worker1/plugins/" + topolvm.GetPluginName() + "/"
 	if isDaemonsetLvmdEnvSet() {
 		baseDir = "/var/lib/kubelet/plugins/" + topolvm.GetPluginName() + "/"
 	}
-
-	It("should add node selector to node DaemonSet for CSI test", func() {
-		// Skip deleting node because there is just one node in daemonset lvmd test environment.
-		skipIfDaemonsetLvmd()
-
-		if os.Getenv("SANITY_TEST_WITH_THIN_DEVICECLASS") == "true" {
-			// Normally this node is deleted in testCleanup
-			_, err := kubectl("delete", "nodes", "topolvm-e2e-worker3")
-			Expect(err).ShouldNot(HaveOccurred())
-		}
-		_, err := kubectl("delete", "nodes", "topolvm-e2e-worker2")
-		Expect(err).ShouldNot(HaveOccurred())
-
-		Eventually(func() error {
-			var ds appsv1.DaemonSet
-			err := getObjects(&ds, "ds", "-n", "topolvm-system", "topolvm-node")
-			if err != nil {
-				return err
-			}
-			fmt.Println("topolvm-node", "ds.Status.NumberAvailable", ds.Status.NumberAvailable)
-			if ds.Status.NumberAvailable != 1 {
-				return errors.New("node daemonset is not ready")
-			}
-			return nil
-		}).Should(Succeed())
-	})
 
 	tc := sanity.NewTestConfig()
 	tc.Address = path.Join(baseDir, "/node/csi-topolvm.sock")
@@ -69,12 +66,17 @@ func testSanity() {
 		return sanity.PathIsOther, err
 	}
 
-	if os.Getenv("SANITY_TEST_WITH_THIN_DEVICECLASS") == "true" {
-		// csi.storage.k8s.io/fstype=xfs,topolvm.(io|cybozu.com)/device-class=thin
-		volParams := make(map[string]string)
-		volParams["csi.storage.k8s.io/fstype"] = "xfs"
-		volParams[topolvm.GetDeviceClassKey()] = "thin"
-		tc.TestVolumeParameters = volParams
+	Context("Thick LVM", func() {
+		sanity.GinkgoTest(&tc)
+	})
+
+	thinTC := tc
+	// csi.storage.k8s.io/fstype=xfs,topolvm.(io|cybozu.com)/device-class=thin
+	thinTC.TestVolumeParameters = map[string]string{
+		"csi.storage.k8s.io/fstype": "xfs",
+		topolvm.GetDeviceClassKey(): "thin",
 	}
-	sanity.GinkgoTest(&tc)
+	Context("Thin LVM", func() {
+		sanity.GinkgoTest(&thinTC)
+	})
 }

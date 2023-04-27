@@ -58,7 +58,7 @@ func testSnapRestore() {
 		_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod", volName, nodeName))
+		thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod", volName, topolvm.GetTopologyNodeKey(), nodeName))
 		_, err = kubectlWithInput(thinPodYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -177,7 +177,7 @@ func testSnapRestore() {
 		_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod", volName, nodeName))
+		thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod", volName, topolvm.GetTopologyNodeKey(), nodeName))
 		_, err = kubectlWithInput(thinPodYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		By("verifying if the PVC is created")
@@ -223,7 +223,7 @@ func testSnapRestore() {
 		By("verifying if the restored PVC is created")
 		Eventually(func() error {
 			var pvc corev1.PersistentVolumeClaim
-			err := getObjects(&pvc, "pvc", "-n", nsSnapTest, "pvc", restorePVCName)
+			err := getObjects(&pvc, "pvc", "-n", nsSnapTest, restorePVCName)
 			if err != nil {
 				return fmt.Errorf("failed to get PVC. err: %w", err)
 			}

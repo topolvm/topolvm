@@ -15,7 +15,10 @@ import (
 )
 
 var kubectlPath string
-var skipMessageForStorageCapacity string = "skip because current environment is storage capacity"
+
+// skipSpecs holds regexp strings that are used to skip tests.
+// It is intended to be setup by init function on each test file if necessary.
+var skipSpecs []string
 
 func TestMtest(t *testing.T) {
 	if os.Getenv("E2ETEST") == "" {
@@ -28,7 +31,10 @@ func TestMtest(t *testing.T) {
 	SetDefaultEventuallyPollingInterval(time.Second)
 	SetDefaultEventuallyTimeout(time.Minute)
 
-	RunSpecs(t, "Test on sanity")
+	suiteConfig, _ := GinkgoConfiguration()
+	suiteConfig.SkipStrings = append(suiteConfig.SkipStrings, skipSpecs...)
+
+	RunSpecs(t, "Test on sanity", suiteConfig)
 }
 
 func createNamespace(ns string) {
@@ -50,17 +56,14 @@ func randomString(n int) string {
 	return string(b)
 }
 
-func waitKindnet() error {
+func waitKindnet(g Gomega) {
+	var nodes corev1.NodeList
+	err := getObjects(&nodes, "node")
+	g.Expect(err).ShouldNot(HaveOccurred())
 	var ds appsv1.DaemonSet
-	err := getObjects(&ds, "ds", "-n", "kube-system", "kindnet")
-	if err != nil {
-		return err
-	}
-
-	if ds.Status.NumberReady != 4 {
-		return fmt.Errorf("numberReady is not 4: %d", ds.Status.NumberReady)
-	}
-	return nil
+	err = getObjects(&ds, "ds", "-n", "kube-system", "kindnet")
+	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(ds.Status.NumberReady).To(BeEquivalentTo(len(nodes.Items)))
 }
 
 func isDaemonsetLvmdEnvSet() bool {
@@ -116,19 +119,17 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = Describe("TopoLVM", func() {
-	if os.Getenv("SANITY_TEST_WITH_THIN_DEVICECLASS") != "true" {
-		Context("scheduling", testScheduling)
-		Context("metrics", testMetrics)
-		Context("mount option", testMountOption)
-		Context("ReadWriteOncePod", testReadWriteOncePod)
-		Context("e2e", testE2E)
-		Context("multiple-vg", testMultipleVolumeGroups)
-		Context("lvcreate-options", testLVCreateOptions)
-		Context("thin-provisioning", testThinProvisioning)
-		Context("thin-snapshot-restore", testSnapRestore)
-		Context("thin-volume-cloning", testPVCClone)
-		Context("logical-volume", testLogicalVolume)
-		Context("node delete", testNodeDelete)
-	}
+	Context("scheduling", testScheduling)
+	Context("metrics", testMetrics)
+	Context("mount option", testMountOption)
+	Context("ReadWriteOncePod", testReadWriteOncePod)
+	Context("e2e", testE2E)
+	Context("multiple-vg", testMultipleVolumeGroups)
+	Context("lvcreate-options", testLVCreateOptions)
+	Context("thin-provisioning", testThinProvisioning)
+	Context("thin-snapshot-restore", testSnapRestore)
+	Context("thin-volume-cloning", testPVCClone)
+	Context("logical-volume", testLogicalVolume)
+	Context("node delete", testNodeDelete)
 	Context("CSI sanity", testSanity)
 })
