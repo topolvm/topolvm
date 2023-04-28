@@ -469,7 +469,7 @@ var _ = Describe("client", func() {
 						p := &metav1.PartialObjectMetadata{}
 						p.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 						lv.ObjectMeta.DeepCopyInto(&p.ObjectMeta)
-						err := c.Get(testCtx, types.NamespacedName{Name: name}, lv)
+						err := c.Get(testCtx, types.NamespacedName{Name: name}, p)
 						Expect(err).ShouldNot(HaveOccurred())
 					})
 				})
@@ -531,6 +531,7 @@ var _ = Describe("client", func() {
 					f(r, lvlist)
 
 					if doCheck {
+						Expect(lvlist.Items).ShouldNot(HaveLen(0))
 						for i, lv := range lvlist.Items {
 							Expect(lv.Name).Should(Equal(fmt.Sprintf("legacy-%d", i)))
 							Expect(lv.Spec.Name).Should(Equal(fmt.Sprintf("legacy-%d", i)))
@@ -568,7 +569,7 @@ var _ = Describe("client", func() {
 					list(false, func(c *wrappedReader, lvlist *topolvmv1.LogicalVolumeList) {
 						p := &metav1.PartialObjectMetadataList{}
 						p.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
-						err := c.List(testCtx, lvlist)
+						err := c.List(testCtx, p)
 						Expect(err).ShouldNot(HaveOccurred())
 					})
 				})
@@ -707,7 +708,7 @@ var _ = Describe("client", func() {
 						p := &metav1.PartialObjectMetadata{}
 						p.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
 						lv.ObjectMeta.DeepCopyInto(&p.ObjectMeta)
-						err := c.Get(testCtx, types.NamespacedName{Name: name}, lv)
+						err := c.Get(testCtx, types.NamespacedName{Name: name}, p)
 						g.Expect(err).ShouldNot(HaveOccurred())
 					})
 				})
@@ -815,7 +816,7 @@ var _ = Describe("client", func() {
 					list(false, func(g Gomega, c *wrappedReader, lvlist *topolvmv1.LogicalVolumeList) {
 						p := &metav1.PartialObjectMetadataList{}
 						p.SetGroupVersionKind(topolvmv1.GroupVersion.WithKind(kind))
-						err := c.List(testCtx, lvlist)
+						err := c.List(testCtx, p)
 						g.Expect(err).ShouldNot(HaveOccurred())
 					})
 				})
@@ -933,7 +934,7 @@ var _ = Describe("client", func() {
 					create(true, func(c client.Client, lv *topolvmv1.LogicalVolume) {
 						u := &unstructured.Unstructured{}
 						Expect(c.Scheme().Convert(lv, u, nil)).ShouldNot(HaveOccurred())
-						err := c.Create(testCtx, lv)
+						err := c.Create(testCtx, u)
 						Expect(err).ShouldNot(HaveOccurred())
 					})
 				})
@@ -1002,7 +1003,7 @@ var _ = Describe("client", func() {
 					delete(func(c client.Client, lv *topolvmv1.LogicalVolume) {
 						u := &unstructured.Unstructured{}
 						Expect(c.Scheme().Convert(lv, u, nil)).ShouldNot(HaveOccurred())
-						err := c.Delete(testCtx, lv)
+						err := c.Delete(testCtx, u)
 						Expect(err).ShouldNot(HaveOccurred())
 					})
 				})
@@ -1114,7 +1115,7 @@ var _ = Describe("client", func() {
 					update(true, func(c client.Client, lv *topolvmv1.LogicalVolume) {
 						u := &unstructured.Unstructured{}
 						Expect(c.Scheme().Convert(lv, u, nil)).ShouldNot(HaveOccurred())
-						err := c.Update(testCtx, lv)
+						err := c.Update(testCtx, u)
 						Expect(err).ShouldNot(HaveOccurred())
 					})
 				})
@@ -1215,7 +1216,7 @@ var _ = Describe("client", func() {
 					patch(true, func(c client.Client, lv *topolvmv1.LogicalVolume, patch client.Patch) {
 						u := &unstructured.Unstructured{}
 						Expect(c.Scheme().Convert(lv, u, nil)).ShouldNot(HaveOccurred())
-						err := c.Patch(testCtx, lv, patch)
+						err := c.Patch(testCtx, u, patch)
 						Expect(err).ShouldNot(HaveOccurred())
 					})
 				})
@@ -1336,7 +1337,7 @@ var _ = Describe("client", func() {
 					deleteAllOf(func(c client.Client, lv *topolvmv1.LogicalVolume) {
 						u := &unstructured.Unstructured{}
 						Expect(c.Scheme().Convert(lv, u, nil)).ShouldNot(HaveOccurred())
-						err := c.DeleteAllOf(testCtx, lv)
+						err := c.DeleteAllOf(testCtx, u)
 						Expect(err).ShouldNot(HaveOccurred())
 					})
 				})
@@ -1464,7 +1465,7 @@ var _ = Describe("client", func() {
 						update(true, func(c client.Client, lv *topolvmv1.LogicalVolume) {
 							u := &unstructured.Unstructured{}
 							Expect(c.Scheme().Convert(lv, u, nil)).ShouldNot(HaveOccurred())
-							err := c.Status().Update(testCtx, lv)
+							err := c.Status().Update(testCtx, u)
 							Expect(err).ShouldNot(HaveOccurred())
 						})
 					})
@@ -1606,7 +1607,7 @@ var _ = Describe("client", func() {
 						patch(true, func(c client.Client, lv *topolvmv1.LogicalVolume, patch client.Patch) {
 							u := &unstructured.Unstructured{}
 							Expect(c.Scheme().Convert(lv, u, nil)).ShouldNot(HaveOccurred())
-							err := c.Status().Patch(testCtx, lv, patch)
+							err := c.Status().Patch(testCtx, u, patch)
 							Expect(err).ShouldNot(HaveOccurred())
 						})
 					})
