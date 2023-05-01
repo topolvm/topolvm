@@ -2,14 +2,14 @@
 
 CONTROLLER_RUNTIME_VERSION=$(shell awk '/sigs\.k8s\.io\/controller-runtime/ {print substr($$2, 2)}' go.mod)
 CONTROLLER_TOOLS_VERSION=$(shell awk '/sigs\.k8s\.io\/controller-tools/ {print substr($$2, 2)}' go.mod)
-PROTOC_VERSION=21.10
-KIND_VERSION=v0.17.0
-HELM_VERSION=3.10.2
+PROTOC_VERSION=22.3
+KIND_VERSION=v0.18.0
+HELM_VERSION=3.11.3
 HELM_DOCS_VERSION=1.11.0
-CHART_TESTING_VERSION=3.7.1
-YQ_VERSION=4.18.1
-BUILDX_VERSION=0.9.1
-CONTAINER_STRUCTURE_TEST_VERSION=1.14.0
+CHART_TESTING_VERSION=3.8.0
+YQ_VERSION=4.33.3
+BUILDX_VERSION=0.10.4
+CONTAINER_STRUCTURE_TEST_VERSION=1.15.0
 
 SUDO := sudo
 CURL := curl -sSLf
@@ -33,7 +33,7 @@ IMAGE_TAG ?= latest
 ORIGINAL_IMAGE_TAG ?=
 STRUCTURE_TEST_TARGET ?= normal
 
-ENVTEST_KUBERNETES_VERSION=1.25
+ENVTEST_KUBERNETES_VERSION=1.26
 
 PROTOC_GEN_GO_VERSION := $(shell awk '/google.golang.org\/protobuf/ {print substr($$2, 2)}' go.mod)
 PROTOC_GEN_DOC_VERSION := $(shell awk '/github.com\/pseudomuto\/protoc-gen-doc/ {print substr($$2, 2)}' go.mod)

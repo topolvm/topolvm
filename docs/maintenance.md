@@ -36,7 +36,7 @@ Edit the following files.
 
 Next, we should update `go.mod` by the following commands.
 Please note that Kubernetes v1 corresponds with v0 for the release tags. For example, v1.17.2 corresponds with the `v0.17.2` tag.
-```bash
+```console
 $ VERSION=<upgrading Kubernetes release version>
 $ go get k8s.io/api@v${VERSION} k8s.io/apimachinery@v${VERSION} k8s.io/client-go@v${VERSION} k8s.io/mount-utils@v${VERSION}
 ```
@@ -44,7 +44,7 @@ $ go get k8s.io/api@v${VERSION} k8s.io/apimachinery@v${VERSION} k8s.io/client-go
 Read the [controller-runtime's release note](https://github.com/kubernetes-sigs/controller-runtime/releases), and check which version is compatible with the Kubernetes versions.
 Then, upgrade the controller-runtime's version by the following commands.
 
-```bash
+```console
 $ VERSION=<upgrading controller-runtime version>
 $ go get sigs.k8s.io/controller-runtime@v${VERSION}
 ```
@@ -52,15 +52,22 @@ $ go get sigs.k8s.io/controller-runtime@v${VERSION}
 Read the [`controller-tools`'s release note](https://github.com/kubernetes-sigs/controller-tools/releases), and update to the newest version that is compatible with all supported kubernetes versions. If there are breaking changes, we should decide how to manage these changes.
 Then, upgrade the controller-tools's version by the following commands.
 
-```bash
+```console
 $ VERSION=<upgrading controller-tools version>
 $ go get sigs.k8s.io/controller-tools@v${VERSION}
 ```
 
 At last, make it tidy.
 
-```
+```console
 $ go mod tidy
+```
+
+Regenerate manifests using new controller-tools.
+
+```console
+$ make setup
+$ make generate
 ```
 
 These are minimal changes for the Kubernetes upgrade, but if there are some breaking changes found in the release notes, you have to handle them as well in this step.

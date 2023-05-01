@@ -80,13 +80,13 @@ we suggest preparing a dedicated physical or virtual machine.
 
 1. Download the repository.
 
-    ```console
+    ```bash
     git clone git@github.com:topolvm/topolvm.git
     ```
 
 2. Install the required tools.
 
-    ```console
+    ```bash
     cd topolvm
     make setup
     ```
@@ -95,7 +95,7 @@ we suggest preparing a dedicated physical or virtual machine.
 
 4. Test your changes.
 
-    ```console
+    ```bash
     # for unit test and lint
     make test
 
