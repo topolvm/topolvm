@@ -123,7 +123,7 @@ Follow the [documentation](https://docs.cert-manager.io/en/latest/getting-starte
 
 Before installing the chart, you must first install the cert-manager CustomResourceDefinition resources.
 
-```sh
+```bash
 kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.7.0/cert-manager.crds.yaml
 ```
 
@@ -143,7 +143,7 @@ You can prepare the certificate manually without `cert-manager`.
 2. Base64-encode the CA cert (in its PEM format
 3. Create Secret in `topolvm-system` namespace as follows:
 
-   ```console
+   ```bash
    kubectl -n topolvm-system create secret tls topolvm-mutatingwebhook \
        --cert=<CERTIFICATE FILE> --key=<KEY FILE>
    ```
@@ -311,7 +311,7 @@ $ kubectl label namespace topolvm-system topolvm.io/webhook=ignore
 
 Install Helm Chart using the configured values.yaml.
 
-```sh
+```bash
 helm upgrade --namespace=topolvm-system -f values.yaml -i topolvm topolvm/topolvm
 ```
 
@@ -321,7 +321,7 @@ helm upgrade --namespace=topolvm-system -f values.yaml -i topolvm topolvm/topolv
 
 First you need to choose an appropriate `KubeSchedulerConfiguration` YAML file according to your Kubernetes version.
 
-```console
+```bash
 cp ./deploy/scheduler-config/scheduler-config.yaml ./deploy/scheduler-config/scheduler-config.yaml
 ```
 
