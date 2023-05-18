@@ -7,6 +7,25 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.19.0] - 2023-05-18
+
+### Changed
+
+- Refactor getting objects ([#679](https://github.com/topolvm/topolvm/pull/679))
+- build(deps): bump actions/stale from 7 to 8 ([#688](https://github.com/topolvm/topolvm/pull/688))
+- Unify LV check logic ([#685](https://github.com/topolvm/topolvm/pull/685))
+- Combine capacity test and scheduler test ([#689](https://github.com/topolvm/topolvm/pull/689))
+- Cleanup publish test ([#693](https://github.com/topolvm/topolvm/pull/693))
+- Update cleanup test to check if topolvm re-create pods of STS if the node is deleted. ([#696](https://github.com/topolvm/topolvm/pull/696))
+- Organize metrics tests ([#698](https://github.com/topolvm/topolvm/pull/698))
+- Run thick and thin sanity at once ([#700](https://github.com/topolvm/topolvm/pull/700))
+- support Kubernetes 1.26 ([#697](https://github.com/topolvm/topolvm/pull/697))
+
+### Contributors
+
+- @llamerada-jp
+- @toshipp
+
 ## [0.18.2] - 2023-04-04
 
 ### Added
@@ -752,7 +771,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.18.2...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.19.0...HEAD
+[0.19.0]: https://github.com/topolvm/topolvm/compare/v0.18.2...v0.19.0
 [0.18.2]: https://github.com/topolvm/topolvm/compare/v0.18.1...v0.18.2
 [0.18.1]: https://github.com/topolvm/topolvm/compare/v0.18.0...v0.18.1
 [0.18.0]: https://github.com/topolvm/topolvm/compare/v0.17.0...v0.18.0
