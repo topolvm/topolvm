@@ -7,6 +7,17 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [11.2.1] - 2023-05-18
+
+### Changed
+
+- support Kubernetes 1.26 ([#697](https://github.com/topolvm/topolvm/pull/697))
+- appVersion was changed to 0.19.0.
+
+### Contributors
+
+- @llamerada-jp
+
 ## [11.2.0] - 2023-04-04
 
 ### Added
@@ -283,7 +294,8 @@ This release contains the domain name change([#592](https://github.com/topolvm/t
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.2.0...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.2.1...HEAD
+[11.2.1]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.2.0...topolvm-chart-v11.2.1
 [11.2.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.1.1...topolvm-chart-v11.2.0
 [11.1.1]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.1.0...topolvm-chart-v11.1.1
 [11.1.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.0.1...topolvm-chart-v11.1.0
