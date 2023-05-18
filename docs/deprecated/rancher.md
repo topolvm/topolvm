@@ -20,7 +20,7 @@ If the `gcloud` command is not installed on your PC, please refer to [this docum
 
 Create a GCE instance for Rancher Server. This document uses the `asia-northeast1-c` zone, but you can choose any other zone you want.
 
-```console
+```bash
 ZONE=asia-northeast1-c
 gcloud compute instances create rancher \
   --zone ${ZONE} \
@@ -41,13 +41,13 @@ Then, allow HTTP/HTTPS with the following commands.
 
 Run the installation script.
 
-```console
+```bash
 gcloud compute ssh --zone ${ZONE} rancher -- "curl -sSLf https://get.docker.com | sudo sh"
 ```
 
 ### Start Rancher
 
-```console
+```bash
 gcloud compute ssh --zone ${ZONE} rancher -- "sudo docker run -d --restart=unless-stopped -p 80:80 -p 443:443 rancher/rancher:v2.3.4"
 ```
 
@@ -63,7 +63,7 @@ So, just allow insecure access and proceed next.
 Create `master`, `worker1` and `worker2`.
 `worker1` and `worker2` mounts SSD at `/dev/nvme0` to provision TopoLVM volumes.
 
-```console
+```bash
 gcloud compute instances create master \
   --zone ${ZONE} \
   --machine-type n1-standard-2 \
@@ -90,7 +90,7 @@ gcloud compute instances create worker2 \
 
 Run the installation script.
 
-```console
+```bash
 gcloud compute ssh --zone ${ZONE} master -- "curl -sSLf https://get.docker.com | sudo sh"
 gcloud compute ssh --zone ${ZONE} worker1 -- "curl -sSLf https://get.docker.com | sudo sh"
 gcloud compute ssh --zone ${ZONE} worker2 -- "curl -sSLf https://get.docker.com | sudo sh"
@@ -120,13 +120,13 @@ You can run the `kubectl` command by downloading `Kubeconfig File` from the top 
 
 Then, deploy cert-manager on the Kubernetes cluster.
 
-```console
+```bash
 kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v0.12.0/cert-manager.yaml
 ```
 
 Add a label to `Namespace` resources for the TopoLVM webhook to avoid unnecessary validation.
 
-```console
+```bash
 kubectl label namespace kube-system topolvm.cybozu.com/webhook=ignore
 kubectl label namespace cert-manager topolvm.cybozu.com/webhook=ignore
 ```
@@ -135,14 +135,14 @@ kubectl label namespace cert-manager topolvm.cybozu.com/webhook=ignore
 
 Create VG (VolumeGroup) on `worker1` and `worker2`.
 
-```console
+```bash
 gcloud compute ssh --zone ${ZONE} worker1 -- sudo vgcreate myvg1 /dev/nvme0n1
 gcloud compute ssh --zone ${ZONE} worker2 -- sudo vgcreate myvg1 /dev/nvme0n1
 ```
 
 Install `lvmd` on `worker1` and `worker2`.
 
-```console
+```bash
 gcloud compute ssh --zone ${ZONE} worker1
 
 # Install lvmd
@@ -161,7 +161,7 @@ sudo systemctl start lvmd
 exit
 ```
 
-```console
+```bash
 gcloud compute ssh --zone ${ZONE} worker2
 
 # Install lvmd
@@ -185,7 +185,7 @@ exit
 Before deploying TopoLVM, install `kustomize` by following the link below.
 https://kubernetes-sigs.github.io/kustomize/installation/
 
-```console
+```bash
 TOPOLVM_VERSION=0.6.0
 kustomize build https://github.com/topolvm/topolvm/deploy/manifests/overlays/daemonset-scheduler?ref=v${TOPOLVM_VERSION} | kubectl apply -f -
 kubectl apply -f https://raw.githubusercontent.com/topolvm/topolvm/v${TOPOLVM_VERSION}/deploy/manifests/base/certificates.yaml
@@ -206,7 +206,7 @@ First, `master` has the following label and taint.
 
 To locate `topolvm-scheduler` onto `master`, update node affinity and toleration.
 
-```console
+```bash
 $ kubectl edit daemonset topolvm-scheduler -n topolvm-system
 # Edit as follows
  apiVersion: apps/v1
@@ -244,7 +244,7 @@ Download the scheduler extender configuration files on the `master` instance.
 
 They must be placed under `/etc/kubernetes` on `master` because `kube-scheduler`, deployed with Rancher, is configured to mount the directory.
 
-```console
+```bash
 gcloud compute ssh --zone ${ZONE} master
 
 TOPOLVM_VERSION=0.6.0
@@ -256,7 +256,7 @@ exit
 
 On the Rancher dashboard, click `Edit` and update `Cluster Options` with `Edit as YAML` to tell Kubernetes where the scheduler extension configuration is.
 
-```console
+```yaml
    services:
      ...
      kube-api:
@@ -284,7 +284,7 @@ Congratulations!! You finally deployed TopoLVM on RKE.
 
 To confirm TopoLVM is working, create PVC and mount it on a `Pod`.
 
-```console
+```yaml
 kubectl apply -f - << EOF
 kind: PersistentVolumeClaim
 apiVersion: v1
@@ -322,7 +322,7 @@ EOF
 
 Do not forget to delete GCE instances.
 
-```console
+```bash
 gcloud --quiet compute instances delete rancher --zone ${ZONE}
 gcloud --quiet compute instances delete master --zone ${ZONE}
 gcloud --quiet compute instances delete worker1 --zone ${ZONE}

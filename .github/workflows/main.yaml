@@ -10,7 +10,7 @@ jobs:
     runs-on: "ubuntu-20.04"
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version-file: "go.mod"
       - name: Set up Docker Buildx
@@ -66,20 +66,15 @@ jobs:
       - run: make container-structure-test STRUCTURE_TEST_TARGET=${{ matrix.image }}
 
   example:
+    if:  startsWith(github.head_ref, 'bump-chart-')
     name: "example"
     runs-on: "ubuntu-20.04"
     defaults:
       run:
         working-directory: "example"
-    strategy:
-      fail-fast: false
-      matrix:
-        use_legacy: ["", "true"]
-    env:
-      USE_LEGACY: ${{ matrix.use_legacy }}
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version-file: "go.mod"
       - name: Set up Docker Buildx
@@ -94,4 +89,4 @@ jobs:
           restore-keys: |
             go-
       - run: make setup
-      - run: make run BUILD_IMAGE=true
+      - run: make run

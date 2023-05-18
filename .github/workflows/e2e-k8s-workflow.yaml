@@ -4,11 +4,8 @@ on:
       test_scheduler_manifest:
         default: "daemonset"
         type: string
-      skip_node_finalize:
-        default: "false"
-        type: string
-      thin_csi_sanity:
-        default: "false"
+      use_legacy:
+        default: ""
         type: string
 
 jobs:
@@ -18,19 +15,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        kubernetes_versions: ["1.25.3", "1.24.7", "1.23.13"]
+        kubernetes_versions: ["1.26.3", "1.25.8", "1.24.12"]
     env:
       KUBERNETES_VERSION: ${{ matrix.kubernetes_versions }}
       TEST_SCHEDULER_MANIFEST: ${{ inputs.test_scheduler_manifest }}
-      SKIP_NODE_FINALIZE: ${{ inputs.skip_node_finalize }}
-      SANITY_TEST_WITH_THIN_DEVICECLASS: ${{ inputs.thin_csi_sanity }}
+      USE_LEGACY: ${{ inputs.use_legacy }}
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version-file: "go.mod"
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
       - name: cache go dependencies
         uses: actions/cache@v3
         with:
@@ -40,14 +34,13 @@ jobs:
           key: go-${{ hashFiles('go.sum', 'Makefile') }}
           restore-keys: |
             go-
-      - name: cache e2e sidecar binaries
-        uses: actions/cache@v3
+      - uses: actions/cache/restore@v3
         with:
           path: |
-            e2e/tmpbin
-          key: e2e-sidecars-${{ hashFiles('csi-sidecars.mk') }}
-          restore-keys: |
-            e2e-sidecars-
-      - run: make -C e2e setup
+            bin
+            e2e/bin
+            e2e/topolvm.img
+          key: e2e-cache-${{ github.sha }}
+      - run: touch e2e/topolvm.img # update timestamp not to rebuild image
       - run: make -C e2e start-lvmd
       - run: make -C e2e test

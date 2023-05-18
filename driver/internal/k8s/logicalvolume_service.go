@@ -307,7 +307,7 @@ func (s *LogicalVolumeService) ExpandVolume(ctx context.Context, volumeID string
 		return err
 	}
 
-	err = s.UpdateSpecSize(ctx, volumeID, resource.NewQuantity(requestGb<<30, resource.BinarySI))
+	err = s.updateSpecSize(ctx, volumeID, resource.NewQuantity(requestGb<<30, resource.BinarySI))
 	if err != nil {
 		return err
 	}
@@ -327,16 +327,17 @@ func (s *LogicalVolumeService) ExpandVolume(ctx context.Context, volumeID string
 			logger.Error(err, "failed to get LogicalVolume", "name", lv.Name)
 			return err
 		}
+		if changedLV.Status.Code != codes.OK {
+			return status.Error(changedLV.Status.Code, changedLV.Status.Message)
+		}
 		if changedLV.Status.CurrentSize == nil {
-			return errors.New("status.currentSize should not be nil")
+			// WA: since Status.CurrentSize is added in v0.4.0. it may be missing.
+			// if the expansion is completed, it is filled, so wait for that.
+			continue
 		}
 		if changedLV.Status.CurrentSize.Value() != changedLV.Spec.Size.Value() {
 			logger.Info("failed to match current size and requested size", "current", changedLV.Status.CurrentSize.Value(), "requested", changedLV.Spec.Size.Value())
 			continue
-		}
-
-		if changedLV.Status.Code != codes.OK {
-			return status.Error(changedLV.Status.Code, changedLV.Status.Message)
 		}
 
 		return nil
@@ -348,8 +349,8 @@ func (s *LogicalVolumeService) GetVolume(ctx context.Context, volumeID string) (
 	return s.volumeGetter.Get(ctx, volumeID)
 }
 
-// UpdateSpecSize updates .Spec.Size of LogicalVolume.
-func (s *LogicalVolumeService) UpdateSpecSize(ctx context.Context, volumeID string, size *resource.Quantity) error {
+// updateSpecSize updates .Spec.Size of LogicalVolume.
+func (s *LogicalVolumeService) updateSpecSize(ctx context.Context, volumeID string, size *resource.Quantity) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -374,35 +375,6 @@ func (s *LogicalVolumeService) UpdateSpecSize(ctx context.Context, volumeID stri
 				continue
 			}
 			logger.Error(err, "failed to update LogicalVolume spec", "name", lv.Name)
-			return err
-		}
-
-		return nil
-	}
-}
-
-// UpdateCurrentSize updates .Status.CurrentSize of LogicalVolume.
-func (s *LogicalVolumeService) UpdateCurrentSize(ctx context.Context, volumeID string, size *resource.Quantity) error {
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(1 * time.Second):
-		}
-
-		lv, err := s.GetVolume(ctx, volumeID)
-		if err != nil {
-			return err
-		}
-
-		lv.Status.CurrentSize = size
-
-		if err := s.writer.Status().Update(ctx, lv); err != nil {
-			if apierrors.IsConflict(err) {
-				logger.Info("detect conflict when LogicalVolume status update", "name", lv.Name)
-				continue
-			}
-			logger.Error(err, "failed to update LogicalVolume status", "name", lv.Name)
 			return err
 		}
 

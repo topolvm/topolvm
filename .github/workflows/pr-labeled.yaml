@@ -1,0 +1,15 @@
+name: pr
+
+on:
+  pull_request:
+    types: [synchronize, opened, reopened, labeled, unlabeled]
+
+jobs:
+  label-do-not-merge:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |-
+          if [ "${{ contains(join(github.event.pull_request.labels.*.name, ', '), 'do-not-merge') }}" = "true" ]; then
+            exit 1
+          fi
+          exit 0

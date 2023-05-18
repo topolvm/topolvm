@@ -7,10 +7,13 @@ image:
 
   # image.tag -- TopoLVM image tag to use.
   # @default -- `{{ .Chart.AppVersion }}`
-  tag:  # 0.8.3
+  tag:  # 0.18.1
 
   # image.pullPolicy -- TopoLVM image pullPolicy.
   pullPolicy:  # Always
+
+  # image.pullSecrets -- List of imagePullSecrets.
+  pullSecrets: []
 
   csi:
     # image.csi.nodeDriverRegistrar -- Specify csi-node-driver-registrar: image.
@@ -330,7 +333,7 @@ controller:
   args: []
 
   storageCapacityTracking:
-    # controller.storageCapacityTracking.enabled -- Enable Storage Capacity Tracking for csi-provisoner.
+    # controller.storageCapacityTracking.enabled -- Enable Storage Capacity Tracking for csi-provisioner.
     enabled: false
 
   securityContext:
@@ -507,10 +510,10 @@ resources:
   #    memory: "200Mi"
   #    cpu: "200m"
 
-# storageClasses -- Whether to create storageclass(s)
+# storageClasses -- Whether to create storageclass(es)
 # ref: https://kubernetes.io/docs/concepts/storage/storage-classes/
 storageClasses:
-  - name: topolvm-provisioner  # Defines name of storage classe.
+  - name: topolvm-provisioner  # Defines name of storage class.
     storageClass:
       # Supported filesystems are: ext4, xfs, and btrfs.
       fsType: xfs

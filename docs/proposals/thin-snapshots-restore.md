@@ -148,7 +148,7 @@ status:
 ## LV Operations
 
 * Snapshot creation from a thinly-provisioned volume
-    ```bash
+    ```console
     $ lvcreate -s --name thinsnap VG0/thinvolume
     ```
 
@@ -158,14 +158,14 @@ status:
 
   For e.g: Activating a logical volume for Read-Write operations:
 
-  ```bash
+  ```console
   $ lvchange -ay -K VG0/thinsnap
   ```
 
 * Restoring a Snapshot
 
 
-  ```bash
+  ```console
   $ lvcreate -s --name thin-restored VG0/thinsnap
   ```
 

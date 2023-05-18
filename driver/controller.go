@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/topolvm/topolvm"
 	v1 "github.com/topolvm/topolvm/api/v1"
-	"github.com/topolvm/topolvm/csi"
 	"github.com/topolvm/topolvm/driver/internal/k8s"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -590,11 +590,7 @@ func (s controllerServerNoLocked) ControllerExpandVolume(ctx context.Context, re
 
 	currentSize := lv.Status.CurrentSize
 	if currentSize == nil {
-		// fill currentGb for old volume created in v0.3.0 or before.
-		err := s.lvService.UpdateCurrentSize(ctx, volumeID, &lv.Spec.Size)
-		if err != nil {
-			return nil, status.Error(codes.Internal, err.Error())
-		}
+		// WA: since CurrentSize is added in v0.4.0, use Spec.Size if it is missing.
 		currentSize = &lv.Spec.Size
 	}
 

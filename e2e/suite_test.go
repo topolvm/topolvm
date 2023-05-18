@@ -2,8 +2,6 @@ package e2e
 
 import (
 	_ "embed"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"math/rand"
 	"os"
@@ -16,8 +14,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var binDir string
-var skipMessageForStorageCapacity string = "skip because current environment is storage capacity"
+var kubectlPath string
+
+// skipSpecs holds regexp strings that are used to skip tests.
+// It is intended to be setup by init function on each test file if necessary.
+var skipSpecs []string
 
 func TestMtest(t *testing.T) {
 	if os.Getenv("E2ETEST") == "" {
@@ -30,12 +31,15 @@ func TestMtest(t *testing.T) {
 	SetDefaultEventuallyPollingInterval(time.Second)
 	SetDefaultEventuallyTimeout(time.Minute)
 
-	RunSpecs(t, "Test on sanity")
+	suiteConfig, _ := GinkgoConfiguration()
+	suiteConfig.SkipStrings = append(suiteConfig.SkipStrings, skipSpecs...)
+
+	RunSpecs(t, "Test on sanity", suiteConfig)
 }
 
 func createNamespace(ns string) {
-	stdout, stderr, err := kubectl("create", "namespace", ns)
-	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+	_, err := kubectl("create", "namespace", ns)
+	Expect(err).ShouldNot(HaveOccurred())
 	Eventually(func() error {
 		return waitCreatingDefaultSA(ns)
 	}).Should(Succeed())
@@ -52,22 +56,14 @@ func randomString(n int) string {
 	return string(b)
 }
 
-func waitKindnet() error {
-	stdout, stderr, err := kubectl("-n=kube-system", "get", "ds/kindnet", "-o", "json")
-	if err != nil {
-		return errors.New(string(stderr))
-	}
-
+func waitKindnet(g Gomega) {
+	var nodes corev1.NodeList
+	err := getObjects(&nodes, "node")
+	g.Expect(err).ShouldNot(HaveOccurred())
 	var ds appsv1.DaemonSet
-	err = json.Unmarshal(stdout, &ds)
-	if err != nil {
-		return err
-	}
-
-	if ds.Status.NumberReady != 4 {
-		return fmt.Errorf("numberReady is not 4: %d", ds.Status.NumberReady)
-	}
-	return nil
+	err = getObjects(&ds, "ds", "-n", "kube-system", "kindnet")
+	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(ds.Status.NumberReady).To(BeEquivalentTo(len(nodes.Items)))
 }
 
 func isDaemonsetLvmdEnvSet() bool {
@@ -78,10 +74,6 @@ func isStorageCapacity() bool {
 	return os.Getenv("STORAGE_CAPACITY") == "true"
 }
 
-func isNodeFinalizeSkipped() bool {
-	return os.Getenv("SKIP_NODE_FINALIZE") == "true"
-}
-
 func skipIfDaemonsetLvmd() {
 	if isDaemonsetLvmdEnvSet() {
 		Skip("skip because current environment is daemonset lvmd")
@@ -89,11 +81,8 @@ func skipIfDaemonsetLvmd() {
 }
 
 func getDaemonsetLvmdNodeName() string {
-	stdout, stderr, err := kubectl("get", "nodes", "-o=json")
-	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-
 	var nodes corev1.NodeList
-	err = json.Unmarshal(stdout, &nodes)
+	err := getObjects(&nodes, "nodes")
 	Expect(err).ShouldNot(HaveOccurred())
 	Expect(nodes.Items).Should(HaveLen(1))
 	return nodes.Items[0].Name
@@ -103,10 +92,10 @@ func getDaemonsetLvmdNodeName() string {
 var pausePodYAML []byte
 
 var _ = BeforeSuite(func() {
-	By("Getting the directory path which contains some binaries")
-	binDir = os.Getenv("BINDIR")
-	Expect(binDir).ShouldNot(BeEmpty())
-	fmt.Println("This test uses the binaries under " + binDir)
+	By("Getting kubectl binary")
+	kubectlPath = os.Getenv("KUBECTL")
+	Expect(kubectlPath).ShouldNot(BeEmpty())
+	fmt.Println("This test uses a kubectl at " + kubectlPath)
 
 	if !isDaemonsetLvmdEnvSet() {
 		By("Waiting for kindnet to get ready")
@@ -119,32 +108,28 @@ var _ = BeforeSuite(func() {
 
 	By("Waiting for mutating webhook to get ready")
 	Eventually(func() error {
-		_, stderr, err := kubectlWithInput(pausePodYAML, "apply", "-f", "-")
+		_, err := kubectlWithInput(pausePodYAML, "apply", "-f", "-")
 		if err != nil {
-			return errors.New(string(stderr))
+			return err
 		}
 		return nil
 	}).Should(Succeed())
-	stdout, stderr, err := kubectlWithInput(pausePodYAML, "delete", "-f", "-")
-	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+	_, err := kubectlWithInput(pausePodYAML, "delete", "-f", "-")
+	Expect(err).ShouldNot(HaveOccurred())
 })
 
 var _ = Describe("TopoLVM", func() {
-	if os.Getenv("SANITY_TEST_WITH_THIN_DEVICECLASS") != "true" {
-		Context("hook", testHook)
-		Context("topolvm-node", testNode)
-		Context("scheduler", testScheduler)
-		Context("metrics", testMetrics)
-		Context("publish", testPublishVolume)
-		Context("storage-capacity", testStorageCapacity)
-		Context("ReadWriteOncePod", testReadWriteOncePod)
-		Context("e2e", testE2E)
-		Context("multiple-vg", testMultipleVolumeGroups)
-		Context("lvcreate-options", testLVCreateOptions)
-		Context("thin-provisioning", testThinProvisioning)
-		Context("thin-snapshot-restore", testSnapRestore)
-		Context("thin-volume-cloning", testPVCClone)
-		Context("cleanup", testCleanup)
-	}
+	Context("scheduling", testScheduling)
+	Context("metrics", testMetrics)
+	Context("mount option", testMountOption)
+	Context("ReadWriteOncePod", testReadWriteOncePod)
+	Context("e2e", testE2E)
+	Context("multiple-vg", testMultipleVolumeGroups)
+	Context("lvcreate-options", testLVCreateOptions)
+	Context("thin-provisioning", testThinProvisioning)
+	Context("thin-snapshot-restore", testSnapRestore)
+	Context("thin-volume-cloning", testPVCClone)
+	Context("logical-volume", testLogicalVolume)
+	Context("node delete", testNodeDelete)
 	Context("CSI sanity", testSanity)
 })

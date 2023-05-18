@@ -32,6 +32,10 @@ spec:
       {{- with .Values.controller.priorityClassName }}
       priorityClassName: {{ . }}
       {{- end }}
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       serviceAccountName: {{ template "topolvm.fullname" . }}-controller
       containers:
         - name: topolvm-controller
@@ -106,10 +110,14 @@ spec:
             - --feature-gates=Topology=true
             - --leader-election
             - --leader-election-namespace={{ .Release.Namespace }}
+            - --http-endpoint=:9809
             {{- with .Values.controller.storageCapacityTracking.enabled }}
             - --enable-capacity
             - --capacity-ownerref-level=2
             {{- end }}
+          ports:
+            - containerPort: 9809
+              name: csi-provisioner
           {{- with .Values.controller.storageCapacityTracking.enabled }}
           env:
             - name: NAMESPACE
@@ -142,6 +150,10 @@ spec:
             - --csi-address=/run/topolvm/csi-topolvm.sock
             - --leader-election
             - --leader-election-namespace={{ .Release.Namespace }}
+            - --http-endpoint=:9810
+          ports:
+            - containerPort: 9810
+              name: csi-resizer
           volumeMounts:
             - name: socket-dir
               mountPath: /run/topolvm
@@ -164,6 +176,10 @@ spec:
             - --csi-address=/run/topolvm/csi-topolvm.sock
             - --leader-election
             - --leader-election-namespace={{ .Release.Namespace }}
+            - --http-endpoint=:9811
+          ports:
+            - containerPort: 9811
+              name: csi-snapshotter
           volumeMounts:
             - name: socket-dir
               mountPath: /run/topolvm
@@ -181,6 +197,10 @@ spec:
           command:
             - /livenessprobe
             - --csi-address=/run/topolvm/csi-topolvm.sock
+            - --http-endpoint=:9808
+          ports:
+            - containerPort: 9808
+              name: livenessprobe
           volumeMounts:
             - name: socket-dir
               mountPath: /run/topolvm

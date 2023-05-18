@@ -2,13 +2,14 @@ package e2e
 
 import (
 	_ "embed"
-	"encoding/json"
 	"fmt"
 	"strings"
 
 	snapapi "github.com/kubernetes-csi/external-snapshotter/client/v6/apis/volumesnapshot/v1"
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
+	"github.com/topolvm/topolvm"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -34,14 +35,14 @@ const (
 
 func testSnapRestore() {
 	var nsSnapTest string
-	var snapshot *snapapi.VolumeSnapshot
+	var snapshot snapapi.VolumeSnapshot
 
 	BeforeEach(func() {
 		nsSnapTest = "snap-test-" + randomString(10)
 		createNamespace(nsSnapTest)
 	})
 	AfterEach(func() {
-		if !CurrentGinkgoTestDescription().Failed {
+		if !CurrentSpecReport().State.Is(types.SpecStateFailureStates) {
 			kubectl("delete", "namespaces/"+nsSnapTest)
 		}
 	})
@@ -53,26 +54,20 @@ func testSnapRestore() {
 		if isDaemonsetLvmdEnvSet() {
 			nodeName = getDaemonsetLvmdNodeName()
 		}
-		var volumeName string
 		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSize))
-		stdout, stderr, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsSnapTest, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsSnapTest, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
-		thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod", volName, nodeName))
-		stdout, stderr, err = kubectlWithInput(thinPodYAML, "apply", "-n", nsSnapTest, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod", volName, topolvm.GetTopologyNodeKey(), nodeName))
+		_, err = kubectlWithInput(thinPodYAML, "apply", "-n", nsSnapTest, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
 		By("confirming if the resources have been created")
 		Eventually(func() error {
-			stdout, stderr, err := kubectl("get", "-n", nsSnapTest, "pvc", volName, "-o", "json")
-			if err != nil {
-				return fmt.Errorf("failed to get PVC. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
-			}
-
 			var pvc corev1.PersistentVolumeClaim
-			err = json.Unmarshal(stdout, &pvc)
+			err := getObjects(&pvc, "pvc", "-n", nsSnapTest, volName)
 			if err != nil {
-				return fmt.Errorf("failed to unmarshal PVC. stdout: %s, err: %v", stdout, err)
+				return fmt.Errorf("failed to get PVC. err: %w", err)
 			}
 			if pvc.Status.Phase != corev1.ClaimBound {
 				return fmt.Errorf("PVC %s is not bound", volName)
@@ -83,29 +78,25 @@ func testSnapRestore() {
 		By("writing file under /test1")
 		writePath := "/test1/bootstrap.log"
 		Eventually(func() error {
-			stdout, stderr, err = kubectl("exec", "-n", nsSnapTest, "thinpod", "--", "cp", "/var/log/bootstrap.log", writePath)
+			_, err = kubectl("exec", "-n", nsSnapTest, "thinpod", "--", "cp", "/var/log/bootstrap.log", writePath)
 			return err
 		}).Should(Succeed())
 
-		stdout, stderr, err = kubectl("exec", "-n", nsSnapTest, "thinpod", "--", "sync")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		stdout, stderr, err = kubectl("exec", "-n", nsSnapTest, "thinpod", "--", "cat", writePath)
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, err = kubectl("exec", "-n", nsSnapTest, "thinpod", "--", "sync")
+		Expect(err).ShouldNot(HaveOccurred())
+		stdout, err := kubectl("exec", "-n", nsSnapTest, "thinpod", "--", "cat", writePath)
+		Expect(err).ShouldNot(HaveOccurred())
 		Expect(strings.TrimSpace(string(stdout))).ShouldNot(BeEmpty())
 
 		By("creating a snap")
 		thinSnapshotYAML := []byte(fmt.Sprintf(thinSnapshotTemplateYAML, snapName, "topolvm-provisioner-thin", "thinvol"))
-		stdout, stderr, err = kubectlWithInput(thinSnapshotYAML, "apply", "-n", nsSnapTest, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, err = kubectlWithInput(thinSnapshotYAML, "apply", "-n", nsSnapTest, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
-			stdout, stderr, err = kubectl("get", "vs", snapName, "-n", nsSnapTest, "-o", "json")
+			err := getObjects(&snapshot, "vs", snapName, "-n", nsSnapTest)
 			if err != nil {
-				return fmt.Errorf("failed to get VolumeSnapshot. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
-			}
-			err = json.Unmarshal(stdout, &snapshot)
-			if err != nil {
-				return fmt.Errorf("failed to unmarshal Volumesnapshot. stdout: %s, err: %v", stdout, err)
+				return fmt.Errorf("failed to get VolumeSnapshot. err: %w", err)
 			}
 			if snapshot.Status == nil {
 				return fmt.Errorf("waiting for snapshot status")
@@ -118,24 +109,19 @@ func testSnapRestore() {
 
 		By("restoring the snap")
 		thinPVCRestoreYAML := []byte(fmt.Sprintf(thinRestorePVCTemplateYAML, restorePVCName, pvcSize, snapName))
-		stdout, stderr, err = kubectlWithInput(thinPVCRestoreYAML, "apply", "-n", nsSnapTest, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, err = kubectlWithInput(thinPVCRestoreYAML, "apply", "-n", nsSnapTest, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
-		thinPVCRestorePodYAML := []byte(fmt.Sprintf(thinRestorePodTemplateYAML, restorePodName, restorePVCName, nodeName))
-		stdout, stderr, err = kubectlWithInput(thinPVCRestorePodYAML, "apply", "-n", nsSnapTest, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		thinPVCRestorePodYAML := []byte(fmt.Sprintf(thinRestorePodTemplateYAML, restorePodName, restorePVCName, topolvm.GetTopologyNodeKey(), nodeName))
+		_, err = kubectlWithInput(thinPVCRestorePodYAML, "apply", "-n", nsSnapTest, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
 		By("verifying if the restored PVC is created")
 		Eventually(func() error {
-			stdout, stderr, err := kubectl("get", "-n", nsSnapTest, "pvc", restorePVCName, "-o", "json")
-			if err != nil {
-				return fmt.Errorf("failed to get PVC. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
-			}
-
 			var pvc corev1.PersistentVolumeClaim
-			err = json.Unmarshal(stdout, &pvc)
+			err := getObjects(&pvc, "pvc", "-n", nsSnapTest, restorePVCName)
 			if err != nil {
-				return fmt.Errorf("failed to unmarshal PVC. stdout: %s, err: %v", stdout, err)
+				return fmt.Errorf("failed to get PVC. err: %w", err)
 			}
 			if pvc.Status.Phase != corev1.ClaimBound {
 				return fmt.Errorf("PVC %s is not bound", restorePVCName)
@@ -143,14 +129,15 @@ func testSnapRestore() {
 			return nil
 		}).Should(Succeed())
 
+		var lvName string
 		Eventually(func() error {
-			volumeName, err = getVolumeNameofPVC(restorePVCName, nsSnapTest)
+			lvName, err = getLVNameOfPVC(restorePVCName, nsSnapTest)
 			return err
 		}).Should(Succeed())
 
-		var lv *thinlvinfo
+		var lv *lvinfo
 		Eventually(func() error {
-			lv, err = getThinLVInfo(volumeName)
+			lv, err = getLVInfo(lvName)
 			return err
 		}).Should(Succeed())
 
@@ -165,9 +152,9 @@ func testSnapRestore() {
 
 		By("confirming that the file exists")
 		Eventually(func() error {
-			stdout, stderr, err = kubectl("exec", "-n", nsSnapTest, restorePodName, "--", "cat", writePath)
+			stdout, err = kubectl("exec", "-n", nsSnapTest, restorePodName, "--", "cat", writePath)
 			if err != nil {
-				return fmt.Errorf("failed to cat. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+				return fmt.Errorf("failed to cat. err: %w", err)
 			}
 			if len(strings.TrimSpace(string(stdout))) == 0 {
 				return fmt.Errorf(writePath + " is empty")
@@ -185,26 +172,20 @@ func testSnapRestore() {
 			nodeName = getDaemonsetLvmdNodeName()
 		}
 
-		var volumeName string
 		By("creating a PVC and application")
 		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSize))
-		stdout, stderr, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsSnapTest, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsSnapTest, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
-		thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod", volName, nodeName))
-		stdout, stderr, err = kubectlWithInput(thinPodYAML, "apply", "-n", nsSnapTest, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod", volName, topolvm.GetTopologyNodeKey(), nodeName))
+		_, err = kubectlWithInput(thinPodYAML, "apply", "-n", nsSnapTest, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 		By("verifying if the PVC is created")
 		Eventually(func() error {
-			stdout, stderr, err := kubectl("get", "-n", nsSnapTest, "pvc", volName, "-o", "json")
-			if err != nil {
-				return fmt.Errorf("failed to get PVC. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
-			}
-
 			var pvc corev1.PersistentVolumeClaim
-			err = json.Unmarshal(stdout, &pvc)
+			err := getObjects(&pvc, "pvc", "-n", nsSnapTest, volName)
 			if err != nil {
-				return fmt.Errorf("failed to unmarshal PVC. stdout: %s, err: %v", stdout, err)
+				return fmt.Errorf("failed to get PVC. err: %w", err)
 			}
 			if pvc.Status.Phase != corev1.ClaimBound {
 				return fmt.Errorf("PVC %s is not bound", volName)
@@ -214,16 +195,12 @@ func testSnapRestore() {
 
 		By("creating a snap of the PVC")
 		thinSnapshotYAML := []byte(fmt.Sprintf(thinSnapshotTemplateYAML, snapName, "topolvm-provisioner-thin", "thinvol"))
-		stdout, stderr, err = kubectlWithInput(thinSnapshotYAML, "apply", "-n", nsSnapTest, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, err = kubectlWithInput(thinSnapshotYAML, "apply", "-n", nsSnapTest, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() error {
-			stdout, stderr, err = kubectl("get", "vs", snapName, "-n", nsSnapTest, "-o", "json")
+			err := getObjects(&snapshot, "vs", snapName, "-n", nsSnapTest)
 			if err != nil {
-				return fmt.Errorf("failed to get VolumeSnapshot. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
-			}
-			err = json.Unmarshal(stdout, &snapshot)
-			if err != nil {
-				return fmt.Errorf("failed to unmarshal Volumesnapshot. stdout: %s, err: %v", stdout, err)
+				return fmt.Errorf("failed to get VolumeSnapshot. err: %w", err)
 			}
 			if snapshot.Status == nil {
 				return fmt.Errorf("waiting for snapshot status")
@@ -236,24 +213,19 @@ func testSnapRestore() {
 
 		By("restoring the snap")
 		thinPVCRestoreYAML := []byte(fmt.Sprintf(thinRestorePVCTemplateYAML, restorePVCName, pvcSize, snapName))
-		stdout, stderr, err = kubectlWithInput(thinPVCRestoreYAML, "apply", "-n", nsSnapTest, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, err = kubectlWithInput(thinPVCRestoreYAML, "apply", "-n", nsSnapTest, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
-		thinPVCRestorePodYAML := []byte(fmt.Sprintf(thinRestorePodTemplateYAML, restorePodName, restorePVCName, nodeName))
-		stdout, stderr, err = kubectlWithInput(thinPVCRestorePodYAML, "apply", "-n", nsSnapTest, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		thinPVCRestorePodYAML := []byte(fmt.Sprintf(thinRestorePodTemplateYAML, restorePodName, restorePVCName, topolvm.GetTopologyNodeKey(), nodeName))
+		_, err = kubectlWithInput(thinPVCRestorePodYAML, "apply", "-n", nsSnapTest, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
 		By("verifying if the restored PVC is created")
 		Eventually(func() error {
-			stdout, stderr, err := kubectl("get", "-n", nsSnapTest, "pvc", restorePVCName, "-o", "json")
-			if err != nil {
-				return fmt.Errorf("failed to get PVC. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
-			}
-
 			var pvc corev1.PersistentVolumeClaim
-			err = json.Unmarshal(stdout, &pvc)
+			err := getObjects(&pvc, "pvc", "-n", nsSnapTest, restorePVCName)
 			if err != nil {
-				return fmt.Errorf("failed to unmarshal PVC. stdout: %s, err: %v", stdout, err)
+				return fmt.Errorf("failed to get PVC. err: %w", err)
 			}
 			if pvc.Status.Phase != corev1.ClaimBound {
 				return fmt.Errorf("PVC %s is not bound", restorePVCName)
@@ -262,14 +234,15 @@ func testSnapRestore() {
 		}).Should(Succeed())
 
 		By("validating if the restored volume is present")
+		var lvName string
 		Eventually(func() error {
-			volumeName, err = getVolumeNameofPVC(restorePVCName, nsSnapTest)
+			lvName, err = getLVNameOfPVC(restorePVCName, nsSnapTest)
 			return err
 		}).Should(Succeed())
 
-		var lv *thinlvinfo
+		var lv *lvinfo
 		Eventually(func() error {
-			lv, err = getThinLVInfo(volumeName)
+			lv, err = getLVInfo(lvName)
 			return err
 		}).Should(Succeed())
 
@@ -284,21 +257,20 @@ func testSnapRestore() {
 
 		// delete the source PVC as well as the snapshot
 		By("deleting source volume and snap")
-		stdout, stderr, err = kubectlWithInput(thinPodYAML, "delete", "-n", nsSnapTest, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, err = kubectlWithInput(thinPodYAML, "delete", "-n", nsSnapTest, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
-		stdout, stderr, err = kubectlWithInput(thinPvcYAML, "delete", "-n", nsSnapTest, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, err = kubectlWithInput(thinPvcYAML, "delete", "-n", nsSnapTest, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
-		stdout, stderr, err = kubectlWithInput(thinSnapshotYAML, "delete", "-n", nsSnapTest, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+		_, err = kubectlWithInput(thinSnapshotYAML, "delete", "-n", nsSnapTest, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
 		By("validating if the restored volume is present and is not deleted.")
-		_, err = getVolumeNameofPVC(restorePVCName, nsSnapTest)
+		lvName, err = getLVNameOfPVC(restorePVCName, nsSnapTest)
 		Expect(err).Should(Succeed())
 
-		_, err = getThinLVInfo(volumeName)
+		_, err = getLVInfo(lvName)
 		Expect(err).Should(Succeed())
 	})
-
 }

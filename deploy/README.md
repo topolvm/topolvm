@@ -123,7 +123,7 @@ Follow the [documentation](https://docs.cert-manager.io/en/latest/getting-starte
 
 Before installing the chart, you must first install the cert-manager CustomResourceDefinition resources.
 
-```sh
+```bash
 kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.7.0/cert-manager.crds.yaml
 ```
 
@@ -143,7 +143,7 @@ You can prepare the certificate manually without `cert-manager`.
 2. Base64-encode the CA cert (in its PEM format
 3. Create Secret in `topolvm-system` namespace as follows:
 
-   ```console
+   ```bash
    kubectl -n topolvm-system create secret tls topolvm-mutatingwebhook \
        --cert=<CERTIFICATE FILE> --key=<KEY FILE>
    ```
@@ -175,23 +175,23 @@ Otherwise, `topolvm-scheduler` should be run as Deployment and Service.
 Set the `scheduler.type=daemonset` in the Helm Chart values.
 The default is daemonset.
 
-    ```yaml
-    <snip>
-    scheduler:
-      type: daemonset
-    <snip>
-    ```
+```yaml
+<snip>
+scheduler:
+  type: daemonset
+<snip>
+```
 
 #### Running topolvm-scheduler using Deployment and Service
 
 In this case, you can set the `scheduler.type=deployment` in the Helm Chart values.
 
-    ```yaml
-    <snip>
-    scheduler:
-      type: deployment
-    <snip>
-    ```
+```yaml
+<snip>
+scheduler:
+  type: deployment
+<snip>
+```
 
 This way, `topolvm-scheduler` is exposed by LoadBalancer service.
 
@@ -252,20 +252,20 @@ You can see the limitations of using Storage Capacity Tracking from [here](https
 If you want to use Storage Capacity Tracking instead of using topolvm-scheduler,
 you need to set the `controller.storageCapacityTracking.enabled=true`, `scheduler.enabled=false` and `webhook.podMutatingWebhook.enabled=false` in the Helm Chart values.
 
-    ```yaml
-    <snip>
-    controller:
-      storageCapacityTracking:
-        enabled: true
-    <snip>
-    scheduler:
-      enabled: false
-    <snip>
-    webhook:
-      podMutatingWebhook:
-        enabled: false
-    <snip>
-    ```
+```yaml
+<snip>
+controller:
+  storageCapacityTracking:
+    enabled: true
+<snip>
+scheduler:
+  enabled: false
+<snip>
+webhook:
+  podMutatingWebhook:
+    enabled: false
+<snip>
+```
 
 ## Protect system namespaces from TopoLVM webhook
 
@@ -311,7 +311,7 @@ $ kubectl label namespace topolvm-system topolvm.io/webhook=ignore
 
 Install Helm Chart using the configured values.yaml.
 
-```sh
+```bash
 helm upgrade --namespace=topolvm-system -f values.yaml -i topolvm topolvm/topolvm
 ```
 
@@ -321,7 +321,7 @@ helm upgrade --namespace=topolvm-system -f values.yaml -i topolvm topolvm/topolv
 
 First you need to choose an appropriate `KubeSchedulerConfiguration` YAML file according to your Kubernetes version.
 
-```console
+```bash
 cp ./deploy/scheduler-config/scheduler-config.yaml ./deploy/scheduler-config/scheduler-config.yaml
 ```
 
@@ -336,7 +336,7 @@ apiVersion: kubeadm.k8s.io/v1beta3
 kind: ClusterConfiguration
 metadata:
   name: config
-kubernetesVersion: v1.25.3
+kubernetesVersion: v1.26.3
 scheduler:
   extraVolumes:
     - name: "config"

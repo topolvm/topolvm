@@ -1,9 +1,0 @@
-apiVersion: topolvm.io/v1
-kind: LogicalVolume
-metadata:
-  name: %s
-spec:
-  deviceClass: ssd
-  name: %s
-  nodeName: %s
-  size: 1Gi

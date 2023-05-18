@@ -1,24 +1,23 @@
 # parameters
-KUBERNETES_VERSION ?= 1.25.3
+KUBERNETES_VERSION ?= 1.26.3
 TEST_SCHEDULER_MANIFEST ?= daemonset
 STORAGE_CAPACITY ?= false
-SKIP_NODE_FINALIZE ?= false
-SANITY_TEST_WITH_THIN_DEVICECLASS ?= false
 EXTERNAL_SNAPSHOTTER_VERSION ?= v6.0.1
+USE_LEGACY ?= ""
 
 ## Dependency versions
-MINIKUBE_VERSION := v1.28.0
-CERT_MANAGER_VERSION := v1.7.0
-KUSTOMIZE_VERSION := v4.5.5
+MINIKUBE_VERSION := v1.30.1
+CERT_MANAGER_VERSION := v1.11.1
+GINKGO_VERSION := $(shell awk '/github.com\/onsi\/ginkgo\/v2/ {print $$2}' ../go.mod)
 
 BINDIR := $(shell pwd)/bin
 SUDO := sudo
 CURL := curl -sSLf
 KIND_CLUSTER_NAME := topolvm-e2e
 KIND := ../bin/kind
-KUBECTL := $(BINDIR)/kubectl
+KUBECTL := $(BINDIR)/kubectl-$(KUBERNETES_VERSION)
 HELM := ../bin/helm
-GINKGO := ../bin/ginkgo
+GINKGO := $(BINDIR)/ginkgo-$(GINKGO_VERSION)
 
 MINIKUBE_HOME = $(BINDIR)
 export MINIKUBE_HOME
@@ -40,20 +39,17 @@ MINIKUBE_FEATURE_GATES="ReadWriteOncePod=true"
 
 HELM_VALUES_FILE_LVMD := manifests/values/daemonset-lvmd-storage-capacity.yaml
 
-ifeq ($(SKIP_NODE_FINALIZE),true)
-HELM_SKIP_NODE_FINALIZE_FLAG := --set controller.nodeFinalize.skipped=true
-else
-HELM_SKIP_NODE_FINALIZE_FLAG :=
-endif
-
-ifeq ($(SANITY_TEST_WITH_THIN_DEVICECLASS),false)
-GINKGO_SKIP_SNAPSHOT_CSI_TESTS := -skip='snapshot' -skip='CreateSnapshot' -skip='DeleteSnapshot' -skip='source volume'
-else
-GINKGO_SKIP_SNAPSHOT_CSI_TESTS :=
-endif
-
-
 SCHEDULER_CONFIG := scheduler-config-$(TEST_SCHEDULER_MANIFEST).yaml
+
+DOMAIN_NAME := topolvm.io
+PROVISINER_MANIFEST := manifests/provisioner.yaml
+ifeq ($(USE_LEGACY),true)
+HELM_VALUES_FILE := manifests/values/daemonset-scheduler-legacy.yaml
+SCHEDULER_CONFIG := scheduler-config-daemonset-legacy.yaml
+DOMAIN_NAME := topolvm.cybozu.com
+PROVISINER_MANIFEST := manifests/provisioner_legacy.yaml
+endif
+
 
 GO_FILES := $(shell find .. -path ../e2e -prune -o -name '*.go' -print)
 BACKING_STORE := ./build
@@ -70,23 +66,23 @@ topolvm.img: $(GO_FILES)
 	sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|topolvm-e2e-worker|" $< > $@
 
 .PHONY: prepare-namespace
-prepare-namespace:
+prepare-namespace: $(KUBECTL)
 	$(KUBECTL) create namespace topolvm-system
-	$(KUBECTL) label namespace topolvm-system topolvm.io/webhook=ignore
-	$(KUBECTL) label namespace kube-system topolvm.io/webhook=ignore
+	$(KUBECTL) label namespace topolvm-system $(DOMAIN_NAME)/webhook=ignore
+	$(KUBECTL) label namespace kube-system $(DOMAIN_NAME)/webhook=ignore
 
 .PHONY: apply-certmanager-crds
-apply-certmanager-crds:
+apply-certmanager-crds: $(KUBECTL)
 	$(KUBECTL) apply -f https://github.com/cert-manager/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
 
 .PHONY: launch-kind
-launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml
+launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml $(KIND)
 	$(SUDO) rm -rf /tmp/topolvm/controller /tmp/topolvm/worker*
 	sed -e "s|@KUBERNETES_VERSION@|$(KUBERNETES_VERSION)|" $(KIND_CONFIG) > /tmp/$(KIND_CONFIG)
 	$(KIND) create cluster --name=$(KIND_CLUSTER_NAME) --config /tmp/$(KIND_CONFIG) --image $(KIND_NODE_IMAGE)
 
 .PHONY: shutdown-kind
-shutdown-kind:
+shutdown-kind: $(KIND)
 	$(KIND) delete cluster --name=$(KIND_CLUSTER_NAME) || true
 	sleep 2
 	for d in $$($(SUDO) find /tmp/topolvm -type d); do \
@@ -108,8 +104,6 @@ start-lvmd:
 		truncate --size=20G $(BACKING_STORE)/backing_store$${i}_1; \
 		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$${i}_1; \
 		$(SUDO) vgcreate -y node$${i}-myvg1 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_1 | cut -d: -f1); \
-		$(SUDO) lvcreate -y -n csi-node-test-block -L 1G node$${i}-myvg1; \
-		$(SUDO) lvcreate -y -n csi-node-test-fs -L 1G node$${i}-myvg1; \
 	done
 
 	# Create additional Volume Groups
@@ -172,7 +166,7 @@ stop-lvmd:
 	done
 
 .PHONY: create-cluster
-create-cluster: topolvm.img
+create-cluster: topolvm.img $(HELM) $(KIND) $(KUBECTL)
 	$(MAKE) shutdown-kind
 	$(MAKE) launch-kind
 	$(MAKE) apply-certmanager-crds
@@ -181,28 +175,35 @@ create-cluster: topolvm.img
 	$(HELM) repo add jetstack https://charts.jetstack.io
 	$(HELM) repo update
 	$(HELM) dependency build ../charts/topolvm/
-	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE) --set "controller.nodeSelector.kubernetes\.io/hostname"=$(KIND_CLUSTER_NAME)-worker $(HELM_SKIP_NODE_FINALIZE_FLAG)
+	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE) --set "controller.nodeSelector.kubernetes\.io/hostname"=$(KIND_CLUSTER_NAME)-worker
 	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/topolvm-controller
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system -l="app.kubernetes.io/component=controller,app.kubernetes.io/name=topolvm" pod
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system certificate/topolvm-mutatingwebhook
 
-.PHONY: test
-test: create-cluster
+.PHONY: prepare-test
+prepare-test: $(KUBECTL)
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/rbac-snapshot-controller.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml
-	$(KUBECTL) apply -f manifests/common/
+	$(KUBECTL) apply -f $(PROVISINER_MANIFEST)
+
+.PHONY: run-test
+run-test: GINKGO_FLAGS =
+run-test: $(GINKGO)
 	$(SUDO) -E env \
 	PATH=${PATH} \
 	E2ETEST=1 \
-	BINDIR=$(BINDIR) \
+	KUBECTL=$(KUBECTL) \
 	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
-	SKIP_NODE_FINALIZE=$(SKIP_NODE_FINALIZE) \
-	GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn \
-	$(GINKGO) $(GINKGO_SKIP_SNAPSHOT_CSI_TESTS) --failFast -v .
+	$(GINKGO) --fail-fast -v $(GINKGO_FLAGS) .
 
+.PHONY: test
+test:
+	$(MAKE) create-cluster
+	$(MAKE) prepare-test
+	$(MAKE) run-test
 
 .PHONY: clean
 clean: stop-lvmd
@@ -214,11 +215,27 @@ clean: stop-lvmd
 
 .PHONY: setup
 setup:
-	cd ..; $(MAKE) setup
-	mkdir -p $(BINDIR)
-	$(CURL) -o $(BINDIR)/kubectl https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl
-	chmod a+x $(BINDIR)/kubectl
-	$(CURL) https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F$(KUSTOMIZE_VERSION)/kustomize_$(KUSTOMIZE_VERSION)_linux_amd64.tar.gz | tar zxf - -C $(BINDIR)
+	$(MAKE) $(GINKGO)
+	$(MAKE) $(HELM)
+	$(MAKE) $(KIND)
+	$(MAKE) $(KUBECTL)
+
+$(BINDIR):
+	mkdir -p $@
+
+$(GINKGO): | $(BINDIR)
+	GOBIN=$(BINDIR) go install github.com/onsi/ginkgo/v2/ginkgo@$(GINKGO_VERSION)
+	mv $(BINDIR)/ginkgo $@
+
+$(HELM):
+	$(MAKE) -C .. install-helm
+
+$(KIND):
+	$(MAKE) -C .. install-kind
+
+$(KUBECTL): | $(BINDIR)
+	$(CURL) -o $@ https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl
+	chmod a+x $@
 
 .PHONY: daemonset-lvmd/create-vg
 daemonset-lvmd/create-vg:
@@ -229,8 +246,6 @@ daemonset-lvmd/create-vg:
 		truncate --size=20G $(BACKING_STORE)/backing_store_lvmd_$${i}; \
 		$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_$${i}; \
 		$(SUDO) vgcreate -y node-myvg$${i} $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_$${i} | cut -d: -f1); \
-		$(SUDO) lvcreate -y -n csi-node-test-block -L 1G node-myvg$${i}; \
-		$(SUDO) lvcreate -y -n csi-node-test-fs -L 1G node-myvg$${i}; \
 	done
 
 	# Create Volume Group for testing raid1 volumes.
@@ -295,13 +310,13 @@ daemonset-lvmd/delete-minikube:
 	$(SUDO) -E $(BINDIR)/minikube delete || true
 
 .PHONY: daemonset-lvmd/test
-daemonset-lvmd/test: topolvm.img
+daemonset-lvmd/test: topolvm.img $(GINKGO) $(HELM) $(KUBECTL)
 	$(MAKE) apply-certmanager-crds
 	$(MAKE) prepare-namespace
 	$(HELM) repo add jetstack https://charts.jetstack.io
 	$(HELM) repo update
 	$(HELM) dependency build ../charts/topolvm/
-	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE_LVMD) $(HELM_SKIP_NODE_FINALIZE_FLAG)
+	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE_LVMD)
 	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/topolvm-controller
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system -l="app.kubernetes.io/component=controller,app.kubernetes.io/name=topolvm" pod
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system certificate/topolvm-mutatingwebhook
@@ -310,16 +325,14 @@ daemonset-lvmd/test: topolvm.img
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/rbac-snapshot-controller.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml
-	$(KUBECTL) apply -f manifests/common/
+	$(KUBECTL) apply -f manifests/provisioner.yaml
 	$(SUDO) -E env \
 	PATH=${PATH} \
 	E2ETEST=1 \
-	BINDIR=$(BINDIR) \
+	KUBECTL=$(KUBECTL) \
 	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
-	SKIP_NODE_FINALIZE=$(SKIP_NODE_FINALIZE) \
 	DAEMONSET_LVMD=true \
-	GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn \
-	$(GINKGO) -skip='snapshot' -skip='CreateSnapshot' -skip='DeleteSnapshot'  -skip='source volume' --failFast -v .
+	$(GINKGO) --fail-fast -v .
 
 .PHONY: daemonset-lvmd/clean
 daemonset-lvmd/clean: daemonset-lvmd/delete-minikube daemonset-lvmd/remove-vg

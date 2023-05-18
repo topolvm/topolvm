@@ -30,7 +30,7 @@ These PVC clones are independent of the source volumes, and can be used for perf
 ## LV Operations
 
 * STEP 1: Snapshot creation from a thinly-provisioned volume
-    ```bash
+    ```console
     $ lvcreate -s --name thinsnap VG0/thinvolume
     ```
 
@@ -39,7 +39,7 @@ These PVC clones are independent of the source volumes, and can be used for perf
   A thinly-provisioned snapshot will be activated as Read-Write for Clone scenarios; so that it can be provided as a Persistent Volume object to kubernetes.
 
     For e.g: Activating a logical volume for Read-Write operations:
-    ```bash
+    ```console
     $ lvchange -kn -ay VG0/thinsnap
     ```
 

@@ -11,7 +11,6 @@ Setup environment
 1. Prepare Ubuntu machine.
 2. [Install Docker CE](https://docs.docker.com/install/linux/docker-ce/ubuntu/#install-using-the-repository).
 3. Add yourself to `docker` group.  e.g. `sudo adduser $USER docker`
-4. Run `make setup`.
 
 How to run tests
 ----------------
@@ -20,26 +19,33 @@ How to run tests
 
 Start `lvmd` as a systemd service as follows:
 
-```console
+```bash
 make start-lvmd
 ```
 
 Run the tests with the following command. Repeat it until you get satisfied.
 When tests fail, use `kubectl` to inspect the Kubernetes cluster.
 
-```console
+```bash
 make test
 ```
 
 You can also start a cluster without running tests by the following command.
 
-```console
+```bash
 make create-cluster
+```
+
+Then, you can test specific suite.
+
+```bash
+make prepare-test
+make run-test GINKGO_FLAGS="--focus hook"
 ```
 
 You can cleanup test environment as follows:
 
-```
+```bash
 # stop Kubernetes
 make shutdown-kind
 
@@ -55,7 +61,7 @@ Before launching the test, install the following tools.
 
 Make lvm and launch Kubernetes using minikube with the following commands:
 
-```console
+```bash
 make daemonset-lvmd/create-vg
 make daemonset-lvmd/setup-minikube
 make daemonset-lvmd/launch-minikube
@@ -64,13 +70,13 @@ make daemonset-lvmd/launch-minikube
 Run the tests with the following command.
 You can inspect the Kubernetes cluster using `kubectl` command as well as kind.
 
-```console
+```bash
 make daemonset-lvmd/test
 ```
 
 You can cleanup test environment as follows:
 
-```console
+```bash
 make daemonset-lvmd/clean
 ```
 
