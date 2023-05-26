@@ -27,6 +27,8 @@ ifeq ($(BUILD_IMAGE),true)
 BUILD_IMAGE_FLAG := --set image.tag=devel
 endif
 
+include ../common.mk
+
 $(KUBECTL):
 	mkdir -p $(BINDIR)
 	$(CURL) https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl -o $(KUBECTL)
@@ -87,7 +89,7 @@ launch-kind: $(TMPDIR)/scheduler/scheduler-config.yaml
 	$(MAKE) shutdown-kind
 	$(SUDO) rm -rf $(TMPDIR)/controller $(TMPDIR)/worker*
 	sed 's/@KUBERNETES_VERSION@/$(KUBERNETES_VERSION)/; s=@TMPDIR@=$(TMPDIR)='  kind/topolvm-cluster.yaml > $(TMPDIR)/topolvm-cluster.yaml
-	$(KIND) create cluster --name=$(KIND_CLUSTER_NAME) --config $(TMPDIR)/topolvm-cluster.yaml --image kindest/node:v$(KUBERNETES_VERSION)
+	$(KIND) create cluster --name=$(KIND_CLUSTER_NAME) --config $(TMPDIR)/topolvm-cluster.yaml --image $(KIND_NODE_IMAGE)
 
 .PHONY: shutdown-kind
 shutdown-kind:

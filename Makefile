@@ -3,13 +3,14 @@
 CONTROLLER_RUNTIME_VERSION=$(shell awk '/sigs\.k8s\.io\/controller-runtime/ {print substr($$2, 2)}' go.mod)
 CONTROLLER_TOOLS_VERSION=$(shell awk '/sigs\.k8s\.io\/controller-tools/ {print substr($$2, 2)}' go.mod)
 PROTOC_VERSION=22.3
-KIND_VERSION=v0.18.0
 HELM_VERSION=3.11.3
 HELM_DOCS_VERSION=1.11.0
 CHART_TESTING_VERSION=3.8.0
 YQ_VERSION=4.33.3
 BUILDX_VERSION=0.10.4
 CONTAINER_STRUCTURE_TEST_VERSION=1.15.0
+
+include common.mk
 
 SUDO := sudo
 CURL := curl -sSLf
