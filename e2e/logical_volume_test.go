@@ -59,8 +59,13 @@ func testLogicalVolume() {
 		Expect(lv.Status.CurrentSize).NotTo(BeNil())
 		oldCurrentSize := lv.Status.CurrentSize.Value()
 
+		var ds appsv1.DaemonSet
+		err = getObjects(&ds, "daemonset", "-n", "topolvm-system", "topolvm-node")
+		Expect(err).ShouldNot(HaveOccurred())
+		desiredTopoLVMNodeCount := int(ds.Status.DesiredNumberScheduled)
+
 		By("clearing Status.CurrentSize")
-		stopTopoLVMNode(lv.Spec.NodeName)
+		stopTopoLVMNode(lv.Spec.NodeName, desiredTopoLVMNodeCount-1)
 		clearCurrentSize(k8sClient, lv.Name)
 		// sanity check for clearing CurrentSize
 		lv, err = getLogicalVolume(lv.Name)
@@ -68,19 +73,23 @@ func testLogicalVolume() {
 		Expect(lv.Status.CurrentSize).To(BeNil())
 
 		By("checking that Status.CurrentSize is set to previous value if it is missing and spec.Size is not modified")
-		startTopoLVMNode()
+		startTopoLVMNode(desiredTopoLVMNodeCount)
 		currentSize := waitForSettingCurrentSize(lv.Name)
 		Expect(currentSize).To(BeEquivalentTo(oldCurrentSize))
 
 		By("clearing Status.CurrentSize and changing Spec.Size to 2Gi")
-		stopTopoLVMNode(lv.Spec.NodeName)
+		stopTopoLVMNode(lv.Spec.NodeName, desiredTopoLVMNodeCount-1)
 		clearCurrentSize(k8sClient, lv.Name)
 		_, err = kubectl("patch", "logicalvolumes", lv.Name, "--type=json", "-p",
 			`[{"op": "replace", "path": "/spec/size", "value": "2Gi"}]`)
 		Expect(err).ShouldNot(HaveOccurred())
+		// sanity check for clearing CurrentSize
+		lv, err = getLogicalVolume(lv.Name)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(lv.Status.CurrentSize).To(BeNil())
 
 		By("checking that Status.CurrentSize is set to resized size if it is missing and spec.Size is modified")
-		startTopoLVMNode()
+		startTopoLVMNode(desiredTopoLVMNodeCount)
 		currentSize = waitForSettingCurrentSize(lv.Name)
 		Expect(currentSize).To(BeEquivalentTo(int64(2 * 1024 * 1024 * 1024)))
 
@@ -133,23 +142,27 @@ func getLogicalVolume(lvName string) (*topolvmv1.LogicalVolume, error) {
 	return &lv, err
 }
 
-func waitForTopoLVMNodeDSPatched(patch string, patchType string) {
+func waitForTopoLVMNodeDSPatched(patch string, patchType string, desiredTopoLVMNodeCount int) {
 	_, err := kubectl("patch", "-n", "topolvm-system", "daemonset", "topolvm-node", "--type", patchType, "-p", patch)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	Eventually(func(g Gomega) {
-		var ds appsv1.DaemonSet
-		err := getObjects(&ds, "-n", "topolvm-system", "daemonset", "topolvm-node")
-		g.Expect(err).ShouldNot(HaveOccurred())
-		g.Expect(ds.Status.NumberReady).To(BeEquivalentTo(ds.Status.DesiredNumberScheduled))
+		var pods corev1.PodList
+		err := getObjects(&pods, "pod", "-n", "topolvm-system", "-l", "app.kubernetes.io/component=node")
+		if desiredTopoLVMNodeCount == 0 {
+			g.Expect(err).To(BeIdenticalTo(ErrObjectNotFound))
+		} else {
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(pods.Items).To(HaveLen(desiredTopoLVMNodeCount))
+		}
 	}).Should(Succeed())
 }
 
-func startTopoLVMNode() {
-	waitForTopoLVMNodeDSPatched(`[{"op": "remove", "path": "/spec/template/spec/affinity"}]`, "json")
+func startTopoLVMNode(desiredTopoLVMNodeCount int) {
+	waitForTopoLVMNodeDSPatched(`[{"op": "remove", "path": "/spec/template/spec/affinity"}]`, "json", desiredTopoLVMNodeCount)
 }
 
-func stopTopoLVMNode(nodeName string) {
+func stopTopoLVMNode(nodeName string, desiredTopoLVMNodeCount int) {
 	patch := fmt.Sprintf(`
 				{
 					"spec": {
@@ -177,5 +190,5 @@ func stopTopoLVMNode(nodeName string) {
 					}
 				}
 			`, nodeName)
-	waitForTopoLVMNodeDSPatched(patch, "strategic")
+	waitForTopoLVMNodeDSPatched(patch, "strategic", desiredTopoLVMNodeCount)
 }
