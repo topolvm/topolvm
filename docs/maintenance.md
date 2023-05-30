@@ -104,6 +104,7 @@ For example, see https://github.com/kubernetes-csi/external-provisioner/blob/mas
 The depending tools versions are specified in the following files.
 
 - `Makefile`
+- `common.mk`
 - `e2e/Makefile`
 - `example/Makefile`
 
