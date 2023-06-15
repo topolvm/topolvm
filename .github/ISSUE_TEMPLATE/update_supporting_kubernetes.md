@@ -13,7 +13,7 @@ assignees: ''
 
 ## Before Check List
 
-There is a check list to confirm depending libraries or tools are released.
+There is a check list to confirm depending libraries or tools are released. The release notes for Kubernetes should also be checked.
 
 ### Must Update Dependencies
 
@@ -58,6 +58,10 @@ These are not released on the occasion of a Kubernetes version upgrade, so if th
   - https://github.com/kubernetes-csi/livenessprobe/tree/master/CHANGELOG
 - [ ] cri-docker
   - https://github.com/Mirantis/cri-dockerd/releases
+
+### Release notes check
+
+- [ ] Read the necessary release notes for Kubernetes.
 
 ## Checklist
 
