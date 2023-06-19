@@ -63,8 +63,18 @@ spec:
               command:
                 - /lvmd
                 - health
-            initialDelaySeconds: 10
-            timeoutSeconds: 3
+            {{- with .Values.livenessProbe.lvmd.failureThreshold }}
+            failureThreshold: {{ . }}
+            {{- end }}
+            {{- with .Values.livenessProbe.lvmd.initialDelaySeconds }}
+            initialDelaySeconds: {{ . }}
+            {{- end }}
+            {{- with .Values.livenessProbe.lvmd.timeoutSeconds }}
+            timeoutSeconds: {{ . }}
+            {{- end }}
+            {{- with .Values.livenessProbe.lvmd.periodSeconds }}
+            periodSeconds: {{ . }}
+            {{- end }}
           {{- with .Values.resources.lvmd }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}

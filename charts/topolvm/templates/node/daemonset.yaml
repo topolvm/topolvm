@@ -57,10 +57,18 @@ spec:
             httpGet:
               path: /healthz
               port: healthz
-            failureThreshold: 3
-            initialDelaySeconds: 10
-            timeoutSeconds: 3
-            periodSeconds: 60
+            {{- with .Values.livenessProbe.topolvm_node.failureThreshold }}
+            failureThreshold: {{ . }}
+            {{- end }}
+            {{- with .Values.livenessProbe.topolvm_node.initialDelaySeconds }}
+            initialDelaySeconds: {{ . }}
+            {{- end }}
+            {{- with .Values.livenessProbe.topolvm_node.timeoutSeconds }}
+            timeoutSeconds: {{ . }}
+            {{- end }}
+            {{- with .Values.livenessProbe.topolvm_node.periodSeconds }}
+            periodSeconds: {{ . }}
+            {{- end }}
           {{- with .Values.resources.topolvm_node }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
@@ -110,9 +118,18 @@ spec:
             httpGet:
               path: /healthz
               port: healthz
-            failureThreshold: 3
-            initialDelaySeconds: 10
-            timeoutSeconds: 3
+            {{- with .Values.livenessProbe.csi_registrar.failureThreshold }}
+            failureThreshold: {{ . }}
+            {{- end }}
+            {{- with .Values.livenessProbe.csi_registrar.initialDelaySeconds }}
+            initialDelaySeconds: {{ . }}
+            {{- end }}
+            {{- with .Values.livenessProbe.csi_registrar.timeoutSeconds }}
+            timeoutSeconds: {{ . }}
+            {{- end }}
+            {{- with .Values.livenessProbe.csi_registrar.periodSeconds }}
+            periodSeconds: {{ . }}
+            {{- end }}
           lifecycle:
             preStop:
               exec:

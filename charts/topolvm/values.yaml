@@ -510,6 +510,43 @@ resources:
   #    memory: "200Mi"
   #    cpu: "200m"
 
+livenessProbe:
+  # livenessProbe.topolvm_node -- Specify resources.
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+  topolvm_node:
+    failureThreshold:
+    initialDelaySeconds: 10
+    timeoutSeconds: 3
+    periodSeconds: 60
+  # livenessProbe.csi_registrar -- Specify livenessProbe.
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+  csi_registrar:
+    failureThreshold:
+    initialDelaySeconds: 10
+    timeoutSeconds: 3
+    periodSeconds: 60
+  # livenessProbe.topolvm_controller -- Specify livenessProbe.
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+  topolvm_controller:
+    failureThreshold:
+    initialDelaySeconds: 10
+    timeoutSeconds: 3
+    periodSeconds: 60
+  # livenessProbe.lvmd -- Specify livenessProbe.
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+  lvmd:
+    failureThreshold:
+    initialDelaySeconds: 10
+    timeoutSeconds: 3
+    periodSeconds: 60
+  # livenessProbe.topolvm_scheduler -- Specify livenessProbe.
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+  topolvm_scheduler:
+    failureThreshold:
+    initialDelaySeconds: 10
+    timeoutSeconds: 3
+    periodSeconds: 60
+
 # storageClasses -- Whether to create storageclass(es)
 # ref: https://kubernetes.io/docs/concepts/storage/storage-classes/
 storageClasses:
