@@ -66,6 +66,18 @@ spec:
             httpGet:
               port: {{ .Values.scheduler.options.listen.port }}
               path: /status
+            {{- with .Values.livenessProbe.topolvm_scheduler.failureThreshold }}
+            failureThreshold: {{ . }}
+            {{- end }}
+            {{- with .Values.livenessProbe.topolvm_scheduler.initialDelaySeconds }}
+            initialDelaySeconds: {{ . }}
+            {{- end }}
+            {{- with .Values.livenessProbe.topolvm_scheduler.timeoutSeconds }}
+            timeoutSeconds: {{ . }}
+            {{- end }}
+            {{- with .Values.livenessProbe.topolvm_scheduler.periodSeconds }}
+            periodSeconds: {{ . }}
+            {{- end }}
           readinessProbe:
             httpGet:
               port: {{ .Values.scheduler.options.listen.port }}

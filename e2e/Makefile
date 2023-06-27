@@ -22,7 +22,6 @@ GINKGO := $(BINDIR)/ginkgo-$(GINKGO_VERSION)
 MINIKUBE_HOME = $(BINDIR)
 export MINIKUBE_HOME
 
-KIND_NODE_IMAGE=kindest/node:v$(KUBERNETES_VERSION)
 export TEST_KUBERNETES_VERSION=$(shell echo $(KUBERNETES_VERSION) | grep -o '^[0-9]*\.[0-9]*')
 
 HELM_VALUES_FILE := manifests/values/daemonset-scheduler.yaml
@@ -53,6 +52,8 @@ endif
 
 GO_FILES := $(shell find .. -path ../e2e -prune -o -name '*.go' -print)
 BACKING_STORE := ./build
+
+include ../common.mk
 
 topolvm.img: $(GO_FILES)
 	mkdir -p tmpbin
