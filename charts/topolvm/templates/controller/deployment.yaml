@@ -76,10 +76,18 @@ spec:
             httpGet:
               path: /healthz
               port: healthz
-            failureThreshold: 3
-            initialDelaySeconds: 10
-            timeoutSeconds: 3
-            periodSeconds: 60
+            {{- with .Values.livenessProbe.topolvm_controller.failureThreshold }}
+            failureThreshold: {{ . }}
+            {{- end }}
+            {{- with .Values.livenessProbe.topolvm_controller.initialDelaySeconds }}
+            initialDelaySeconds: {{ . }}
+            {{- end }}
+            {{- with .Values.livenessProbe.topolvm_controller.timeoutSeconds }}
+            timeoutSeconds: {{ . }}
+            {{- end }}
+            {{- with .Values.livenessProbe.topolvm_controller.periodSeconds }}
+            periodSeconds: {{ . }}
+            {{- end }}
           {{- with .Values.image.pullPolicy }}
           imagePullPolicy: {{ . }}
           {{- end }}
