@@ -12,6 +12,8 @@ Ref: https://kubernetes.io/docs/concepts/storage/volumes/#csi
 > The `csi` volume type does not support direct reference from Pod and may
 > only be referenced in a Pod via a `PersistentVolumeClaim` object.
 
+If you delete a PVC whose corresponding PV has `Retain` reclaim policy, the corresponding `LogicalVolume` resource and the LVM logical volume are *NOT* deleted. If you delete this `LogicalVolume` resource after deleting the PVC, the related LVM logical volume is also deleted.
+
 Pod without PVC
 ---------------
 
