@@ -32,7 +32,6 @@ jobs:
 
   build-images:
     name: "build-images"
-    needs: build
     runs-on: "ubuntu-20.04"
     strategy:
       fail-fast: true
