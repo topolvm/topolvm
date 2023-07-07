@@ -7,6 +7,22 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.19.1] - 2023-07-07
+
+### Changed
+
+- Specify kind node image digest ([#705](https://github.com/topolvm/topolvm/pull/705))
+- Add an item to the check list for Kubernetes upgrade to ensure that t… ([#708](https://github.com/topolvm/topolvm/pull/708))
+- doc: update limitation about retain policy ([#714](https://github.com/topolvm/topolvm/pull/714))
+- Stabilize logical volume test ([#706](https://github.com/topolvm/topolvm/pull/706))
+- build(deps): bump google.golang.org/grpc from 1.49.0 to 1.53.0 ([#716](https://github.com/topolvm/topolvm/pull/716))
+
+### Contributors
+
+- @peng225
+- @satoru-takeuchi
+- @toshipp
+
 ## [0.19.0] - 2023-05-18
 
 ### Changed
@@ -771,7 +787,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.19.0...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.19.1...HEAD
+[0.19.1]: https://github.com/topolvm/topolvm/compare/v0.19.0...v0.19.1
 [0.19.0]: https://github.com/topolvm/topolvm/compare/v0.18.2...v0.19.0
 [0.18.2]: https://github.com/topolvm/topolvm/compare/v0.18.1...v0.18.2
 [0.18.1]: https://github.com/topolvm/topolvm/compare/v0.18.0...v0.18.1
