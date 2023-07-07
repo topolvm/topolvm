@@ -7,6 +7,17 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [11.3.0] - 2023-07-07
+
+### Changed
+
+- feat(chart): allow livenessprobe configuration ([#709](https://github.com/topolvm/topolvm/pull/709))
+- appVersion was changed to 0.19.1.
+
+### Contributors
+
+- @maxime1907
+
 ## [11.2.1] - 2023-05-18
 
 ### Changed
@@ -294,7 +305,8 @@ This release contains the domain name change([#592](https://github.com/topolvm/t
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.2.1...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.3.0...HEAD
+[11.3.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.2.1...topolvm-chart-v11.3.0
 [11.2.1]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.2.0...topolvm-chart-v11.2.1
 [11.2.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.1.1...topolvm-chart-v11.2.0
 [11.1.1]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.1.0...topolvm-chart-v11.1.1
