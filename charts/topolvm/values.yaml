@@ -164,6 +164,10 @@ lvmd:
   ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
   nodeSelector: {}
 
+  # lvmd.affinity -- Specify affinity.
+  ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
+
   # lvmd.volumes -- Specify volumes.
   volumes: []
   #  - name: lvmd-socket-dir
@@ -271,6 +275,10 @@ node:
   # node.nodeSelector -- Specify nodeSelector.
   ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
   nodeSelector: {}
+
+  # node.affinity -- Specify affinity.
+  ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
 
   # node.volumes -- Specify volumes.
   volumes: []
