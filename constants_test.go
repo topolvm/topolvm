@@ -93,6 +93,11 @@ func TestGetResizeRequestedAtKey(t *testing.T) {
 	doContainTest(t, GetResizeRequestedAtKey)
 }
 
+func TestGetLVPendingDeletionKey(t *testing.T) {
+	testingutil.DoEnvCheck(t)
+	doContainTest(t, GetLVPendingDeletionKey)
+}
+
 func TestGetLogicalVolumeFinalizer(t *testing.T) {
 	testingutil.DoEnvCheck(t)
 	doContainTest(t, GetLogicalVolumeFinalizer)

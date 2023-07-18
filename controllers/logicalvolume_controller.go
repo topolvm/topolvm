@@ -60,6 +60,18 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
+	if lv.Annotations != nil {
+		_, pendingDeletion := lv.Annotations[topolvm.GetLVPendingDeletionKey()]
+		if pendingDeletion {
+			if controllerutil.ContainsFinalizer(lv, topolvm.GetLogicalVolumeFinalizer()) {
+				log.Error(nil, "logical volume was pending deletion but still has finalizer", "name", lv.Name)
+			} else {
+				log.Info("skipping finalizer for logical volume due to its pending deletion", "name", lv.Name)
+			}
+			return ctrl.Result{}, nil
+		}
+	}
+
 	if lv.ObjectMeta.DeletionTimestamp == nil {
 		if !controllerutil.ContainsFinalizer(lv, topolvm.GetLogicalVolumeFinalizer()) {
 			lv2 := lv.DeepCopy()
