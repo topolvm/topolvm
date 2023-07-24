@@ -42,6 +42,14 @@ func NewLogicalVolumeReconciler(client client.Client, nodeName string, conn *grp
 		lvService: proto.NewLVServiceClient(conn),
 	}
 }
+func NewLogicalVolumeReconcilerWithServices(client client.Client, nodeName string, vgService proto.VGServiceClient, lvService proto.LVServiceClient) *LogicalVolumeReconciler {
+	return &LogicalVolumeReconciler{
+		client:    client,
+		nodeName:  nodeName,
+		vgService: vgService,
+		lvService: lvService,
+	}
+}
 
 // Reconcile creates/deletes LVM logical volume for a LogicalVolume.
 func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
