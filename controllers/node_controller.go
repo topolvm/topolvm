@@ -144,6 +144,11 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 func (r *NodeReconciler) cleanupLogicalVolume(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) error {
 	if controllerutil.ContainsFinalizer(lv, topolvm.GetLogicalVolumeFinalizer()) {
 		lv2 := lv.DeepCopy()
+		if lv2.Annotations == nil {
+			lv2.Annotations = make(map[string]string)
+		}
+		// Flag the LV as pending deletion, so the LogicalVolumeReconciler doesn't re-add the finalizer before it sees the deletion
+		lv2.Annotations[topolvm.GetLVPendingDeletionKey()] = "true"
 		controllerutil.RemoveFinalizer(lv2, topolvm.GetLogicalVolumeFinalizer())
 		patch := client.MergeFrom(lv)
 		if err := r.client.Patch(ctx, lv2, patch); err != nil {

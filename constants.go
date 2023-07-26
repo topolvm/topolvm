@@ -55,6 +55,11 @@ func GetResizeRequestedAtKey() string {
 	return fmt.Sprintf("%s/resize-requested-at", GetPluginName())
 }
 
+// GetPendingDeletionKey returns the name of the pending-deletion annotation
+func GetLVPendingDeletionKey() string {
+	return fmt.Sprintf("%s/pendingdeletion", GetPluginName())
+}
+
 // GetLogicalVolumeFinalizer returns the name of LogicalVolume finalizer
 func GetLogicalVolumeFinalizer() string {
 	return fmt.Sprintf("%s/logicalvolume", GetPluginName())
