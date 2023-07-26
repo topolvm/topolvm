@@ -5,3 +5,7 @@ updates:
     rebase-strategy: "disabled"
     schedule:
       interval: "monthly"
+    groups:
+      github-actions-update:
+        patterns:
+          - "*"
