@@ -50,11 +50,16 @@ spec:
           command:
             - /topolvm-scheduler
             - --config=/etc/topolvm/scheduler-options.yaml
-          {{ if .Values.useLegacy }}
+          {{- if or .Values.useLegacy .Values.env.topolvm_scheduler }}
           env:
+            {{- if .Values.useLegacy }}
             - name: USE_LEGACY
               value: "true"
-          {{ end }}
+            {{- end }}
+            {{- with .Values.env.topolvm_scheduler }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- end }}
           {{- with .Values.scheduler.args }}
           args: {{ toYaml . | nindent 12 }}
           {{- end }}
