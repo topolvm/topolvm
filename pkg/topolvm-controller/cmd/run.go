@@ -61,14 +61,18 @@ func subMain() error {
 		return fmt.Errorf("invalid webhook port: %v", err)
 	}
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     config.metricsAddr,
-		HealthProbeBindAddress: config.healthAddr,
-		LeaderElection:         true,
-		LeaderElectionID:       config.leaderElectionID,
-		Host:                   hookHost,
-		Port:                   hookPort,
-		CertDir:                config.certDir,
+		Scheme:                  scheme,
+		MetricsBindAddress:      config.metricsAddr,
+		HealthProbeBindAddress:  config.healthAddr,
+		LeaderElection:          true,
+		LeaderElectionID:        config.leaderElectionID,
+		LeaderElectionNamespace: config.leaderElectionNamespace,
+		RenewDeadline:           &config.leaderElectionRenewDeadline,
+		RetryPeriod:             &config.leaderElectionRetryPeriod,
+		LeaseDuration:           &config.leaderElectionLeaseDuration,
+		Host:                    hookHost,
+		Port:                    hookPort,
+		CertDir:                 config.certDir,
 	})
 	if err != nil {
 		return err

@@ -42,6 +42,7 @@ spec:
           image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
           command:
             - /topolvm-controller
+            - --leader-election-namespace={{ .Release.Namespace }}
             - --cert-dir=/certs
             {{- if .Values.controller.nodeFinalize.skipped }}
             - --skip-node-finalize
