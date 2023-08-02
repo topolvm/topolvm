@@ -518,6 +518,26 @@ resources:
   #    memory: "200Mi"
   #    cpu: "200m"
 
+env:
+  # env.topolvm_node -- Specify environment variables for topolvm_node container.
+  topolvm_node: []
+  # env.csi_registrar -- Specify environment variables for csi_registrar container.
+  csi_registrar: []
+  # env.liveness_probe -- Specify environment variables for liveness_probe container.
+  liveness_probe: []
+  # env.topolvm_controller -- Specify environment variables for topolvm_controller container.
+  topolvm_controller: []
+  # env.csi_provisioner -- Specify environment variables for csi_provisioner container.
+  csi_provisioner: []
+  # env.csi_resizer -- Specify environment variables for csi_resizer container.
+  csi_resizer: []
+  # env.csi_snapshotter -- Specify environment variables for csi_snapshotter container.
+  csi_snapshotter: []
+  # To specify environment variables for lvmd, use lvmd.env instead.
+  # lvmd: []
+  # env.topolvm_scheduler -- Specify environment variables for topolvm_scheduler container.
+  topolvm_scheduler: []
+
 livenessProbe:
   # livenessProbe.topolvm_node -- Specify resources.
   ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/

@@ -81,6 +81,9 @@ spec:
             - name: USE_LEGACY
               value: "true"
             {{ end }}
+            {{- with .Values.env.topolvm_node }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           volumeMounts:
             {{- if .Values.node.volumeMounts.topolvmNode }}
             {{- toYaml .Values.node.volumeMounts.topolvmNode | nindent 12 }}
@@ -140,6 +143,9 @@ spec:
           {{- with .Values.resources.csi_registrar }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
+          {{- with .Values.env.csi_registrar }}
+          env: {{ toYaml . | nindent 12 }}
+          {{- end }}
           volumeMounts:
             - name: node-plugin-dir
               mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/
@@ -164,6 +170,9 @@ spec:
               name: livenessprobe
           {{- with .Values.resources.liveness_probe }}
           resources: {{ toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.env.liveness_probe }}
+          env: {{ toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
             - name: node-plugin-dir

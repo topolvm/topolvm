@@ -104,6 +104,14 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | controller.tolerations | list | `[]` | Specify tolerations. # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ |
 | controller.updateStrategy | object | `{}` | Specify updateStrategy. |
 | controller.volumes | list | `[{"emptyDir":{},"name":"socket-dir"}]` | Specify volumes. |
+| env.csi_provisioner | list | `[]` | Specify environment variables for csi_provisioner container. |
+| env.csi_registrar | list | `[]` | Specify environment variables for csi_registrar container. |
+| env.csi_resizer | list | `[]` | Specify environment variables for csi_resizer container. |
+| env.csi_snapshotter | list | `[]` | Specify environment variables for csi_snapshotter container. |
+| env.liveness_probe | list | `[]` | Specify environment variables for liveness_probe container. |
+| env.topolvm_controller | list | `[]` | Specify environment variables for topolvm_controller container. |
+| env.topolvm_node | list | `[]` | Specify environment variables for topolvm_node container. |
+| env.topolvm_scheduler | list | `[]` | Specify environment variables for topolvm_scheduler container. |
 | image.csi.csiProvisioner | string | `nil` | Specify csi-provisioner image. If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used. |
 | image.csi.csiResizer | string | `nil` | Specify csi-resizer image. If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used. |
 | image.csi.csiSnapshotter | string | `nil` | Specify csi-snapshot image. If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used. |
