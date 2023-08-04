@@ -104,6 +104,14 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | controller.tolerations | list | `[]` | Specify tolerations. # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ |
 | controller.updateStrategy | object | `{}` | Specify updateStrategy. |
 | controller.volumes | list | `[{"emptyDir":{},"name":"socket-dir"}]` | Specify volumes. |
+| env.csi_provisioner | list | `[]` | Specify environment variables for csi_provisioner container. |
+| env.csi_registrar | list | `[]` | Specify environment variables for csi_registrar container. |
+| env.csi_resizer | list | `[]` | Specify environment variables for csi_resizer container. |
+| env.csi_snapshotter | list | `[]` | Specify environment variables for csi_snapshotter container. |
+| env.liveness_probe | list | `[]` | Specify environment variables for liveness_probe container. |
+| env.topolvm_controller | list | `[]` | Specify environment variables for topolvm_controller container. |
+| env.topolvm_node | list | `[]` | Specify environment variables for topolvm_node container. |
+| env.topolvm_scheduler | list | `[]` | Specify environment variables for topolvm_scheduler container. |
 | image.csi.csiProvisioner | string | `nil` | Specify csi-provisioner image. If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used. |
 | image.csi.csiResizer | string | `nil` | Specify csi-resizer image. If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used. |
 | image.csi.csiSnapshotter | string | `nil` | Specify csi-snapshot image. If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used. |
@@ -119,6 +127,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | livenessProbe.topolvm_node | object | `{"failureThreshold":null,"initialDelaySeconds":10,"periodSeconds":60,"timeoutSeconds":3}` | Specify resources. # ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/ |
 | livenessProbe.topolvm_scheduler | object | `{"failureThreshold":null,"initialDelaySeconds":10,"periodSeconds":60,"timeoutSeconds":3}` | Specify livenessProbe. # ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/ |
 | lvmd.additionalConfigs | list | `[]` | Define additional LVM Daemon configs if you have additional types of nodes. Please ensure nodeSelectors are non overlapping. |
+| lvmd.affinity | object | `{}` | Specify affinity. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity |
 | lvmd.args | list | `[]` | Arguments to be passed to the command. |
 | lvmd.deviceClasses | list | `[{"default":true,"name":"ssd","spare-gb":10,"volume-group":"myvg1"}]` | Specify the device-class settings. |
 | lvmd.env | list | `[]` | extra environment variables |
@@ -132,6 +141,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | lvmd.updateStrategy | object | `{}` | Specify updateStrategy. |
 | lvmd.volumeMounts | list | `[]` | Specify volumeMounts. |
 | lvmd.volumes | list | `[]` | Specify volumes. |
+| node.affinity | object | `{}` | Specify affinity. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity |
 | node.args | list | `[]` | Arguments to be passed to the command. |
 | node.kubeletWorkDirectory | string | `"/var/lib/kubelet"` | Specify the work directory of Kubelet on the host. For example, on microk8s it needs to be set to `/var/snap/microk8s/common/var/lib/kubelet` |
 | node.lvmdSocket | string | `"/run/topolvm/lvmd.sock"` | Specify the socket to be used for communication with lvmd. |

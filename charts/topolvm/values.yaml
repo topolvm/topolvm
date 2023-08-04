@@ -164,6 +164,10 @@ lvmd:
   ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
   nodeSelector: {}
 
+  # lvmd.affinity -- Specify affinity.
+  ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
+
   # lvmd.volumes -- Specify volumes.
   volumes: []
   #  - name: lvmd-socket-dir
@@ -271,6 +275,10 @@ node:
   # node.nodeSelector -- Specify nodeSelector.
   ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
   nodeSelector: {}
+
+  # node.affinity -- Specify affinity.
+  ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
 
   # node.volumes -- Specify volumes.
   volumes: []
@@ -509,6 +517,26 @@ resources:
   #  limits:
   #    memory: "200Mi"
   #    cpu: "200m"
+
+env:
+  # env.topolvm_node -- Specify environment variables for topolvm_node container.
+  topolvm_node: []
+  # env.csi_registrar -- Specify environment variables for csi_registrar container.
+  csi_registrar: []
+  # env.liveness_probe -- Specify environment variables for liveness_probe container.
+  liveness_probe: []
+  # env.topolvm_controller -- Specify environment variables for topolvm_controller container.
+  topolvm_controller: []
+  # env.csi_provisioner -- Specify environment variables for csi_provisioner container.
+  csi_provisioner: []
+  # env.csi_resizer -- Specify environment variables for csi_resizer container.
+  csi_resizer: []
+  # env.csi_snapshotter -- Specify environment variables for csi_snapshotter container.
+  csi_snapshotter: []
+  # To specify environment variables for lvmd, use lvmd.env instead.
+  # lvmd: []
+  # env.topolvm_scheduler -- Specify environment variables for topolvm_scheduler container.
+  topolvm_scheduler: []
 
 livenessProbe:
   # livenessProbe.topolvm_node -- Specify resources.

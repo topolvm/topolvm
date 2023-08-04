@@ -42,6 +42,14 @@ func NewLogicalVolumeReconciler(client client.Client, nodeName string, conn *grp
 		lvService: proto.NewLVServiceClient(conn),
 	}
 }
+func NewLogicalVolumeReconcilerWithServices(client client.Client, nodeName string, vgService proto.VGServiceClient, lvService proto.LVServiceClient) *LogicalVolumeReconciler {
+	return &LogicalVolumeReconciler{
+		client:    client,
+		nodeName:  nodeName,
+		vgService: vgService,
+		lvService: lvService,
+	}
+}
 
 // Reconcile creates/deletes LVM logical volume for a LogicalVolume.
 func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -58,6 +66,18 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if lv.Spec.NodeName != r.nodeName {
 		log.Info("unfiltered logical value", "nodeName", lv.Spec.NodeName)
 		return ctrl.Result{}, nil
+	}
+
+	if lv.Annotations != nil {
+		_, pendingDeletion := lv.Annotations[topolvm.GetLVPendingDeletionKey()]
+		if pendingDeletion {
+			if controllerutil.ContainsFinalizer(lv, topolvm.GetLogicalVolumeFinalizer()) {
+				log.Error(nil, "logical volume was pending deletion but still has finalizer", "name", lv.Name)
+			} else {
+				log.Info("skipping finalizer for logical volume due to its pending deletion", "name", lv.Name)
+			}
+			return ctrl.Result{}, nil
+		}
 	}
 
 	if lv.ObjectMeta.DeletionTimestamp == nil {

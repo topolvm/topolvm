@@ -42,15 +42,21 @@ spec:
           image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
           command:
             - /topolvm-controller
+            - --leader-election-namespace={{ .Release.Namespace }}
             - --cert-dir=/certs
             {{- if .Values.controller.nodeFinalize.skipped }}
             - --skip-node-finalize
             {{- end }}
-          {{ if .Values.useLegacy }}
+          {{- if or .Values.useLegacy .Values.env.topolvm_controller }}
           env:
+            {{- if .Values.useLegacy }}
             - name: USE_LEGACY
               value: "true"
-          {{ end }}
+            {{- end }}
+            {{- with .Values.env.topolvm_controller }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- end }}
           {{- with .Values.controller.args }}
           args: {{ toYaml . | nindent 12 }}
           {{- end }}
@@ -112,6 +118,9 @@ spec:
           {{- with .Values.resources.csi_provisioner }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
+          {{- with .Values.env.csi_provisioner }}
+          env: {{ toYaml . | nindent 12 }}
+          {{- end }}
           command:
             - /csi-provisioner
             - --csi-address=/run/topolvm/csi-topolvm.sock
@@ -153,6 +162,9 @@ spec:
           {{- with .Values.resources.csi_resizer }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
+          {{- with .Values.env.csi_resizer }}
+          env: {{ toYaml . | nindent 12 }}
+          {{- end }}
           command:
             - /csi-resizer
             - --csi-address=/run/topolvm/csi-topolvm.sock
@@ -178,6 +190,9 @@ spec:
           {{- end }}
           {{- with .Values.resources.csi_snapshotter }}
           resources: {{ toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.env.csi_snapshotter }}
+          env: {{- toYaml . | nindent 12 }}
           {{- end }}
           command:
             - /csi-snapshotter
@@ -215,7 +230,9 @@ spec:
           {{- with .Values.resources.liveness_probe }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
-
+          {{- with .Values.env.liveness_probe }}
+          env: {{ toYaml . | nindent 12 }}
+          {{- end }}
       volumes:
         - name: certs
           secret:
