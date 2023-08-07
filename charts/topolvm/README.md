@@ -83,6 +83,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | cert-manager.enabled | bool | `false` | Install cert-manager together. # ref: https://cert-manager.io/docs/installation/kubernetes/#installing-with-helm |
+| controller.additionalLabels | object | `{}` | Additional labels to be set on the controller pod |
 | controller.affinity | string | `"podAntiAffinity:\n  requiredDuringSchedulingIgnoredDuringExecution:\n    - labelSelector:\n        matchExpressions:\n          - key: app.kubernetes.io/component\n            operator: In\n            values:\n              - controller\n          - key: app.kubernetes.io/name\n            operator: In\n            values:\n              - {{ include \"topolvm.name\" . }}\n      topologyKey: kubernetes.io/hostname\n"` | Specify affinity. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity |
 | controller.args | list | `[]` | Arguments to be passed to the command. |
 | controller.minReadySeconds | int | `nil` | Specify minReadySeconds. |
@@ -141,6 +142,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | lvmd.updateStrategy | object | `{}` | Specify updateStrategy. |
 | lvmd.volumeMounts | list | `[]` | Specify volumeMounts. |
 | lvmd.volumes | list | `[]` | Specify volumes. |
+| node.additionalLabels | object | `{}` | Additional labels to be set on the node pods. |
 | node.affinity | object | `{}` | Specify affinity. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity |
 | node.args | list | `[]` | Arguments to be passed to the command. |
 | node.kubeletWorkDirectory | string | `"/var/lib/kubelet"` | Specify the work directory of Kubelet on the host. For example, on microk8s it needs to be set to `/var/snap/microk8s/common/var/lib/kubelet` |

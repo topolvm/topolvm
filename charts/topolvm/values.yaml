@@ -332,6 +332,9 @@ node:
   #    maxSurge: 50%
   #    maxUnavailable: 50%
 
+  # node.additionalLabels -- Additional labels to be set on the node pods.
+  additionalLabels: {}
+
 # CSI controller service
 controller:
   # controller.replicaCount -- Number of replicas for CSI controller service.
@@ -434,6 +437,9 @@ controller:
   podDisruptionBudget:
     # controller.podDisruptionBudget.enabled -- Specify podDisruptionBudget enabled.
     enabled: true
+  
+  # controller.additionalLabels -- Additional labels to be set on the controller pod
+  additionalLabels: {}
 
 resources:
   # resources.topolvm_node -- Specify resources.
