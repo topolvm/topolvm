@@ -437,7 +437,7 @@ controller:
   podDisruptionBudget:
     # controller.podDisruptionBudget.enabled -- Specify podDisruptionBudget enabled.
     enabled: true
-  
+
   # controller.additionalLabels -- Additional labels to be set on the controller pod
   additionalLabels: {}
 
