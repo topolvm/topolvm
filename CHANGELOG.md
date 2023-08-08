@@ -7,6 +7,30 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.20.0] - 2023-08-08
+
+### Added
+
+- feat: allow passing leaderelection config values to topolvm-controller ([#728](https://github.com/topolvm/topolvm/pull/728))
+
+### Changed
+
+- Start building images independently of unit tests ([#719](https://github.com/topolvm/topolvm/pull/719))
+- add Ryotaro Banno to owners ([#722](https://github.com/topolvm/topolvm/pull/722))
+- Use pre-build cri-dockerd ([#725](https://github.com/topolvm/topolvm/pull/725))
+- Use dependabot grouping feature ([#724](https://github.com/topolvm/topolvm/pull/724))
+
+### Fixed
+
+- Don't re-add finalizer to LogicalVolumes that are about to be deleted ([#723](https://github.com/topolvm/topolvm/pull/723))
+
+### Contributors
+
+- @jakobmoellerdev
+- @toshipp
+- @llamerada-jp
+- @spmason
+
 ## [0.19.1] - 2023-07-07
 
 ### Changed
@@ -787,7 +811,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.19.1...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.20.0...HEAD
+[0.20.0]: https://github.com/topolvm/topolvm/compare/v0.19.1...v0.20.0
 [0.19.1]: https://github.com/topolvm/topolvm/compare/v0.19.0...v0.19.1
 [0.19.0]: https://github.com/topolvm/topolvm/compare/v0.18.2...v0.19.0
 [0.18.2]: https://github.com/topolvm/topolvm/compare/v0.18.1...v0.18.2
