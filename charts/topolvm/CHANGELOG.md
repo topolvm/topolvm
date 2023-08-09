@@ -7,6 +7,24 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [11.4.0] - 2023-08-09
+
+### Added
+
+- feat(chart): allow affinity to be set for node and lvmd ([#720](https://github.com/topolvm/topolvm/pull/720))
+- helm: allow environment variables configuration ([#727](https://github.com/topolvm/topolvm/pull/727))
+
+### Changed
+
+- feat: allow passing leaderelection config values to topolvm-controller ([#728](https://github.com/topolvm/topolvm/pull/728))
+- appVersion was changed to 0.20.0.
+
+### Contributors
+
+- @nimdanitro
+- @daichimukai
+- @jakobmoellerdev
+
 ## [11.3.0] - 2023-07-07
 
 ### Changed
@@ -305,7 +323,8 @@ This release contains the domain name change([#592](https://github.com/topolvm/t
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.3.0...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.4.0...HEAD
+[11.4.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.3.0...topolvm-chart-v11.4.0
 [11.3.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.2.1...topolvm-chart-v11.3.0
 [11.2.1]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.2.0...topolvm-chart-v11.2.1
 [11.2.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.1.1...topolvm-chart-v11.2.0
