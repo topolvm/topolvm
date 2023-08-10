@@ -26,6 +26,9 @@ spec:
       labels:
         app.kubernetes.io/component: scheduler
         {{ include "topolvm.selectorLabels" . | nindent 8 }}
+        {{- with .Values.scheduler.additionalLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
       {{- with .Values.securityContext }}
       securityContext: {{ toYaml . | nindent 8 }}
