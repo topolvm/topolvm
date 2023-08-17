@@ -6,11 +6,12 @@ import (
 	"os/exec"
 	"testing"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/topolvm/topolvm/lvmd/command"
 	"github.com/topolvm/topolvm/lvmd/proto"
 	"github.com/topolvm/topolvm/lvmd/testutils"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func TestLVService(t *testing.T) {
@@ -281,10 +282,11 @@ func TestLVService(t *testing.T) {
 
 	// create sourceVolume
 	count = 0
+	var originalSizeGb uint64 = 1
 	res, err = lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
 		Name:        "sourceVol",
 		DeviceClass: thindev,
-		SizeGb:      1,
+		SizeGb:      originalSizeGb,
 		Tags:        []string{"testtag1", "testtag2"},
 	})
 	if err != nil {
@@ -296,8 +298,8 @@ func TestLVService(t *testing.T) {
 	if res.GetVolume().GetName() != "sourceVol" {
 		t.Errorf(`res.Volume.Name != "sourceVol": %s`, res.GetVolume().GetName())
 	}
-	if res.GetVolume().GetSizeGb() != 1 {
-		t.Errorf(`res.Volume.SizeGb != 1: %d`, res.GetVolume().GetSizeGb())
+	if res.GetVolume().GetSizeGb() != originalSizeGb {
+		t.Errorf(`res.Volume.SizeGb != %d: %d`, originalSizeGb, res.GetVolume().GetSizeGb())
 	}
 	err = exec.Command("lvs", vg.Name()+"/sourceVol").Run()
 	if err != nil {
@@ -320,14 +322,16 @@ func TestLVService(t *testing.T) {
 	}
 
 	// create snapshot of sourceVol
-
 	var snapRes *proto.CreateLVSnapshotResponse
+	var snapshotDesiredSizeGb uint64 = 2
 	snapRes, err = lvService.CreateLVSnapshot(context.Background(), &proto.CreateLVSnapshotRequest{
 		Name:         "snap1",
 		DeviceClass:  thindev,
 		SourceVolume: "sourceVol",
-		AccessType:   "ro",
-		Tags:         []string{"testsnaptag1", "testsnaptag2"},
+		// use a bigger size here to also simulate resizing to a bigger target than source
+		SizeGb:     snapshotDesiredSizeGb,
+		AccessType: "ro",
+		Tags:       []string{"testsnaptag1", "testsnaptag2"},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -338,8 +342,11 @@ func TestLVService(t *testing.T) {
 	if snapRes.GetSnapshot().GetName() != "snap1" {
 		t.Errorf(`res.Volume.Name != "snap1": %s`, res.GetVolume().GetName())
 	}
-	if res.GetVolume().GetSizeGb() != 1 {
-		t.Errorf(`res.Volume.SizeGb != 1: %d`, res.GetVolume().GetSizeGb())
+	if res.GetVolume().GetSizeGb() != originalSizeGb {
+		t.Errorf(`res.Volume.SizeGb != %d: %d`, originalSizeGb, res.GetVolume().GetSizeGb())
+	}
+	if snapRes.GetSnapshot().GetSizeGb() != snapshotDesiredSizeGb {
+		t.Errorf(`snapRes.Snapshot.SizeGb != %d: %d`, snapshotDesiredSizeGb, snapRes.GetSnapshot().GetSizeGb())
 	}
 	err = exec.Command("lvs", vg.Name()+"/snap1").Run()
 	if err != nil {
@@ -366,7 +373,7 @@ func TestLVService(t *testing.T) {
 	snapRes, err = lvService.CreateLVSnapshot(context.Background(), &proto.CreateLVSnapshotRequest{
 		Name:         "restoredsnap1",
 		DeviceClass:  thindev,
-		SourceVolume: "sourceVol",
+		SourceVolume: snapRes.GetSnapshot().GetName(),
 		AccessType:   "rw",
 		Tags:         []string{"testrestoretag1", "testrestoretag2"},
 	})
@@ -379,8 +386,11 @@ func TestLVService(t *testing.T) {
 	if snapRes.GetSnapshot().GetName() != "restoredsnap1" {
 		t.Errorf(`res.Volume.Name != "restoredsnap1": %s`, res.GetVolume().GetName())
 	}
-	if res.GetVolume().GetSizeGb() != 1 {
-		t.Errorf(`res.Volume.SizeGb != 1: %d`, res.GetVolume().GetSizeGb())
+	if res.GetVolume().GetSizeGb() != originalSizeGb {
+		t.Errorf(`res.Volume.SizeGb != %d: %d`, originalSizeGb, res.GetVolume().GetSizeGb())
+	}
+	if snapRes.GetSnapshot().GetSizeGb() != snapshotDesiredSizeGb {
+		t.Errorf(`snapRes.Snapshot.SizeGb != %d: %d`, snapshotDesiredSizeGb, snapRes.GetSnapshot().GetSizeGb())
 	}
 	err = exec.Command("lvs", vg.Name()+"/restoredsnap1").Run()
 	if err != nil {

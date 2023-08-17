@@ -7,13 +7,14 @@ import (
 	"strings"
 	"time"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/topolvm/topolvm"
 	v1 "github.com/topolvm/topolvm/api/v1"
 	"github.com/topolvm/topolvm/driver/internal/k8s"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -176,11 +177,11 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 		if err != nil {
 			return nil, err
 		}
-		// check if the volume has the same size as the source volume.
-		// TODO (Yuggupta27): Allow user to create a volume with more size than that of the source volume.
+
+		// check if the volume is equal or bigger than the source volume.
 		sourceSizeGb := sourceVol.Spec.Size.Value() >> 30
-		if sourceSizeGb != requestGb {
-			return nil, status.Error(codes.OutOfRange, "requested size does not match the size of the source")
+		if requestGb < sourceSizeGb {
+			return nil, status.Error(codes.OutOfRange, "requested size is smaller than the size of the source")
 		}
 		// If a volume has a source, it has to provisioned on the same node and device class as the source volume.
 
