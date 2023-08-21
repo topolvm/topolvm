@@ -122,7 +122,7 @@ because option B) is complicated to launch multiple TopoLVM for users.
 
 ### How to expose free storage capacity of nodes
 
-Currently `topolvm-node` exposes free storage capacity as `capacity.topolvm.cybozu.com/<deviec-calss>` annotation of each Node as follows:
+Currently `topolvm-node` exposes free storage capacity as `capacity.topolvm.cybozu.com/<device-class>` annotation of each Node as follows:
 
 ```yaml
 kind: Node
