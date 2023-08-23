@@ -9,15 +9,16 @@ import (
 	"strings"
 	"sync"
 
+	"golang.org/x/sys/unix"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/topolvm/topolvm"
 	"github.com/topolvm/topolvm/driver/internal/k8s"
 	"github.com/topolvm/topolvm/filesystem"
 	"github.com/topolvm/topolvm/lvmd/proto"
-	"golang.org/x/sys/unix"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	mountutil "k8s.io/mount-utils"
 	utilexec "k8s.io/utils/exec"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -246,6 +247,15 @@ func (s *nodeServerNoLocked) nodePublishFilesystemVolume(req *csi.NodePublishVol
 		if err := os.Chmod(req.GetTargetPath(), 0777|os.ModeSetgid); err != nil {
 			return status.Errorf(codes.Internal, "chmod 2777 failed: target=%s, error=%v", req.GetTargetPath(), err)
 		}
+	}
+
+	r := mountutil.NewResizeFs(s.mounter.Exec)
+	if resize, err := r.NeedResize(device, req.GetTargetPath()); resize {
+		if _, err := r.Resize(device, req.GetTargetPath()); err != nil {
+			return status.Errorf(codes.Internal, "failed to resize filesystem %s (mounted at: %s): %v", req.VolumeId, req.GetTargetPath(), err)
+		}
+	} else if err != nil {
+		return status.Errorf(codes.Internal, "could not determine if fs needed resize after mount: target=%s, error=%v", req.GetTargetPath(), err)
 	}
 
 	nodeLogger.Info("NodePublishVolume(fs) succeeded",
