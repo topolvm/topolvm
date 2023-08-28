@@ -7,14 +7,13 @@ import (
 	"strings"
 	"time"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/topolvm/topolvm"
 	v1 "github.com/topolvm/topolvm/api/v1"
 	"github.com/topolvm/topolvm/driver/internal/k8s"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -130,7 +129,7 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 		"accessibility_requirements", req.GetAccessibilityRequirements().String())
 
 	var (
-		//sourceID   string
+		// sourceID   string
 		sourceName string
 		sourceVol  *v1.LogicalVolume
 		err        error
