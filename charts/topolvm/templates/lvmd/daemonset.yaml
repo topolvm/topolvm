@@ -28,6 +28,9 @@ spec:
         idx: {{ $lvmdidx | quote }}
         app.kubernetes.io/component: lvmd
         {{- include "topolvm.selectorLabels" . | nindent 8 }}
+        {{- with .Values.lvmd.additionalLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/lvmd/configmap.yaml") . | sha256sum }}
     spec:

@@ -248,6 +248,15 @@ func (s *nodeServerNoLocked) nodePublishFilesystemVolume(req *csi.NodePublishVol
 		}
 	}
 
+	r := mountutil.NewResizeFs(s.mounter.Exec)
+	if resize, err := r.NeedResize(device, req.GetTargetPath()); resize {
+		if _, err := r.Resize(device, req.GetTargetPath()); err != nil {
+			return status.Errorf(codes.Internal, "failed to resize filesystem %s (mounted at: %s): %v", req.VolumeId, req.GetTargetPath(), err)
+		}
+	} else if err != nil {
+		return status.Errorf(codes.Internal, "could not determine if fs needed resize after mount: target=%s, error=%v", req.GetTargetPath(), err)
+	}
+
 	nodeLogger.Info("NodePublishVolume(fs) succeeded",
 		"volume_id", req.GetVolumeId(),
 		"target_path", req.GetTargetPath(),

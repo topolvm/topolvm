@@ -494,27 +494,35 @@ func (l *LogicalVolume) Tags() []string {
 // If this is a thin-provisioning volume, snapshots can be
 // created unconditionally.  Else, snapshots can be created
 // only for non-snapshot volumes.
-func (l *LogicalVolume) Snapshot(name string, cowSize uint64, tags []string) (*LogicalVolume, error) {
+func (l *LogicalVolume) Snapshot(name string, cowSize uint64, tags []string, thin bool) (*LogicalVolume, error) {
 	if l.pool == nil {
 		if l.IsSnapshot() {
 			return nil, fmt.Errorf("snapshot of snapshot")
 		}
-		var gbSize uint64
-		if cowSize > 0 {
-			gbSize = cowSize >> 30
-		} else {
-			gbSize = (l.size * 2 / 10) >> 30
-			if gbSize > cowMax {
-				gbSize = cowMax
+		args := []string{"-s", "-n", name, l.path}
+
+		// for creating a thin-snapshot, max COW is irrelevant since the snapshot gets resized based on the
+		// thin-pool. Thus one should not define a size argument, otherwise the snapshot is not thin.
+		if !thin {
+			var gbSize uint64
+			if cowSize > 0 {
+				gbSize = cowSize >> 30
+			} else {
+				gbSize = (l.size * 2 / 10) >> 30
+				if gbSize > cowMax {
+					gbSize = cowMax
+				}
 			}
+			if gbSize < cowMin {
+				gbSize = cowMin
+			}
+			if l.size < (gbSize << 30) {
+				gbSize = (l.size >> 30) << 30
+			}
+			args = append(args, "-L", fmt.Sprintf("%vg", gbSize))
 		}
-		if gbSize < cowMin {
-			gbSize = cowMin
-		}
-		if l.size < (gbSize << 30) {
-			gbSize = (l.size >> 30) << 30
-		}
-		if err := callLVM("lvcreate", "-s", "-n", name, "-L", fmt.Sprintf("%vg", gbSize), l.path); err != nil {
+
+		if err := callLVM("lvcreate", args...); err != nil {
 			return nil, err
 		}
 
@@ -582,6 +590,13 @@ func (l *LogicalVolume) Resize(newSize uint64) error {
 	if err := l.vg.Update(); err != nil {
 		return err
 	}
+
+	// now we need to update the size of this volume
+	vol, err := l.vg.FindVolume(l.name)
+	if err != nil {
+		return err
+	}
+	l.size = vol.size
 
 	return nil
 }

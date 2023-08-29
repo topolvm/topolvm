@@ -129,7 +129,7 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 		"accessibility_requirements", req.GetAccessibilityRequirements().String())
 
 	var (
-		//sourceID   string
+		// sourceID   string
 		sourceName string
 		sourceVol  *v1.LogicalVolume
 		err        error
@@ -176,11 +176,11 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 		if err != nil {
 			return nil, err
 		}
-		// check if the volume has the same size as the source volume.
-		// TODO (Yuggupta27): Allow user to create a volume with more size than that of the source volume.
+
+		// check if the volume is equal or bigger than the source volume.
 		sourceSizeGb := sourceVol.Spec.Size.Value() >> 30
-		if sourceSizeGb != requestGb {
-			return nil, status.Error(codes.OutOfRange, "requested size does not match the size of the source")
+		if requestGb < sourceSizeGb {
+			return nil, status.Error(codes.OutOfRange, "requested size is smaller than the size of the source")
 		}
 		// If a volume has a source, it has to provisioned on the same node and device class as the source volume.
 

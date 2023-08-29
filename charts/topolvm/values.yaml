@@ -129,6 +129,9 @@ scheduler:
       # scheduler.options.listen.port -- Listen port.
       port: 9251
 
+  # scheduler.additionalLabels -- Additional labels to be set on the scheduler pods
+  additionalLabels: {}
+
 # lvmd service
 lvmd:
   # lvmd.managed -- If true, set up lvmd service with DaemonSet.
@@ -208,6 +211,9 @@ lvmd:
   #  rollingUpdate:
   #    maxSurge: 50%
   #    maxUnavailable: 50%
+
+  # lvmd.additionalLabels -- Additional labels to be set on the lvmd service pods
+  additionalLabels: {}
 
 # CSI node service
 node:
@@ -332,6 +338,9 @@ node:
   #    maxSurge: 50%
   #    maxUnavailable: 50%
 
+  # node.additionalLabels -- Additional labels to be set on the node pods.
+  additionalLabels: {}
+
 # CSI controller service
 controller:
   # controller.replicaCount -- Number of replicas for CSI controller service.
@@ -434,6 +443,9 @@ controller:
   podDisruptionBudget:
     # controller.podDisruptionBudget.enabled -- Specify podDisruptionBudget enabled.
     enabled: true
+
+  # controller.additionalLabels -- Additional labels to be set on the controller pod
+  additionalLabels: {}
 
 resources:
   # resources.topolvm_node -- Specify resources.
