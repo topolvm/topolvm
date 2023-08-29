@@ -214,23 +214,34 @@ func (s *lvService) CreateLVSnapshot(_ context.Context, req *proto.CreateLVSnaps
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	var requested uint64
-	if sourceLV.IsThin() {
-		// In case of thin-snapshots, the size is the same as the source volume.
-		requested = sourceLV.Size()
-	} else {
+	if !sourceLV.IsThin() {
 		return nil, status.Error(codes.Unimplemented, "snapshot can be created for only thin volumes")
 	}
 
+	// In case of thin-snapshots, the size is the same as the source volume on snapshot creation, and then
+	// gets resized after extension into the correct size
+	sizeOnCreation := sourceLV.Size()
+	desiredSize := req.GetSizeGb() << 30
+
+	// in case there is no desired size in the request, we can still attempt to create the Snapshot with Source size.
+	if desiredSize == 0 {
+		desiredSize = sizeOnCreation
+	}
+
+	if sizeOnCreation > desiredSize {
+		return nil, status.Errorf(codes.OutOfRange, "requested size %v is smaller than source logical volume: %v", desiredSize, sizeOnCreation)
+	}
+
 	log.Info("lvservice req", map[string]interface{}{
-		"name":       req.Name,
-		"requested":  requested,
-		"sourceVol":  sourceVolume,
-		"snapType":   snapType,
-		"accessType": req.GetAccessType(),
+		"name":           req.Name,
+		"sizeOnCreation": sizeOnCreation,
+		"desiredSize":    desiredSize,
+		"sourceVol":      sourceVolume,
+		"snapType":       snapType,
+		"accessType":     req.GetAccessType(),
 	})
 	// Create snapshot lv
-	snapLV, err := sourceLV.Snapshot(req.GetName(), requested, req.GetTags())
+	snapLV, err := sourceLV.Snapshot(req.GetName(), sizeOnCreation, req.GetTags(), sourceLV.IsThin())
 	if err != nil {
 		log.Error("failed to create snapshot volume", map[string]interface{}{
 			log.FnError: err,
@@ -238,6 +249,15 @@ func (s *lvService) CreateLVSnapshot(_ context.Context, req *proto.CreateLVSnaps
 		})
 		return nil, status.Error(codes.Internal, err.Error())
 	}
+
+	if err := snapLV.Resize(desiredSize); err != nil {
+		log.Error("failed to extend snapshot after creation to desired size", map[string]interface{}{
+			log.FnError: err,
+			"name":      req.GetName(),
+		})
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
 	// If source volume is thin, activate the thin snapshot lv with accessmode.
 	if err := snapLV.Activate(req.AccessType); err != nil {
 		log.Error("failed to activate snap volume, deleting snapshot", map[string]interface{}{
@@ -262,7 +282,7 @@ func (s *lvService) CreateLVSnapshot(_ context.Context, req *proto.CreateLVSnaps
 
 	log.Info("created a new snapshot LV", map[string]interface{}{
 		"name":       req.GetName(),
-		"size":       requested,
+		"size":       desiredSize,
 		"accessType": req.AccessType,
 		"sourceID":   sourceVolume,
 	})
