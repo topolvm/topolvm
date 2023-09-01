@@ -7,6 +7,9 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "topolvm.labels" . | nindent 4 }}
+    {{- with .Values.scheduler.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   {{- with .Values.scheduler.minReadySeconds }}
   minReadySeconds: {{ . }}

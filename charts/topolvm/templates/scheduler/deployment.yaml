@@ -7,6 +7,9 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "topolvm.labels" . | nindent 4 }}
+    {{- with .Values.scheduler.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   replicas: {{ required ".Values.scheduler.deployment.replicaCount" .Values.scheduler.deployment.replicaCount }}
   {{- with .Values.scheduler.minReadySeconds }}

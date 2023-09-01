@@ -13,6 +13,9 @@ metadata:
   labels:
     idx: {{ $lvmdidx | quote }}
     {{- include "topolvm.labels" . | nindent 4 }}
+    {{- with .Values.lvmd.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   {{- with .Values.lvmd.updateStrategy }}
   updateStrategy: {{ toYaml . | nindent 4 }}
