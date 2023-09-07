@@ -5,7 +5,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "topolvm.labels" . | nindent 4 }}
-    {{- with .Values.node.additionalLabels }}
+    {{- with .Values.node.labels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:
@@ -21,7 +21,7 @@ spec:
       labels:
         app.kubernetes.io/component: node
         {{ include "topolvm.selectorLabels" . | nindent 8 }}
-        {{- with .Values.node.additionalLabels }}
+        {{- with .Values.node.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
       {{- if and .Values.node.metrics.enabled .Values.node.metrics.annotations }}

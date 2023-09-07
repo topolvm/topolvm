@@ -13,7 +13,7 @@ metadata:
   labels:
     idx: {{ $lvmdidx | quote }}
     {{- include "topolvm.labels" . | nindent 4 }}
-    {{- with .Values.lvmd.additionalLabels }}
+    {{- with .Values.lvmd.labels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:
@@ -31,7 +31,7 @@ spec:
         idx: {{ $lvmdidx | quote }}
         app.kubernetes.io/component: lvmd
         {{- include "topolvm.selectorLabels" . | nindent 8 }}
-        {{- with .Values.lvmd.additionalLabels }}
+        {{- with .Values.lvmd.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
       annotations:
