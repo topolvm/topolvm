@@ -129,7 +129,7 @@ scheduler:
       # scheduler.options.listen.port -- Listen port.
       port: 9251
 
-  # scheduler.podLabels -- Additional labels to be set on the scheduler pods
+  # scheduler.podLabels -- Additional labels to be set on the scheduler pods.
   podLabels: {}
   # scheduler.labels -- Additional labels to be added to the Deployment or Daemonset.
   labels: {}
@@ -214,7 +214,7 @@ lvmd:
   #    maxSurge: 50%
   #    maxUnavailable: 50%
 
-  # lvmd.podLabels -- Additional labels to be set on the lvmd service pods
+  # lvmd.podLabels -- Additional labels to be set on the lvmd service pods.
   podLabels: {}
   # lvmd.labels -- Additional labels to be added to the Daemonset.
   labels: {}
@@ -450,7 +450,7 @@ controller:
     # controller.podDisruptionBudget.enabled -- Specify podDisruptionBudget enabled.
     enabled: true
 
-  # controller.podLabels -- Additional labels to be set on the controller pod
+  # controller.podLabels -- Additional labels to be set on the controller pod.
   podLabels: {}
   # controller.labels -- Additional labels to be added to the Deployment.
   labels: {}
