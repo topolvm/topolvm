@@ -7,6 +7,9 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "topolvm.labels" . | nindent 4 }}
+    {{- with .Values.scheduler.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   replicas: {{ required ".Values.scheduler.deployment.replicaCount" .Values.scheduler.deployment.replicaCount }}
   {{- with .Values.scheduler.minReadySeconds }}
@@ -26,7 +29,7 @@ spec:
       labels:
         app.kubernetes.io/component: scheduler
         {{ include "topolvm.selectorLabels" . | nindent 8 }}
-        {{- with .Values.scheduler.additionalLabels }}
+        {{- with .Values.scheduler.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
