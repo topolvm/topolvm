@@ -7,6 +7,23 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.21.0] - 2023-09-13
+
+### Changed
+
+- feat: allow snapshotting to greater target than source volume ([#738](https://github.com/topolvm/topolvm/pull/738))
+
+### Fixed
+
+- Fix typos. ([#739](https://github.com/topolvm/topolvm/pull/739))
+- remove redundant explanation of snapshot limitation. ([#741](https://github.com/topolvm/topolvm/pull/741))
+
+### Contributors
+
+- @jakobmoellerdev
+- @adelton
+- @peng225
+
 ## [0.20.0] - 2023-08-08
 
 ### Added
@@ -811,7 +828,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.20.0...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.21.0...HEAD
+[0.21.0]: https://github.com/topolvm/topolvm/compare/v0.20.0...v0.21.0
 [0.20.0]: https://github.com/topolvm/topolvm/compare/v0.19.1...v0.20.0
 [0.19.1]: https://github.com/topolvm/topolvm/compare/v0.19.0...v0.19.1
 [0.19.0]: https://github.com/topolvm/topolvm/compare/v0.18.2...v0.19.0
