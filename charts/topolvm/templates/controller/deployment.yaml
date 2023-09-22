@@ -5,6 +5,9 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "topolvm.labels" . | nindent 4 }}
+    {{- with .Values.controller.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   replicas: {{ .Values.controller.replicaCount }}
   {{- with .Values.controller.minReadySeconds }}
@@ -22,7 +25,7 @@ spec:
       labels:
         app.kubernetes.io/component: controller
         {{ include "topolvm.selectorLabels" . | nindent 8 }}
-        {{- with .Values.controller.additionalLabels }}
+        {{- with .Values.controller.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
@@ -46,7 +49,11 @@ spec:
           command:
             - /topolvm-controller
             - --leader-election-namespace={{ .Release.Namespace }}
+            {{- if or .Values.webhook.podMutatingWebhook.enabled .Values.webhook.pvcMutatingWebhook.enabled }}
             - --cert-dir=/certs
+            {{- else }}
+            - --enable-webhooks=false
+            {{- end }}
             {{- if .Values.controller.nodeFinalize.skipped }}
             - --skip-node-finalize
             {{- end }}
@@ -106,8 +113,10 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /run/topolvm
+            {{- if or .Values.webhook.podMutatingWebhook.enabled .Values.webhook.pvcMutatingWebhook.enabled }}
             - name: certs
               mountPath: /certs
+            {{- end }}
 
         - name: csi-provisioner
           {{- if .Values.image.csi.csiProvisioner }}
@@ -237,9 +246,11 @@ spec:
           env: {{ toYaml . | nindent 12 }}
           {{- end }}
       volumes:
+        {{- if or .Values.webhook.podMutatingWebhook.enabled .Values.webhook.pvcMutatingWebhook.enabled }}
         - name: certs
           secret:
             secretName: {{ template "topolvm.fullname" . }}-mutatingwebhook
+        {{- end }}
         {{- with .Values.controller.volumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

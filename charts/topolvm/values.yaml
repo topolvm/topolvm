@@ -129,8 +129,10 @@ scheduler:
       # scheduler.options.listen.port -- Listen port.
       port: 9251
 
-  # scheduler.additionalLabels -- Additional labels to be set on the scheduler pods
-  additionalLabels: {}
+  # scheduler.podLabels -- Additional labels to be set on the scheduler pods.
+  podLabels: {}
+  # scheduler.labels -- Additional labels to be added to the Deployment or Daemonset.
+  labels: {}
 
 # lvmd service
 lvmd:
@@ -212,8 +214,10 @@ lvmd:
   #    maxSurge: 50%
   #    maxUnavailable: 50%
 
-  # lvmd.additionalLabels -- Additional labels to be set on the lvmd service pods
-  additionalLabels: {}
+  # lvmd.podLabels -- Additional labels to be set on the lvmd service pods.
+  podLabels: {}
+  # lvmd.labels -- Additional labels to be added to the Daemonset.
+  labels: {}
 
 # CSI node service
 node:
@@ -338,8 +342,10 @@ node:
   #    maxSurge: 50%
   #    maxUnavailable: 50%
 
-  # node.additionalLabels -- Additional labels to be set on the node pods.
-  additionalLabels: {}
+  # node.podLabels -- Additional labels to be set on the node pods.
+  podLabels: {}
+  # node.labels -- Additional labels to be added to the Daemonset.
+  labels: {}
 
 # CSI controller service
 controller:
@@ -444,8 +450,10 @@ controller:
     # controller.podDisruptionBudget.enabled -- Specify podDisruptionBudget enabled.
     enabled: true
 
-  # controller.additionalLabels -- Additional labels to be set on the controller pod
-  additionalLabels: {}
+  # controller.podLabels -- Additional labels to be set on the controller pod.
+  podLabels: {}
+  # controller.labels -- Additional labels to be added to the Deployment.
+  labels: {}
 
 resources:
   # resources.topolvm_node -- Specify resources.

@@ -7,6 +7,22 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [11.5.0] - 2023-09-13
+
+### Added
+
+- feat: Allow adding custom labels to topolvm controller, node, lvmd and scheduler pods ([#734](https://github.com/topolvm/topolvm/pull/734))
+- Add additional labels to daemonsets/deployments. ([#743](https://github.com/topolvm/topolvm/pull/743))
+
+### Changed
+
+- appVersion was changed to 0.21.0.
+
+### Contributors
+
+- @kvalliyurnatt
+- @naemono
+
 ## [11.4.0] - 2023-08-09
 
 ### Added
@@ -323,7 +339,8 @@ This release contains the domain name change([#592](https://github.com/topolvm/t
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.4.0...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.5.0...HEAD
+[11.5.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.4.0...topolvm-chart-v11.5.0
 [11.4.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.3.0...topolvm-chart-v11.4.0
 [11.3.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.2.1...topolvm-chart-v11.3.0
 [11.2.1]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.2.0...topolvm-chart-v11.2.1
