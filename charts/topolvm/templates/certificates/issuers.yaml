@@ -1,3 +1,4 @@
+{{- if or .Values.webhook.podMutatingWebhook.enabled .Values.webhook.pvcMutatingWebhook.enabled }}
 {{- if not .Values.webhook.caBundle }}
 {{- if not .Values.webhook.existingCertManagerIssuer }}
 # Create a selfsigned Issuer, in order to create a root CA certificate for
@@ -23,5 +24,6 @@ metadata:
 spec:
   ca:
     secretName: {{ template "topolvm.fullname" . }}-webhook-ca
+{{- end }}
 {{- end }}
 {{- end }}

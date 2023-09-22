@@ -80,12 +80,17 @@ func subMain() error {
 	client := clientwrapper.NewWrappedClient(mgr.GetClient())
 	apiReader := clientwrapper.NewWrappedReader(mgr.GetAPIReader(), mgr.GetClient().Scheme())
 
-	// register webhook handlers
-	// admissoin.NewDecoder never returns non-nil error
-	dec, _ := admission.NewDecoder(scheme)
-	wh := mgr.GetWebhookServer()
-	wh.Register("/pod/mutate", hook.PodMutator(client, apiReader, dec))
-	wh.Register("/pvc/mutate", hook.PVCMutator(client, apiReader, dec))
+	if config.enableWebhooks {
+		// register webhook handlers
+		// admission.NewDecoder never returns non-nil error
+		dec, _ := admission.NewDecoder(scheme)
+		wh := mgr.GetWebhookServer()
+		wh.Register("/pod/mutate", hook.PodMutator(client, apiReader, dec))
+		wh.Register("/pvc/mutate", hook.PVCMutator(client, apiReader, dec))
+		if err := mgr.AddReadyzCheck("webhook", wh.StartedChecker()); err != nil {
+			return err
+		}
+	}
 
 	// register controllers
 	nodecontroller := controllers.NewNodeReconciler(client, config.skipNodeFinalize)
@@ -136,9 +141,6 @@ func subMain() error {
 		return err
 	}
 	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
-		return err
-	}
-	if err := mgr.AddReadyzCheck("webhook", wh.StartedChecker()); err != nil {
 		return err
 	}
 

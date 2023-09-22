@@ -16,6 +16,7 @@ var config struct {
 	csiSocket                   string
 	metricsAddr                 string
 	healthAddr                  string
+	enableWebhooks              bool
 	webhookAddr                 string
 	certDir                     string
 	leaderElectionID            string
@@ -55,6 +56,7 @@ func init() {
 	fs.StringVar(&config.metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	fs.StringVar(&config.healthAddr, "health-probe-bind-address", ":8081", "The TCP address that the controller should bind to for serving health probes.")
 	fs.StringVar(&config.webhookAddr, "webhook-addr", ":9443", "Listen address for the webhook endpoint")
+	fs.BoolVar(&config.enableWebhooks, "enable-webhooks", true, "Enable webhooks")
 	fs.StringVar(&config.certDir, "cert-dir", "", "certificate directory")
 	fs.StringVar(&config.leaderElectionID, "leader-election-id", "topolvm", "ID for leader election by controller-runtime")
 	fs.StringVar(&config.leaderElectionNamespace, "leader-election-namespace", "", "Namespace where the leader election resource lives. Defaults to the pod namespace if not set.")
