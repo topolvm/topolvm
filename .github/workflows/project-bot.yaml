@@ -11,14 +11,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Issue an access token
-        uses: cybozu/octoken-action@v1
-        id: create-iat
+        uses: actions/create-github-app-token@v1
+        id: app-token
         with:
-          github_app_id: ${{ secrets.PROJECT_APP_ID }}
-          github_app_private_key: ${{ secrets.PROJECT_APP_PEM }}
+          app_id: ${{ secrets.PROJECT_APP_ID }}
+          private_key: ${{ secrets.PROJECT_APP_PEM }}
       - name: Get project data
         env:
-          GITHUB_TOKEN: ${{ steps.create-iat.outputs.token }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           ORGANIZATION: topolvm
           PROJECT_NUMBER: "2"
         run: |
@@ -33,7 +33,7 @@ jobs:
           echo "PROJECT_ID=${proj_id}" >> $GITHUB_ENV
       - name: Add an item to project
         env:
-          GITHUB_TOKEN: ${{ steps.create-iat.outputs.token }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           if [ ${{ github.event_name }} = issues ]; then
             CONTENT_ID=${{ github.event.issue.node_id }}
