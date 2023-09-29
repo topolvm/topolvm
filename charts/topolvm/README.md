@@ -85,6 +85,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | cert-manager.enabled | bool | `false` | Install cert-manager together. # ref: https://cert-manager.io/docs/installation/kubernetes/#installing-with-helm |
 | controller.affinity | string | `"podAntiAffinity:\n  requiredDuringSchedulingIgnoredDuringExecution:\n    - labelSelector:\n        matchExpressions:\n          - key: app.kubernetes.io/component\n            operator: In\n            values:\n              - controller\n          - key: app.kubernetes.io/name\n            operator: In\n            values:\n              - {{ include \"topolvm.name\" . }}\n      topologyKey: kubernetes.io/hostname\n"` | Specify affinity. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity |
 | controller.args | list | `[]` | Arguments to be passed to the command. |
+| controller.initContainers | list | `[]` | Additional initContainers for the controller service. |
 | controller.labels | object | `{}` | Additional labels to be added to the Deployment. |
 | controller.minReadySeconds | int | `nil` | Specify minReadySeconds. |
 | controller.nodeFinalize.skipped | bool | `false` | Skip automatic cleanup of PhysicalVolumeClaims when a Node is deleted. |
@@ -133,6 +134,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | lvmd.args | list | `[]` | Arguments to be passed to the command. |
 | lvmd.deviceClasses | list | `[{"default":true,"name":"ssd","spare-gb":10,"volume-group":"myvg1"}]` | Specify the device-class settings. |
 | lvmd.env | list | `[]` | extra environment variables |
+| lvmd.initContainers | list | `[]` | Additional initContainers for the lvmd service. |
 | lvmd.labels | object | `{}` | Additional labels to be added to the Daemonset. |
 | lvmd.lvcreateOptionClasses | list | `[]` | Specify the lvcreate-option-class settings. |
 | lvmd.managed | bool | `true` | If true, set up lvmd service with DaemonSet. |
@@ -147,6 +149,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | lvmd.volumes | list | `[]` | Specify volumes. |
 | node.affinity | object | `{}` | Specify affinity. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity |
 | node.args | list | `[]` | Arguments to be passed to the command. |
+| node.initContainers | list | `[]` | Additional initContainers for the node service. |
 | node.kubeletWorkDirectory | string | `"/var/lib/kubelet"` | Specify the work directory of Kubelet on the host. For example, on microk8s it needs to be set to `/var/snap/microk8s/common/var/lib/kubelet` |
 | node.labels | object | `{}` | Additional labels to be added to the Daemonset. |
 | node.lvmdSocket | string | `"/run/topolvm/lvmd.sock"` | Specify the socket to be used for communication with lvmd. |

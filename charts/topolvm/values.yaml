@@ -219,6 +219,9 @@ lvmd:
   # lvmd.labels -- Additional labels to be added to the Daemonset.
   labels: {}
 
+  # lvmd.initContainers -- Additional initContainers for the lvmd service.
+  initContainers: []
+
 # CSI node service
 node:
   # node.lvmdSocket -- Specify the socket to be used for communication with lvmd.
@@ -347,6 +350,9 @@ node:
   # node.labels -- Additional labels to be added to the Daemonset.
   labels: {}
 
+  # node.initContainers -- Additional initContainers for the node service.
+  initContainers: []
+
 # CSI controller service
 controller:
   # controller.replicaCount -- Number of replicas for CSI controller service.
@@ -454,6 +460,9 @@ controller:
   podLabels: {}
   # controller.labels -- Additional labels to be added to the Deployment.
   labels: {}
+
+  # controller.initContainers -- Additional initContainers for the controller service.
+  initContainers: []
 
 resources:
   # resources.topolvm_node -- Specify resources.
