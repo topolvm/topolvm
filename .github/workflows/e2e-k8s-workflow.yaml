@@ -21,7 +21,7 @@ jobs:
       TEST_SCHEDULER_MANIFEST: ${{ inputs.test_scheduler_manifest }}
       USE_LEGACY: ${{ inputs.use_legacy }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
           go-version-file: "go.mod"
