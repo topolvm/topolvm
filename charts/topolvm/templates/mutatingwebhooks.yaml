@@ -11,43 +11,16 @@ metadata:
   labels:
     {{- include "topolvm.labels" . | nindent 4 }}
 webhooks:
-  {{- if .Values.webhook.pvcMutatingWebhook.enabled }}
-  - name: pvc-hook.{{ include "topolvm.pluginName" . }}
-    admissionReviewVersions:
-      - "v1"
-      - "v1beta1"
-    namespaceSelector:
-      matchExpressions:
-        - key: {{ include "topolvm.pluginName" . }}/webhook
-          operator: NotIn
-          values: ["ignore"]
-    failurePolicy: Fail
-    matchPolicy: Equivalent
-    clientConfig:
-      {{- with .Values.webhook.caBundle }}
-      caBundle: {{ . }}
-      {{- end }}
-      service:
-        namespace: {{ .Release.Namespace }}
-        name: {{ template "topolvm.fullname" . }}-controller
-        path: /pvc/mutate
-    rules:
-      - operations: ["CREATE"]
-        apiGroups: [""]
-        apiVersions: ["v1"]
-        resources: ["persistentvolumeclaims"]
-    sideEffects: None
-  {{- end }}
   {{- if .Values.webhook.podMutatingWebhook.enabled }}
   - name: pod-hook.{{ include "topolvm.pluginName" . }}
     admissionReviewVersions:
-      - "v1"
-      - "v1beta1"
+    - v1
+    - v1beta1
     namespaceSelector:
       matchExpressions:
-        - key: {{ include "topolvm.pluginName" . }}/webhook
-          operator: NotIn
-          values: ["ignore"]
+      - key: {{ include "topolvm.pluginName" . }}/webhook
+        operator: NotIn
+        values: ["ignore"]
     failurePolicy: Fail
     matchPolicy: Equivalent
     clientConfig:
@@ -59,10 +32,45 @@ webhooks:
         name: {{ template "topolvm.fullname" . }}-controller
         path: /pod/mutate
     rules:
-      - operations: ["CREATE"]
-        apiGroups: [""]
-        apiVersions: ["v1"]
-        resources: ["pods"]
+    - apiGroups:
+      - ""
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      resources:
+      - pods
+    sideEffects: None
+  {{- end }}
+  {{- if .Values.webhook.pvcMutatingWebhook.enabled }}
+  - name: pvc-hook.{{ include "topolvm.pluginName" . }}
+    admissionReviewVersions:
+    - v1
+    - v1beta1
+    namespaceSelector:
+      matchExpressions:
+      - key: {{ include "topolvm.pluginName" . }}/webhook
+        operator: NotIn
+        values: ["ignore"]
+    failurePolicy: Fail
+    matchPolicy: Equivalent
+    clientConfig:
+      {{- with .Values.webhook.caBundle }}
+      caBundle: {{ . }}
+      {{- end }}
+      service:
+        namespace: {{ .Release.Namespace }}
+        name: {{ template "topolvm.fullname" . }}-controller
+        path: /pvc/mutate
+    rules:
+    - apiGroups:
+      - ""
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      resources:
+      - persistentvolumeclaims
     sideEffects: None
   {{- end }}
 ---

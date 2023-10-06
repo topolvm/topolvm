@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        kubernetes_versions: ["1.26.3", "1.25.8", "1.24.12"]
+        kubernetes_versions: ["1.27.3", "1.26.6", "1.25.11"]
     env:
       KUBERNETES_VERSION: ${{ matrix.kubernetes_versions }}
       STORAGE_CAPACITY: "true"
@@ -50,17 +50,17 @@ jobs:
           # These tools are required to use minikube for Kubernetes v1.24+
 
           # For CNI plugins, see https://github.com/Mirantis/cri-dockerd/blob/v0.2.6/README.md#important
-          CNI_PLUGINS_VERSION="v1.2.0"
+          CNI_PLUGINS_VERSION="v1.3.0"
           curl -L -o cni-plugins.tgz https://github.com/containernetworking/plugins/releases/download/${CNI_PLUGINS_VERSION}/cni-plugins-linux-amd64-${CNI_PLUGINS_VERSION}.tgz
           sudo mkdir -p /opt/cni/bin
           sudo tar -C /opt/cni/bin -xzf cni-plugins.tgz
 
           # Install cri-docker
-          CRI_DOCKERD_VERSION="v0.3.1"
+          CRI_DOCKERD_VERSION="v0.3.4"
           curl -L -o cri-dockerd.deb https://github.com/Mirantis/cri-dockerd/releases/download/${CRI_DOCKERD_VERSION}/cri-dockerd_${CRI_DOCKERD_VERSION#v}.3-0.ubuntu-focal_amd64.deb
           sudo dpkg -i cri-dockerd.deb
 
-          CRICTL_VERSION="v1.27.0"
+          CRICTL_VERSION="v1.28.0"
           curl -L https://github.com/kubernetes-sigs/cri-tools/releases/download/$CRICTL_VERSION/crictl-${CRICTL_VERSION}-linux-amd64.tar.gz --output crictl-${CRICTL_VERSION}-linux-amd64.tar.gz
           sudo tar zxvf crictl-$CRICTL_VERSION-linux-amd64.tar.gz -C /usr/local/bin
       - run: make -C e2e daemonset-lvmd/create-vg

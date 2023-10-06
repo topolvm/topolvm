@@ -28,6 +28,7 @@ Choose the next version and check the [release note](https://kubernetes.io/docs/
 Edit the following files.
 - `README.md`
 - `deploy/README.md`
+- `common.mk`
 - `Makefile`
 - `e2e/Makefile`
 - `example/Makefile`
@@ -79,7 +80,6 @@ Choose the same version of Go [used by the latest Kubernetes](https://github.com
 Edit the following files.
 - go.mod
 - Dockerfile
-- Dockerfile.with-sidecar
 
 #### CSI sidecars
 
@@ -126,15 +126,13 @@ so please check if these tools are also needed to be upgraded.
 
 Read [kubernetes go.mod](https://github.com/kubernetes/kubernetes/blob/master/go.mod), and update the `prometheus/*` and `grpc` modules.
 
-Read [csi-test go.mod](https://github.com/kubernetes-csi/csi-test/blob/master/go.mod), and update the `ginkgo` and `gomega` modules.
-
 #### Update upstream information
 
 Visit [the upstream web page](https://kubernetes-csi.github.io/docs/drivers.html) to check current TopoLVM information. If some information is old, create PR to update the information
 
 #### Final check
 
-`git grep 1.18`, `git grep image:`, and `git grep -i VERSION` might help us avoid overlooking necessary changes.
+`git grep <dropped kubernetes version e.g. 1.18>`, `git grep image:`, and `git grep -i VERSION` might help us avoid overlooking necessary changes.
 Please update the versions in the code and docs with great care.
 
 ## How to upgrade supported CSI version
@@ -146,3 +144,4 @@ Basically, CSI spec should NOT be upgraded aggressively.
 Upgrade the CSI version only if new features we should cover are introduced in newer versions, or the Kubernetes versions TopoLVM is going to support does not support the current CSI version.
 
 For updating CSI spec, update the version of `github.com/container-storage-interface/spec` in `go.mod`.
+When updating CSI spec, please also upgrade the version of `github.com/kubernetes-csi/csi-test`.

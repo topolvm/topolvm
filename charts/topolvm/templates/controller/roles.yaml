@@ -13,6 +13,7 @@ rules:
     resources: ["events"]
     verbs: ["create", "patch"]
 ---
+# Copied from https://github.com/kubernetes-csi/external-provisioner/blob/master/deploy/kubernetes/rbac.yaml
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -42,6 +43,7 @@ rules:
   resources: ["replicasets"]
   verbs: ["get"]
 ---
+# Copied from https://github.com/kubernetes-csi/external-resizer/blob/master/deploy/kubernetes/rbac.yaml
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -54,6 +56,7 @@ rules:
   resources: ["leases"]
   verbs: ["get", "watch", "list", "delete", "update", "create"]
 ---
+# Copied from https://github.com/kubernetes-csi/external-snapshotter/blob/master/deploy/kubernetes/csi-snapshotter/rbac-external-provisioner.yaml
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:

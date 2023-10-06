@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -317,6 +318,32 @@ func (c *wrappedClient) Scheme() *runtime.Scheme {
 
 func (c *wrappedClient) RESTMapper() meta.RESTMapper {
 	return c.client.RESTMapper()
+}
+
+func (c *wrappedClient) GroupVersionKindFor(obj runtime.Object) (schema.GroupVersionKind, error) {
+	gvk := obj.GetObjectKind().GroupVersionKind()
+	switch obj.(type) {
+	case *unstructured.Unstructured:
+		if gvk.Group == group && gvk.Kind == kind && topolvm.UseLegacy() {
+			return topolvmlegacyv1.GroupVersion.WithKind(kind), nil
+		}
+		return gvk, nil
+	case *metav1.PartialObjectMetadata:
+		if gvk.Group == group && gvk.Kind == kind && topolvm.UseLegacy() {
+			return topolvmlegacyv1.GroupVersion.WithKind(kind), nil
+		}
+		return gvk, nil
+	case *topolvmv1.LogicalVolume:
+		if topolvm.UseLegacy() {
+			return topolvmlegacyv1.GroupVersion.WithKind(kind), nil
+		}
+		return gvk, nil
+	}
+	return gvk, nil
+}
+
+func (c *wrappedClient) IsObjectNamespaced(obj runtime.Object) (bool, error) {
+	return c.client.IsObjectNamespaced(obj)
 }
 
 type wrappedSubResourceClient struct {
