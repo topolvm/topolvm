@@ -29,7 +29,7 @@ func run(ctx context.Context, cfg *rest.Config, scheme *runtime.Scheme, opts *en
 
 	// +kubebuilder:scaffold:builder
 
-	dec, _ := admission.NewDecoder(scheme)
+	dec := admission.NewDecoder(scheme)
 	wh := mgr.GetWebhookServer()
 	wh.Register(podMutatingWebhookPath, PodMutator(mgr.GetClient(), mgr.GetAPIReader(), dec))
 	wh.Register(pvcMutatingWebhookPath, PVCMutator(mgr.GetClient(), mgr.GetAPIReader(), dec))

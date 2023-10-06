@@ -24,7 +24,6 @@ func TestMtest(t *testing.T) {
 	if os.Getenv("E2ETEST") == "" {
 		t.Skip("Run under e2e/")
 	}
-	rand.Seed(time.Now().UnixNano())
 
 	RegisterFailHandler(Fail)
 

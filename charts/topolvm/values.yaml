@@ -84,11 +84,6 @@ scheduler:
           - matchExpressions:
               - key: node-role.kubernetes.io/control-plane
                 operator: Exists
-          # node-role.kubernetes.io/master label is not used in k8s 1.24+.
-          # TODO: remove this when minimum supported version becomes 1.24.
-          - matchExpressions:
-              - key: node-role.kubernetes.io/master
-                operator: Exists
 
   podDisruptionBudget:
     # scheduler.podDisruptionBudget.enabled -- Specify podDisruptionBudget enabled.
