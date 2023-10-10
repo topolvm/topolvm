@@ -7,6 +7,30 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [12.0.0] - 2023-10-10
+
+### Added
+
+- feat: add option to enable/disable webhook server ([#749](https://github.com/topolvm/topolvm/pull/749))
+- Add init containers ([#752](https://github.com/topolvm/topolvm/pull/752))
+
+### Changed
+
+- Support Kubernetes 1.27 ([#758](https://github.com/topolvm/topolvm/pull/758))
+- appVersion was changed to 0.22.0.
+
+### Removed
+
+- Remove PodSecurityPolicy ([#759](https://github.com/topolvm/topolvm/pull/759))
+  - **BREAKING**: Pod Security Policies is no longer supported.
+
+### Contributors
+
+- @cupnes
+- @naemono
+- @suleymanakbas91
+- @toshipp
+
 ## [11.5.0] - 2023-09-13
 
 ### Added
@@ -339,7 +363,8 @@ This release contains the domain name change([#592](https://github.com/topolvm/t
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.5.0...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v12.0.0...HEAD
+[12.0.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.5.0...topolvm-chart-v12.0.0
 [11.5.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.4.0...topolvm-chart-v11.5.0
 [11.4.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.3.0...topolvm-chart-v11.4.0
 [11.3.0]: https://github.com/topolvm/topolvm/compare/topolvm-chart-v11.2.1...topolvm-chart-v11.3.0
