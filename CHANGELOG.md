@@ -7,6 +7,25 @@ This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.
 
 ## [Unreleased]
 
+## [0.22.0] - 2023-10-10
+
+### Added
+
+- feat: add option to enable/disable webhook server ([#749](https://github.com/topolvm/topolvm/pull/749))
+
+### Changed
+
+- build(deps): bump the github-actions-update group with 2 updates ([#756](https://github.com/topolvm/topolvm/pull/756))
+- Replace cybozu/octoken-action with actions/create-github-app-token ([#755](https://github.com/topolvm/topolvm/pull/755))
+- Refine exempt-issue-labels to ignore update kubernetes ([#753](https://github.com/topolvm/topolvm/pull/753))
+- Support Kubernetes 1.27 ([#758](https://github.com/topolvm/topolvm/pull/758))
+
+### Contributors
+
+- @suleymanakbas91
+- @toshipp
+- @cupnes
+
 ## [0.21.0] - 2023-09-13
 
 ### Changed
@@ -828,7 +847,8 @@ Only cosmetic changes.
 
 This is the first release.
 
-[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.21.0...HEAD
+[Unreleased]: https://github.com/topolvm/topolvm/compare/v0.22.0...HEAD
+[0.22.0]: https://github.com/topolvm/topolvm/compare/v0.21.0...v0.22.0
 [0.21.0]: https://github.com/topolvm/topolvm/compare/v0.20.0...v0.21.0
 [0.20.0]: https://github.com/topolvm/topolvm/compare/v0.19.1...v0.20.0
 [0.19.1]: https://github.com/topolvm/topolvm/compare/v0.19.0...v0.19.1
