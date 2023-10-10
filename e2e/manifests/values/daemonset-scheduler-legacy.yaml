@@ -35,9 +35,6 @@ storageClasses:
       additionalParameters:
         topolvm.cybozu.com/device-class: "ssd"
 
-podSecurityPolicy:
-  create: false
-
 cert-manager:
   enabled: true
 

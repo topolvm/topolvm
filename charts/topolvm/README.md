@@ -141,7 +141,6 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | lvmd.nodeSelector | object | `{}` | Specify nodeSelector. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/ |
 | lvmd.podLabels | object | `{}` | Additional labels to be set on the lvmd service pods. |
 | lvmd.priorityClassName | string | `nil` | Specify priorityClassName. |
-| lvmd.psp.allowedHostPaths | list | `[]` | Specify allowedHostPaths. |
 | lvmd.socketName | string | `"/run/topolvm/lvmd.sock"` | Specify socketName. |
 | lvmd.tolerations | list | `[]` | Specify tolerations. # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ |
 | lvmd.updateStrategy | object | `{}` | Specify updateStrategy. |
@@ -165,13 +164,11 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | node.prometheus.podMonitor.namespace | string | `""` | Optional namespace in which to create PodMonitor. |
 | node.prometheus.podMonitor.relabelings | list | `[]` | RelabelConfigs to apply to samples before scraping. |
 | node.prometheus.podMonitor.scrapeTimeout | string | `""` | Scrape timeout. If not set, the Prometheus default scrape timeout is used. |
-| node.psp.allowedHostPaths | list | `[]` | Specify volumes. |
 | node.securityContext.privileged | bool | `true` |  |
 | node.tolerations | list | `[]` | Specify tolerations. # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ |
 | node.updateStrategy | object | `{}` | Specify updateStrategy. |
 | node.volumeMounts.topolvmNode | list | `[]` | Specify volumes. |
 | node.volumes | list | `[]` | Specify volumes. |
-| podSecurityPolicy.create | bool | `true` | Enable pod security policy. # ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/ |
 | priorityClass.enabled | bool | `true` | Install priorityClass. |
 | priorityClass.name | string | `"topolvm"` | Specify priorityClass resource name. |
 | priorityClass.value | int | `1000000` |  |

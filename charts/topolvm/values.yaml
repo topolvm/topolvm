@@ -196,12 +196,6 @@ lvmd:
   #          default: true
   #          spare-gb: 10
 
-  psp:
-    # lvmd.psp.allowedHostPaths -- Specify allowedHostPaths.
-    allowedHostPaths: []
-    #  - pathPrefix: "/run/topolvm"
-    #    readOnly: false
-
   # lvmd.updateStrategy -- Specify updateStrategy.
   updateStrategy: {}
   #  type: RollingUpdate
@@ -324,14 +318,6 @@ node:
     #   mountPropagation: "Bidirectional"
     # - name: lvmd-socket-dir
     #   mountPath: /run/topolvm
-
-  psp:
-    # node.psp.allowedHostPaths -- Specify volumes.
-    allowedHostPaths: []
-    # - pathPrefix: "/var/lib/kubelet"
-    #   readOnly: false
-    # - pathPrefix: "/run/topolvm"
-    #   readOnly: false
 
   # node.updateStrategy -- Specify updateStrategy.
   updateStrategy: {}
@@ -642,11 +628,6 @@ securityContext:
   runAsUser: 10000
   # securityContext.runAsGroup -- Specify runAsGroup.
   runAsGroup: 10000
-
-podSecurityPolicy:
-  # podSecurityPolicy.create -- Enable pod security policy.
-  ## ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/
-  create: true
 
 cert-manager:
   # cert-manager.enabled -- Install cert-manager together.

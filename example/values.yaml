@@ -4,9 +4,6 @@ controller:
 lvmd:
   managed: false
 
-podSecurityPolicy:
-  create: false
-
 cert-manager:
   enabled: true
 

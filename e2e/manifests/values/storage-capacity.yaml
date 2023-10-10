@@ -41,8 +41,5 @@ webhook:
   podMutatingWebhook:
     enabled: false
 
-podSecurityPolicy:
-  create: false
-
 cert-manager:
   enabled: true
