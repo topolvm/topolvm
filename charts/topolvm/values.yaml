@@ -84,11 +84,6 @@ scheduler:
           - matchExpressions:
               - key: node-role.kubernetes.io/control-plane
                 operator: Exists
-          # node-role.kubernetes.io/master label is not used in k8s 1.24+.
-          # TODO: remove this when minimum supported version becomes 1.24.
-          - matchExpressions:
-              - key: node-role.kubernetes.io/master
-                operator: Exists
 
   podDisruptionBudget:
     # scheduler.podDisruptionBudget.enabled -- Specify podDisruptionBudget enabled.
@@ -201,12 +196,6 @@ lvmd:
   #          default: true
   #          spare-gb: 10
 
-  psp:
-    # lvmd.psp.allowedHostPaths -- Specify allowedHostPaths.
-    allowedHostPaths: []
-    #  - pathPrefix: "/run/topolvm"
-    #    readOnly: false
-
   # lvmd.updateStrategy -- Specify updateStrategy.
   updateStrategy: {}
   #  type: RollingUpdate
@@ -218,6 +207,9 @@ lvmd:
   podLabels: {}
   # lvmd.labels -- Additional labels to be added to the Daemonset.
   labels: {}
+
+  # lvmd.initContainers -- Additional initContainers for the lvmd service.
+  initContainers: []
 
 # CSI node service
 node:
@@ -327,14 +319,6 @@ node:
     # - name: lvmd-socket-dir
     #   mountPath: /run/topolvm
 
-  psp:
-    # node.psp.allowedHostPaths -- Specify volumes.
-    allowedHostPaths: []
-    # - pathPrefix: "/var/lib/kubelet"
-    #   readOnly: false
-    # - pathPrefix: "/run/topolvm"
-    #   readOnly: false
-
   # node.updateStrategy -- Specify updateStrategy.
   updateStrategy: {}
   #  type: RollingUpdate
@@ -346,6 +330,9 @@ node:
   podLabels: {}
   # node.labels -- Additional labels to be added to the Daemonset.
   labels: {}
+
+  # node.initContainers -- Additional initContainers for the node service.
+  initContainers: []
 
 # CSI controller service
 controller:
@@ -454,6 +441,9 @@ controller:
   podLabels: {}
   # controller.labels -- Additional labels to be added to the Deployment.
   labels: {}
+
+  # controller.initContainers -- Additional initContainers for the controller service.
+  initContainers: []
 
 resources:
   # resources.topolvm_node -- Specify resources.
@@ -638,11 +628,6 @@ securityContext:
   runAsUser: 10000
   # securityContext.runAsGroup -- Specify runAsGroup.
   runAsGroup: 10000
-
-podSecurityPolicy:
-  # podSecurityPolicy.create -- Enable pod security policy.
-  ## ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/
-  create: true
 
 cert-manager:
   # cert-manager.enabled -- Install cert-manager together.

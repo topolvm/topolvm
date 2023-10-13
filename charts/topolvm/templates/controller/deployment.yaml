@@ -43,6 +43,9 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ template "topolvm.fullname" . }}-controller
+      {{- with .Values.controller.initContainers }}
+      initContainers: {{ toYaml . | nindent 6 }}
+      {{- end }}
       containers:
         - name: topolvm-controller
           image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"

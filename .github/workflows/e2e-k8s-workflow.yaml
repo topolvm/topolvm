@@ -15,13 +15,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        kubernetes_versions: ["1.26.3", "1.25.8", "1.24.12"]
+        kubernetes_versions: ["1.27.3", "1.26.6", "1.25.11"]
     env:
       KUBERNETES_VERSION: ${{ matrix.kubernetes_versions }}
       TEST_SCHEDULER_MANIFEST: ${{ inputs.test_scheduler_manifest }}
       USE_LEGACY: ${{ inputs.use_legacy }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
           go-version-file: "go.mod"

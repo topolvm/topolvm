@@ -45,8 +45,5 @@ storageClasses:
       additionalParameters:
         topolvm.io/device-class: "ssd"
 
-podSecurityPolicy:
-  create: false
-
 cert-manager:
   enabled: true
