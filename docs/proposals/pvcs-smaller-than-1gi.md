@@ -122,6 +122,7 @@ We are proposing how to change the current codebase [considering the breaking ch
 
 ### Decision Outcome
 
+Proposal has been accepted and is implemented in [feat: allow PVCs <1 Gi in PVCs](https://github.com/topolvm/topolvm/pull/766).
 
 ### Open Questions
 

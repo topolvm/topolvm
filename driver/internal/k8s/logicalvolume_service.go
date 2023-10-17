@@ -150,8 +150,8 @@ func NewLogicalVolumeService(mgr manager.Manager) (*LogicalVolumeService, error)
 }
 
 // CreateVolume creates volume
-func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, dc, oc, name, sourceName string, requestGb int64) (string, error) {
-	logger.Info("k8s.CreateVolume called", "name", name, "node", node, "size_gb", requestGb, "sourceName", sourceName)
+func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, dc, oc, name, sourceName string, requestBytes int64) (string, error) {
+	logger.Info("k8s.CreateVolume called", "name", name, "node", node, "size", requestBytes, "sourceName", sourceName)
 	var lv *topolvmv1.LogicalVolume
 	// if the create volume request has no source, proceed with regular lv creation.
 	if sourceName == "" {
@@ -164,7 +164,7 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, dc, oc, n
 				NodeName:            node,
 				DeviceClass:         dc,
 				LvcreateOptionClass: oc,
-				Size:                *resource.NewQuantity(requestGb<<30, resource.BinarySI),
+				Size:                *resource.NewQuantity(requestBytes, resource.BinarySI),
 			},
 		}
 
@@ -179,7 +179,7 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, dc, oc, n
 				NodeName:            node,
 				DeviceClass:         dc,
 				LvcreateOptionClass: oc,
-				Size:                *resource.NewQuantity(requestGb<<30, resource.BinarySI),
+				Size:                *resource.NewQuantity(requestBytes, resource.BinarySI),
 				Source:              sourceName,
 				AccessType:          "rw",
 			},
@@ -299,15 +299,15 @@ func (s *LogicalVolumeService) CreateSnapshot(ctx context.Context, node, dc, sou
 }
 
 // ExpandVolume expands volume
-func (s *LogicalVolumeService) ExpandVolume(ctx context.Context, volumeID string, requestGb int64) error {
-	logger.Info("k8s.ExpandVolume called", "volumeID", volumeID, "requestGb", requestGb)
+func (s *LogicalVolumeService) ExpandVolume(ctx context.Context, volumeID string, requestBytes int64) error {
+	logger.Info("k8s.ExpandVolume called", "volumeID", volumeID, "size", requestBytes)
 
 	lv, err := s.GetVolume(ctx, volumeID)
 	if err != nil {
 		return err
 	}
 
-	err = s.updateSpecSize(ctx, volumeID, resource.NewQuantity(requestGb<<30, resource.BinarySI))
+	err = s.updateSpecSize(ctx, volumeID, resource.NewQuantity(requestBytes, resource.BinarySI))
 	if err != nil {
 		return err
 	}

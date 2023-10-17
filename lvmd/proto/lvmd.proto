@@ -14,20 +14,22 @@ message Empty {}
 
 // Represents a logical volume.
 message LogicalVolume {
-    string name = 1;          // The logical volume name.
-    uint64 size_gb = 2;       // Volume size in GiB.
-    uint32 dev_major = 3;     // Device major number.
-    uint32 dev_minor = 4;     // Device minor number.
-    repeated string tags = 5; // Tags to add to the volume during creation
+    string name = 1;                        // The logical volume name.
+    uint64 size_gb = 2 [deprecated = true]; // Volume size in GiB.
+    uint32 dev_major = 3;                   // Device major number.
+    uint32 dev_minor = 4;                   // Device minor number.
+    repeated string tags = 5;               // Tags to add to the volume during creation
+    int64 size_bytes = 6;                   // Volume size in canonical CSI bytes.
 }
 
 // Represents the input for CreateLV.
 message CreateLVRequest {
-    string name = 1;              // The logical volume name.
-    uint64 size_gb = 2;           // Volume size in GiB.
-    repeated string tags = 3;     // Tags to add to the volume during creation
+    string name = 1;                        // The logical volume name.
+    uint64 size_gb = 2 [deprecated = true]; // Volume size in GiB.
+    repeated string tags = 3;               // Tags to add to the volume during creation
     string device_class = 4;
     string lvcreate_option_class = 5;
+    int64 size_bytes = 6;                   // Volume size in canonical CSI bytes.
 }
 
 // Represents the response of CreateLV.
@@ -42,12 +44,13 @@ message RemoveLVRequest {
 }
 
 message CreateLVSnapshotRequest {
-    string name = 1;              // The logical volume name.
-    repeated string tags = 2; // Tags to add to the volume during creation
+    string name = 1;                        // The logical volume name.
+    repeated string tags = 2;               // Tags to add to the volume during creation
     string device_class = 3;
-    string source_volume = 4;     // Source lv of snapshot.
-    uint64 size_gb = 5;           // Volume size in GiB.
-    string access_type = 6;       // Access type of snapshot
+    string source_volume = 4;               // Source lv of snapshot.
+    uint64 size_gb = 5 [deprecated = true]; // Volume size in GiB.
+    string access_type = 6;                 // Access type of snapshot
+    int64 size_bytes = 7;                   // Volume size in canonical CSI bytes.
 }
 
 message CreateLVSnapshotResponse {
@@ -59,8 +62,9 @@ message CreateLVSnapshotResponse {
 // The volume must already exist.
 // The volume size will be set to exactly "size_gb".
 message ResizeLVRequest {
-    string name = 1;       // The logical volume name.
-    uint64 size_gb = 2;    // Volume size in GiB.
+    string name = 1;                        // The logical volume name.
+    uint64 size_gb = 2 [deprecated = true]; // Volume size in GiB.
+    int64 size_bytes = 7;                   // Volume size in canonical CSI bytes.
     string device_class = 3;
 }
 
