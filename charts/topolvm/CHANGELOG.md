@@ -5,6 +5,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 This file itself is based on [Keep a CHANGELOG](https://keepachangelog.com/en/0.3.0/).
 
+**Note: See the [release notes](https://github.com/topolvm/topolvm/releases) for changes after v12.0.0.**
+
 ## [Unreleased]
 
 ## [12.0.0] - 2023-10-10
