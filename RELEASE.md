@@ -14,24 +14,24 @@ The format of release notes
 Release note is edited in the release procedure. The result should look something like:
 
 ```markdown
- ## What's Changed
- 
- ### Added
- 
- * Add a notable feature for users (#35)
- 
- ### Changed
- 
- * Change a behavior affecting users (#33)
- 
- ### Removed
- 
- * Remove a feature, users action required (#39)
- 
- ### Fixed
- 
- * Fix something not affecting users or a minor change (#40)
- ```
+## What's Changed
+
+### Added
+
+* Add a notable feature for users (#35)
+
+### Changed
+
+* Change a behavior affecting users (#33)
+
+### Removed
+
+* Remove a feature, users action required (#39)
+
+### Fixed
+
+* Fix something not affecting users or a minor change (#40)
+```
 
 Bump version
 ------------
