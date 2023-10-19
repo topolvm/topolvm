@@ -36,7 +36,7 @@ endif
 KIND_CONFIG="topolvm-cluster.yaml"
 MINIKUBE_FEATURE_GATES="ReadWriteOncePod=true"
 
-HELM_VALUES_FILE_LVMD := manifests/values/daemonset-lvmd-storage-capacity.yaml
+HELM_VALUES_FILE_LVMD ?= manifests/values/daemonset-lvmd-storage-capacity.yaml
 
 SCHEDULER_CONFIG := scheduler-config-$(TEST_SCHEDULER_MANIFEST).yaml
 
@@ -238,8 +238,8 @@ $(KUBECTL): | $(BINDIR)
 	$(CURL) -o $@ https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl
 	chmod a+x $@
 
-.PHONY: daemonset-lvmd/create-vg
-daemonset-lvmd/create-vg:
+.PHONY: incluster-lvmd/create-vg
+incluster-lvmd/create-vg:
 	mkdir -p build $(BACKING_STORE)
 	if [ $$(ls -1 $(BACKING_STORE)/backing_store_lvmd* 2>/dev/null | wc -l) -ne 0 ]; then $(MAKE) $(@D)/remove-vg; fi
 
@@ -274,8 +274,8 @@ daemonset-lvmd/create-vg:
 		$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_8 | cut -d: -f1)
 
 
-.PHONY: daemonset-lvmd/remove-vg
-daemonset-lvmd/remove-vg:
+.PHONY: incluster-lvmd/remove-vg
+incluster-lvmd/remove-vg:
 	for i in $$(seq 8); do \
 		if [ "$${j}" -lt 7 ]; then \
 			$(SUDO) vgremove -ffy node-myvg$${i}; \
@@ -285,16 +285,16 @@ daemonset-lvmd/remove-vg:
 		rm -f $(BACKING_STORE)/backing_store_lvmd_$${i}; \
 	done
 
-.PHONY: daemonset-lvmd/setup-minikube
-daemonset-lvmd/setup-minikube:
+.PHONY: incluster-lvmd/setup-minikube
+incluster-lvmd/setup-minikube:
 	mkdir -p $(BINDIR)
 	$(SUDO) apt-get update
 	DEBIAN_FRONTEND=noninteractive $(SUDO) apt-get install -y --no-install-recommends conntrack
 	$(CURL) -o $(BINDIR)/minikube https://github.com/kubernetes/minikube/releases/download/$(MINIKUBE_VERSION)/minikube-linux-amd64
 	chmod a+x $(BINDIR)/minikube
 
-.PHONY: daemonset-lvmd/launch-minikube
-daemonset-lvmd/launch-minikube:
+.PHONY: incluster-lvmd/launch-minikube
+incluster-lvmd/launch-minikube:
 	@if [ "$(STORAGE_CAPACITY)" = false ]; then echo "Only storage capacity mode is supported."; exit 1; fi
 	$(SUDO) -E $(BINDIR)/minikube start \
 		--vm-driver=none \
@@ -306,12 +306,12 @@ daemonset-lvmd/launch-minikube:
 	$(SUDO) chmod -R a+r $$HOME/.kube $(MINIKUBE_HOME)/.minikube
 	$(SUDO) find $(MINIKUBE_HOME)/.minikube -name id_rsa -exec chmod 600 {} ';'
 
-.PHONY: daemonset-lvmd/delete-minikube
-daemonset-lvmd/delete-minikube:
+.PHONY: incluster-lvmd/delete-minikube
+incluster-lvmd/delete-minikube:
 	$(SUDO) -E $(BINDIR)/minikube delete || true
 
-.PHONY: daemonset-lvmd/test
-daemonset-lvmd/test: topolvm.img $(GINKGO) $(HELM) $(KUBECTL)
+.PHONY: incluster-lvmd/test
+incluster-lvmd/test: topolvm.img $(GINKGO) $(HELM) $(KUBECTL)
 	$(MAKE) apply-certmanager-crds
 	$(MAKE) prepare-namespace
 	$(HELM) repo add jetstack https://charts.jetstack.io
@@ -335,5 +335,5 @@ daemonset-lvmd/test: topolvm.img $(GINKGO) $(HELM) $(KUBECTL)
 	DAEMONSET_LVMD=true \
 	$(GINKGO) --fail-fast -v .
 
-.PHONY: daemonset-lvmd/clean
-daemonset-lvmd/clean: daemonset-lvmd/delete-minikube daemonset-lvmd/remove-vg
+.PHONY: incluster-lvmd/clean
+incluster-lvmd/clean: incluster-lvmd/delete-minikube incluster-lvmd/remove-vg

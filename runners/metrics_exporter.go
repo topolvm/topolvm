@@ -8,7 +8,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/topolvm/topolvm"
 	"github.com/topolvm/topolvm/lvmd/proto"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
@@ -62,7 +61,7 @@ var _ manager.LeaderElectionRunnable = &metricsExporter{}
 
 // NewMetricsExporter creates controller-runtime's manager.Runnable to run
 // a metrics exporter for a node.
-func NewMetricsExporter(conn *grpc.ClientConn, client client.Client, nodeName string) manager.Runnable {
+func NewMetricsExporter(vgServiceClient proto.VGServiceClient, client client.Client, nodeName string) manager.Runnable {
 
 	// metrics available under volumegroup subsystem
 	availableBytes := prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -123,7 +122,7 @@ func NewMetricsExporter(conn *grpc.ClientConn, client client.Client, nodeName st
 	return &metricsExporter{
 		client:         client,
 		nodeName:       nodeName,
-		vgService:      proto.NewVGServiceClient(conn),
+		vgService:      vgServiceClient,
 		availableBytes: availableBytes,
 		sizeBytes:      sizeBytes,
 		thinPool: &thinPoolMetricsExporter{
