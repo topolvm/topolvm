@@ -69,7 +69,7 @@ jobs:
         id: create_release
         run: |
           # see https://docs.github.com/en/rest/releases/releases?apiVersion=2022-11-28#create-a-release
-          RESP=$(gh api \
+          gh api \
             -H "Accept: application/vnd.github+json" \
             --method POST \
             -H "X-GitHub-Api-Version: 2022-11-28" \
@@ -79,22 +79,11 @@ jobs:
             -f previous_tag_name="${{ steps.get_previous_tag.outputs.previous_tag }}" \
             -F draft=true \
             -F prerelease=${{ steps.check_version.outputs.prerelease }} \
-            -F generate_release_notes=true)
-          UPLOAD_URL=$(echo ${RESP} | jq -r '.upload_url')
-          if [ -z "${UPLOAD_URL}" ]; then
-            echo "UPLOAD_URL is empty."
-            exit 1
-          fi
-          echo "upload_url=${UPLOAD_URL}" >> ${GITHUB_OUTPUT}
+            -F generate_release_notes=true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: "Upload Release Asset"
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
+        run: |
+          gh release upload ${GITHUB_REF_NAME} lvmd-${{ steps.check_version.outputs.version }}.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./lvmd-${{ steps.check_version.outputs.version }}.tar.gz
-          asset_name: lvmd-${{ steps.check_version.outputs.version }}.tar.gz
-          asset_content_type: application/gzip
