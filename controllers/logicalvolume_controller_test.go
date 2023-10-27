@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/topolvm/topolvm"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
-	proto "github.com/topolvm/topolvm/lvmd/proto"
+	"github.com/topolvm/topolvm/lvmd/proto"
 	"google.golang.org/grpc"
 	corev1 "k8s.io/api/core/v1"
 	storegev1 "k8s.io/api/storage/v1"
@@ -47,8 +47,10 @@ type MockLVServiceClient struct {
 // CreateLV implements proto.LVServiceClient.
 func (c MockLVServiceClient) CreateLV(ctx context.Context, in *proto.CreateLVRequest, opts ...grpc.CallOption) (*proto.CreateLVResponse, error) {
 	lv := proto.LogicalVolume{
-		Name:   in.Name,
-		SizeGb: in.SizeGb,
+		Name: in.Name,
+		//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid
+		SizeGb:    in.SizeGb,
+		SizeBytes: in.SizeBytes,
 	}
 	*volumes = append(*volumes, &lv)
 	createResponse := proto.CreateLVResponse{

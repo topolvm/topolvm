@@ -45,7 +45,17 @@ func (s *lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*pr
 		return nil, err
 	}
 	oc := s.ocmapper.LvcreateOptionClass(req.LvcreateOptionClass)
-	requested := req.GetSizeGb() << 30
+
+	var requested uint64
+	if req.SizeBytes > 0 {
+		// convert to uint64 because CSI uses int64 but lvmd internals and lvm use uint64
+		requested = uint64(req.GetSizeBytes())
+	} else {
+		// legacy conversion from SizeGb to SizeBytes
+		//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid until next minor
+		requested = req.GetSizeGb() << 30
+	}
+
 	free := uint64(0)
 	var pool *command.ThinPool
 	switch dc.Type {
@@ -132,10 +142,14 @@ func (s *lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*pr
 
 	return &proto.CreateLVResponse{
 		Volume: &proto.LogicalVolume{
-			Name:     lv.Name(),
-			SizeGb:   lv.Size() >> 30,
-			DevMajor: lv.MajorNumber(),
-			DevMinor: lv.MinorNumber(),
+			Name: lv.Name(),
+			// still set sizeGB for legacy purposes, can (but not has to) be removed in next minor release.
+			SizeGb: lv.Size() >> 30,
+			// convert to int64 because lvmd internals and lvm use uint64 but CSI uses int64.
+			// For most conventional lvm use cases overflow here will never occur (9223372 TB or above cause overflow)
+			SizeBytes: int64(lv.Size()),
+			DevMajor:  lv.MajorNumber(),
+			DevMinor:  lv.MinorNumber(),
 		},
 	}, nil
 }
@@ -221,7 +235,16 @@ func (s *lvService) CreateLVSnapshot(_ context.Context, req *proto.CreateLVSnaps
 	// In case of thin-snapshots, the size is the same as the source volume on snapshot creation, and then
 	// gets resized after extension into the correct size
 	sizeOnCreation := sourceLV.Size()
-	desiredSize := req.GetSizeGb() << 30
+
+	var desiredSize uint64
+	if req.SizeBytes > 0 {
+		// convert to uint64 because CSI uses int64 but lvmd internals and lvm use uint64
+		desiredSize = uint64(req.GetSizeBytes())
+	} else {
+		// legacy conversion from SizeGb to SizeBytes
+		//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid until next minor
+		desiredSize = req.GetSizeGb() << 30
+	}
 
 	// in case there is no desired size in the request, we can still attempt to create the Snapshot with Source size.
 	if desiredSize == 0 {
@@ -241,7 +264,7 @@ func (s *lvService) CreateLVSnapshot(_ context.Context, req *proto.CreateLVSnaps
 		"accessType":     req.GetAccessType(),
 	})
 	// Create snapshot lv
-	snapLV, err := sourceLV.Snapshot(req.GetName(), sizeOnCreation, req.GetTags(), sourceLV.IsThin())
+	snapLV, err := sourceLV.ThinSnapshot(req.GetName(), req.GetTags())
 	if err != nil {
 		log.Error("failed to create snapshot volume", map[string]interface{}{
 			log.FnError: err,
@@ -289,10 +312,14 @@ func (s *lvService) CreateLVSnapshot(_ context.Context, req *proto.CreateLVSnaps
 
 	return &proto.CreateLVSnapshotResponse{
 		Snapshot: &proto.LogicalVolume{
-			Name:     snapLV.Name(),
-			SizeGb:   snapLV.Size() >> 30,
-			DevMajor: snapLV.MajorNumber(),
-			DevMinor: snapLV.MinorNumber(),
+			Name: snapLV.Name(),
+			// still set sizeGB for legacy purposes, can (but not has to) be removed in next minor release.
+			SizeGb: snapLV.Size() >> 30,
+			// convert to int64 because lvmd internals and lvm use uint64 but CSI uses int64.
+			// For most conventional lvm use cases overflow here will never occur (9223372 TB or above cause overflow)
+			SizeBytes: int64(snapLV.Size()),
+			DevMajor:  snapLV.MajorNumber(),
+			DevMinor:  snapLV.MinorNumber(),
 		},
 	}, nil
 }
@@ -324,7 +351,15 @@ func (s *lvService) ResizeLV(_ context.Context, req *proto.ResizeLVRequest) (*pr
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	requested := req.GetSizeGb() << 30
+	var requested uint64
+	if req.SizeBytes > 0 {
+		// convert to uint64 because CSI uses int64 but lvmd internals and lvm use uint64
+		requested = uint64(req.GetSizeBytes())
+	} else {
+		// legacy conversion from SizeGb to SizeBytes
+		//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid until next minor
+		requested = req.GetSizeGb() << 30
+	}
 	current := lv.Size()
 
 	if requested < current {

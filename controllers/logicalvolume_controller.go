@@ -241,8 +241,11 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 				Name:         string(lv.UID),
 				DeviceClass:  lv.Spec.DeviceClass,
 				SourceVolume: sourceVolID,
-				SizeGb:       uint64(reqBytes >> 30),
-				AccessType:   lv.Spec.AccessType,
+				// convert to uint64 because lvmd internals and lvm use uint64 but CSI uses int64.
+				// still set sizeGB for legacy purposes, can (but not has to) be removed in next minor release.
+				SizeGb:     uint64(reqBytes >> 30),
+				SizeBytes:  reqBytes,
+				AccessType: lv.Spec.AccessType,
 			})
 			if err != nil {
 				code, message := extractFromError(err)
@@ -258,7 +261,10 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 				Name:                string(lv.UID),
 				DeviceClass:         lv.Spec.DeviceClass,
 				LvcreateOptionClass: lv.Spec.LvcreateOptionClass,
-				SizeGb:              uint64(reqBytes >> 30),
+				// convert to uint64 because lvmd internals and lvm use uint64 but CSI uses int64.
+				// still set sizeGB for legacy purposes, can (but not has to) be removed in next minor release.
+				SizeGb:    uint64(reqBytes >> 30),
+				SizeBytes: reqBytes,
 			})
 			if err != nil {
 				code, message := extractFromError(err)
@@ -311,7 +317,14 @@ func (r *LogicalVolumeReconciler) expandLV(ctx context.Context, log logr.Logger,
 	reqBytes := lv.Spec.Size.Value()
 
 	err := func() error {
-		_, err := r.lvService.ResizeLV(ctx, &proto.ResizeLVRequest{Name: string(lv.UID), SizeGb: uint64(reqBytes >> 30), DeviceClass: lv.Spec.DeviceClass})
+		_, err := r.lvService.ResizeLV(ctx, &proto.ResizeLVRequest{
+			Name: string(lv.UID),
+			// convert to uint64 because lvmd internals and lvm use uint64 but CSI uses int64.
+			// still set sizeGB for legacy purposes, can (but not has to) be removed in next minor release.
+			SizeGb:      uint64(reqBytes >> 30),
+			SizeBytes:   reqBytes,
+			DeviceClass: lv.Spec.DeviceClass,
+		})
 		if err != nil {
 			code, message := extractFromError(err)
 			log.Error(err, message)

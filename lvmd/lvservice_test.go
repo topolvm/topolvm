@@ -89,8 +89,12 @@ func TestLVService(t *testing.T) {
 	if res.GetVolume().GetName() != "test1" {
 		t.Errorf(`res.Volume.Name != "test1": %s`, res.GetVolume().GetName())
 	}
-	if res.GetVolume().GetSizeGb() != 1 {
-		t.Errorf(`res.Volume.SizeGb != 1: %d`, res.GetVolume().GetSizeGb())
+	//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid
+	if sizeGB := res.GetVolume().GetSizeGb(); sizeGB != 1 {
+		t.Errorf(`res.Volume.SizeGb != 1: %d`, sizeGB)
+	}
+	if res.GetVolume().GetSizeBytes() != 1<<30 {
+		t.Errorf(`res.Volume.SizeBytes != %d: %d`, 1<<30, res.GetVolume().GetSizeBytes())
 	}
 	err = exec.Command("lvs", vg.Name()+"/test1").Run()
 	if err != nil {
@@ -198,8 +202,12 @@ func TestLVService(t *testing.T) {
 	if res.GetVolume().GetName() != "testp1" {
 		t.Errorf(`res.Volume.Name != "testp1": %s`, res.GetVolume().GetName())
 	}
-	if res.GetVolume().GetSizeGb() != 1 {
-		t.Errorf(`res.Volume.SizeGb != 1: %d`, res.GetVolume().GetSizeGb())
+	//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid
+	if sizeGB := res.GetVolume().GetSizeGb(); sizeGB != 1 {
+		t.Errorf(`res.Volume.SizeGb != 1: %d`, sizeGB)
+	}
+	if res.GetVolume().GetSizeBytes() != 1<<30 {
+		t.Errorf(`res.Volume.SizeBytes != %d: %d`, 1<<30, res.GetVolume().GetSizeBytes())
 	}
 	err = exec.Command("lvs", vg.Name()+"/testp1").Run()
 	if err != nil {
@@ -297,8 +305,12 @@ func TestLVService(t *testing.T) {
 	if res.GetVolume().GetName() != "sourceVol" {
 		t.Errorf(`res.Volume.Name != "sourceVol": %s`, res.GetVolume().GetName())
 	}
-	if res.GetVolume().GetSizeGb() != originalSizeGb {
-		t.Errorf(`res.Volume.SizeGb != %d: %d`, originalSizeGb, res.GetVolume().GetSizeGb())
+	//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid
+	if sizeGB := res.GetVolume().GetSizeGb(); sizeGB != originalSizeGb {
+		t.Errorf(`res.Volume.SizeGb != %d: %d`, originalSizeGb, sizeGB)
+	}
+	if res.GetVolume().GetSizeBytes() != int64(originalSizeGb<<30) {
+		t.Errorf(`res.Volume.SizeBytes != %d: %d`, int64(originalSizeGb<<30), res.GetVolume().GetSizeBytes())
 	}
 	err = exec.Command("lvs", vg.Name()+"/sourceVol").Run()
 	if err != nil {
@@ -329,6 +341,7 @@ func TestLVService(t *testing.T) {
 		SourceVolume: "sourceVol",
 		// use a bigger size here to also simulate resizing to a bigger target than source
 		SizeGb:     snapshotDesiredSizeGb,
+		SizeBytes:  int64(snapshotDesiredSizeGb << 30),
 		AccessType: "ro",
 		Tags:       []string{"testsnaptag1", "testsnaptag2"},
 	})
@@ -341,11 +354,19 @@ func TestLVService(t *testing.T) {
 	if snapRes.GetSnapshot().GetName() != "snap1" {
 		t.Errorf(`res.Volume.Name != "snap1": %s`, res.GetVolume().GetName())
 	}
-	if res.GetVolume().GetSizeGb() != originalSizeGb {
-		t.Errorf(`res.Volume.SizeGb != %d: %d`, originalSizeGb, res.GetVolume().GetSizeGb())
+	//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid
+	if sizeGB := res.GetVolume().GetSizeGb(); sizeGB != originalSizeGb {
+		t.Errorf(`res.Volume.SizeGb != %d: %d`, originalSizeGb, sizeGB)
 	}
-	if snapRes.GetSnapshot().GetSizeGb() != snapshotDesiredSizeGb {
-		t.Errorf(`snapRes.Snapshot.SizeGb != %d: %d`, snapshotDesiredSizeGb, snapRes.GetSnapshot().GetSizeGb())
+	if res.GetVolume().GetSizeBytes() != int64(originalSizeGb<<30) {
+		t.Errorf(`res.Volume.SizeBytes != %d: %d`, int64(originalSizeGb<<30), res.GetVolume().GetSizeBytes())
+	}
+	//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid
+	if sizeGB := snapRes.GetSnapshot().GetSizeGb(); sizeGB != snapshotDesiredSizeGb {
+		t.Errorf(`res.Volume.SizeGb != %d: %d`, snapshotDesiredSizeGb, sizeGB)
+	}
+	if snapRes.GetSnapshot().GetSizeBytes() != int64(snapshotDesiredSizeGb<<30) {
+		t.Errorf(`snapRes.ThinSnapshot.SizeBytes != %d: %d`, int64(snapshotDesiredSizeGb<<30), snapRes.GetSnapshot().GetSizeBytes())
 	}
 	err = exec.Command("lvs", vg.Name()+"/snap1").Run()
 	if err != nil {
@@ -385,11 +406,19 @@ func TestLVService(t *testing.T) {
 	if snapRes.GetSnapshot().GetName() != "restoredsnap1" {
 		t.Errorf(`res.Volume.Name != "restoredsnap1": %s`, res.GetVolume().GetName())
 	}
-	if res.GetVolume().GetSizeGb() != originalSizeGb {
-		t.Errorf(`res.Volume.SizeGb != %d: %d`, originalSizeGb, res.GetVolume().GetSizeGb())
+	//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid
+	if sizeGB := res.GetVolume().GetSizeGb(); sizeGB != originalSizeGb {
+		t.Errorf(`res.Volume.SizeGb != %d: %d`, originalSizeGb, sizeGB)
 	}
-	if snapRes.GetSnapshot().GetSizeGb() != snapshotDesiredSizeGb {
-		t.Errorf(`snapRes.Snapshot.SizeGb != %d: %d`, snapshotDesiredSizeGb, snapRes.GetSnapshot().GetSizeGb())
+	if res.GetVolume().GetSizeBytes() != int64(originalSizeGb<<30) {
+		t.Errorf(`res.Volume.SizeBytes != %d: %d`, int64(originalSizeGb<<30), res.GetVolume().GetSizeBytes())
+	}
+	//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid
+	if sizeGB := snapRes.GetSnapshot().GetSizeGb(); sizeGB != snapshotDesiredSizeGb {
+		t.Errorf(`res.Volume.SizeGb != %d: %d`, snapshotDesiredSizeGb, sizeGB)
+	}
+	if snapRes.GetSnapshot().GetSizeBytes() != int64(snapshotDesiredSizeGb<<30) {
+		t.Errorf(`snapRes.ThinSnapshot.SizeBytes != %d: %d`, int64(snapshotDesiredSizeGb<<30), snapRes.GetSnapshot().GetSizeBytes())
 	}
 	err = exec.Command("lvs", vg.Name()+"/restoredsnap1").Run()
 	if err != nil {

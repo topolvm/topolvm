@@ -7,17 +7,13 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"time"
 
 	"github.com/cybozu-go/log"
 )
 
 const (
-	nsenter  = "/usr/bin/nsenter"
-	lvm      = "/sbin/lvm"
-	blockdev = "/sbin/blockdev"
-	cowMin   = 50
-	cowMax   = 300
+	nsenter = "/usr/bin/nsenter"
+	lvm     = "/sbin/lvm"
 )
 
 var Containerized bool = false
@@ -215,7 +211,7 @@ func (g *VolumeGroup) ListVolumes() []*LogicalVolume {
 // lvcreateOptions are additional arguments to pass to lvcreate.
 func (g *VolumeGroup) CreateVolume(name string, size uint64, tags []string, stripe uint, stripeSize string,
 	lvcreateOptions []string) (*LogicalVolume, error) {
-	lvcreateArgs := []string{"-n", name, "-L", fmt.Sprintf("%vg", size>>30), "-W", "y", "-y"}
+	lvcreateArgs := []string{"-n", name, "-L", fmt.Sprintf("%vb", size), "-W", "y", "-y"}
 	for _, tag := range tags {
 		lvcreateArgs = append(lvcreateArgs, "--addtag")
 		lvcreateArgs = append(lvcreateArgs, tag)
@@ -264,7 +260,7 @@ func (g *VolumeGroup) ListPools() []*ThinPool {
 // CreatePool creates a pool for thin-provisioning volumes.
 func (g *VolumeGroup) CreatePool(name string, size uint64) (*ThinPool, error) {
 	if err := callLVM("lvcreate", "-T", fmt.Sprintf("%v/%v", g.Name(), name),
-		"--size", fmt.Sprintf("%vg", size>>30)); err != nil {
+		"--size", fmt.Sprintf("%vb", size)); err != nil {
 		return nil, err
 	}
 	if err := g.Update(); err != nil {
@@ -353,7 +349,7 @@ func (t *ThinPool) FindVolume(name string) (*LogicalVolume, error) {
 // CreateVolume creates a thin volume from this pool.
 func (t *ThinPool) CreateVolume(name string, size uint64, tags []string, stripe uint, stripeSize string, lvcreateOptions []string) (*LogicalVolume, error) {
 
-	lvcreateArgs := []string{"-T", t.FullName(), "-n", name, "-V", fmt.Sprintf("%vg", size>>30), "-W", "y", "-y"}
+	lvcreateArgs := []string{"-T", t.FullName(), "-n", name, "-V", fmt.Sprintf("%vb", size), "-W", "y", "-y"}
 	for _, tag := range tags {
 		lvcreateArgs = append(lvcreateArgs, "--addtag")
 		lvcreateArgs = append(lvcreateArgs, tag)
@@ -489,58 +485,12 @@ func (l *LogicalVolume) Tags() []string {
 	return l.tags
 }
 
-// Snapshot takes a snapshot of this volume.
-//
-// If this is a thin-provisioning volume, snapshots can be
-// created unconditionally.  Else, snapshots can be created
-// only for non-snapshot volumes.
-func (l *LogicalVolume) Snapshot(name string, cowSize uint64, tags []string, thin bool) (*LogicalVolume, error) {
-	if l.pool == nil {
-		if l.IsSnapshot() {
-			return nil, fmt.Errorf("snapshot of snapshot")
-		}
-		args := []string{"-s", "-n", name, l.path}
-
-		// for creating a thin-snapshot, max COW is irrelevant since the snapshot gets resized based on the
-		// thin-pool. Thus one should not define a size argument, otherwise the snapshot is not thin.
-		if !thin {
-			var gbSize uint64
-			if cowSize > 0 {
-				gbSize = cowSize >> 30
-			} else {
-				gbSize = (l.size * 2 / 10) >> 30
-				if gbSize > cowMax {
-					gbSize = cowMax
-				}
-			}
-			if gbSize < cowMin {
-				gbSize = cowMin
-			}
-			if l.size < (gbSize << 30) {
-				gbSize = (l.size >> 30) << 30
-			}
-			args = append(args, "-L", fmt.Sprintf("%vg", gbSize))
-		}
-
-		if err := callLVM("lvcreate", args...); err != nil {
-			return nil, err
-		}
-
-		time.Sleep(2 * time.Second)
-
-		if err := l.vg.Update(); err != nil {
-			return nil, err
-		}
-
-		snapLV, err := l.vg.FindVolume(name)
-		if err != nil {
-			return nil, err
-		}
-		// without this, wrong data may read from the snapshot.
-		if err := wrapExecCommand(blockdev, "--flushbufs", snapLV.path).Run(); err != nil {
-			return nil, err
-		}
-		return snapLV, nil
+// ThinSnapshot takes a thin snapshot of a volume.
+// The volume must be thinly-provisioned.
+// snapshots can be created unconditionally.
+func (l *LogicalVolume) ThinSnapshot(name string, tags []string) (*LogicalVolume, error) {
+	if !l.IsThin() {
+		return nil, fmt.Errorf("cannot take snapshot of non-thin volume: %s", l.fullname)
 	}
 
 	lvcreateArgs := []string{"-s", "-k", "n", "-n", name, l.fullname}
