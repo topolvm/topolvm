@@ -11,7 +11,10 @@ Follow [semantic versioning 2.0.0][semver] to choose the new version number.
 The format of release notes
 ---------------------------
 
-Release note is edited in the release procedure. The result should look something like:
+In the release procedure for both the app and Helm Chart, the release note is generated automatically,
+and then it is edited manually. In this step, PRs should be classified based on [Keep a CHANGELOG](https://keepachangelog.com/en/1.1.0/).
+
+The result should look something like:
 
 ```markdown
 ## What's Changed
