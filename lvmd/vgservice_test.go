@@ -226,8 +226,8 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	if vol.GetName() != "test1" {
 		t.Errorf(`Volume.Name != "test1": %s`, vol.GetName())
 	}
-	if vol.GetSizeGb() != 1 {
-		t.Errorf(`Volume.SizeGb != 1: %d`, vol.GetSizeGb())
+	if vol.GetSizeBytes() != 1<<30 {
+		t.Errorf(`Volume.SizeBytes != %d: %d`, 1<<30, vol.GetSizeBytes())
 	}
 	if len(vol.GetTags()) != 1 {
 		t.Fatalf("number of tags must be 1")
@@ -256,8 +256,12 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	if vol.GetName() != "testp1" {
 		t.Errorf(`Volume.Name != "test1": %s`, vol.GetName())
 	}
-	if vol.GetSizeGb() != 1 {
-		t.Errorf(`Volume.SizeGb != 1: %d`, vol.GetSizeGb())
+	//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid
+	if sizeGB := vol.GetSizeGb(); sizeGB != 1 {
+		t.Errorf(`Volume.SizeGb != 1: %d`, sizeGB)
+	}
+	if vol.GetSizeBytes() != 1<<30 {
+		t.Errorf(`Volume.SizeBytes != %d: %d`, 1<<30, vol.GetSizeBytes())
 	}
 	if len(vol.GetTags()) != 1 {
 		t.Fatalf("number of tags must be 1")

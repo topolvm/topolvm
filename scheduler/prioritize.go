@@ -15,15 +15,22 @@ import (
 func capacityToScore(capacity uint64, divisor float64) int {
 	gb := capacity >> 30
 
-	// avoid logarithm of zero, which diverges to negative infinity.
+	// Avoid logarithm of zero, which diverges to negative infinity.
 	if gb == 0 {
+		// If there is a non-nil capacity but we dont have at least one gigabyte, we score it with one.
+		// This is because the capacityToScore precision is at the gigabyte level.
+		// TODO: introduce another scheduling algorithm for byte-level precision.
+		if capacity > 0 {
+			return 1
+		}
+
 		return 0
 	}
 
 	converted := int(math.Log2(float64(gb) / divisor))
 	switch {
-	case converted < 0:
-		return 0
+	case converted < 1:
+		return 1
 	case converted > 10:
 		return 10
 	default:

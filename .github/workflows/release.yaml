@@ -48,16 +48,46 @@ jobs:
         run: |
           BRANCH=$(echo ${{ steps.check_version.outputs.version }} | cut -d "." -f 1-2)
           make tag IMAGE_TAG=$BRANCH ORIGINAL_IMAGE_TAG=${{ steps.check_version.outputs.version }}
-      - name: "Create Release"
-        id: create_release
-        uses: actions/create-release@v1
+      - name: "Get previous tag"
+        id: get_previous_tag
+        run: |
+          # see https://docs.github.com/en/rest/git/refs?apiVersion=2022-11-28#list-matching-references
+          RESP=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/git/matching-refs/tags/v)
+          PREV_TAG=$(echo ${RESP} | jq -r '.[].ref' | awk -F "/" '{print $3}' | \
+            grep -E "^v[0-9]+\.[0-9]+\.[0-9]+" | sort -V -r | tail -n +2 | head -n 1)
+          if [ -z "${PREV_TAG}" ]; then
+            echo "PREV_TAG is empty."
+            exit 1
+          fi
+          echo "previous_tag=${PREV_TAG}" >> ${GITHUB_OUTPUT}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release v${{ steps.check_version.outputs.version  }}
-          draft: true
-          prerelease: ${{ steps.check_version.outputs.prerelease }}
+      - name: "Create Release"
+        id: create_release
+        run: |
+          # see https://docs.github.com/en/rest/releases/releases?apiVersion=2022-11-28#create-a-release
+          RESP=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            --method POST \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/releases \
+            -f name="Release ${GITHUB_REF_NAME}" \
+            -f tag_name="${GITHUB_REF_NAME}" \
+            -f previous_tag_name="${{ steps.get_previous_tag.outputs.previous_tag }}" \
+            -F draft=true \
+            -F prerelease=${{ steps.check_version.outputs.prerelease }} \
+            -F generate_release_notes=true)
+          UPLOAD_URL=$(echo ${RESP} | jq -r '.upload_url')
+          if [ -z "${UPLOAD_URL}" ]; then
+            echo "UPLOAD_URL is empty."
+            exit 1
+          fi
+          echo "upload_url=${UPLOAD_URL}" >> ${GITHUB_OUTPUT}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: "Upload Release Asset"
         id: upload-release-asset
         uses: actions/upload-release-asset@v1

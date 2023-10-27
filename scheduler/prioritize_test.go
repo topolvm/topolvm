@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -16,22 +17,25 @@ func TestCapacityToScore(t *testing.T) {
 		expect  int
 	}{
 		{0, 1, 0},
-		{1, 1, 0},
+		{1, 1, 1},       // even one byte will lead to a score of at least 1
+		{1 << 30, 1, 1}, // converted < 1 but still gets a score of 1 because of the minimum
 		{128 << 30, 1, 7},
 		{128 << 30, 2, 6},
 		{128 << 30, 0.5, 8},
 		{^uint64(0), 1, 10},
 	}
 
-	for _, tt := range testCases {
-		score := capacityToScore(tt.input, tt.divisor)
-		if score != tt.expect {
-			t.Errorf("score incorrect: input=%d expect=%d actual=%d",
-				tt.input,
-				tt.expect,
-				score,
-			)
-		}
+	for i, tt := range testCases {
+		t.Run(fmt.Sprintf("test: %d", i), func(t *testing.T) {
+			score := capacityToScore(tt.input, tt.divisor)
+			if score != tt.expect {
+				t.Errorf("score incorrect: input=%d expect=%d actual=%d",
+					tt.input,
+					tt.expect,
+					score,
+				)
+			}
+		})
 	}
 }
 

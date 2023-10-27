@@ -208,10 +208,12 @@ func (m *podMutator) pvcCapacity(
 		return "", 0, true, nil
 	}
 
-	var requested int64 = topolvm.DefaultSize
+	var requested = topolvm.DefaultSize
 	if req, ok := pvc.Spec.Resources.Requests[corev1.ResourceStorage]; ok {
-		if req.Value() > topolvm.DefaultSize {
-			requested = ((req.Value()-1)>>30 + 1) << 30
+		// Only use topolvm.DefaultSize if requested size is not available.
+		// If it is available from spec, use that instead.
+		if req.Value() != 0 {
+			requested = req.Value()
 		}
 	}
 	dc, ok := sc.Parameters[topolvm.GetDeviceClassKey()]
@@ -223,7 +225,7 @@ func (m *podMutator) pvcCapacity(
 
 func (m *podMutator) ephemeralCapacity(
 	ctx context.Context,
-	pod *corev1.Pod,
+	_ *corev1.Pod,
 	vol corev1.Volume,
 	targetSC targetSC,
 ) (string, int64, error) {
@@ -242,10 +244,12 @@ func (m *podMutator) ephemeralCapacity(
 		return "", 0, nil
 	}
 
-	var requested int64 = topolvm.DefaultSize
+	var requested = topolvm.DefaultSize
 	if req, ok := volumeClaimTemplate.Spec.Resources.Requests[corev1.ResourceStorage]; ok {
-		if req.Value() > topolvm.DefaultSize {
-			requested = ((req.Value()-1)>>30 + 1) << 30
+		// Only use topolvm.DefaultSize if requested size is not available.
+		// If it is available from spec, use that instead.
+		if req.Value() != 0 {
+			requested = req.Value()
 		}
 	}
 	dc, ok := sc.Parameters[topolvm.GetDeviceClassKey()]
