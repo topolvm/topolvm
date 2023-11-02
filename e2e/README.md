@@ -62,22 +62,29 @@ Before launching the test, install the following tools.
 Make lvm and launch Kubernetes using minikube with the following commands:
 
 ```bash
-make daemonset-lvmd/create-vg
-make daemonset-lvmd/setup-minikube
-make daemonset-lvmd/launch-minikube
+make incluster-lvmd/create-vg
+make incluster-lvmd/setup-minikube
+make incluster-lvmd/launch-minikube
 ```
 
 Run the tests with the following command.
 You can inspect the Kubernetes cluster using `kubectl` command as well as kind.
 
 ```bash
-make daemonset-lvmd/test
+make incluster-lvmd/test
 ```
+
+By default, this will run lvmd as a `DaemonSet` separate from `topolvm-node`.
+You can also configure the test to use an embedded version of lvmd inside `topolvm-node`.
+
+```bash
+make incluster-lvmd/test HELM_VALUES_FILE_LVMD="manifests/values/embedded-lvmd-storage-capacity.yaml"
+`````
 
 You can cleanup test environment as follows:
 
 ```bash
-make daemonset-lvmd/clean
+make incluster-lvmd/clean
 ```
 
 [kind]: https://github.com/kubernetes-sigs/kind

@@ -1,4 +1,4 @@
-{{- if .Values.lvmd.managed }}
+{{- if or (.Values.lvmd.managed) (.Values.node.lvmdEmbedded) }}
   {{ $global := . }}
   {{- $lvmds := concat ( list .Values.lvmd ) .Values.lvmd.additionalConfigs }}
   {{- range $lvmdidx, $lvmd := $lvmds }}
@@ -15,7 +15,9 @@ metadata:
     {{- include "topolvm.labels" . | nindent 4 }}
 data:
   lvmd.yaml: |
+    {{- if not .Values.node.lvmdEmbedded }}
     socket-name: {{ default .Values.lvmd.socketName $lvmd.socketName }}
+    {{- end }}
     {{- if $lvmd.deviceClasses }}
     device-classes: {{ toYaml $lvmd.deviceClasses | nindent 6 }}
     {{- end }}

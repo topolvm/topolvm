@@ -9,7 +9,6 @@ import (
 	topolvmlegacyv1 "github.com/topolvm/topolvm/api/legacy/v1"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	"github.com/topolvm/topolvm/lvmd/proto"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
@@ -33,15 +32,6 @@ type LogicalVolumeReconciler struct {
 //+kubebuilder:rbac:groups=topolvm.io,resources=logicalvolumes,verbs=get;list;watch;update;patch
 //+kubebuilder:rbac:groups=topolvm.io,resources=logicalvolumes/status,verbs=get;update;patch
 
-// NewLogicalVolumeReconciler returns LogicalVolumeReconciler with creating lvService and vgService.
-func NewLogicalVolumeReconciler(client client.Client, nodeName string, conn *grpc.ClientConn) *LogicalVolumeReconciler {
-	return &LogicalVolumeReconciler{
-		client:    client,
-		nodeName:  nodeName,
-		vgService: proto.NewVGServiceClient(conn),
-		lvService: proto.NewLVServiceClient(conn),
-	}
-}
 func NewLogicalVolumeReconcilerWithServices(client client.Client, nodeName string, vgService proto.VGServiceClient, lvService proto.LVServiceClient) *LogicalVolumeReconciler {
 	return &LogicalVolumeReconciler{
 		client:    client,
