@@ -36,6 +36,9 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ template "topolvm.fullname" . }}-node
+      {{- if .Values.node.lvmdEmbedded }}
+      hostPID: true
+      {{- end }}
       {{- with .Values.node.initContainers }}
       initContainers: {{ toYaml . | nindent 6 }}
       {{- end }}
@@ -51,7 +54,11 @@ spec:
           command:
             - /topolvm-node
             - --csi-socket={{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/csi-topolvm.sock
+            {{- if .Values.node.lvmdEmbedded }}
+            - --embed-lvmd
+            {{- else }}
             - --lvmd-socket={{ .Values.node.lvmdSocket }}
+            {{- end }}
           {{- with .Values.node.args }}
           args: {{ toYaml . | nindent 12 }}
           {{- end }}
@@ -99,8 +106,13 @@ spec:
             {{- else }}
             - name: node-plugin-dir
               mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/
+            {{ if .Values.node.lvmdEmbedded }}
+            - name: config
+              mountPath: /etc/topolvm
+            {{ else }}
             - name: lvmd-socket-dir
               mountPath: {{ dir .Values.node.lvmdSocket }}
+            {{ end }}
             - name: pod-volumes-dir
               mountPath: {{ .Values.node.kubeletWorkDirectory }}/pods
               mountPropagation: "Bidirectional"
@@ -207,10 +219,23 @@ spec:
           hostPath:
             path: {{ .Values.node.kubeletWorkDirectory }}/pods/
             type: DirectoryOrCreate
+        {{- if .Values.node.lvmdEmbedded }}
+          {{ $global := . }}
+          {{- $lvmds := concat ( list .Values.lvmd ) .Values.lvmd.additionalConfigs }}
+          {{- range $lvmdidx, $lvmd := $lvmds }}
+            {{/* Undo the "." rewritten by the range block */}}
+            {{- with $global }}
+        - name: config
+          configMap:
+            name: {{ template "topolvm.fullname" . }}-lvmd-{{ $lvmdidx }}
+            {{- end }}
+          {{- end }}
+        {{- else }}
         - name: lvmd-socket-dir
           hostPath:
             path: {{ dir .Values.node.lvmdSocket }}
             type: Directory
+        {{- end }}
         {{- end }}
 
       {{- with .Values.node.tolerations }}
