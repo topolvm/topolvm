@@ -23,7 +23,6 @@ Our supported platform are:
 *1 The host's Linux Kernel must be v4.9 or later which supports `rmapbt` and `reflink`, if you use xfs filesystem with an official docker image.
 
 Docker images are available on [ghcr.io](https://github.com/orgs/topolvm/packages).  
-**Please note that [the images on quay.io](https://quay.io/organization/topolvm) are deprecated and will be removed in the future.**
 
 Getting started
 ---------------
