@@ -131,7 +131,7 @@ func ValidateDeviceClasses(deviceClasses []*DeviceClass) error {
 			return fmt.Errorf("stripe-size format is \"Size[k|UNIT]\": %s", dc.Name)
 		}
 	}
-	if countDefault != 1 {
+	if countDefault > 1 {
 		return errors.New("should have only one default device-class")
 	}
 	return nil
