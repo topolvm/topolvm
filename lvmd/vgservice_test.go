@@ -8,10 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-logr/logr/testr"
 	"github.com/topolvm/topolvm/lvmd/command"
 	"github.com/topolvm/topolvm/lvmd/proto"
 	"github.com/topolvm/topolvm/lvmd/testutils"
 	"google.golang.org/grpc/metadata"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 type mockWatchServer struct {
@@ -147,12 +149,13 @@ func testWatch(t *testing.T) {
 }
 
 func testVGService(t *testing.T, vg *command.VolumeGroup) {
+	ctx := ctrl.LoggerInto(context.Background(), testr.New(t))
 
 	// thinpool details
 	overprovisionRatio := float64(10.0)
 	poolName := "test_pool"
 	poolSize := uint64(1 << 30)
-	pool, err := vg.CreatePool(poolName, poolSize)
+	pool, err := vg.CreatePool(ctx, poolName, poolSize)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -207,7 +210,7 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 
 	// create thick volume
 	testtag := "testtag"
-	_, err = vg.CreateVolume("test1", 1<<30, []string{testtag}, 0, "", nil)
+	_, err = vg.CreateVolume(ctx, "test1", 1<<30, []string{testtag}, 0, "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -237,7 +240,7 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	}
 
 	// create thin volume
-	_, err = pool.CreateVolume("testp1", 1<<30, []string{testtag}, 0, "", nil)
+	_, err = pool.CreateVolume(ctx, "testp1", 1<<30, []string{testtag}, 0, "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -271,13 +274,13 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	}
 
 	// thick lv creation
-	_, err = vg.CreateVolume("test2", 1<<30, nil, 0, "", nil)
+	_, err = vg.CreateVolume(ctx, "test2", 1<<30, nil, 0, "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// thin lv creation, within overprovision limit (10G)
-	testp2, err := pool.CreateVolume("testp2", 1<<30, nil, 0, "", nil)
+	testp2, err := pool.CreateVolume(ctx, "testp2", 1<<30, nil, 0, "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -320,7 +323,7 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 		t.Fatal(err)
 	}
 
-	if err := vg.Update(); err != nil {
+	if err := vg.Update(ctx); err != nil {
 		t.Fatal(err)
 	}
 
@@ -350,22 +353,22 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	}
 
 	// Creation of thick volumes
-	test3Vol, err := vg.CreateVolume("test3", 1<<30, nil, 2, "4k", nil)
+	test3Vol, err := vg.CreateVolume(ctx, "test3", 1<<30, nil, 2, "4k", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	test4Vol, err := vg.CreateVolume("test4", 1<<30, nil, 2, "4M", nil)
+	test4Vol, err := vg.CreateVolume(ctx, "test4", 1<<30, nil, 2, "4M", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Remove volumes to make room for a raid volume
-	test3Vol.Remove()
-	test4Vol.Remove()
+	test3Vol.Remove(ctx)
+	test4Vol.Remove(ctx)
 
 	// Remove one of the thin lvs
-	testp2.Remove()
+	testp2.Remove(ctx)
 
 	t.Run("thinpool-stripe-raid", func(t *testing.T) {
 		t.Skip("investigate support of striped and raid for thinlvs")
@@ -373,62 +376,63 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 		// 1. confirm that stripe, stripesize and raid isn't possible on thin lv
 		// 2. if above is true, enforce some sensible defaults during validation of deviceclass
 		// thick lv with raid
-		_, err = vg.CreateVolume("test5", 1<<30, nil, 0, "", []string{"--type=raid1"})
+		_, err = vg.CreateVolume(ctx, "test5", 1<<30, nil, 0, "", []string{"--type=raid1"})
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		// thin lv with stripe, stripesize and raid options
-		testp3Vol, err := pool.CreateVolume("test3", 1<<30, nil, 2, "4k", nil)
+		testp3Vol, err := pool.CreateVolume(ctx, "test3", 1<<30, nil, 2, "4k", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		testp4Vol, err := pool.CreateVolume("test4", 1<<30, nil, 2, "4M", nil)
+		testp4Vol, err := pool.CreateVolume(ctx, "test4", 1<<30, nil, 2, "4M", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		// thin lv with raid
-		_, err = pool.CreateVolume("test5", 1<<30, nil, 0, "", []string{"--type=raid1"})
+		_, err = pool.CreateVolume(ctx, "test5", 1<<30, nil, 0, "", []string{"--type=raid1"})
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		// Remove thin volumes
-		testp3Vol.Remove()
-		testp4Vol.Remove()
+		testp3Vol.Remove(ctx)
+		testp4Vol.Remove(ctx)
 
 	})
 }
 
 func TestVGService(t *testing.T) {
+	ctx := ctrl.LoggerInto(context.Background(), testr.New(t))
 	uid := os.Getuid()
 	if uid != 0 {
 		t.Skip("run as root")
 	}
 
 	vgName := "test_vgservice"
-	loop1, err := testutils.MakeLoopbackDevice(vgName + "1")
+	loop1, err := testutils.MakeLoopbackDevice(ctx, vgName+"1")
 	if err != nil {
 		t.Fatal(err)
 	}
-	loop2, err := testutils.MakeLoopbackDevice(vgName + "2")
+	loop2, err := testutils.MakeLoopbackDevice(ctx, vgName+"2")
 	if err != nil {
 		t.Fatal(err)
 	}
-	loop3, err := testutils.MakeLoopbackDevice(vgName + "3")
+	loop3, err := testutils.MakeLoopbackDevice(ctx, vgName+"3")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = testutils.MakeLoopbackVG(vgName, loop1, loop2, loop3)
+	err = testutils.MakeLoopbackVG(ctx, vgName, loop1, loop2, loop3)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer testutils.CleanLoopbackVG(vgName, []string{loop1, loop2, loop3}, []string{vgName + "1", vgName + "2", vgName + "3"})
 
-	vg, err := command.FindVolumeGroup(vgName)
+	vg, err := command.FindVolumeGroup(ctx, vgName)
 	if err != nil {
 		t.Fatal(err)
 	}

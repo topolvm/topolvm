@@ -4,7 +4,6 @@ go 1.20
 
 require (
 	github.com/container-storage-interface/spec v1.6.0
-	github.com/cybozu-go/log v1.6.0
 	github.com/cybozu-go/well v1.10.0
 	github.com/go-logr/logr v1.2.4
 	github.com/golang/protobuf v1.5.3
@@ -39,6 +38,7 @@ require (
 	github.com/aokoli/goutils v1.0.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/cybozu-go/log v1.6.0 // indirect
 	github.com/cybozu-go/netutil v1.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.9.0 // indirect

@@ -2,14 +2,15 @@ package lvmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 
-	"github.com/cybozu-go/log"
 	"github.com/topolvm/topolvm/lvmd/command"
 	"github.com/topolvm/topolvm/lvmd/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // NewLVService creates a new LVServiceServer
@@ -35,12 +36,14 @@ func (s *lvService) notify() {
 	s.notifyFunc()
 }
 
-func (s *lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*proto.CreateLVResponse, error) {
+func (s *lvService) CreateLV(ctx context.Context, req *proto.CreateLVRequest) (*proto.CreateLVResponse, error) {
+	logger := log.FromContext(ctx).WithValues("name", req.GetName())
+
 	dc, err := s.dcmapper.DeviceClass(req.DeviceClass)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
 	}
-	vg, err := command.FindVolumeGroup(dc.VolumeGroup)
+	vg, err := command.FindVolumeGroup(ctx, dc.VolumeGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -62,24 +65,18 @@ func (s *lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*pr
 	case TypeThick:
 		free, err = vg.Free()
 		if err != nil {
-			log.Error("failed to get free bytes", map[string]interface{}{
-				log.FnError: err,
-			})
+			logger.Error(err, "failed to get free bytes")
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 	case TypeThin:
 		pool, err = vg.FindPool(dc.ThinPoolConfig.Name)
 		if err != nil {
-			log.Error("failed to get thinpool", map[string]interface{}{
-				log.FnError: err,
-			})
+			logger.Error(err, "failed to get thinpool")
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 		tpu, err := pool.Free()
 		if err != nil {
-			log.Error("failed to get free bytes", map[string]interface{}{
-				log.FnError: err,
-			})
+			logger.Error(err, "failed to get free bytes")
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 		free = uint64(math.Floor(dc.ThinPoolConfig.OverprovisionRatio*float64(tpu.SizeBytes))) - tpu.VirtualBytes
@@ -90,10 +87,7 @@ func (s *lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*pr
 	}
 
 	if free < requested {
-		log.Error("no enough space left on VG", map[string]interface{}{
-			"free":      free,
-			"requested": requested,
-		})
+		logger.Error(err, "not enough space left on VG", "free", free, "requested", requested)
 		return nil, status.Errorf(codes.ResourceExhausted, "no enough space left on VG: free=%d, requested=%d", free, requested)
 	}
 
@@ -117,28 +111,23 @@ func (s *lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*pr
 	var lv *command.LogicalVolume
 	switch dc.Type {
 	case TypeThick:
-		lv, err = vg.CreateVolume(req.GetName(), requested, req.GetTags(), stripe, stripeSize, lvcreateOptions)
+		lv, err = vg.CreateVolume(ctx, req.GetName(), requested, req.GetTags(), stripe, stripeSize, lvcreateOptions)
 	case TypeThin:
-		lv, err = pool.CreateVolume(req.GetName(), requested, req.GetTags(), stripe, stripeSize, lvcreateOptions)
+		lv, err = pool.CreateVolume(ctx, req.GetName(), requested, req.GetTags(), stripe, stripeSize, lvcreateOptions)
 	default:
 		return nil, status.Error(codes.Internal, fmt.Sprintf("unsupported device class target: %s", dc.Type))
 	}
 
 	if err != nil {
-		log.Error("failed to create volume", map[string]interface{}{
-			"name":      req.GetName(),
-			"requested": requested,
-			"tags":      req.GetTags(),
-		})
+		logger.Error(err, "failed to create volume",
+			"requested", requested,
+			"tags", req.GetTags())
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	s.notify()
 
-	log.Info("created a new LV", map[string]interface{}{
-		"name": req.GetName(),
-		"size": requested,
-	})
+	logger.Info("created a new LV", "size", requested)
 
 	return &proto.CreateLVResponse{
 		Volume: &proto.LogicalVolume{
@@ -154,12 +143,14 @@ func (s *lvService) CreateLV(_ context.Context, req *proto.CreateLVRequest) (*pr
 	}, nil
 }
 
-func (s *lvService) RemoveLV(_ context.Context, req *proto.RemoveLVRequest) (*proto.Empty, error) {
+func (s *lvService) RemoveLV(ctx context.Context, req *proto.RemoveLVRequest) (*proto.Empty, error) {
+	logger := log.FromContext(ctx).WithValues("name", req.GetName())
+
 	dc, err := s.dcmapper.DeviceClass(req.DeviceClass)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
 	}
-	vg, err := command.FindVolumeGroup(dc.VolumeGroup)
+	vg, err := command.FindVolumeGroup(ctx, dc.VolumeGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -170,26 +161,23 @@ func (s *lvService) RemoveLV(_ context.Context, req *proto.RemoveLVRequest) (*pr
 			continue
 		}
 
-		err = lv.Remove()
+		err = lv.Remove(ctx)
 		if err != nil {
-			log.Error("failed to remove volume", map[string]interface{}{
-				log.FnError: err,
-				"name":      lv.Name(),
-			})
+			logger.Error(err, "failed to remove volume", "name", lv.Name())
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 		s.notify()
 
-		log.Info("removed a LV", map[string]interface{}{
-			"name": req.GetName(),
-		})
+		logger.Info("removed a LV", "name", req.GetName())
 		break
 	}
 
 	return &proto.Empty{}, nil
 }
 
-func (s *lvService) CreateLVSnapshot(_ context.Context, req *proto.CreateLVSnapshotRequest) (*proto.CreateLVSnapshotResponse, error) {
+func (s *lvService) CreateLVSnapshot(ctx context.Context, req *proto.CreateLVSnapshotRequest) (*proto.CreateLVSnapshotResponse, error) {
+	logger := log.FromContext(ctx).WithValues("name", req.GetName())
+
 	var snapType string
 	dc, err := s.dcmapper.DeviceClass(req.DeviceClass)
 	if err != nil {
@@ -205,7 +193,7 @@ func (s *lvService) CreateLVSnapshot(_ context.Context, req *proto.CreateLVSnaps
 		return nil, status.Errorf(codes.InvalidArgument, "invalid device class type %v", string(dc.Type))
 	}
 
-	vg, err := command.FindVolumeGroup(dc.VolumeGroup)
+	vg, err := command.FindVolumeGroup(ctx, dc.VolumeGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -213,18 +201,12 @@ func (s *lvService) CreateLVSnapshot(_ context.Context, req *proto.CreateLVSnaps
 	// Fetch the source logical volume
 	sourceVolume := req.GetSourceVolume()
 	sourceLV, err := vg.FindVolume(sourceVolume)
-	if err == command.ErrNotFound {
-		log.Error("source logical volume is not found", map[string]interface{}{
-			log.FnError: err,
-			"name":      sourceVolume,
-		})
+	if errors.Is(err, command.ErrNotFound) {
+		logger.Error(err, "source logical volume is not found", "sourceVolume", sourceVolume)
 		return nil, status.Errorf(codes.NotFound, "source logical volume %s is not found", sourceVolume)
 	}
 	if err != nil {
-		log.Error("failed to find source volume", map[string]interface{}{
-			log.FnError: err,
-			"name":      sourceVolume,
-		})
+		logger.Error(err, "failed to find source volume", "sourceVolume", sourceVolume)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -255,60 +237,46 @@ func (s *lvService) CreateLVSnapshot(_ context.Context, req *proto.CreateLVSnaps
 		return nil, status.Errorf(codes.OutOfRange, "requested size %v is smaller than source logical volume: %v", desiredSize, sizeOnCreation)
 	}
 
-	log.Info("lvservice req", map[string]interface{}{
-		"name":           req.Name,
-		"sizeOnCreation": sizeOnCreation,
-		"desiredSize":    desiredSize,
-		"sourceVol":      sourceVolume,
-		"snapType":       snapType,
-		"accessType":     req.GetAccessType(),
-	})
+	logger.Info(
+		"lvservice req",
+		"sizeOnCreation", sizeOnCreation,
+		"desiredSize", desiredSize,
+		"sourceVol", sourceVolume,
+		"snapType", snapType,
+		"accessType", req.AccessType,
+	)
 	// Create snapshot lv
-	snapLV, err := sourceLV.ThinSnapshot(req.GetName(), req.GetTags())
+	snapLV, err := sourceLV.ThinSnapshot(ctx, req.GetName(), req.GetTags())
 	if err != nil {
-		log.Error("failed to create snapshot volume", map[string]interface{}{
-			log.FnError: err,
-			"name":      req.GetName(),
-		})
+		logger.Error(err, "failed to create snapshot volume")
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	if err := snapLV.Resize(desiredSize); err != nil {
-		log.Error("failed to extend snapshot after creation to desired size", map[string]interface{}{
-			log.FnError: err,
-			"name":      req.GetName(),
-		})
+	if err := snapLV.Resize(ctx, desiredSize); err != nil {
+		logger.Error(err, "failed to resize snapshot volume")
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	// If source volume is thin, activate the thin snapshot lv with accessmode.
-	if err := snapLV.Activate(req.AccessType); err != nil {
-		log.Error("failed to activate snap volume, deleting snapshot", map[string]interface{}{
-			log.FnError: err,
-			"name":      req.GetName(),
-		})
-		err := snapLV.Remove()
+	if err := snapLV.Activate(ctx, req.AccessType); err != nil {
+		logger.Error(err, "failed to activate snapshot volume")
+		err := snapLV.Remove(ctx)
 		if err != nil {
-			log.Error("failed to delete snapshot", map[string]interface{}{
-				log.FnError: err,
-				"name":      snapLV.Name(),
-			})
+			logger.Error(err, "failed to delete snapshot")
 		} else {
-			log.Info("deleted a snapshot", map[string]interface{}{
-				"name": req.GetName(),
-			})
+			logger.Info("deleted a snapshot")
 		}
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	s.notify()
 
-	log.Info("created a new snapshot LV", map[string]interface{}{
-		"name":       req.GetName(),
-		"size":       desiredSize,
-		"accessType": req.AccessType,
-		"sourceID":   sourceVolume,
-	})
+	logger.Info(
+		"created a new snapshot LV",
+		"size", desiredSize,
+		"accessType", req.AccessType,
+		"sourceID", sourceVolume,
+	)
 
 	return &proto.CreateLVSnapshotResponse{
 		Snapshot: &proto.LogicalVolume{
@@ -324,30 +292,26 @@ func (s *lvService) CreateLVSnapshot(_ context.Context, req *proto.CreateLVSnaps
 	}, nil
 }
 
-func (s *lvService) ResizeLV(_ context.Context, req *proto.ResizeLVRequest) (*proto.Empty, error) {
+func (s *lvService) ResizeLV(ctx context.Context, req *proto.ResizeLVRequest) (*proto.Empty, error) {
+	logger := log.FromContext(ctx).WithValues("name", req.GetName())
+
 	dc, err := s.dcmapper.DeviceClass(req.DeviceClass)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
 	}
-	vg, err := command.FindVolumeGroup(dc.VolumeGroup)
+	vg, err := command.FindVolumeGroup(ctx, dc.VolumeGroup)
 	if err != nil {
 		return nil, err
 	}
 	// FindVolume on VolumeGroup or ThinPool returns ThinLogicalVolumes as well
 	// and no special handling for resize of LogicalVolume is needed
 	lv, err := vg.FindVolume(req.GetName())
-	if err == command.ErrNotFound {
-		log.Error("logical volume is not found", map[string]interface{}{
-			log.FnError: err,
-			"name":      req.GetName(),
-		})
+	if errors.Is(err, command.ErrNotFound) {
+		logger.Error(err, "logical volume is not found")
 		return nil, status.Errorf(codes.NotFound, "logical volume %s is not found", req.GetName())
 	}
 	if err != nil {
-		log.Error("failed to find volume", map[string]interface{}{
-			log.FnError: err,
-			"name":      req.GetName(),
-		})
+		logger.Error(err, "failed to find volume")
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -363,12 +327,10 @@ func (s *lvService) ResizeLV(_ context.Context, req *proto.ResizeLVRequest) (*pr
 	current := lv.Size()
 
 	if requested < current {
-		log.Error("shrinking volume size is not allowed", map[string]interface{}{
-			log.FnError: err,
-			"name":      req.GetName(),
-			"requested": requested,
-			"current":   current,
-		})
+		logger.Error(err, "shrinking volume size is not allowed",
+			"requested", requested,
+			"current", current,
+		)
 		return nil, status.Error(codes.OutOfRange, "shrinking volume size is not allowed")
 	}
 
@@ -378,24 +340,18 @@ func (s *lvService) ResizeLV(_ context.Context, req *proto.ResizeLVRequest) (*pr
 	case TypeThick:
 		free, err = vg.Free()
 		if err != nil {
-			log.Error("failed to get free bytes", map[string]interface{}{
-				log.FnError: err,
-			})
+			logger.Error(err, "failed to get free bytes")
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 	case TypeThin:
 		pool, err = vg.FindPool(dc.ThinPoolConfig.Name)
 		if err != nil {
-			log.Error("failed to get thinpool", map[string]interface{}{
-				log.FnError: err,
-			})
+			logger.Error(err, "failed to get thinpool")
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 		tpu, err := pool.Free()
 		if err != nil {
-			log.Error("failed to get free bytes", map[string]interface{}{
-				log.FnError: err,
-			})
+			logger.Error(err, "failed to get free bytes")
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 		free = uint64(math.Floor(dc.ThinPoolConfig.OverprovisionRatio*float64(tpu.SizeBytes))) - tpu.VirtualBytes
@@ -406,33 +362,26 @@ func (s *lvService) ResizeLV(_ context.Context, req *proto.ResizeLVRequest) (*pr
 	}
 
 	if free < (requested - current) {
-		log.Error("no enough space left on VG", map[string]interface{}{
-			log.FnError: err,
-			"name":      req.GetName(),
-			"requested": requested,
-			"current":   current,
-			"free":      free,
-		})
+		logger.Error(err, "no enough space left on VG",
+			"requested", requested,
+			"current", current,
+			"free", free,
+		)
 		return nil, status.Errorf(codes.ResourceExhausted, "no enough space left on VG: free=%d, requested=%d", free, requested-current)
 	}
 
-	err = lv.Resize(requested)
+	err = lv.Resize(ctx, requested)
 	if err != nil {
-		log.Error("failed to resize LV", map[string]interface{}{
-			log.FnError: err,
-			"name":      req.GetName(),
-			"requested": requested,
-			"current":   current,
-			"free":      free,
-		})
+		logger.Error(err, "failed to resize LV",
+			"requested", requested,
+			"current", current,
+			"free", free,
+		)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	s.notify()
 
-	log.Info("resized a LV", map[string]interface{}{
-		"name": req.GetName(),
-		"size": requested,
-	})
+	logger.Info("resized a LV", "size", requested)
 
 	return &proto.Empty{}, nil
 }

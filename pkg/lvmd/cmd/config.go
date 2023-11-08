@@ -1,11 +1,12 @@
 package cmd
 
 import (
+	"context"
 	"os"
 
-	"github.com/cybozu-go/log"
 	"github.com/topolvm/topolvm"
 	"github.com/topolvm/topolvm/lvmd"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/yaml"
 )
 
@@ -23,7 +24,7 @@ var config = &Config{
 	SocketName: topolvm.DefaultLVMdSocket,
 }
 
-func loadConfFile(cfgFilePath string) error {
+func loadConfFile(ctx context.Context, cfgFilePath string) error {
 	b, err := os.ReadFile(cfgFilePath)
 	if err != nil {
 		return err
@@ -32,10 +33,10 @@ func loadConfFile(cfgFilePath string) error {
 	if err != nil {
 		return err
 	}
-	log.Info("configuration file loaded: ", map[string]interface{}{
-		"device_classes": config.DeviceClasses,
-		"socket_name":    config.SocketName,
-		"file_name":      cfgFilePath,
-	})
+	log.FromContext(ctx).Info("configuration file loaded",
+		"device_classes", config.DeviceClasses,
+		"socket_name", config.SocketName,
+		"file_name", cfgFilePath,
+	)
 	return nil
 }

@@ -6,11 +6,11 @@ import (
 	"math"
 	"sync"
 
-	"github.com/cybozu-go/log"
 	"github.com/topolvm/topolvm/lvmd/command"
 	"github.com/topolvm/topolvm/lvmd/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // NewVGService creates a VGServiceServer
@@ -33,12 +33,12 @@ type vgService struct {
 	watchers       map[int]chan struct{}
 }
 
-func (s *vgService) GetLVList(_ context.Context, req *proto.GetLVListRequest) (*proto.GetLVListResponse, error) {
+func (s *vgService) GetLVList(ctx context.Context, req *proto.GetLVListRequest) (*proto.GetLVListResponse, error) {
 	dc, err := s.dcManager.DeviceClass(req.DeviceClass)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
 	}
-	vg, err := command.FindVolumeGroup(dc.VolumeGroup)
+	vg, err := command.FindVolumeGroup(ctx, dc.VolumeGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -81,12 +81,13 @@ func (s *vgService) GetLVList(_ context.Context, req *proto.GetLVListRequest) (*
 	return &proto.GetLVListResponse{Volumes: vols}, nil
 }
 
-func (s *vgService) GetFreeBytes(_ context.Context, req *proto.GetFreeBytesRequest) (*proto.GetFreeBytesResponse, error) {
+func (s *vgService) GetFreeBytes(ctx context.Context, req *proto.GetFreeBytesRequest) (*proto.GetFreeBytesResponse, error) {
+	logger := log.FromContext(ctx).WithValues("deviceClass", req.DeviceClass)
 	dc, err := s.dcManager.DeviceClass(req.DeviceClass)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
 	}
-	vg, err := command.FindVolumeGroup(dc.VolumeGroup)
+	vg, err := command.FindVolumeGroup(ctx, dc.VolumeGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -96,24 +97,18 @@ func (s *vgService) GetFreeBytes(_ context.Context, req *proto.GetFreeBytesReque
 	case TypeThick:
 		vgFree, err = vg.Free()
 		if err != nil {
-			log.Error("failed to get free bytes", map[string]interface{}{
-				log.FnError: err,
-			})
+			logger.Error(err, "failed to get free bytes")
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 	case TypeThin:
 		pool, err := vg.FindPool(dc.ThinPoolConfig.Name)
 		if err != nil {
-			log.Error("failed to get thinpool", map[string]interface{}{
-				log.FnError: err,
-			})
+			logger.Error(err, "failed to get thinpool")
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 		tpu, err := pool.Free()
 		if err != nil {
-			log.Error("failed to get free bytes", map[string]interface{}{
-				log.FnError: err,
-			})
+			logger.Error(err, "failed to get free bytes")
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 
@@ -137,7 +132,7 @@ func (s *vgService) GetFreeBytes(_ context.Context, req *proto.GetFreeBytesReque
 }
 
 func (s *vgService) send(server proto.VGService_WatchServer) error {
-	vgs, err := command.ListVolumeGroups()
+	vgs, err := command.ListVolumeGroups(server.Context())
 	if err != nil {
 		return err
 	}
