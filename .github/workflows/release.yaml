@@ -36,7 +36,7 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-          key: go-${{ hashFiles('go.sum', 'Makefile') }}
+          key: go-${{ hashFiles('go.sum', 'Makefile', 'versions.mk') }}
           restore-keys: |
             go-
       - run: make setup

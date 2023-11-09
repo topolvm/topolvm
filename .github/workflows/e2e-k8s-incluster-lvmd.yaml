@@ -11,7 +11,7 @@ on:
     branches:
       - "main"
 jobs:
-  e2e-k8s-daemonset-lvmd:
+  e2e-k8s-incluster-lvmd:
     name: "e2e-k8s-incluster-lvmd"
     runs-on: "ubuntu-20.04"
     strategy:
@@ -35,7 +35,7 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-          key: go-${{ hashFiles('go.sum', 'Makefile') }}
+          key: go-${{ hashFiles('go.sum', 'Makefile', 'versions.mk') }}
           restore-keys: |
             go-
       - name: cache e2e sidecar binaries
@@ -43,27 +43,9 @@ jobs:
         with:
           path: |
             e2e/tmpbin
-          key: e2e-sidecars-${{ hashFiles('csi-sidecars.mk') }}
+          key: e2e-sidecars-${{ hashFiles('csi-sidecars.mk', 'versions.mk') }}
           restore-keys: |
             e2e-sidecars-
-      - name: install dependencies of minikube
-        run: |
-          # These tools are required to use minikube for Kubernetes v1.24+
-
-          # For CNI plugins, see https://github.com/Mirantis/cri-dockerd/blob/v0.2.6/README.md#important
-          CNI_PLUGINS_VERSION="v1.3.0"
-          curl -L -o cni-plugins.tgz https://github.com/containernetworking/plugins/releases/download/${CNI_PLUGINS_VERSION}/cni-plugins-linux-amd64-${CNI_PLUGINS_VERSION}.tgz
-          sudo mkdir -p /opt/cni/bin
-          sudo tar -C /opt/cni/bin -xzf cni-plugins.tgz
-
-          # Install cri-docker
-          CRI_DOCKERD_VERSION="v0.3.4"
-          curl -L -o cri-dockerd.deb https://github.com/Mirantis/cri-dockerd/releases/download/${CRI_DOCKERD_VERSION}/cri-dockerd_${CRI_DOCKERD_VERSION#v}.3-0.ubuntu-focal_amd64.deb
-          sudo dpkg -i cri-dockerd.deb
-
-          CRICTL_VERSION="v1.28.0"
-          curl -L https://github.com/kubernetes-sigs/cri-tools/releases/download/$CRICTL_VERSION/crictl-${CRICTL_VERSION}-linux-amd64.tar.gz --output crictl-${CRICTL_VERSION}-linux-amd64.tar.gz
-          sudo tar zxvf crictl-$CRICTL_VERSION-linux-amd64.tar.gz -C /usr/local/bin
       - run: make -C e2e incluster-lvmd/create-vg
       - run: make -C e2e incluster-lvmd/setup-minikube
       - run: make -C e2e incluster-lvmd/launch-minikube

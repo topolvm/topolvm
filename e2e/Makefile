@@ -1,14 +1,9 @@
+include ../versions.mk
+
 # parameters
-KUBERNETES_VERSION ?= 1.27.3
 TEST_SCHEDULER_MANIFEST ?= daemonset
 STORAGE_CAPACITY ?= false
-EXTERNAL_SNAPSHOTTER_VERSION ?= v6.3.0
 USE_LEGACY ?= ""
-
-## Dependency versions
-MINIKUBE_VERSION := v1.31.2
-CERT_MANAGER_VERSION := v1.13.1
-GINKGO_VERSION := $(shell awk '/github.com\/onsi\/ginkgo\/v2/ {print $$2}' ../go.mod)
 
 BINDIR := $(shell pwd)/bin
 SUDO := sudo
@@ -22,8 +17,6 @@ GINKGO := $(BINDIR)/ginkgo-$(GINKGO_VERSION)
 MINIKUBE_HOME = $(BINDIR)
 export MINIKUBE_HOME
 
-export TEST_KUBERNETES_VERSION=$(shell echo $(KUBERNETES_VERSION) | grep -o '^[0-9]*\.[0-9]*')
-
 HELM_VALUES_FILE := manifests/values/daemonset-scheduler.yaml
 ifeq ($(TEST_SCHEDULER_MANIFEST),deployment)
 HELM_VALUES_FILE := manifests/values/deployment-scheduler.yaml
@@ -31,7 +24,6 @@ endif
 ifeq ($(STORAGE_CAPACITY),true)
 HELM_VALUES_FILE := manifests/values/storage-capacity.yaml
 endif
-
 
 KIND_CONFIG="topolvm-cluster.yaml"
 MINIKUBE_FEATURE_GATES="ReadWriteOncePod=true"
@@ -49,11 +41,8 @@ DOMAIN_NAME := topolvm.cybozu.com
 PROVISINER_MANIFEST := manifests/provisioner_legacy.yaml
 endif
 
-
 GO_FILES := $(shell find .. -path ../e2e -prune -o -name '*.go' -print)
 BACKING_STORE := ./build
-
-include ../common.mk
 
 topolvm.img: $(GO_FILES)
 	mkdir -p tmpbin
@@ -183,21 +172,23 @@ create-cluster: topolvm.img $(HELM) $(KIND) $(KUBECTL)
 
 .PHONY: prepare-test
 prepare-test: $(KUBECTL)
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/rbac-snapshot-controller.yaml
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml
+	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
+	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
+	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
+	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/rbac-snapshot-controller.yaml
+	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml
 	$(KUBECTL) apply -f $(PROVISINER_MANIFEST)
 
 .PHONY: run-test
 run-test: GINKGO_FLAGS =
+run-test: DAEMONSET_LVMD =
 run-test: $(GINKGO)
 	$(SUDO) -E env \
 	PATH=${PATH} \
 	E2ETEST=1 \
 	KUBECTL=$(KUBECTL) \
 	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
+	DAEMONSET_LVMD=$(DAEMONSET_LVMD) \
 	$(GINKGO) --fail-fast -v $(GINKGO_FLAGS) .
 
 .PHONY: test
@@ -293,6 +284,19 @@ incluster-lvmd/setup-minikube:
 	$(CURL) -o $(BINDIR)/minikube https://github.com/kubernetes/minikube/releases/download/$(MINIKUBE_VERSION)/minikube-linux-amd64
 	chmod a+x $(BINDIR)/minikube
 
+	# These tools are required to use minikube for Kubernetes v1.24+
+	# For CNI plugins, see https://github.com/Mirantis/cri-dockerd/blob/v0.2.6/README.md#important
+	$(CURL) -o cni-plugins.tgz https://github.com/containernetworking/plugins/releases/download/$(CNI_PLUGINS_VERSION)/cni-plugins-linux-amd64-$(CNI_PLUGINS_VERSION).tgz
+	$(SUDO) mkdir -p /opt/cni/bin
+	$(SUDO) tar -C /opt/cni/bin -xf cni-plugins.tgz
+
+	# Install cri-docker
+	$(CURL) -o cri-dockerd.deb https://github.com/Mirantis/cri-dockerd/releases/download/$(CRI_DOCKERD_VERSION)/cri-dockerd_$(CRI_DOCKERD_VERSION:v%=%).3-0.ubuntu-focal_amd64.deb
+	$(SUDO) dpkg -i cri-dockerd.deb
+
+	$(CURL) -o crictl.tar.gz https://github.com/kubernetes-sigs/cri-tools/releases/download/$(CRICTL_VERSION)/crictl-$(CRICTL_VERSION)-linux-amd64.tar.gz
+	$(SUDO) tar -C /usr/local/bin -xf crictl.tar.gz
+
 .PHONY: incluster-lvmd/launch-minikube
 incluster-lvmd/launch-minikube:
 	@if [ "$(STORAGE_CAPACITY)" = false ]; then echo "Only storage capacity mode is supported."; exit 1; fi
@@ -321,19 +325,8 @@ incluster-lvmd/test: topolvm.img $(GINKGO) $(HELM) $(KUBECTL)
 	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/topolvm-controller
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system -l="app.kubernetes.io/component=controller,app.kubernetes.io/name=topolvm" pod
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system certificate/topolvm-mutatingwebhook
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/rbac-snapshot-controller.yaml
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml
-	$(KUBECTL) apply -f manifests/provisioner.yaml
-	$(SUDO) -E env \
-	PATH=${PATH} \
-	E2ETEST=1 \
-	KUBECTL=$(KUBECTL) \
-	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
-	DAEMONSET_LVMD=true \
-	$(GINKGO) --fail-fast -v .
+	$(MAKE) prepare-test
+	$(MAKE) run-test DAEMONSET_LVMD=true
 
 .PHONY: incluster-lvmd/clean
 incluster-lvmd/clean: incluster-lvmd/delete-minikube incluster-lvmd/remove-vg

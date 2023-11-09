@@ -1,6 +1,4 @@
-KUBERNETES_VERSION := 1.27.3
-HELM_VERSION := 3.13.0
-CERT_MANAGER_VERSION := v1.13.1
+include ../versions.mk
 
 KIND_CLUSTER_NAME := topolvm-example
 
@@ -26,8 +24,6 @@ BUILD_IMAGE_FLAG :=
 ifeq ($(BUILD_IMAGE),true)
 BUILD_IMAGE_FLAG := --set image.tag=devel
 endif
-
-include ../common.mk
 
 $(KUBECTL):
 	mkdir -p $(BINDIR)
