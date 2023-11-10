@@ -2,13 +2,13 @@ package cmd
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"net"
 	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/well"
 	"github.com/spf13/cobra"
 	"github.com/topolvm/topolvm"
@@ -17,9 +17,14 @@ import (
 	"github.com/topolvm/topolvm/lvmd/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health/grpc_health_v1"
+	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 var cfgFilePath string
+var zapOpts zap.Options
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -37,46 +42,39 @@ volume group.
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
-		return subMain()
+		return subMain(cmd.Context())
 	},
 }
 
-func subMain() error {
-	err := well.LogConfig{}.Apply()
-	if err != nil {
+func subMain(ctx context.Context) error {
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zapOpts)))
+	logger := log.FromContext(ctx)
+
+	if err := loadConfFile(ctx, cfgFilePath); err != nil {
 		return err
 	}
 
-	err = loadConfFile(cfgFilePath)
-	if err != nil {
-		return err
-	}
-	err = lvmd.ValidateDeviceClasses(config.DeviceClasses)
-	if err != nil {
+	if err := lvmd.ValidateDeviceClasses(config.DeviceClasses); err != nil {
 		return err
 	}
 
-	vgs, err := command.ListVolumeGroups()
+	vgs, err := command.ListVolumeGroups(ctx)
 	if err != nil {
-		log.Error("Error while retrieving volume groups", map[string]interface{}{})
+		logger.Error(err, "error while retrieving volume groups")
 		return err
 	}
 
 	for _, dc := range config.DeviceClasses {
 		vg, err := command.SearchVolumeGroupList(vgs, dc.VolumeGroup)
 		if err != nil {
-			log.Error("Volume group not found:", map[string]interface{}{
-				"volume_group": dc.VolumeGroup,
-			})
+			logger.Error(err, "volume group not found", "volume_group", dc.VolumeGroup)
 			return err
 		}
 
 		if dc.Type == lvmd.TypeThin {
 			_, err = vg.FindPool(dc.ThinPoolConfig.Name)
 			if err != nil {
-				log.Error("Thin pool not found:", map[string]interface{}{
-					"thinpool": dc.ThinPoolConfig.Name,
-				})
+				logger.Error(err, "Thin pool not found:", "thinpool", dc.ThinPoolConfig.Name)
 				return err
 			}
 		}
@@ -138,4 +136,8 @@ func Execute() {
 func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFilePath, "config", filepath.Join("/etc", "topolvm", "lvmd.yaml"), "config file")
 	rootCmd.PersistentFlags().BoolVar(&command.Containerized, "container", false, "Run within a container")
+
+	goflags := flag.NewFlagSet("klog", flag.ExitOnError)
+	klog.InitFlags(goflags)
+	zapOpts.BindFlags(goflags)
 }

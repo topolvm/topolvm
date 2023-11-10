@@ -1,10 +1,13 @@
 package command
 
 import (
+	"context"
 	"os"
 	"testing"
 
+	"github.com/go-logr/logr/testr"
 	"github.com/topolvm/topolvm/lvmd/testutils"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 func TestLvmJSON(t *testing.T) {
@@ -282,6 +285,7 @@ func TestLvmJSONBad(t *testing.T) {
 }
 
 func TestLvmRetrieval(t *testing.T) {
+	ctx := ctrl.LoggerInto(context.Background(), testr.New(t))
 	uid := os.Getuid()
 	if uid != 0 {
 		t.Skip("run as root")
@@ -289,19 +293,19 @@ func TestLvmRetrieval(t *testing.T) {
 
 	vgName := "test_lvm_json"
 	lvName := "test_lvm_json_lv"
-	loop, err := testutils.MakeLoopbackDevice(vgName)
+	loop, err := testutils.MakeLoopbackDevice(ctx, vgName)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = testutils.MakeLoopbackVG(vgName, loop)
+	err = testutils.MakeLoopbackVG(ctx, vgName, loop)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	defer testutils.CleanLoopbackVG(vgName, []string{loop}, []string{vgName})
 
-	vgs, lvs, err := getLVMState()
+	vgs, lvs, err := getLVMState(ctx)
 
 	if err != nil {
 		t.Fatal("Unexpected err returned: ", err)
@@ -315,12 +319,12 @@ func TestLvmRetrieval(t *testing.T) {
 		t.Fatal("Expected 1 vg: ", len(vgs))
 	}
 
-	err = testutils.MakeLoopbackLV(lvName, vgName)
+	err = testutils.MakeLoopbackLV(ctx, lvName, vgName)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	vgs, lvs, err = getLVMState()
+	vgs, lvs, err = getLVMState(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

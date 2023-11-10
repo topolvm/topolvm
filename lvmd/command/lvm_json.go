@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"encoding/json"
 	"strconv"
 	"strings"
@@ -158,7 +159,7 @@ func parseFullReportResult(data []byte) ([]vg, []lv, error) {
 }
 
 // Issue single lvm command that retrieves everything we need in one call and get the output as JSON
-func getLVMState() ([]vg, []lv, error) {
+func getLVMState(ctx context.Context) ([]vg, []lv, error) {
 	args := []string{
 		"--reportformat", "json",
 		"--units", "b", "--nosuffix",
@@ -172,7 +173,7 @@ func getLVMState() ([]vg, []lv, error) {
 		"--configreport", "pvseg", "-o,",
 		"--configreport", "seg", "-o,",
 	}
-	stdout, err := callLVMWithStdout("fullreport", args...)
+	stdout, err := callLVMWithStdout(ctx, "fullreport", args...)
 	if err != nil {
 		return nil, nil, err
 	}

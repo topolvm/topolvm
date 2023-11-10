@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	"github.com/cybozu-go/log"
 	"github.com/spf13/viper"
 	"github.com/topolvm/topolvm"
 	topolvmlegacyv1 "github.com/topolvm/topolvm/api/legacy/v1"
@@ -31,6 +30,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/yaml"
 	//+kubebuilder:scaffold:imports
@@ -76,9 +76,8 @@ func subMain(ctx context.Context) error {
 	var vgclnt proto.VGServiceClient
 
 	if config.embedLvmd {
-		log.DefaultLogger().SetFormatter(log.JSONFormat{})
 		command.Containerized = true
-		if err := loadConfFile(cfgFilePath); err != nil {
+		if err := loadConfFile(ctx, cfgFilePath); err != nil {
 			return err
 		}
 		dcm := lvmd.NewDeviceClassManager(config.lvmd.DeviceClasses)
@@ -176,7 +175,7 @@ func ErrorLoggingInterceptor(ctx context.Context, req interface{}, info *grpc.Un
 	return resp, err
 }
 
-func loadConfFile(cfgFilePath string) error {
+func loadConfFile(ctx context.Context, cfgFilePath string) error {
 	b, err := os.ReadFile(cfgFilePath)
 	if err != nil {
 		return err
@@ -185,10 +184,9 @@ func loadConfFile(cfgFilePath string) error {
 	if err != nil {
 		return err
 	}
-	log.Info("configuration file loaded: ", map[string]interface{}{
-		"device_classes": config.lvmd.DeviceClasses,
-		"socket_name":    config.lvmd.SocketName,
-		"file_name":      cfgFilePath,
-	})
+	log.FromContext(ctx).Info("configuration file loaded",
+		"device_classes", config.lvmd.DeviceClasses,
+		"file_name", cfgFilePath,
+	)
 	return nil
 }
