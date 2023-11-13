@@ -6,11 +6,13 @@ import (
 	"os/exec"
 	"testing"
 
+	"github.com/go-logr/logr/testr"
 	"github.com/topolvm/topolvm/lvmd/command"
 	"github.com/topolvm/topolvm/lvmd/proto"
 	"github.com/topolvm/topolvm/lvmd/testutils"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 func TestLVService(t *testing.T) {
@@ -18,20 +20,21 @@ func TestLVService(t *testing.T) {
 	if uid != 0 {
 		t.Skip("run as root")
 	}
+	ctx := ctrl.LoggerInto(context.Background(), testr.New(t))
 
 	vgName := "test_lvservice"
-	loop, err := testutils.MakeLoopbackDevice(vgName)
+	loop, err := testutils.MakeLoopbackDevice(ctx, vgName)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = testutils.MakeLoopbackVG(vgName, loop)
+	err = testutils.MakeLoopbackVG(ctx, vgName, loop)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer testutils.CleanLoopbackVG(vgName, []string{loop}, []string{vgName})
 
-	vg, err := command.FindVolumeGroup(vgName)
+	vg, err := command.FindVolumeGroup(ctx, vgName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +48,7 @@ func TestLVService(t *testing.T) {
 	overprovisionRatio := float64(10.0)
 	poolName := "test_pool"
 	poolSize := uint64(1 << 30)
-	pool, err := vg.CreatePool(poolName, poolSize)
+	pool, err := vg.CreatePool(ctx, poolName, poolSize)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,7 +104,7 @@ func TestLVService(t *testing.T) {
 		t.Error("failed to create logical volume")
 	}
 
-	if err := vg.Update(); err != nil {
+	if err := vg.Update(ctx); err != nil {
 		t.Fatal(err)
 	}
 
@@ -141,7 +144,7 @@ func TestLVService(t *testing.T) {
 		t.Errorf("unexpected count: %d", count)
 	}
 
-	if err := vg.Update(); err != nil {
+	if err := vg.Update(ctx); err != nil {
 		t.Fatal(err)
 	}
 
@@ -177,7 +180,7 @@ func TestLVService(t *testing.T) {
 		t.Errorf("unexpected count: %d", count)
 	}
 
-	if err := vg.Update(); err != nil {
+	if err := vg.Update(ctx); err != nil {
 		t.Fatal(err)
 	}
 	_, err = vg.FindVolume("test1")
@@ -214,7 +217,7 @@ func TestLVService(t *testing.T) {
 		t.Error("failed to create logical volume")
 	}
 
-	if err := vg.Update(); err != nil {
+	if err := vg.Update(ctx); err != nil {
 		t.Fatal(err)
 	}
 
@@ -254,7 +257,7 @@ func TestLVService(t *testing.T) {
 		t.Errorf("unexpected count: %d", count)
 	}
 
-	if err := vg.Update(); err != nil {
+	if err := vg.Update(ctx); err != nil {
 		t.Fatal(err)
 	}
 
@@ -277,7 +280,7 @@ func TestLVService(t *testing.T) {
 		t.Errorf("unexpected count: %d", count)
 	}
 
-	if err := vg.Update(); err != nil {
+	if err := vg.Update(ctx); err != nil {
 		t.Fatal(err)
 	}
 	_, err = pool.FindVolume("test1")
@@ -317,7 +320,7 @@ func TestLVService(t *testing.T) {
 		t.Error("failed to create logical volume")
 	}
 
-	if err := vg.Update(); err != nil {
+	if err := vg.Update(ctx); err != nil {
 		t.Fatal(err)
 	}
 
@@ -373,7 +376,7 @@ func TestLVService(t *testing.T) {
 		t.Error("failed to create logical volume")
 	}
 
-	if err := vg.Update(); err != nil {
+	if err := vg.Update(ctx); err != nil {
 		t.Fatal(err)
 	}
 
@@ -425,7 +428,7 @@ func TestLVService(t *testing.T) {
 		t.Error("failed to create logical volume")
 	}
 
-	if err := vg.Update(); err != nil {
+	if err := vg.Update(ctx); err != nil {
 		t.Fatal(err)
 	}
 

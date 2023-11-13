@@ -16,12 +16,12 @@ var healthCmd = &cobra.Command{
 	Short: "Health check for lvmd server",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
-		return healthSubMain(config)
+		return healthSubMain(cmd.Context(), config)
 	},
 }
 
-func healthSubMain(config *Config) error {
-	err := loadConfFile(cfgFilePath)
+func healthSubMain(ctx context.Context, config *Config) error {
+	err := loadConfFile(ctx, cfgFilePath)
 	if err != nil {
 		return err
 	}
@@ -36,7 +36,6 @@ func healthSubMain(config *Config) error {
 	defer conn.Close()
 	client := grpc_health_v1.NewHealthClient(conn)
 
-	ctx := context.Background()
 	res, err := client.Check(ctx, &grpc_health_v1.HealthCheckRequest{})
 	if err != nil {
 		return err
