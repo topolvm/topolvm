@@ -14,8 +14,8 @@ jobs:
         uses: actions/create-github-app-token@v1
         id: app-token
         with:
-          app_id: ${{ secrets.PROJECT_APP_ID }}
-          private_key: ${{ secrets.PROJECT_APP_PEM }}
+          app-id: ${{ secrets.PROJECT_APP_ID }}
+          private-key: ${{ secrets.PROJECT_APP_PEM }}
       - name: Get project data
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
