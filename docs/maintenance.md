@@ -28,11 +28,8 @@ Choose the next version and check the [release note](https://kubernetes.io/docs/
 Edit the following files.
 - `README.md`
 - `deploy/README.md`
-- `common.mk`
-- `Makefile`
-- `e2e/Makefile`
-- `example/Makefile`
-- `.github/workflows/e2e-k8s-daemonset-lvmd.yaml`
+- `versions.mk`
+- `.github/workflows/e2e-k8s-incluster-lvmd.yaml`
 - `.github/workflows/e2e-k8s-workflow.yaml`
 
 Next, we should update `go.mod` by the following commands.
@@ -78,8 +75,8 @@ These are minimal changes for the Kubernetes upgrade, but if there are some brea
 Choose the same version of Go [used by the latest Kubernetes](https://github.com/kubernetes/kubernetes/blob/master/go.mod) supported by TopoLVM.
 
 Edit the following files.
-- go.mod
-- Dockerfile
+- `go.mod`
+- `Dockerfile`
 
 #### CSI sidecars
 
@@ -90,7 +87,7 @@ Check the release pages of the sidecars under [kubernetes-csi](https://github.co
 
 DO NOT follow the "Status and Releases" tables in this [page](https://kubernetes-csi.github.io/docs/sidecar-containers.html) and the README.md files in the sidecar repositories because they are sometimes not updated properly.
 
-Edit `csi-sidecars.mk` to change sidecars' version.
+Edit `versions.mk` to change sidecars' version.
 
 Read the change logs which are linked from the release pages.
 Confirm diffs of RBAC between published files in upstream and following ones, and update it if required.
@@ -101,12 +98,7 @@ For example, see https://github.com/kubernetes-csi/external-provisioner/blob/mas
 
 #### Depending tools
 
-The depending tools versions are specified in the following files.
-
-- `Makefile`
-- `common.mk`
-- `e2e/Makefile`
-- `example/Makefile`
+The depending tools versions are specified in `versions.mk`.
 
 The following tools do not depend on other software, use latest versions.
 
@@ -119,7 +111,7 @@ The following tools depend on kubernetes, use appropriate version associating to
 - [kind](https://github.com/kubernetes-sigs/kind/releases)
 - [minikube](https://github.com/kubernetes/minikube/releases)
 
-In `.github/workflows/e2e-k8s-daemonset-lvmd.yaml`, minikube depends on some other tools,
+In `.github/workflows/e2e-k8s-incluster-lvmd.yaml`, minikube depends on some other tools,
 so please check if these tools are also needed to be upgraded.
 
 #### Depending modules
@@ -132,7 +124,7 @@ Visit [the upstream web page](https://kubernetes-csi.github.io/docs/drivers.html
 
 #### Final check
 
-`git grep <dropped kubernetes version e.g. 1.18>`, `git grep image:`, and `git grep -i VERSION` might help us avoid overlooking necessary changes.
+`git grep <dropped kubernetes version e.g. 1.18>`, `git grep image:`, `git grep -i VERSION` and looking `versions.mk` might help us avoid overlooking necessary changes.
 Please update the versions in the code and docs with great care.
 
 ## How to upgrade supported CSI version

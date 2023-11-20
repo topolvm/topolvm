@@ -27,7 +27,7 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-          key: go-${{ hashFiles('go.sum', 'Makefile') }}
+          key: go-${{ hashFiles('go.sum', 'Makefile', 'versions.mk') }}
           restore-keys: |
             go-
       - name: cache e2e sidecar binaries
@@ -35,7 +35,7 @@ jobs:
         with:
           path: |
             e2e/tmpbin
-          key: e2e-sidecars-${{ hashFiles('csi-sidecars.mk') }}
+          key: e2e-sidecars-${{ hashFiles('csi-sidecars.mk', 'versions.mk') }}
           restore-keys: |
             e2e-sidecars-
       - run: make -C e2e setup
