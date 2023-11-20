@@ -1,21 +1,18 @@
-End-to-end tests of TopoLVM using kind
-=====================================
+# End-to-end Tests of TopoLVM Using Kind
 
 This directory contains codes for end-to-end tests of TopoLVM.
 The tests run using [kind (Kubernetes IN Docker)][kind] to make an environment with multiple `lvmd` running as systemd service.
-On the other hand, to test `lvmd` running as a daemonset, [minikube][minikube] is used to make a test environment in the localhost without container or VM.
+On the other hand, to test `lvmd` running as a Daemonset, [minikube][minikube] is used to make a test environment in the localhost without container or VM.
 
-Setup environment
------------------
+## Setup Environment
 
 1. Prepare Ubuntu machine.
 2. [Install Docker CE](https://docs.docker.com/install/linux/docker-ce/ubuntu/#install-using-the-repository).
 3. Add yourself to `docker` group.  e.g. `sudo adduser $USER docker`
 
-How to run tests
-----------------
+## How to Run Tests
 
-### Run tests using kind with lvmd as a systemd service
+### Run Tests Using Kind with LVMd as a Systemd Service
 
 Start `lvmd` as a systemd service as follows:
 
@@ -53,7 +50,7 @@ make shutdown-kind
 make stop-lvmd
 ```
 
-### Run tests using minikube with lvmd as a daemonset
+### Run Tests Using Minikube with LVMd as a Daemonset
 
 Before launching the test, install the following tools.
 - [crictl](https://github.com/kubernetes-sigs/cri-tools)
@@ -74,7 +71,7 @@ You can inspect the Kubernetes cluster using `kubectl` command as well as kind.
 make incluster-lvmd/test
 ```
 
-By default, this will run lvmd as a `DaemonSet` separate from `topolvm-node`.
+By default, this will run lvmd as a DaemonSet separate from `topolvm-node`.
 You can also configure the test to use an embedded version of lvmd inside `topolvm-node`.
 
 ```bash

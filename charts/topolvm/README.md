@@ -1,83 +1,13 @@
 # TopoLVM Helm Chart
-----------------------------------------
 
 ## Prerequisites
 
 * `cert-manager` version `v1.7.0+` installed. ref: https://cert-manager.io/
 * Requires at least `v3.5.0+` version of helm to support
-* (Option) Configure `kube-scheduler` on the underlying nodes if you use topolvm-scheduler, ref: https://github.com/topolvm/topolvm/tree/master/deploy#configure-kube-scheduler
 
-## :warning: Migration from kustomize to Helm
+## Installation
 
-See [MIGRATION.md](./MIGRATION.md)
-
-## How to use TopoLVM Helm repository
-
-You need to add this repository to your Helm repositories:
-
-```sh
-helm repo add topolvm https://topolvm.github.io/topolvm
-helm repo update
-```
-
-## Dependencies
-
-| Repository                 | Name         | Version |
-| -------------------------- | ------------ | ------- |
-| https://charts.jetstack.io | cert-manager | 1.7.0   |
-
-## Quick start
-
-By default, the [topolvm-scheduler](../../deploy/README.md#topolvm-scheduler) runs in a DaemonSet.
-It can alternatively run inside a Deployment.
-Also, [lvmd](../../deploy/README.md#lvmd) is run in a DaemonSet by default.
-
-### Installing the Chart
-
-> :memo: NOTE: This installation method requires cert-manger to be installed beforehand.
-
-To work webhooks properly, add a label to the target namespace. We also recommend to use a dedicated namespace.
-
-```sh
-kubectl label namespace topolvm-system topolvm.io/webhook=ignore
-kubectl label namespace kube-system topolvm.io/webhook=ignore
-```
-
-Install the chart with the release name `topolvm` into the namespace:
-
-```sh
-helm install --namespace=topolvm-system topolvm topolvm/topolvm
-```
-
-Specify parameters using `--set key=value[,key=value]` argument to `helm install`.
-
-Alternatively a YAML file that specifies the values for the parameters can be provided like this:
-
-```sh
-helm upgrade --namespace=topolvm-system -f values.yaml -i topolvm topolvm/topolvm
-```
-
-### Install together with cert-manager
-
-Before installing the chart, you must first install the cert-manager CustomResourceDefinition resources.
-
-```sh
-kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.7.0/cert-manager.crds.yaml
-```
-
-Set the `cert-manager.enabled=true` parameter when installing topolvm chart:
-
-```sh
-helm install --namespace=topolvm-system topolvm topolvm/topolvm --set cert-manager.enabled=true
-```
-
-## (Option) Configure kube-scheduler
-
-If you use topolvm-scheduler not enabled in default, you need to configure kube-scheduler to use topolvm-scheduler extender.
-The current Chart does not provide an option to make kube-scheduler configurable.
-To configure kube-scheduler, see the following document.
-
-[deploy/README.md#configure-kube-scheduler](../../deploy/README.md#configure-kube-scheduler)
+See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v13.0.0/docs/getting-started.md).
 
 ## Values
 
@@ -221,7 +151,7 @@ You can use the `helm template` command to render manifests.
 helm template --include-crds --namespace=topolvm-system topolvm topolvm/topolvm
 ```
 
-## About the legacy flag
+## About the Legacy Flag
 
 In https://github.com/topolvm/topolvm/pull/592, the domain name which is used for CRD and other purposes was changed from topolvm.cybozu.com to topolvm.io.
 Automatic domain name migration to topolvm.io is risky from the data integrity point of view, and migration to topolvm.io has a large impact on the entire TopoLVM system, including CRDs.

@@ -1,8 +1,14 @@
-Limitations
-===========
+# Limitations
 
-StorageClass reclaim policy
----------------------------
+<!-- Created by VSCode Markdown All in One command: Create Table of Contents -->
+- [StorageClass Reclaim Policy](#storageclass-reclaim-policy)
+- [Pod without PVC](#pod-without-pvc)
+- [Capacity Aware Scheduling May Go Wrong](#capacity-aware-scheduling-may-go-wrong)
+- [Snapshots Can Be Created Only for Thin Volumes](#snapshots-can-be-created-only-for-thin-volumes)
+- [Snapshots Can Be Restored Only on the Same Node with the Source Volume](#snapshots-can-be-restored-only-on-the-same-node-with-the-source-volume)
+- [Use lvcreate-options at Your Own Risk](#use-lvcreate-options-at-your-own-risk)
+
+## StorageClass Reclaim Policy
 
 TopoLVM does not care about `Retain` [reclaim policy](https://kubernetes.io/docs/concepts/storage/storage-classes/#reclaim-policy)
 because CSI volumes can be referenced only via PersistentVolumeClaims.
@@ -14,8 +20,7 @@ Ref: https://kubernetes.io/docs/concepts/storage/volumes/#csi
 
 If you delete a PVC whose corresponding PV has `Retain` reclaim policy, the corresponding `LogicalVolume` resource and the LVM logical volume are *NOT* deleted. If you delete this `LogicalVolume` resource after deleting the PVC, the related LVM logical volume is also deleted.
 
-Pod without PVC
----------------
+## Pod without PVC
 
 TopoLVM expects that PVCs are created in advance of their Pods.
 However, the TopoLVM webhook does not block the creation of a Pod when there are missing PVCs for the Pod.
@@ -24,8 +29,7 @@ For such Pods, TopoLVM's extended scheduler will not work.
 
 The typical usage of TopoLVM is using StatefulSet with volumeClaimTemplate.
 
-Capacity-aware scheduling may go wrong
--------------------------
+## Capacity Aware Scheduling May Go Wrong
 
 Node storage capacity annotation is not updated in TopoLVM's extended scheduler.
 Therefore, when multiple pods requesting TopoLVM volumes are created at once, the extended scheduler cannot reference the exact capacity of the underlying LVM volume group.
@@ -33,18 +37,17 @@ Therefore, when multiple pods requesting TopoLVM volumes are created at once, th
 Note that pod scheduling is also affected by the amount of CPU and memory.
 Because of this, this problem may not be observable.
 
-Snapshots can be created only for thin volumes
--------------------------
+## Snapshots Can Be Created Only for Thin Volumes
 
-Snapshot is currently supported only for thin volumes and is an experimental feature because CSI Sanity is skipped.
+It is because we now implemented the feature only for thin volumes.
+For thin volumes, it is easy to be implemented, however for thick volumes, it may be hard.
+For example, a thick volume which has its snapshots cannot be expanded without inactivating the snapshots.
 
-Snapshots can be restored only on the same node with the source volume
--------------------------
+## Snapshots Can Be Restored Only on the Same Node with the Source Volume
 
 Since TopoLVM uses LVM's snapshot feature, TopoLVM's snapshots can be restored only on the same node with the source logical volume.
 
-Use lvcreate-options at your own risk
--------------------------------------------
+## Use lvcreate-options at Your Own Risk
 
 TopoLVM does not check the `lvcreate-options` that can optionally be added to a device-class.
 Therefore it cannot take them into consideration when scheduling, or do sanity checks for them.
@@ -58,7 +61,7 @@ You may want to tweak the `spare-gb` setting to avoid some issues with this.
 **Example**
 
 There is one VG `raid-vg` with two PVs (`disk1` and `disk2`).
-Then we create the following lvmd config:
+Then we create the following LVMd config:
 
 ```yaml
 device-classes:

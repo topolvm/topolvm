@@ -1,5 +1,4 @@
-LogicalVolume
-=============
+# LogicalVolume
 
 `LogicalVolume` is a custom resource definition (CRD) that represents
 a TopoLVM volume and helps communication between CSI controller and
@@ -13,8 +12,7 @@ node services.
 | `spec`       | LogicalVolumeSpec   | Specification of desired behavior of the logical volume.              |
 | `status`     | LogicalVolumeStatus | Most recently observed status of the logical volume.                  |
 
-LogicalVolumeSpec
------------------
+## LogicalVolumeSpec
 
 | Field         | Type         | Description                                                    |
 | ------------- | ------------ | -------------------------------------------------------------- |
@@ -23,8 +21,7 @@ LogicalVolumeSpec
 | `size`        | [Quantity][] | Amount of local storage required for the logical volume.       |
 | `deviceClass` | string       | Name of the device-class that the logical volume belongs with. |
 
-LogicalVolumeStatus
--------------------
+## LogicalVolumeStatus
 
 | Field         | Type         | Description                                                                        |
 | ------------- | ------------ | ---------------------------------------------------------------------------------- |
@@ -33,8 +30,7 @@ LogicalVolumeStatus
 | `message`     | string       | Error message.                                                                     |
 | `currentSize` | [Quantity][] | Amount of the local storage assigned for the logical volume.                       |
 
-Lifecycle
----------
+## Lifecycle
 
 Initially, `status.volumeID` and `status.currentSize` are empty. They are set by `topolvm-node` on target nodes
 after it creates an LVM logical volume.
