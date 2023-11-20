@@ -5,8 +5,6 @@ image:
 
 controller:
   replicaCount: 1
-  storageCapacityTracking:
-    enabled: true
   securityContext:
     enabled: false
   # sanity test requires that the controller mounts this hostPath to communicate with it
@@ -15,9 +13,6 @@ controller:
       hostPath:
         path: /var/lib/kubelet/plugins/topolvm.io/controller
         type: DirectoryOrCreate
-
-scheduler:
-  enabled: false
 
 node:
   lvmdEmbedded: true
@@ -71,10 +66,6 @@ storageClasses:
       allowVolumeExpansion: true
       additionalParameters:
         topolvm.io/device-class: "thin"
-
-webhook:
-  podMutatingWebhook:
-    enabled: false
 
 cert-manager:
   enabled: true

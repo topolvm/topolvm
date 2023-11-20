@@ -3,9 +3,9 @@
 
 ## Prerequisites
 
-* Configure `kube-scheduler` on the underlying nodes, ref: https://github.com/topolvm/topolvm/tree/master/deploy#configure-kube-scheduler
 * `cert-manager` version `v1.7.0+` installed. ref: https://cert-manager.io/
 * Requires at least `v3.5.0+` version of helm to support
+* (Option) Configure `kube-scheduler` on the underlying nodes if you use topolvm-scheduler, ref: https://github.com/topolvm/topolvm/tree/master/deploy#configure-kube-scheduler
 
 ## :warning: Migration from kustomize to Helm
 
@@ -22,9 +22,9 @@ helm repo update
 
 ## Dependencies
 
-| Repository | Name	| Version |
-| ---------- | ---- | ------- |
-| https://charts.jetstack.io | cert-manager | 1.7.0 |
+| Repository                 | Name         | Version |
+| -------------------------- | ------------ | ------- |
+| https://charts.jetstack.io | cert-manager | 1.7.0   |
 
 ## Quick start
 
@@ -71,10 +71,11 @@ Set the `cert-manager.enabled=true` parameter when installing topolvm chart:
 helm install --namespace=topolvm-system topolvm topolvm/topolvm --set cert-manager.enabled=true
 ```
 
-## Configure kube-scheduler
+## (Option) Configure kube-scheduler
 
+If you use topolvm-scheduler not enabled in default, you need to configure kube-scheduler to use topolvm-scheduler extender.
 The current Chart does not provide an option to make kube-scheduler configurable.
-You need to configure kube-scheduler to use topolvm-scheduler extender by referring to the following document.
+To configure kube-scheduler, see the following document.
 
 [deploy/README.md#configure-kube-scheduler](../../deploy/README.md#configure-kube-scheduler)
 
