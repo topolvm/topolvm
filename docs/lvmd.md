@@ -65,7 +65,7 @@ stripe: 2
 lvcreate-options: ["--mirrors=1"]
 ```
 
-After updating the configuration file, you need to restart lvmd. If you are running lvmd as a DaemonSet, restart the Pods after updating the ConfigMap. If you want to restart automatically, consider using [Reloader](https://github.com/stakater/Reloader) or similar.
+After changing the configuration file, you need to restart lvmd to reflect this change. If lvmd is deployed as a DaemonSet, pod restart is needed after changing the corresponding ConfigMap. If you want to restart lvmd automatically after changing configuration, please use 3rd party tools like [Reloader](https://github.com/stakater/Reloader).
 
 Spare capacity
 --------------
