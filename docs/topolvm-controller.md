@@ -168,7 +168,7 @@ Controllers
 
 ### Node finalizer
 
-`topolvm-metrics` adds `topolvm.io/node` finalizer.
+`topolvm-controller` adds `topolvm.io/node` finalizer.
 
 When a Node is being deleted, the controller deletes all PVCs and LogicalVolumes for TopoLVM
 on the deleting node. 
