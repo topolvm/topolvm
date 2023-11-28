@@ -46,15 +46,15 @@ device-classes:
 
 The device-class settings can be specified in the following fields:
 
-| Name                | Type     | Default | Description                                                                        |
-| ------------------- | ------   | ------- | ---------------------------------------------------------------------------------- |
-| `name`              | string   | -       | The name of a device-class.                                                        |
-| `volume-group`      | string   | -       | The group where this device-class creates the logical volumes.                     |
-| `spare-gb`          | uint64   | `10`    | Storage capacity in GiB to be spared.                                              |
-| `default`           | bool     | `false` | A flag to indicate that this device-class is used by default.                      |
-| `stripe`            | uint     | -       | The number of stripes in the logical volume.                                       |
-| `stripe-size`       | string   | -       | The amount of data that is written to one device before moving to the next device. |
-| `lvcreate-options`  | []string | -       | Extra arguments to pass to `lvcreate`, e.g. `["--type=raid1"]`.                    |
+| Name               | Type     | Default | Description                                                                        |
+| ------------------ | -------- | ------- | ---------------------------------------------------------------------------------- |
+| `name`             | string   | -       | The name of a device-class.                                                        |
+| `volume-group`     | string   | -       | The group where this device-class creates the logical volumes.                     |
+| `spare-gb`         | uint64   | `10`    | Storage capacity in GiB to be spared.                                              |
+| `default`          | bool     | `false` | A flag to indicate that this device-class is used by default.                      |
+| `stripe`           | uint     | -       | The number of stripes in the logical volume.                                       |
+| `stripe-size`      | string   | -       | The amount of data that is written to one device before moving to the next device. |
+| `lvcreate-options` | []string | -       | Extra arguments to pass to `lvcreate`, e.g. `["--type=raid1"]`.                    |
 
 Note that striping can be configured both using the dedicated options (`stripe` and `stripe-size`) and `lvcreate-options`.
 Either one can be used but not together since this would lead to duplicate arguments to `lvcreate`.
@@ -64,6 +64,8 @@ It is fine to use both as long as `lvcreate-options` are not used for striping h
 stripe: 2
 lvcreate-options: ["--mirrors=1"]
 ```
+
+After changing the configuration file, you need to restart lvmd to reflect this change. If lvmd is deployed as a DaemonSet, pod restart is needed after changing the corresponding ConfigMap. If you want to restart lvmd automatically after changing configuration, please use 3rd party tools like [Reloader](https://github.com/stakater/Reloader).
 
 Spare capacity
 --------------
