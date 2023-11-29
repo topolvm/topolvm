@@ -3,9 +3,9 @@
 
 ## Prerequisites
 
-* Configure `kube-scheduler` on the underlying nodes, ref: https://github.com/topolvm/topolvm/tree/master/deploy#configure-kube-scheduler
 * `cert-manager` version `v1.7.0+` installed. ref: https://cert-manager.io/
 * Requires at least `v3.5.0+` version of helm to support
+* (Option) Configure `kube-scheduler` on the underlying nodes if you use topolvm-scheduler, ref: https://github.com/topolvm/topolvm/tree/master/deploy#configure-kube-scheduler
 
 ## :warning: Migration from kustomize to Helm
 
@@ -22,9 +22,9 @@ helm repo update
 
 ## Dependencies
 
-| Repository | Name	| Version |
-| ---------- | ---- | ------- |
-| https://charts.jetstack.io | cert-manager | 1.7.0 |
+| Repository                 | Name         | Version |
+| -------------------------- | ------------ | ------- |
+| https://charts.jetstack.io | cert-manager | 1.7.0   |
 
 ## Quick start
 
@@ -71,10 +71,11 @@ Set the `cert-manager.enabled=true` parameter when installing topolvm chart:
 helm install --namespace=topolvm-system topolvm topolvm/topolvm --set cert-manager.enabled=true
 ```
 
-## Configure kube-scheduler
+## (Option) Configure kube-scheduler
 
+If you use topolvm-scheduler not enabled in default, you need to configure kube-scheduler to use topolvm-scheduler extender.
 The current Chart does not provide an option to make kube-scheduler configurable.
-You need to configure kube-scheduler to use topolvm-scheduler extender by referring to the following document.
+To configure kube-scheduler, see the following document.
 
 [deploy/README.md#configure-kube-scheduler](../../deploy/README.md#configure-kube-scheduler)
 
@@ -102,7 +103,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | controller.prometheus.podMonitor.scrapeTimeout | string | `""` | Scrape timeout. If not set, the Prometheus default scrape timeout is used. |
 | controller.replicaCount | int | `2` | Number of replicas for CSI controller service. |
 | controller.securityContext.enabled | bool | `true` | Enable securityContext. |
-| controller.storageCapacityTracking.enabled | bool | `false` | Enable Storage Capacity Tracking for csi-provisioner. |
+| controller.storageCapacityTracking.enabled | bool | `true` | Enable Storage Capacity Tracking for csi-provisioner. |
 | controller.terminationGracePeriodSeconds | int | `nil` | Specify terminationGracePeriodSeconds. |
 | controller.tolerations | list | `[]` | Specify tolerations. # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ |
 | controller.updateStrategy | object | `{}` | Specify updateStrategy. |
@@ -185,7 +186,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | scheduler.affinity | object | `{"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"node-role.kubernetes.io/control-plane","operator":"Exists"}]}]}}}` | Specify affinity on the Deployment or DaemonSet. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity |
 | scheduler.args | list | `[]` | Arguments to be passed to the command. |
 | scheduler.deployment.replicaCount | int | `2` | Number of replicas for Deployment. |
-| scheduler.enabled | bool | `true` | If true, enable scheduler extender for TopoLVM |
+| scheduler.enabled | bool | `false` | If true, enable scheduler extender for TopoLVM |
 | scheduler.labels | object | `{}` | Additional labels to be added to the Deployment or Daemonset. |
 | scheduler.minReadySeconds | int | `nil` | Specify minReadySeconds on the Deployment or DaemonSet. |
 | scheduler.nodeSelector | object | `{}` | Specify nodeSelector on the Deployment or DaemonSet. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/ |
@@ -209,7 +210,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | useLegacy | bool | `false` | If true, the legacy plugin name and legacy custom resource group is used(topolvm.cybozu.com). |
 | webhook.caBundle | string | `nil` | Specify the certificate to be used for AdmissionWebhook. |
 | webhook.existingCertManagerIssuer | object | `{}` | Specify the cert-manager issuer to be used for AdmissionWebhook. |
-| webhook.podMutatingWebhook.enabled | bool | `true` | Enable Pod MutatingWebhook. |
+| webhook.podMutatingWebhook.enabled | bool | `false` | Enable Pod MutatingWebhook. |
 | webhook.pvcMutatingWebhook.enabled | bool | `true` | Enable PVC MutatingWebhook. |
 
 ## Generate Manifests

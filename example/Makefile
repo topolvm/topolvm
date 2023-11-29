@@ -16,7 +16,6 @@ BACKING_STORE := ./build
 BUILD_IMAGE := false
 
 HELM_VALUES_FILE := values.yaml
-SCHEDULER_CONFIG := scheduler-config.yaml
 LOGICALVOLUME_GK_NAME := logicalvolume.topolvm.io
 DOMAIN_NAME := topolvm.io
 
@@ -36,7 +35,6 @@ build/topolvm.img: $(GO_FILES)
 
 .PHONY: run
 run:
-	rm -f $(TMPDIR)/scheduler/scheduler-config.yaml
 	$(MAKE) start-lvmd
 	$(MAKE) launch-kind
 	if [ "$(BUILD_IMAGE)" = "true" ]; then \
@@ -72,16 +70,12 @@ setup: $(KUBECTL)
 clean: stop-lvmd
 	rm -rf bin/ build/ $(TMPDIR)
 
-$(TMPDIR)/scheduler/scheduler-config.yaml: ../deploy/scheduler-config/$(SCHEDULER_CONFIG)
-	mkdir -p $(TMPDIR)/scheduler
-	cp $< $@
-
 $(TMPDIR)/lvmd/lvmd.yaml: ../deploy/lvmd-config/lvmd.yaml
 	mkdir -p $(TMPDIR)/lvmd
 	sed -e 's=/run/topolvm/lvmd.sock=$(TMPDIR)/lvmd/lvmd.sock=; s=spare-gb: 10=spare-gb: 1=' $< > $@
 
 .PHONY: launch-kind
-launch-kind: $(TMPDIR)/scheduler/scheduler-config.yaml
+launch-kind:
 	$(MAKE) shutdown-kind
 	$(SUDO) rm -rf $(TMPDIR)/controller $(TMPDIR)/worker*
 	sed 's/@KUBERNETES_VERSION@/$(KUBERNETES_VERSION)/; s=@TMPDIR@=$(TMPDIR)='  kind/topolvm-cluster.yaml > $(TMPDIR)/topolvm-cluster.yaml

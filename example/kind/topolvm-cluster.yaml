@@ -10,19 +10,9 @@ kubeadmConfigPatches:
   kubernetesVersion: "v@KUBERNETES_VERSION@"
   networking:
     serviceSubnet: 10.0.0.0/16
-  scheduler:
-    extraVolumes:
-      - name: "config"
-        hostPath: /mnt/host/scheduler
-        mountPath: /var/lib/scheduler
-        readOnly: true
-    extraArgs:
-      config: /var/lib/scheduler/scheduler-config.yaml
 nodes:
 - role: control-plane
   extraMounts:
-    - containerPath: /mnt/host/scheduler
-      hostPath: "@TMPDIR@/scheduler"
     - containerPath: /var/lib/kubelet
       hostPath: "@TMPDIR@/controller"
       propagation: Bidirectional

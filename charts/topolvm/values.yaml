@@ -39,7 +39,7 @@ image:
 # A scheduler extender for TopoLVM
 scheduler:
   # scheduler.enabled --  If true, enable scheduler extender for TopoLVM
-  enabled: true
+  enabled: false
 
   # scheduler.args -- Arguments to be passed to the command.
   args: []
@@ -347,7 +347,7 @@ controller:
 
   storageCapacityTracking:
     # controller.storageCapacityTracking.enabled -- Enable Storage Capacity Tracking for csi-provisioner.
-    enabled: false
+    enabled: true
 
   securityContext:
     # controller.securityContext.enabled -- Enable securityContext.
@@ -619,7 +619,7 @@ webhook:
     # name: webhook-issuer
   podMutatingWebhook:
     # webhook.podMutatingWebhook.enabled -- Enable Pod MutatingWebhook.
-    enabled: true
+    enabled: false
   pvcMutatingWebhook:
     # webhook.pvcMutatingWebhook.enabled -- Enable PVC MutatingWebhook.
     enabled: true
