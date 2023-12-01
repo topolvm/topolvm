@@ -39,7 +39,7 @@ jobs:
         run: ./bin/helm-docs && git diff --no-patch --exit-code
 
       - name: "Set up chart-testing"
-        uses: helm/chart-testing-action@v2.6.0
+        uses: helm/chart-testing-action@v2.6.1
 
       - name: "Run chart-testing (lint)"
         run: ct lint --config ct.yaml
