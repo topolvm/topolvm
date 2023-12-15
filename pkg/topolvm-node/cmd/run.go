@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"os"
 	"os/signal"
@@ -23,6 +24,7 @@ import (
 	"github.com/topolvm/topolvm/runners"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/health/grpc_health_v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -72,8 +74,9 @@ func subMain(ctx context.Context) error {
 	client := clientwrapper.NewWrappedClient(mgr.GetClient())
 	apiReader := clientwrapper.NewWrappedReader(mgr.GetAPIReader(), mgr.GetClient().Scheme())
 
-	var lvclnt proto.LVServiceClient
-	var vgclnt proto.VGServiceClient
+	var lvService proto.LVServiceClient
+	var vgService proto.VGServiceClient
+	var health grpc_health_v1.HealthClient
 
 	if config.embedLvmd {
 		command.Containerized = true
@@ -82,7 +85,7 @@ func subMain(ctx context.Context) error {
 		}
 		dcm := lvmd.NewDeviceClassManager(config.lvmd.DeviceClasses)
 		ocm := lvmd.NewLvcreateOptionClassManager(config.lvmd.LvcreateOptionClasses)
-		lvclnt, vgclnt = lvmd.NewEmbeddedServiceClients(ctx, dcm, ocm)
+		lvService, vgService = lvmd.NewEmbeddedServiceClients(ctx, dcm, ocm)
 	} else {
 		dialer := &net.Dialer{}
 		dialFunc := func(ctx context.Context, a string) (net.Conn, error) {
@@ -93,10 +96,11 @@ func subMain(ctx context.Context) error {
 			return err
 		}
 		defer conn.Close()
-		lvclnt, vgclnt = proto.NewLVServiceClient(conn), proto.NewVGServiceClient(conn)
+		lvService, vgService = proto.NewLVServiceClient(conn), proto.NewVGServiceClient(conn)
+		health = grpc_health_v1.NewHealthClient(conn)
 	}
 
-	lvcontroller := controllers.NewLogicalVolumeReconcilerWithServices(client, nodename, vgclnt, lvclnt)
+	lvcontroller := controllers.NewLogicalVolumeReconcilerWithServices(client, nodename, vgService, lvService)
 
 	if err := lvcontroller.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "LogicalVolume")
@@ -105,7 +109,7 @@ func subMain(ctx context.Context) error {
 	//+kubebuilder:scaffold:builder
 
 	// Add health checker to manager
-	checker := runners.NewChecker(checkFunc(vgclnt, apiReader), 1*time.Minute) // adjusted signature
+	checker := runners.NewChecker(checkFunc(health, apiReader), 1*time.Minute) // adjusted signature
 	if err := mgr.Add(checker); err != nil {
 		return err
 	}
@@ -113,7 +117,7 @@ func subMain(ctx context.Context) error {
 	// Add metrics exporter to manager.
 	// Note that grpc.ClientConn can be shared with multiple stubs/services.
 	// https://github.com/grpc/grpc-go/tree/master/examples/features/multiplex
-	if err := mgr.Add(runners.NewMetricsExporter(vgclnt, client, nodename)); err != nil { // adjusted signature
+	if err := mgr.Add(runners.NewMetricsExporter(vgService, client, nodename)); err != nil { // adjusted signature
 		return err
 	}
 
@@ -123,7 +127,7 @@ func subMain(ctx context.Context) error {
 	}
 	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(ErrorLoggingInterceptor))
 	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityServer(checker.Ready))
-	nodeServer, err := driver.NewNodeServer(nodename, vgclnt, lvclnt, mgr) // adjusted signature
+	nodeServer, err := driver.NewNodeServer(nodename, vgService, lvService, mgr) // adjusted signature
 	if err != nil {
 		return err
 	}
@@ -153,13 +157,19 @@ func subMain(ctx context.Context) error {
 
 //+kubebuilder:rbac:groups=storage.k8s.io,resources=csidrivers,verbs=get;list;watch
 
-func checkFunc(clnt proto.VGServiceClient, r client.Reader) func() error {
+func checkFunc(health grpc_health_v1.HealthClient, r client.Reader) func() error {
 	return func() error {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		if _, err := clnt.GetFreeBytes(ctx, &proto.GetFreeBytesRequest{DeviceClass: topolvm.DefaultDeviceClassName}); err != nil {
-			return err
+		if health != nil {
+			res, err := health.Check(ctx, &grpc_health_v1.HealthCheckRequest{})
+			if err != nil {
+				return err
+			}
+			if status := res.GetStatus(); status != grpc_health_v1.HealthCheckResponse_SERVING {
+				return fmt.Errorf("lvmd does not working: %s", status.String())
+			}
 		}
 
 		var drv storagev1.CSIDriver
