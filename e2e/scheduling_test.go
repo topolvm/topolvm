@@ -49,7 +49,7 @@ func testScheduling() {
 			return strconv.Itoa(s)
 		}()
 
-		lvYaml := buildPodPVCTemplateYAML(name, size, "topolvm-provisioner-default", nodeName)
+		lvYaml := buildPodPVCTemplateYAML(name, size, "topolvm-provisioner", nodeName)
 		_, err = kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() error {
@@ -71,7 +71,7 @@ func testScheduling() {
 		By("checking the pod with a PVC is not scheduled if a node capacity is not enough")
 		name2 := name + "2"
 
-		lvYaml2 := buildPodPVCTemplateYAML(name2, size, "topolvm-provisioner-default", nodeName)
+		lvYaml2 := buildPodPVCTemplateYAML(name2, size, "topolvm-provisioner", nodeName)
 		_, err = kubectlWithInput(lvYaml2, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() error {

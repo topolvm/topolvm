@@ -13,17 +13,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-//go:embed testdata/multiple_vg/device-class-pod.yaml
-var deviceClassPodYAML []byte
-
-//go:embed testdata/multiple_vg/device-class-pvc.yaml
-var deviceClassPVCYAML []byte
-
-//go:embed testdata/multiple_vg/no-nodes-device-class-pod.yaml
-var noNodesDeviceClassPodYAML []byte
-
-//go:embed testdata/multiple_vg/no-nodes-device-class-pvc.yaml
-var noNodesDeviceClassPVCYAML []byte
+//go:embed testdata/multiple_vg/pod-pvc-template.yaml
+var multipleVGPodPVCTemplateYAML string
 
 func testMultipleVolumeGroups() {
 	testNamespacePrefix := "multivgtest-"
@@ -40,18 +31,17 @@ func testMultipleVolumeGroups() {
 		}
 	})
 
-	It("should use specified device-class", func() {
+	It("should use the specified device-class", func() {
 		By("deploying Pod with PVC")
-		_, err := kubectlWithInput(deviceClassPVCYAML, "apply", "-n", ns, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred())
-		_, err = kubectlWithInput(deviceClassPodYAML, "apply", "-n", ns, "-f", "-")
+		manifest := fmt.Sprintf(multipleVGPodPVCTemplateYAML, "topo-pvc-dc", "topolvm-provisioner3", "pause-dc", "topo-pvc-dc")
+		_, err := kubectlWithInput([]byte(manifest), "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("confirming that the lv was created on specified volume group")
 		var volName string
 		Eventually(func() error {
 			var pvc corev1.PersistentVolumeClaim
-			err := getObjects(&pvc, "pvc", "-n", ns, "topo-pvc")
+			err := getObjects(&pvc, "pvc", "-n", ns, "topo-pvc-dc")
 			if err != nil {
 				return fmt.Errorf("failed to get pvc. err: %w", err)
 			}
@@ -77,11 +67,10 @@ func testMultipleVolumeGroups() {
 		Expect(vgName).Should(Equal(lv.vgName))
 	})
 
-	It("should not schedule pod because there are no nodes that have specified device-classes", func() {
+	It("should not schedule a pod because there are no nodes that have specified device-classes", func() {
 		By("deploying Pod with PVC")
-		_, err := kubectlWithInput(noNodesDeviceClassPVCYAML, "apply", "-n", ns, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred())
-		_, err = kubectlWithInput(noNodesDeviceClassPodYAML, "apply", "-n", ns, "-f", "-")
+		manifest := fmt.Sprintf(multipleVGPodPVCTemplateYAML, "topo-pvc-not-found-dc", "topolvm-provisioner-not-found-device", "pause-not-found-dc", "topo-pvc-not-found-dc")
+		_, err := kubectlWithInput([]byte(manifest), "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		expectMessage := "no capacity annotation"
@@ -92,8 +81,10 @@ func testMultipleVolumeGroups() {
 		By("confirming that the pod wasn't scheduled")
 		Eventually(func() error {
 			var pod corev1.Pod
-			err := getObjects(&pod, "pod", "-n", ns, "pause")
-			Expect(err).ShouldNot(HaveOccurred())
+			err := getObjects(&pod, "pod", "-n", ns, "pause-not-found-dc")
+			if err != nil {
+				return err
+			}
 
 			for _, c := range pod.Status.Conditions {
 				if c.Type == corev1.PodScheduled && c.Status == corev1.ConditionFalse && strings.Contains(c.Message, expectMessage) {
@@ -101,6 +92,27 @@ func testMultipleVolumeGroups() {
 				}
 			}
 			return errors.New("pod doesn't have PodScheduled status")
+		}).Should(Succeed())
+	})
+
+	It("should run a pod using the default device-class", func() {
+		By("deploying Pod with PVC")
+		manifest := fmt.Sprintf(multipleVGPodPVCTemplateYAML, "topo-pvc-default", "topolvm-provisioner-default", "pause-default", "topo-pvc-default")
+		_, err := kubectlWithInput([]byte(manifest), "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+
+		By("confirming the pod running")
+		Eventually(func() error {
+			var pod corev1.Pod
+			err := getObjects(&pod, "pod", "-n", ns, "pause-default")
+			if err != nil {
+				return err
+			}
+
+			if pod.Status.Phase != corev1.PodRunning {
+				return errors.New("pod is not running")
+			}
+			return nil
 		}).Should(Succeed())
 	})
 }

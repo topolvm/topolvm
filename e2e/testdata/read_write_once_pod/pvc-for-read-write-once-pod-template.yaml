@@ -9,4 +9,4 @@ spec:
   resources:
     requests:
       storage: %s
-  storageClassName: topolvm-provisioner-default
+  storageClassName: topolvm-provisioner
