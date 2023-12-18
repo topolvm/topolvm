@@ -4,8 +4,7 @@
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/topolvm/topolvm?tab=overview)](https://pkg.go.dev/github.com/topolvm/topolvm?tab=overview)
 [![Go Report Card](https://goreportcard.com/badge/github.com/topolvm/topolvm)](https://goreportcard.com/badge/github.com/topolvm/topolvm)
 
-TopoLVM
-=======
+# TopoLVM
 
 TopoLVM is a [CSI][] plugin using LVM for Kubernetes.
 It can be considered as a specific implementation of [local persistent volumes](https://kubernetes.io/docs/concepts/storage/volumes/#local) using CSI and LVM.
@@ -16,33 +15,31 @@ It can be considered as a specific implementation of [local persistent volumes](
 Our supported platform are:
 
 - Kubernetes: 1.27, 1.26, 1.25
-- Node OS: Linux with LVM2 (*1)
+- Node OS: Linux with LVM2 (\*1)
+- CPU Architecture: x86 (\*2), arm64 (\*3), ppc64le (\*3)
 - Filesystems: ext4, xfs, btrfs(experimental)
 - lvm version 2.02.163 or later (adds JSON output support)
 
-*1 The host's Linux Kernel must be v4.9 or later which supports `rmapbt` and `reflink`, if you use xfs filesystem with an official docker image.
+\*1 The host's Linux Kernel must be v4.9 or later which supports `rmapbt` and `reflink`, if you use xfs filesystem with an official docker image.  
+\*2 Tier1 support. The official docker images are provided and all functionalities are tested by CI.  
+\*3 Tier2 support. The official docker images are provided, but no tests run by CI.  
 
 Docker images are available on [ghcr.io](https://github.com/orgs/topolvm/packages).  
 
-Getting started
----------------
+## Getting Started
 
-A demonstration of TopoLVM running on [kind (Kubernetes IN Docker)][kind] is available at [example](example/) directory.
+If you want to try TopoLVM on your local machine, see [example](example/) directory which provides scripts to run TopoLVM on [kind (Kubernetes IN Docker)][kind].
 
-For production deployments, see [deploy/README.md](./deploy/README.md).
+To use TopoLVM on your real kubernetes cluster, read [documents](docs/README.md).
 
-User manual is at [docs/user-manual.md](docs/user-manual.md).
+Deprecated: If you want to use TopoLVM on [Rancher/RKE](https://rancher.com/docs/rke/latest/en/), see [docs/deprecated/rancher/README.md](docs/deprecated/rancher/README.md).
 
-_Deprecated: If you want to use TopoLVM on [Rancher/RKE](https://rancher.com/docs/rke/latest/en/), see [docs/deprecated/rancher.md](docs/deprecated/rancher.md)._
-
-Contributing
-------------
+## Contributing
 
 TopoLVM project welcomes contributions from any member of our community. To get
 started contributing, please see our [Contributing Guide](CONTRIBUTING.md).
 
-Scope
------
+## Scope
 
 ### In Scope
 
@@ -53,22 +50,17 @@ Scope
 - Volume metrics: Usage stats are exported as Prometheus metrics from `kubelet`.
 - [Volume Expansion](https://kubernetes-csi.github.io/docs/volume-expansion.html): Volumes can be expanded by editing `PersistentVolumeClaim` objects.
 - [Storage capacity tracking](https://github.com/topolvm/topolvm/tree/main/deploy#storage-capacity-tracking): You can enable Storage Capacity Tracking mode instead of using topolvm-scheduler.
+- [Snapshot](https://kubernetes-csi.github.io/docs/snapshot-restore-feature.html): Snapshots can be taken when using thin provisioning.
 
-### Planned features
+### Planned Features
 
-- [Snapshot](https://kubernetes-csi.github.io/docs/snapshot-restore-feature.html): When we want it.
+- Prioritize based on volume capacity without using the extended scheduler.
 
-### Deprecated features
-
-- [Pod security policy](https://kubernetes.io/docs/concepts/policy/pod-security-policy/) support is deprecated and will be removed when TopoLVM removes the support of Kubernetes < v1.25. This policy is same as Kubernetes.
-
-Communications
---------------
+## Communications
 
 If you have any questions or ideas, please use [discussions](https://github.com/topolvm/topolvm/discussions).
 
-Resources
----------
+## Resources
 
 [docs](docs/) directory contains the user manual, designs and specifications, and so on.
 
@@ -76,8 +68,7 @@ A diagram of components is available in [docs/design.md](docs/design.md#diagram)
 
 TopoLVM maintainers presented the motivation and implementation of TopoLVM at KubeCon Europe 2020: https://kccnceu20.sched.com/event/ZerD
 
-License
--------
+## License
 
 This project is licensed under [Apache License 2.0](LICENSE).
 

@@ -1,11 +1,12 @@
-# Cleanup
+# Uninstall
 
-To cleanup TopoLVM, please follow these steps.
+To uninstall TopoLVM, please follow these steps.
 
-**Caution: The cleanup procedure cannot be reverted. Think twice whether you can really cleanup TopoLVM.**
+> [!CAUTION]
+> The uninstall procedure cannot be reverted. Think twice whether you can really uninstall TopoLVM.
 
 1. Delete all the snapshots and PVCs related to TopoLVM.
-2. If the scheduler extender is enabled, edit the kube-scheduler's config file and remove TopoLVM's settings. It may be your help to read [the configuration guide](https://github.com/topolvm/topolvm/blob/main/deploy/README.md#configure-kube-scheduler).
+2. If the scheduler extender is enabled, edit the kube-scheduler's config file and remove TopoLVM's settings. It may be your help to read [the configuration guide](advanced-setup##using-topolvm-scheduler).
    - Please be careful if you have any other settings in extenders section of the configuration file. You can remove only the TopoLVM's setting.
 3. Uninstall TopoLVM via Helm.
    ```bash
@@ -28,7 +29,7 @@ To cleanup TopoLVM, please follow these steps.
      kubectl label namespace topolvm-system topolvm.cybozu.com/webhook-
      kubectl label namespace kube-system topolvm.cybozu.com/webhook-
      ```
-5. If lvmd is running as a systemd unit, stop it on each node.
+5. If LVMd is running as a systemd service, stop it on each node.
    ```bash
    systemctl is-active lvmd.service
    systemctl disable --now lvmd.service

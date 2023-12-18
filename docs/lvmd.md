@@ -1,22 +1,19 @@
-`lvmd`
-======
+## LVMd
 
-`lvmd` is a gRPC service to manage LVM volumes.  It is composed of two services:
+LVMd is a gRPC service to manage LVM volumes.  It is composed of two services:
 - VGService
     - Provide volume group information: list logical volume, list and watch free bytes
 - LVService
     - Provide management of logical volumes: create, remove, resize
 
-`lvmd` is intended to be run as a systemd service on the node OS.
-
-Command-line options are:
+## Command-line Flags
 
 | Option      | Type   | Default value            | Description                                |
 | ----------- | ------ | ------------------------ | ------------------------------------------ |
 | `config`    | string | `/etc/topolvm/lvmd.yaml` | Config file path for device-class settings |
-| `container` | -      | not set                  | Set if lvmd runs in the container          |
+| `container` | -      | not set                  | Set if LVMd runs in the container          |
 
-The device-class settings can be specified in YAML file:
+## Config File Format
 
 ```yaml
 socket-name: /run/topolvm/lvmd.sock
@@ -56,26 +53,23 @@ The device-class settings can be specified in the following fields:
 | `stripe-size`      | string   | -       | The amount of data that is written to one device before moving to the next device. |
 | `lvcreate-options` | []string | -       | Extra arguments to pass to `lvcreate`, e.g. `["--type=raid1"]`.                    |
 
-Note that striping can be configured both using the dedicated options (`stripe` and `stripe-size`) and `lvcreate-options`.
-Either one can be used but not together since this would lead to duplicate arguments to `lvcreate`.
-This means that you should never set `lvcreate-options: ["--stripes=n"]` and `stripe: n` at the same time.
-It is fine to use both as long as `lvcreate-options` are not used for striping however:
-```
-stripe: 2
-lvcreate-options: ["--mirrors=1"]
-```
+> [!NOTE]
+> Striping can be configured both using the dedicated options (`stripe` and `stripe-size`) and `lvcreate-options`. Either one can be used but not together since this would lead to duplicate arguments to `lvcreate`. This means that you should never set `lvcreate-options: ["--stripes=n"]` and `stripe: n` at the same time. It is fine to use both as long as `lvcreate-options` are not used for striping:
+> ```
+> stripe: 2
+> lvcreate-options: ["--mirrors=1"]
+> ```
 
-After changing the configuration file, you need to restart lvmd to reflect this change. If lvmd is deployed as a DaemonSet, pod restart is needed after changing the corresponding ConfigMap. If you want to restart lvmd automatically after changing configuration, please use 3rd party tools like [Reloader](https://github.com/stakater/Reloader).
+> [!NOTE]
+> After changing the configuration file, you need to restart LVMd to reflect this change. If LVMd is deployed as a DaemonSet, pod restart is needed after changing the corresponding ConfigMap. If you want to restart LVMd automatically after changing configuration, please use 3rd party tools like [Reloader](https://github.com/stakater/Reloader).
 
-Spare capacity
---------------
+## Spare Capacity
 
 LVMd subtracts a certain amount from the free space of a volume group before
 reporting the free space of the volume group.
 
 The default spare capacity is 10 GiB.  This can be changed with `--spare` command-line flag.
 
-API specification
------------------
+## API Specification
 
 [See here.](./lvmd-protocol.md)

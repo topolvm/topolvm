@@ -1,9 +1,8 @@
-Monitoring with Prometheus
-==========================
+# Monitoring with Prometheus
 
 This document describes how to monitor TopoLVM and its volume metrics by [Prometheus](https://prometheus.io/).
 
-## TopoLVM components
+## TopoLVM Components
 
 The following programs export their metrics under `/metrics` REST API endpoint.
 
@@ -12,7 +11,7 @@ The following programs export their metrics under `/metrics` REST API endpoint.
 - `topolvm-scheduler`
 
 In addition to the standard metrics of Go programs, `topolvm-node` provides available bytes of each volume group.
-See [topolvm-node.md](https://github.com/topolvm/topolvm/blob/master/docs/topolvm-node.md#prometheus-metrics) for details.
+See the [topolvm-node](topolvm-node.md#prometheus-metrics) document for details.
 
 An example scrape config looks like:
 
@@ -39,7 +38,7 @@ scrape_configs:
         target_label: instance
 ```
 
-## PV filesystem usage
+## PV Filesystem Usage
 
 For TopoLVM filesystem volumes, their usage metrics are available via `kubelet`.
 See [this StackOverflow article](https://stackoverflow.com/a/47117776/1493661) for details.
