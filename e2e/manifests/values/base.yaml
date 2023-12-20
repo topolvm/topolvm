@@ -14,11 +14,8 @@ controller:
         path: /var/lib/kubelet/plugins/topolvm.io/controller
         type: DirectoryOrCreate
 
-node:
-  lvmdEmbedded: true
-
 lvmd:
-  managed: false
+  socketName: /tmp/topolvm/lvmd.sock
   deviceClasses:
     - name: "ssd"
       volume-group: "node-myvg1"
@@ -48,6 +45,9 @@ lvmd:
     - name: "raid1"
       options:
         - "--type=raid1"
+
+node:
+  lvmdSocket: /tmp/topolvm/lvmd.sock
 
 storageClasses:
   - name: topolvm-provisioner

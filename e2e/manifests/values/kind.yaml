@@ -1,0 +1,3 @@
+controller:
+  nodeSelector:
+    kubernetes.io/hostname: topolvm-e2e-worker

@@ -79,15 +79,6 @@ parameters:
   "topolvm.cybozu.com/device-class": "raid1"
   "topolvm.cybozu.com/lvcreate-option-class": "raid1"
 ---
-kind: StorageClass
-apiVersion: storage.k8s.io/v1
-metadata:
-  name: topolvm-provisioner-thin
-provisioner: topolvm.cybozu.com
-volumeBindingMode: WaitForFirstConsumer
-parameters:
-  "topolvm.cybozu.com/device-class": "thin"
----
 apiVersion: snapshot.storage.k8s.io/v1
 kind: VolumeSnapshotClass
 metadata:
