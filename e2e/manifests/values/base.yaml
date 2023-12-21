@@ -57,7 +57,7 @@ storageClasses:
       volumeBindingMode: WaitForFirstConsumer
       allowVolumeExpansion: true
       additionalParameters:
-        topolvm.io/device-class: "ssd"
+        '{{ include "topolvm.pluginName" . }}/device-class': "ssd"
   - name: topolvm-provisioner-thin
     storageClass:
       fsType: xfs
@@ -65,7 +65,57 @@ storageClasses:
       volumeBindingMode: WaitForFirstConsumer
       allowVolumeExpansion: true
       additionalParameters:
-        topolvm.io/device-class: "thin"
+        '{{ include "topolvm.pluginName" . }}/device-class': "thin"
+  - name: topolvm-provisioner-immediate
+    storageClass:
+      isDefaultClass: false
+      volumeBindingMode: Immediate
+      additionalParameters:
+        '{{ include "topolvm.pluginName" . }}/device-class': "ssd"
+  - name: topolvm-provisioner2
+    storageClass:
+      isDefaultClass: false
+      volumeBindingMode: WaitForFirstConsumer
+      additionalParameters:
+        '{{ include "topolvm.pluginName" . }}/device-class': "hdd1"
+  - name: topolvm-provisioner3
+    storageClass:
+      isDefaultClass: false
+      volumeBindingMode: WaitForFirstConsumer
+      additionalParameters:
+        '{{ include "topolvm.pluginName" . }}/device-class': "hdd2"
+  - name: topolvm-provisioner-default
+    storageClass:
+      isDefaultClass: false
+      volumeBindingMode: WaitForFirstConsumer
+  - name: topolvm-provisioner-mount-option
+    storageClass:
+      fsType: ext4
+      isDefaultClass: false
+      volumeBindingMode: WaitForFirstConsumer
+      allowVolumeExpansion: true
+      additionalParameters:
+        '{{ include "topolvm.pluginName" . }}/device-class': "ssd"
+      mountOptions:
+        - debug
+  - name: topolvm-provisioner-not-found-device
+    storageClass:
+      isDefaultClass: false
+      volumeBindingMode: WaitForFirstConsumer
+      allowVolumeExpansion: true
+      additionalParameters:
+        '{{ include "topolvm.pluginName" . }}/device-class': "not-found-device"
+  - name: topolvm-provisioner-raid
+    storageClass:
+      isDefaultClass: false
+      additionalParameters:
+        '{{ include "topolvm.pluginName" . }}/device-class': "raid"
+  - name: topolvm-provisioner-raid1
+    storageClass:
+      isDefaultClass: false
+      additionalParameters:
+        '{{ include "topolvm.pluginName" . }}/device-class': "raid1"
+        '{{ include "topolvm.pluginName" . }}/lvcreate-option-class': "raid1"
 
 cert-manager:
   enabled: true
