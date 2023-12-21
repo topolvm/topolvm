@@ -22,7 +22,6 @@ export MINIKUBE_HOME
 
 DOMAIN_NAME := topolvm.io
 HELM_VALUES_FILES := manifests/values/base.yaml
-PROVISINER_MANIFEST := manifests/provisioner.yaml
 SCHEDULER_CONFIG := ../deploy/scheduler-config/scheduler-config.yaml
 STORAGE_CAPACITY := true
 USE_LEGACY :=
@@ -38,7 +37,6 @@ endif
 ifeq ($(TEST_LEGACY),true)
 DOMAIN_NAME := topolvm.cybozu.com
 HELM_VALUES_FILES += manifests/values/legacy.yaml
-PROVISINER_MANIFEST := manifests/provisioner_legacy.yaml
 SCHEDULER_CONFIG := ../deploy/scheduler-config/scheduler-config-legacy.yaml
 USE_LEGACY := true
 endif
@@ -193,7 +191,7 @@ prepare-test: $(KUBECTL)
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/rbac-snapshot-controller.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml
-	$(KUBECTL) apply -f $(PROVISINER_MANIFEST)
+	sed 's/@DOMAIN_NAME@/$(DOMAIN_NAME)/' manifests/volumesnapshotclass_tpl.yaml | $(KUBECTL) apply -f -
 
 .PHONY: run-test
 run-test: GINKGO_FLAGS =
