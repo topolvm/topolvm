@@ -608,6 +608,8 @@ storageClasses:
       allowVolumeExpansion: true
       additionalParameters: {}
       # "topolvm.io/device-class": "ssd"
+      # mount options
+      mountOptions: []
 
 webhook:
   # webhook.caBundle -- Specify the certificate to be used for AdmissionWebhook.

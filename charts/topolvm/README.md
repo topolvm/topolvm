@@ -136,7 +136,7 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v13.
 | securityContext.runAsGroup | int | `10000` | Specify runAsGroup. |
 | securityContext.runAsUser | int | `10000` | Specify runAsUser. |
 | snapshot.enabled | bool | `true` | Turn on the snapshot feature. |
-| storageClasses | list | `[{"name":"topolvm-provisioner","storageClass":{"additionalParameters":{},"allowVolumeExpansion":true,"annotations":{},"fsType":"xfs","isDefaultClass":false,"reclaimPolicy":null,"volumeBindingMode":"WaitForFirstConsumer"}}]` | Whether to create storageclass(es) ref: https://kubernetes.io/docs/concepts/storage/storage-classes/ |
+| storageClasses | list | `[{"name":"topolvm-provisioner","storageClass":{"additionalParameters":{},"allowVolumeExpansion":true,"annotations":{},"fsType":"xfs","isDefaultClass":false,"mountOptions":[],"reclaimPolicy":null,"volumeBindingMode":"WaitForFirstConsumer"}}]` | Whether to create storageclass(es) ref: https://kubernetes.io/docs/concepts/storage/storage-classes/ |
 | useLegacy | bool | `false` | If true, the legacy plugin name and legacy custom resource group is used(topolvm.cybozu.com). |
 | webhook.caBundle | string | `nil` | Specify the certificate to be used for AdmissionWebhook. |
 | webhook.existingCertManagerIssuer | object | `{}` | Specify the cert-manager issuer to be used for AdmissionWebhook. |

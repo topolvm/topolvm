@@ -34,6 +34,10 @@ volumeBindingMode: {{ . }}
 {{- with $val.storageClass.allowVolumeExpansion }}
 allowVolumeExpansion: {{ . }}
 {{- end }}
+{{- with $val.storageClass.mountOptions }}
+mountOptions:
+{{- toYaml . | nindent 2 }}
+{{- end }}
 ---
     {{- end }}
   {{- end }}
