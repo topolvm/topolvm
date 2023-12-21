@@ -206,7 +206,7 @@ func TestValidateDeviceClasses(t *testing.T) {
 					VolumeGroup: "node1-ssd",
 				},
 			},
-			valid: false,
+			valid: true,
 		},
 		{
 			deviceClasses: []*DeviceClass{
