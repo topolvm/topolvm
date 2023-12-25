@@ -13,10 +13,10 @@ func TestLvcreateOptionClassManager(t *testing.T) {
 	}{
 		{
 			found: true,
-			name:  "ssd",
+			name:  "option",
 			lvcreateOptionClasses: []*LvcreateOptionClass{
 				{
-					Name:    "ssd",
+					Name:    "option",
 					Options: []string{"--type=raid1"},
 				},
 			},
@@ -26,7 +26,7 @@ func TestLvcreateOptionClassManager(t *testing.T) {
 			name:  "not-found",
 			lvcreateOptionClasses: []*LvcreateOptionClass{
 				{
-					Name:    "ssd",
+					Name:    "option",
 					Options: []string{"--type=raid1"},
 				},
 			},
