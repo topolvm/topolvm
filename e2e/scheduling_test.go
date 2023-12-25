@@ -107,7 +107,7 @@ func testScheduling() {
 		err = getObjects(&node, "node", nodeName)
 		Expect(err).ShouldNot(HaveOccurred())
 		size = func() string {
-			sizeStr, exists := node.Annotations[topolvm.GetCapacityKeyPrefix()+"hdd1"]
+			sizeStr, exists := node.Annotations[topolvm.GetCapacityKeyPrefix()+"dc2"]
 			if !exists {
 				Expect(errors.New("size is not found")).ShouldNot(HaveOccurred())
 			}

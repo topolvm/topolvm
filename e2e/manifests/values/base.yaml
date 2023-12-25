@@ -17,14 +17,14 @@ controller:
 lvmd:
   socketName: /tmp/topolvm/lvmd.sock
   deviceClasses:
-    - name: "ssd"
+    - name: "dc1"
       volume-group: "node-myvg1"
       default: true
       spare-gb: 1
-    - name: "hdd1"
+    - name: "dc2"
       volume-group: "node-myvg2"
       spare-gb: 1
-    - name: "hdd2"
+    - name: "dc3"
       volume-group: "node-myvg3"
       spare-gb: 1
     - name: "raid"
@@ -57,7 +57,7 @@ storageClasses:
       volumeBindingMode: WaitForFirstConsumer
       allowVolumeExpansion: true
       additionalParameters:
-        '{{ include "topolvm.pluginName" . }}/device-class': "ssd"
+        '{{ include "topolvm.pluginName" . }}/device-class': "dc1"
   - name: topolvm-provisioner-thin
     storageClass:
       fsType: xfs
@@ -71,19 +71,19 @@ storageClasses:
       isDefaultClass: false
       volumeBindingMode: Immediate
       additionalParameters:
-        '{{ include "topolvm.pluginName" . }}/device-class': "ssd"
+        '{{ include "topolvm.pluginName" . }}/device-class': "dc1"
   - name: topolvm-provisioner2
     storageClass:
       isDefaultClass: false
       volumeBindingMode: WaitForFirstConsumer
       additionalParameters:
-        '{{ include "topolvm.pluginName" . }}/device-class': "hdd1"
+        '{{ include "topolvm.pluginName" . }}/device-class': "dc2"
   - name: topolvm-provisioner3
     storageClass:
       isDefaultClass: false
       volumeBindingMode: WaitForFirstConsumer
       additionalParameters:
-        '{{ include "topolvm.pluginName" . }}/device-class': "hdd2"
+        '{{ include "topolvm.pluginName" . }}/device-class': "dc3"
   - name: topolvm-provisioner-default
     storageClass:
       isDefaultClass: false
@@ -95,7 +95,7 @@ storageClasses:
       volumeBindingMode: WaitForFirstConsumer
       allowVolumeExpansion: true
       additionalParameters:
-        '{{ include "topolvm.pluginName" . }}/device-class': "ssd"
+        '{{ include "topolvm.pluginName" . }}/device-class': "dc1"
       mountOptions:
         - debug
   - name: topolvm-provisioner-not-found-device

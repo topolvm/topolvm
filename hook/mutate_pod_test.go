@@ -203,7 +203,7 @@ var _ = Describe("pod mutation webhook", func() {
 		pod = getPod()
 		request := pod.Spec.Containers[0].Resources.Requests[topolvm.GetCapacityResource()]
 		limit := pod.Spec.Containers[0].Resources.Limits[topolvm.GetCapacityResource()]
-		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+"ssd"]
+		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+"dc1"]
 		Expect(request.Value()).Should(Equal(int64(1)))
 		Expect(limit.Value()).Should(Equal(int64(1)))
 		Expect(capacity).Should(Equal(strconv.Itoa(100 << 30)))
@@ -237,20 +237,20 @@ var _ = Describe("pod mutation webhook", func() {
 		pod = getPod()
 		request := pod.Spec.Containers[0].Resources.Requests[topolvm.GetCapacityResource()]
 		limit := pod.Spec.Containers[0].Resources.Limits[topolvm.GetCapacityResource()]
-		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+"ssd"]
+		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+"dc1"]
 		Expect(request.Value()).Should(Equal(int64(1)))
 		Expect(limit.Value()).Should(Equal(int64(1)))
 		Expect(capacity).Should(Equal(strconv.Itoa(100 << 30)))
 
 		request = pod.Spec.Containers[0].Resources.Requests[topolvm.GetCapacityResource()]
 		limit = pod.Spec.Containers[0].Resources.Limits[topolvm.GetCapacityResource()]
-		capacity = pod.Annotations[topolvm.GetCapacityKeyPrefix()+"hdd1"]
+		capacity = pod.Annotations[topolvm.GetCapacityKeyPrefix()+"dc2"]
 		Expect(request.Value()).Should(Equal(int64(1)))
 		Expect(limit.Value()).Should(Equal(int64(1)))
 		Expect(capacity).Should(Equal(strconv.Itoa(3 << 30)))
 
 		request = pod.Spec.Containers[0].Resources.Requests[topolvm.GetCapacityResource()]
-		capacity = pod.Annotations[topolvm.GetCapacityKeyPrefix()+"hdd2"]
+		capacity = pod.Annotations[topolvm.GetCapacityKeyPrefix()+"dc3"]
 		limit = pod.Spec.Containers[0].Resources.Limits[topolvm.GetCapacityResource()]
 		Expect(request.Value()).Should(Equal(int64(1)))
 		Expect(limit.Value()).Should(Equal(int64(1)))
@@ -285,7 +285,7 @@ var _ = Describe("pod mutation webhook", func() {
 		pod = getPod()
 		request := pod.Spec.Containers[0].Resources.Requests[topolvm.GetCapacityResource()]
 		limit := pod.Spec.Containers[0].Resources.Limits[topolvm.GetCapacityResource()]
-		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+"ssd"]
+		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+"dc1"]
 		Expect(request.Value()).Should(Equal(int64(1)))
 		Expect(limit.Value()).Should(Equal(int64(1)))
 		Expect(capacity).Should(Equal(strconv.Itoa(100 << 30)))
@@ -313,7 +313,7 @@ var _ = Describe("pod mutation webhook", func() {
 		pod = getPod()
 		request := pod.Spec.Containers[0].Resources.Requests[topolvm.GetCapacityResource()]
 		limit := pod.Spec.Containers[0].Resources.Limits[topolvm.GetCapacityResource()]
-		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+"ssd"]
+		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+"dc1"]
 		Expect(request.Value()).Should(Equal(int64(1)))
 		Expect(limit.Value()).Should(Equal(int64(1)))
 		Expect(capacity).Should(Equal(strconv.Itoa(100 << 30)))
@@ -376,7 +376,7 @@ var _ = Describe("pod mutation webhook", func() {
 
 		pod = getPod()
 		request := pod.Spec.Containers[0].Resources.Requests[topolvm.GetCapacityResource()]
-		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+"ssd"]
+		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+"dc1"]
 		Expect(request.Value()).Should(Equal(int64(1)))
 		Expect(capacity).Should(Equal(strconv.Itoa((100 << 30) + (2<<30 - 1))))
 	})
@@ -416,7 +416,7 @@ var _ = Describe("pod mutation webhook", func() {
 		pod = getPod()
 		request := pod.Spec.Containers[0].Resources.Requests[topolvm.GetCapacityResource()]
 		limit := pod.Spec.Containers[0].Resources.Limits[topolvm.GetCapacityResource()]
-		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+"ssd"]
+		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+"dc1"]
 		Expect(request.Value()).Should(Equal(int64(1)))
 		Expect(limit.Value()).Should(Equal(int64(1)))
 		Expect(capacity).Should(Equal(strconv.Itoa(500 * mebibyte)))
