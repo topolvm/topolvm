@@ -151,7 +151,7 @@ func testSnapRestore() {
 
 		vgName := "node1-myvg4"
 		if isDaemonsetLvmdEnvSet() {
-			vgName = "node-myvg5"
+			vgName = "node-myvg4"
 		}
 		Expect(vgName).Should(Equal(lv.vgName))
 
@@ -272,7 +272,7 @@ func testSnapRestore() {
 
 		vgName := "node1-myvg4"
 		if isDaemonsetLvmdEnvSet() {
-			vgName = "node-myvg5"
+			vgName = "node-myvg4"
 		}
 		Expect(vgName).Should(Equal(lv.vgName))
 
@@ -403,7 +403,7 @@ func testSnapRestore() {
 
 		vgName := "node1-myvg4"
 		if isDaemonsetLvmdEnvSet() {
-			vgName = "node-myvg5"
+			vgName = "node-myvg4"
 		}
 		Expect(vgName).Should(Equal(lv.vgName))
 

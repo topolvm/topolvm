@@ -124,7 +124,8 @@ start-lvmd:
 		truncate --size=3G $(BACKING_STORE)/backing_store$${i}_4; \
 		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$${i}_3; \
 		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$${i}_4; \
-		$(SUDO) vgcreate -y node$${i}-myvg3 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_3 | cut -d: -f1) \
+		$(SUDO) vgcreate -y node$${i}-myvg3 \
+			$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_3 | cut -d: -f1) \
 			$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_4 | cut -d: -f1); \
 	done
 
@@ -144,7 +145,8 @@ start-lvmd:
 		truncate --size=3G $(BACKING_STORE)/backing_store$${i}_7; \
 		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$${i}_6; \
 		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$${i}_7; \
-		$(SUDO) vgcreate -y node$${i}-myvg5 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_6 | cut -d: -f1) \
+		$(SUDO) vgcreate -y node$${i}-myvg5 \
+			$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_6 | cut -d: -f1) \
 			$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_7 | cut -d: -f1); \
 	done
 
@@ -158,10 +160,10 @@ stop-lvmd:
 	$(MAKE) shutdown-kind
 	for i in $$(seq 3); do \
 		if systemctl is-active -q lvmd$$i.service; then $(SUDO) systemctl stop lvmd$$i.service; fi; \
+		for j in $$(seq 5); do \
+			$(SUDO) vgremove -ffy node$${i}-myvg$${j}; \
+		done; \
 		for j in $$(seq 7); do \
-			if [ "$${j}" -lt 6 ]; then \
-				$(SUDO) vgremove -ffy node$${i}-myvg$${j}; \
-			fi; \
 			$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_$${j} | cut -d: -f1); \
 			$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_$${j} | cut -d: -f1); \
 			rm -f $(BACKING_STORE)/backing_store$${i}_$${j}; \
@@ -249,7 +251,7 @@ incluster-lvmd/create-vg:
 	mkdir -p build $(BACKING_STORE)
 	if [ $$(ls -1 $(BACKING_STORE)/backing_store_lvmd* 2>/dev/null | wc -l) -ne 0 ]; then $(MAKE) $(@D)/remove-vg; fi
 
-	for i in $$(seq 3); do \
+	for i in $$(seq 2); do \
 		truncate --size=20G $(BACKING_STORE)/backing_store_lvmd_$${i}; \
 		$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_$${i}; \
 		$(SUDO) vgcreate -y node-myvg$${i} $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_$${i} | cut -d: -f1); \
@@ -257,35 +259,36 @@ incluster-lvmd/create-vg:
 
 	# Create Volume Group for testing raid1 volumes.
 	# This requires 2 PVs in each VG.
+	truncate --size=3G $(BACKING_STORE)/backing_store_lvmd_3
 	truncate --size=3G $(BACKING_STORE)/backing_store_lvmd_4
-	truncate --size=3G $(BACKING_STORE)/backing_store_lvmd_5
+	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_3
 	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_4
-	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_5
-	$(SUDO) vgcreate -y node-myvg4 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_4 | cut -d: -f1) \
-		$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_5 | cut -d: -f1)
+	$(SUDO) vgcreate -y node-myvg3 \
+		$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_3 | cut -d: -f1) \
+		$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_4 | cut -d: -f1)
 
 	# Create Volume Group for thinpool
-	truncate --size=5G $(BACKING_STORE)/backing_store_lvmd_6
-	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_6
-	$(SUDO) vgcreate -y node-myvg5 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_6 | cut -d: -f1)
-	$(SUDO) lvcreate -T -n pool0 -L 4G node-myvg5
+	truncate --size=5G $(BACKING_STORE)/backing_store_lvmd_5
+	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_5
+	$(SUDO) vgcreate -y node-myvg4 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_5 | cut -d: -f1)
+	$(SUDO) lvcreate -T -n pool0 -L 4G node-myvg4
 
 	# Create Volume Group for testing lvcreate-option-classes.
 	# This requires 2 PVs in each VG.
+	truncate --size=3G $(BACKING_STORE)/backing_store_lvmd_6
 	truncate --size=3G $(BACKING_STORE)/backing_store_lvmd_7
-	truncate --size=3G $(BACKING_STORE)/backing_store_lvmd_8
+	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_6
 	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_7
-	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_8
-	$(SUDO) vgcreate -y node-myvg6 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_7 | cut -d: -f1) \
-		$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_8 | cut -d: -f1)
-
+	$(SUDO) vgcreate -y node-myvg5 \
+		$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_6 | cut -d: -f1) \
+		$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_7 | cut -d: -f1)
 
 .PHONY: incluster-lvmd/remove-vg
 incluster-lvmd/remove-vg:
-	for i in $$(seq 8); do \
-		if [ "$${j}" -lt 7 ]; then \
-			$(SUDO) vgremove -ffy node-myvg$${i}; \
-		fi; \
+	for i in $$(seq 5); do \
+		$(SUDO) vgremove -ffy node-myvg$${i}; \
+	done; \
+	for i in $$(seq 7); do \
 		$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_$${i} | cut -d: -f1); \
 		$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_$${i} | cut -d: -f1); \
 		rm -f $(BACKING_STORE)/backing_store_lvmd_$${i}; \

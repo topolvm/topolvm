@@ -68,7 +68,7 @@ func testThinProvisioning() {
 
 		vgName := "node1-myvg4"
 		if isDaemonsetLvmdEnvSet() {
-			vgName = "node-myvg5"
+			vgName = "node-myvg4"
 		}
 		Expect(vgName).Should(Equal(lv.vgName))
 
@@ -141,7 +141,7 @@ func testThinProvisioning() {
 
 			vgName := "node2-myvg4"
 			if isDaemonsetLvmdEnvSet() {
-				vgName = "node-myvg5"
+				vgName = "node-myvg4"
 			}
 			Expect(vgName).Should(Equal(lv.vgName))
 
@@ -218,7 +218,7 @@ func testThinProvisioning() {
 
 		vgName := "node3-myvg4"
 		if isDaemonsetLvmdEnvSet() {
-			vgName = "node-myvg5"
+			vgName = "node-myvg4"
 		}
 		Expect(vgName).Should(Equal(lv.vgName))
 
