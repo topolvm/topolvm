@@ -33,7 +33,11 @@ func testMultipleVolumeGroups() {
 
 	It("should use the specified device-class", func() {
 		By("deploying Pod with PVC")
-		manifest := fmt.Sprintf(multipleVGPodPVCTemplateYAML, "topo-pvc-dc", "topolvm-provisioner3", "pause-dc", "topo-pvc-dc")
+		nodeName := "topolvm-e2e-worker"
+		if isDaemonsetLvmdEnvSet() {
+			nodeName = getDaemonsetLvmdNodeName()
+		}
+		manifest := fmt.Sprintf(multipleVGPodPVCTemplateYAML, "topo-pvc-dc", "topolvm-provisioner2", "pause-dc", "topo-pvc-dc", nodeName)
 		_, err := kubectlWithInput([]byte(manifest), "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -60,16 +64,20 @@ func testMultipleVolumeGroups() {
 			return err
 		}).Should(Succeed())
 
-		vgName := "node3-myvg2"
+		vgName := "node1-myvg2"
 		if isDaemonsetLvmdEnvSet() {
-			vgName = "node-myvg3"
+			vgName = "node-myvg2"
 		}
 		Expect(vgName).Should(Equal(lv.vgName))
 	})
 
 	It("should not schedule a pod because there are no nodes that have specified device-classes", func() {
 		By("deploying Pod with PVC")
-		manifest := fmt.Sprintf(multipleVGPodPVCTemplateYAML, "topo-pvc-not-found-dc", "topolvm-provisioner-not-found-device", "pause-not-found-dc", "topo-pvc-not-found-dc")
+		nodeName := "topolvm-e2e-worker"
+		if isDaemonsetLvmdEnvSet() {
+			nodeName = getDaemonsetLvmdNodeName()
+		}
+		manifest := fmt.Sprintf(multipleVGPodPVCTemplateYAML, "topo-pvc-not-found-dc", "topolvm-provisioner-not-found-device", "pause-not-found-dc", "topo-pvc-not-found-dc", nodeName)
 		_, err := kubectlWithInput([]byte(manifest), "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -97,7 +105,11 @@ func testMultipleVolumeGroups() {
 
 	It("should run a pod using the default device-class", func() {
 		By("deploying Pod with PVC")
-		manifest := fmt.Sprintf(multipleVGPodPVCTemplateYAML, "topo-pvc-default", "topolvm-provisioner-default", "pause-default", "topo-pvc-default")
+		nodeName := "topolvm-e2e-worker"
+		if isDaemonsetLvmdEnvSet() {
+			nodeName = getDaemonsetLvmdNodeName()
+		}
+		manifest := fmt.Sprintf(multipleVGPodPVCTemplateYAML, "topo-pvc-default", "topolvm-provisioner-default", "pause-default", "topo-pvc-default", nodeName)
 		_, err := kubectlWithInput([]byte(manifest), "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 

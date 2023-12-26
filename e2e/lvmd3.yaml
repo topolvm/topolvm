@@ -3,7 +3,7 @@ device-classes:
   - name: "dc1"
     volume-group: "node3-myvg1"
     spare-gb: 1
-  - name: "dc3"
+  - name: "dc2"
     volume-group: "node3-myvg2"
     spare-gb: 1
   - name: "raid"

@@ -24,22 +24,19 @@ lvmd:
     - name: "dc2"
       volume-group: "node-myvg2"
       spare-gb: 1
-    - name: "dc3"
-      volume-group: "node-myvg3"
-      spare-gb: 1
     - name: "raid"
-      volume-group: "node-myvg4"
+      volume-group: "node-myvg3"
       spare-gb: 1
       lvcreate-options:
         - "--type=raid1"
     - name: "thin"
-      volume-group: "node-myvg5"
+      volume-group: "node-myvg4"
       type: thin
       thin-pool:
         name: "pool0"
         overprovision-ratio: 5.0
     - name: "raid1"
-      volume-group: "node-myvg6"
+      volume-group: "node-myvg5"
       spare-gb: 1
   lvcreateOptionClasses:
     - name: "raid1"
@@ -78,12 +75,6 @@ storageClasses:
       volumeBindingMode: WaitForFirstConsumer
       additionalParameters:
         '{{ include "topolvm.pluginName" . }}/device-class': "dc2"
-  - name: topolvm-provisioner3
-    storageClass:
-      isDefaultClass: false
-      volumeBindingMode: WaitForFirstConsumer
-      additionalParameters:
-        '{{ include "topolvm.pluginName" . }}/device-class': "dc3"
   - name: topolvm-provisioner-default
     storageClass:
       isDefaultClass: false
