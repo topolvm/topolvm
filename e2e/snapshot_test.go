@@ -150,9 +150,6 @@ func testSnapRestore() {
 		}).Should(Succeed())
 
 		vgName := "node1-myvg4"
-		if isDaemonsetLvmdEnvSet() {
-			vgName = "node-myvg4"
-		}
 		Expect(vgName).Should(Equal(lv.vgName))
 
 		poolName := "pool0"
@@ -271,9 +268,6 @@ func testSnapRestore() {
 		By(fmt.Sprintf("using lv with size %v", lv.size))
 
 		vgName := "node1-myvg4"
-		if isDaemonsetLvmdEnvSet() {
-			vgName = "node-myvg4"
-		}
 		Expect(vgName).Should(Equal(lv.vgName))
 
 		poolName := "pool0"
@@ -402,9 +396,6 @@ func testSnapRestore() {
 		}).Should(Succeed())
 
 		vgName := "node1-myvg4"
-		if isDaemonsetLvmdEnvSet() {
-			vgName = "node-myvg4"
-		}
 		Expect(vgName).Should(Equal(lv.vgName))
 
 		poolName := "pool0"

@@ -65,9 +65,6 @@ func testMultipleVolumeGroups() {
 		}).Should(Succeed())
 
 		vgName := "node1-myvg2"
-		if isDaemonsetLvmdEnvSet() {
-			vgName = "node-myvg2"
-		}
 		Expect(vgName).Should(Equal(lv.vgName))
 	})
 

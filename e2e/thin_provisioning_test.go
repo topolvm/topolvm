@@ -67,9 +67,6 @@ func testThinProvisioning() {
 		}).Should(Succeed())
 
 		vgName := "node1-myvg4"
-		if isDaemonsetLvmdEnvSet() {
-			vgName = "node-myvg4"
-		}
 		Expect(vgName).Should(Equal(lv.vgName))
 
 		poolName := "pool0"
@@ -105,7 +102,7 @@ func testThinProvisioning() {
 		By("deploying multiple PVCS with total size < thinpoolsize * overprovisioning")
 		// The actual thinpool size is 4 GB . With an overprovisioning limit of 5, it should allow
 		// PVCs totalling upto 20 GB for each node
-		nodeName := "topolvm-e2e-worker2"
+		nodeName := "topolvm-e2e-worker"
 		if isDaemonsetLvmdEnvSet() {
 			nodeName = getDaemonsetLvmdNodeName()
 		}
@@ -139,10 +136,7 @@ func testThinProvisioning() {
 				return err
 			}).Should(Succeed())
 
-			vgName := "node2-myvg4"
-			if isDaemonsetLvmdEnvSet() {
-				vgName = "node-myvg4"
-			}
+			vgName := "node1-myvg4"
 			Expect(vgName).Should(Equal(lv.vgName))
 
 			poolName := "pool0"
@@ -191,7 +185,7 @@ func testThinProvisioning() {
 	It("should check overprovision limits", func() {
 		By("Deploying a PVC to use up the available thinpoolsize * overprovisioning")
 
-		nodeName := "topolvm-e2e-worker3"
+		nodeName := "topolvm-e2e-worker"
 		if isDaemonsetLvmdEnvSet() {
 			nodeName = getDaemonsetLvmdNodeName()
 		}
@@ -216,10 +210,7 @@ func testThinProvisioning() {
 			return err
 		}).Should(Succeed())
 
-		vgName := "node3-myvg4"
-		if isDaemonsetLvmdEnvSet() {
-			vgName = "node-myvg4"
-		}
+		vgName := "node1-myvg4"
 		Expect(vgName).Should(Equal(lv.vgName))
 
 		poolName := "pool0"

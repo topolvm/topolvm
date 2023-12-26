@@ -110,9 +110,6 @@ func testPVCClone() {
 		}).Should(Succeed())
 
 		vgName := "node1-myvg4"
-		if isDaemonsetLvmdEnvSet() {
-			vgName = "node-myvg4"
-		}
 		Expect(vgName).Should(Equal(lv.vgName))
 
 		poolName := "pool0"
@@ -193,9 +190,6 @@ func testPVCClone() {
 		}).Should(Succeed())
 
 		vgName := "node1-myvg4"
-		if isDaemonsetLvmdEnvSet() {
-			vgName = "node-myvg4"
-		}
 		Expect(vgName).Should(Equal(lv.vgName))
 
 		poolName := "pool0"
