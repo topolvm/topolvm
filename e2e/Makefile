@@ -11,7 +11,7 @@ TEST_LVMD_TYPE ?= systemd-service
 BINDIR := $(shell pwd)/bin
 SUDO := sudo
 CURL := curl -sSLf
-KIND_CLUSTER_NAME := topolvm-e2e
+CLUSTER_NAME := topolvm-e2e
 KIND := ../bin/kind
 KUBECTL := $(BINDIR)/kubectl-$(KUBERNETES_VERSION)
 HELM := ../bin/helm
@@ -82,11 +82,11 @@ apply-certmanager-crds: $(KUBECTL)
 launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml $(KIND)
 	$(SUDO) rm -rf /tmp/topolvm/controller /tmp/topolvm/worker*
 	sed -e "s|@KUBERNETES_VERSION@|$(KUBERNETES_VERSION)|" $(KIND_CONFIG) > /tmp/$(KIND_CONFIG)
-	$(KIND) create cluster --name=$(KIND_CLUSTER_NAME) --config /tmp/$(KIND_CONFIG) --image $(KIND_NODE_IMAGE)
+	$(KIND) create cluster --name=$(CLUSTER_NAME) --config /tmp/$(KIND_CONFIG) --image $(KIND_NODE_IMAGE)
 
 .PHONY: shutdown-kind
 shutdown-kind: $(KIND)
-	$(KIND) delete cluster --name=$(KIND_CLUSTER_NAME) || true
+	$(KIND) delete cluster --name=$(CLUSTER_NAME) || true
 	sleep 2
 	for d in $$($(SUDO) find /tmp/topolvm -type d); do \
 		if $(SUDO) mountpoint -q $$d; then \
@@ -117,13 +117,12 @@ stop-lvmd:
 	done
 
 .PHONY: create-cluster
-create-cluster: HELM_VALUES_FILES += manifests/values/kind.yaml
 create-cluster: topolvm.img $(HELM) $(KIND) $(KUBECTL)
 	$(MAKE) shutdown-kind
 	$(MAKE) launch-kind
 	$(MAKE) apply-certmanager-crds
 	$(MAKE) prepare-namespace
-	$(KIND) load image-archive --name=$(KIND_CLUSTER_NAME) $<
+	$(KIND) load image-archive --name=$(CLUSTER_NAME) $<
 	$(HELM) repo add jetstack https://charts.jetstack.io
 	$(HELM) repo update
 	$(HELM) dependency build ../charts/topolvm/
@@ -143,13 +142,11 @@ prepare-test: $(KUBECTL)
 
 .PHONY: run-test
 run-test: GINKGO_FLAGS =
-run-test: DAEMONSET_LVMD =
 run-test: $(GINKGO)
 	$(SUDO) -E env \
 	PATH=${PATH} \
 	E2ETEST=1 \
 	KUBECTL=$(KUBECTL) \
-	DAEMONSET_LVMD=$(DAEMONSET_LVMD) \
 	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
 	USE_LEGACY=$(USE_LEGACY) \
 	$(GINKGO) --fail-fast -v $(GINKGO_FLAGS) .
@@ -229,6 +226,8 @@ incluster-lvmd/launch-minikube:
 		--vm-driver=none \
 		--kubernetes-version=v$(KUBERNETES_VERSION) \
 		--extra-config=kubelet.read-only-port=10255 \
+		--extra-config=kubeadm.node-name=$(CLUSTER_NAME)-worker \
+		--extra-config=kubelet.hostname-override=$(CLUSTER_NAME)-worker \
 		--feature-gates=$(MINIKUBE_FEATURE_GATES) \
 		--cni=calico
 	$(SUDO) chown -R $$USER $$HOME/.kube $(MINIKUBE_HOME)/.minikube
@@ -259,7 +258,7 @@ incluster-lvmd/test: topolvm.img $(GINKGO) $(HELM) $(KUBECTL)
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system -l="app.kubernetes.io/component=controller,app.kubernetes.io/name=topolvm" pod
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system certificate/topolvm-mutatingwebhook
 	$(MAKE) prepare-test
-	$(MAKE) run-test DAEMONSET_LVMD=true
+	$(MAKE) run-test
 
 .PHONY: incluster-lvmd/clean
 incluster-lvmd/clean: incluster-lvmd/delete-minikube incluster-lvmd/remove-vg

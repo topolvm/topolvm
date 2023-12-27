@@ -9,7 +9,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
-	"github.com/topolvm/topolvm"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -40,16 +39,11 @@ func testThinProvisioning() {
 	It("should thin provision a PV", func() {
 		By("deploying Pod with PVC")
 
-		nodeName := "topolvm-e2e-worker"
-		if isDaemonsetLvmdEnvSet() {
-			nodeName = getDaemonsetLvmdNodeName()
-		}
-
 		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, "thinvol", "1"))
 		_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod", "thinvol", topolvm.GetTopologyNodeKey(), nodeName))
+		thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod", "thinvol"))
 		_, err = kubectlWithInput(thinPodYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -102,17 +96,13 @@ func testThinProvisioning() {
 		By("deploying multiple PVCS with total size < thinpoolsize * overprovisioning")
 		// The actual thinpool size is 4 GB . With an overprovisioning limit of 5, it should allow
 		// PVCs totalling upto 20 GB for each node
-		nodeName := "topolvm-e2e-worker"
-		if isDaemonsetLvmdEnvSet() {
-			nodeName = getDaemonsetLvmdNodeName()
-		}
 		for i := 0; i < 5; i++ {
 			num := strconv.Itoa(i)
 			thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, "thinvol"+num, "3"))
 			_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", ns, "-f", "-")
 			Expect(err).ShouldNot(HaveOccurred())
 
-			thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod"+num, "thinvol"+num, topolvm.GetTopologyNodeKey(), nodeName))
+			thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod"+num, "thinvol"+num))
 			_, err = kubectlWithInput(thinPodYAML, "apply", "-n", ns, "-f", "-")
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -185,16 +175,11 @@ func testThinProvisioning() {
 	It("should check overprovision limits", func() {
 		By("Deploying a PVC to use up the available thinpoolsize * overprovisioning")
 
-		nodeName := "topolvm-e2e-worker"
-		if isDaemonsetLvmdEnvSet() {
-			nodeName = getDaemonsetLvmdNodeName()
-		}
-
 		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, "thinvol", "18"))
 		_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod", "thinvol", topolvm.GetTopologyNodeKey(), nodeName))
+		thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod", "thinvol"))
 		_, err = kubectlWithInput(thinPodYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -221,7 +206,7 @@ func testThinProvisioning() {
 		_, err = kubectlWithInput(thinPvcYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		thinPodYAML = []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod2", "thinvol2", topolvm.GetTopologyNodeKey(), nodeName))
+		thinPodYAML = []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod2", "thinvol2"))
 		_, err = kubectlWithInput(thinPodYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
