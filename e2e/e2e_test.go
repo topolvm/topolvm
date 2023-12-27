@@ -35,8 +35,6 @@ var nodeCapacityPVC2YAML []byte
 var e2eGenericEphemeralVolumeYAML []byte
 
 func testE2E() {
-	skipMessageForStorageCapacity := "skip because current environment is storage capacity"
-
 	testNamespacePrefix := "e2etest-"
 	var ns string
 	var cc CleanupContext
@@ -296,10 +294,7 @@ func testE2E() {
 	})
 
 	It("should choose a node with the largest capacity when volumeBindingMode == Immediate is specified", func() {
-		if isStorageCapacity() {
-			Skip(skipMessageForStorageCapacity + " and Storage Capacity Tracking doesn't check Storage Capacity when volumeBindingMode == Immediate is specified")
-			return
-		}
+		skipIfStorageCapacity("Storage Capacity Tracking doesn't check Storage Capacity when volumeBindingMode == Immediate is specified")
 
 		num := 3
 		if isDaemonsetLvmdEnvSet() {
@@ -448,6 +443,8 @@ func testE2E() {
 	})
 
 	It("should schedule pods and volumes according to topolvm-scheduler", func() {
+		skipIfStorageCapacity()
+		skipIfSingleNode()
 		/*
 			Check the operation of topolvm-scheduler in multi-node(3-node) environment.
 			As preparation, set the capacity of each node as follows.
@@ -474,7 +471,6 @@ func testE2E() {
 			- node3:  4 / 18 GiB -> filtered (insufficient capacity)
 		*/
 		// Skip because this test requires multiple nodes but there is just one node in daemonset lvmd test environment.
-		skipIfDaemonsetLvmd()
 		By("initializing node capacity")
 		_, err := kubectlWithInput(nodeCapacityPVCYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())

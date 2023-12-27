@@ -22,8 +22,7 @@ var statefulSetTemplateYAML string
 func testNodeDelete() {
 
 	BeforeEach(func() {
-		// Skip because this test require multiple nodes but there is just one node in daemonset lvmd test environment.
-		skipIfDaemonsetLvmd()
+		skipIfSingleNode()
 
 		createNamespace(nsNodeDeleteTest)
 	})
