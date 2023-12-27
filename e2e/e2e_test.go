@@ -377,11 +377,6 @@ func testE2E() {
 	})
 
 	It("should scheduled onto the correct node where PV exists (volumeBindingMode == Immediate)", func() {
-		if isStorageCapacity() {
-			Skip(skipMessageForStorageCapacity + " and Storage Capacity Tracking doesn't check Storage Capacity when volumeBindingMode == Immediate is specified")
-			return
-		}
-
 		By("creating pvc")
 		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1, "topolvm-provisioner-immediate"))
 		_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
