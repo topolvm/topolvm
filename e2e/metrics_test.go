@@ -183,13 +183,13 @@ OUTER:
 
 func loadDeviceClasses(node string) ([]*lvmd.DeviceClass, error) {
 	var data []byte
-	if isDaemonsetLvmdEnvSet() {
-		var cm corev1.ConfigMap
-		err := getObjects(&cm, "cm", "-n", "topolvm-system", "topolvm-lvmd-0")
-		if err != nil {
-			return nil, err
-		}
+
+	var cm corev1.ConfigMap
+	err := getObjects(&cm, "cm", "-n", "topolvm-system", "topolvm-lvmd-0")
+	if err == nil {
 		data = []byte(cm.Data["lvmd.yaml"])
+	} else if err != ErrObjectNotFound {
+		return nil, err
 	} else {
 		path, ok := map[string]string{
 			"topolvm-e2e-worker":  "lvmd1.yaml",
@@ -207,7 +207,7 @@ func loadDeviceClasses(node string) ([]*lvmd.DeviceClass, error) {
 	}
 
 	var config cmd.Config
-	err := yaml.Unmarshal(data, &config)
+	err = yaml.Unmarshal(data, &config)
 	if err != nil {
 		return nil, err
 	}
