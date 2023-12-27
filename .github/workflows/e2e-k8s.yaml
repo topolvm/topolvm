@@ -52,7 +52,7 @@ jobs:
     needs: build
     uses: ./.github/workflows/e2e-k8s-workflow.yaml
     with:
-      test_scheduler_extender_type: "deamonset"
+      test_scheduler_extender_type: "daemonset"
       test_legacy: "false"
 
   scheduler-manifest:
