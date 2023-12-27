@@ -14,11 +14,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var kubectlPath string
-
 // skipSpecs holds regexp strings that are used to skip tests.
 // It is intended to be setup by init function on each test file if necessary.
 var skipSpecs []string
+
+// They are initialized in BeforeSuite, it should be used only in Ginkgo nodes.
+var kubectlPath string
+var nonControlPlaneNodeCount int
 
 func TestMtest(t *testing.T) {
 	if os.Getenv("E2ETEST") == "" {
@@ -84,10 +86,7 @@ func skipIfStorageCapacity(reason ...string) {
 }
 
 func skipIfSingleNode() {
-	var nodes corev1.NodeList
-	err := getObjects(&nodes, "nodes", "-l=node-role.kubernetes.io/control-plane!=")
-	Expect(err).Should(SatisfyAny(Not(HaveOccurred()), BeIdenticalTo(ErrObjectNotFound)))
-	if len(nodes.Items) == 0 {
+	if nonControlPlaneNodeCount == 0 {
 		Skip("This test requires multiple nodes")
 	}
 }
@@ -109,6 +108,12 @@ var _ = BeforeSuite(func() {
 	Expect(kubectlPath).ShouldNot(BeEmpty())
 	fmt.Println("This test uses a kubectl at " + kubectlPath)
 
+	By("Getting node count")
+	var nodes corev1.NodeList
+	err := getObjects(&nodes, "nodes", "-l=node-role.kubernetes.io/control-plane!=")
+	Expect(err).Should(SatisfyAny(Not(HaveOccurred()), BeIdenticalTo(ErrObjectNotFound)))
+	nonControlPlaneNodeCount = len(nodes.Items)
+
 	if !isDaemonsetLvmdEnvSet() {
 		By("Waiting for kindnet to get ready")
 		// Because kindnet will crash. we need to confirm its readiness twice.
@@ -126,7 +131,7 @@ var _ = BeforeSuite(func() {
 		}
 		return nil
 	}).Should(Succeed())
-	_, err := kubectlWithInput(pausePodYAML, "delete", "-f", "-")
+	_, err = kubectlWithInput(pausePodYAML, "delete", "-f", "-")
 	Expect(err).ShouldNot(HaveOccurred())
 })
 
