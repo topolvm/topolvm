@@ -18,10 +18,11 @@ jobs:
       fail-fast: false
       matrix:
         kubernetes_versions: ["1.27.3", "1.26.6", "1.25.11"]
-        deployment_type: ["daemonset", "embedded"]
+        test_lvmd_type: ["daemonset", "embedded"]
     env:
       KUBERNETES_VERSION: ${{ matrix.kubernetes_versions }}
-      STORAGE_CAPACITY: "true"
+      TEST_LVMD_TYPE: ${{ matrix.test_lvmd_type }}
+      TEST_SCHEDULER_EXTENDER_TYPE: "none"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
@@ -50,10 +51,3 @@ jobs:
       - run: make -C e2e incluster-lvmd/setup-minikube
       - run: make -C e2e incluster-lvmd/launch-minikube
       - run: make -C e2e incluster-lvmd/test
-        if: ${{ matrix.deployment_type == 'daemonset' }}
-        env:
-          HELM_VALUES_FILE_LVMD: "manifests/values/daemonset-lvmd-storage-capacity.yaml"
-      - run: make -C e2e incluster-lvmd/test
-        if: ${{ matrix.deployment_type == 'embedded' }}
-        env:
-          HELM_VALUES_FILE_LVMD: "manifests/values/embedded-lvmd-storage-capacity.yaml"

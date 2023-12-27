@@ -68,15 +68,8 @@ Run the tests with the following command.
 You can inspect the Kubernetes cluster using `kubectl` command as well as kind.
 
 ```bash
-make incluster-lvmd/test
+make incluster-lvmd/test TEST_SCHEDULER_EXTENDER_TYPE=none TEST_LVMD_TYPE=<daemonset/embedded>
 ```
-
-By default, this will run lvmd as a DaemonSet separate from `topolvm-node`.
-You can also configure the test to use an embedded version of lvmd inside `topolvm-node`.
-
-```bash
-make incluster-lvmd/test HELM_VALUES_FILE_LVMD="manifests/values/embedded-lvmd-storage-capacity.yaml"
-`````
 
 You can cleanup test environment as follows:
 

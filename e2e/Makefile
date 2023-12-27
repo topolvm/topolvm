@@ -1,9 +1,12 @@
 include ../versions.mk
 
 # parameters
-TEST_SCHEDULER_MANIFEST ?= daemonset
-STORAGE_CAPACITY ?= false
-USE_LEGACY ?= ""
+# none/daemonset/deployment
+TEST_SCHEDULER_EXTENDER_TYPE ?= deployment
+# true/false
+TEST_LEGACY ?= false
+# systemd-service/daemonset/embedded
+TEST_LVMD_TYPE ?= systemd-service
 
 BINDIR := $(shell pwd)/bin
 SUDO := sudo
@@ -17,29 +20,35 @@ GINKGO := $(BINDIR)/ginkgo-$(GINKGO_VERSION)
 MINIKUBE_HOME = $(BINDIR)
 export MINIKUBE_HOME
 
-HELM_VALUES_FILE := manifests/values/daemonset-scheduler.yaml
-ifeq ($(TEST_SCHEDULER_MANIFEST),deployment)
-HELM_VALUES_FILE := manifests/values/deployment-scheduler.yaml
+DOMAIN_NAME := topolvm.io
+HELM_VALUES_FILES := manifests/values/base.yaml
+SCHEDULER_CONFIG := ../deploy/scheduler-config/scheduler-config.yaml
+STORAGE_CAPACITY := true
+USE_LEGACY :=
+
+ifeq ($(TEST_SCHEDULER_EXTENDER_TYPE),daemonset)
+HELM_VALUES_FILES += manifests/values/daemonset-scheduler.yaml
+STORAGE_CAPACITY := false
+else ifeq ($(TEST_SCHEDULER_EXTENDER_TYPE),deployment)
+HELM_VALUES_FILES += manifests/values/deployment-scheduler.yaml
+STORAGE_CAPACITY := false
 endif
-ifeq ($(STORAGE_CAPACITY),true)
-HELM_VALUES_FILE := manifests/values/storage-capacity.yaml
+
+ifeq ($(TEST_LEGACY),true)
+DOMAIN_NAME := topolvm.cybozu.com
+HELM_VALUES_FILES += manifests/values/legacy.yaml
+SCHEDULER_CONFIG := ../deploy/scheduler-config/scheduler-config-legacy.yaml
+USE_LEGACY := true
+endif
+
+ifeq ($(TEST_LVMD_TYPE),systemd-service)
+HELM_VALUES_FILES += manifests/values/systemd-service-lvmd.yaml
+else ifeq ($(TEST_LVMD_TYPE),embedded)
+HELM_VALUES_FILES += manifests/values/embedded-lvmd.yaml
 endif
 
 KIND_CONFIG="topolvm-cluster.yaml"
 MINIKUBE_FEATURE_GATES="ReadWriteOncePod=true"
-
-HELM_VALUES_FILE_LVMD ?= manifests/values/daemonset-lvmd-storage-capacity.yaml
-
-SCHEDULER_CONFIG := scheduler-config-$(TEST_SCHEDULER_MANIFEST).yaml
-
-DOMAIN_NAME := topolvm.io
-PROVISINER_MANIFEST := manifests/provisioner.yaml
-ifeq ($(USE_LEGACY),true)
-HELM_VALUES_FILE := manifests/values/daemonset-scheduler-legacy.yaml
-SCHEDULER_CONFIG := scheduler-config-daemonset-legacy.yaml
-DOMAIN_NAME := topolvm.cybozu.com
-PROVISINER_MANIFEST := manifests/provisioner_legacy.yaml
-endif
 
 GO_FILES := $(shell find .. -path ../e2e -prune -o -name '*.go' -print)
 BACKING_STORE := ./build
@@ -53,7 +62,11 @@ topolvm.img: $(GO_FILES)
 
 /tmp/topolvm/scheduler/scheduler-config.yaml: $(SCHEDULER_CONFIG)
 	mkdir -p /tmp/topolvm/scheduler
-	sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|topolvm-e2e-worker|" $< > $@
+ifeq ($(TEST_SCHEDULER_EXTENDER_TYPE),deployment)
+	sed -e 's|\(urlPrefix:\).*|\1 "http://topolvm-e2e-worker:30251"|' $< > $@
+else
+	cp $< $@
+endif
 
 .PHONY: prepare-namespace
 prepare-namespace: $(KUBECTL)
@@ -156,6 +169,7 @@ stop-lvmd:
 	done
 
 .PHONY: create-cluster
+create-cluster: HELM_VALUES_FILES += manifests/values/kind.yaml
 create-cluster: topolvm.img $(HELM) $(KIND) $(KUBECTL)
 	$(MAKE) shutdown-kind
 	$(MAKE) launch-kind
@@ -165,7 +179,7 @@ create-cluster: topolvm.img $(HELM) $(KIND) $(KUBECTL)
 	$(HELM) repo add jetstack https://charts.jetstack.io
 	$(HELM) repo update
 	$(HELM) dependency build ../charts/topolvm/
-	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE) --set "controller.nodeSelector.kubernetes\.io/hostname"=$(KIND_CLUSTER_NAME)-worker
+	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ $(patsubst %,-f %,$(HELM_VALUES_FILES))
 	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/topolvm-controller
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system -l="app.kubernetes.io/component=controller,app.kubernetes.io/name=topolvm" pod
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system certificate/topolvm-mutatingwebhook
@@ -177,7 +191,7 @@ prepare-test: $(KUBECTL)
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/rbac-snapshot-controller.yaml
 	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml
-	$(KUBECTL) apply -f $(PROVISINER_MANIFEST)
+	sed 's/@DOMAIN_NAME@/$(DOMAIN_NAME)/' manifests/volumesnapshotclass_tpl.yaml | $(KUBECTL) apply -f -
 
 .PHONY: run-test
 run-test: GINKGO_FLAGS =
@@ -187,8 +201,9 @@ run-test: $(GINKGO)
 	PATH=${PATH} \
 	E2ETEST=1 \
 	KUBECTL=$(KUBECTL) \
-	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
 	DAEMONSET_LVMD=$(DAEMONSET_LVMD) \
+	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
+	USE_LEGACY=$(USE_LEGACY) \
 	$(GINKGO) --fail-fast -v $(GINKGO_FLAGS) .
 
 .PHONY: test
@@ -299,7 +314,6 @@ incluster-lvmd/setup-minikube:
 
 .PHONY: incluster-lvmd/launch-minikube
 incluster-lvmd/launch-minikube:
-	@if [ "$(STORAGE_CAPACITY)" = false ]; then echo "Only storage capacity mode is supported."; exit 1; fi
 	$(SUDO) -E $(BINDIR)/minikube start \
 		--vm-driver=none \
 		--kubernetes-version=v$(KUBERNETES_VERSION) \
@@ -316,12 +330,20 @@ incluster-lvmd/delete-minikube:
 
 .PHONY: incluster-lvmd/test
 incluster-lvmd/test: topolvm.img $(GINKGO) $(HELM) $(KUBECTL)
+	@if [ "$(TEST_SCHEDULER_EXTENDER_TYPE)" != none ]; then \
+		echo "Using the scheduler extender is not supported"; \
+		exit 1; \
+	fi
+	@if [ "$(TEST_LVMD_TYPE)" = systemd-service ]; then \
+		echo "Running LVMd as systemd-service is not supported"; \
+		exit 1; \
+	fi
 	$(MAKE) apply-certmanager-crds
 	$(MAKE) prepare-namespace
 	$(HELM) repo add jetstack https://charts.jetstack.io
 	$(HELM) repo update
 	$(HELM) dependency build ../charts/topolvm/
-	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE_LVMD)
+	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ $(patsubst %,-f %,$(HELM_VALUES_FILES))
 	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/topolvm-controller
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system -l="app.kubernetes.io/component=controller,app.kubernetes.io/name=topolvm" pod
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system certificate/topolvm-mutatingwebhook

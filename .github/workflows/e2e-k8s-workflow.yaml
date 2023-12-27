@@ -1,11 +1,9 @@
 on:
   workflow_call:
     inputs:
-      test_scheduler_manifest:
-        default: "daemonset"
+      test_scheduler_extender_type:
         type: string
-      use_legacy:
-        default: ""
+      test_legacy:
         type: string
 
 jobs:
@@ -18,8 +16,8 @@ jobs:
         kubernetes_versions: ["1.27.3", "1.26.6", "1.25.11"]
     env:
       KUBERNETES_VERSION: ${{ matrix.kubernetes_versions }}
-      TEST_SCHEDULER_MANIFEST: ${{ inputs.test_scheduler_manifest }}
-      USE_LEGACY: ${{ inputs.use_legacy }}
+      TEST_SCHEDULER_EXTENDER_TYPE: ${{ inputs.test_scheduler_extender_type }}
+      TEST_LEGACY: ${{ inputs.test_legacy }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4

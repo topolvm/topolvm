@@ -51,15 +51,20 @@ jobs:
   default:
     needs: build
     uses: ./.github/workflows/e2e-k8s-workflow.yaml
+    with:
+      test_scheduler_extender_type: "deamonset"
+      test_legacy: "false"
 
   scheduler-manifest:
     needs: build
     uses: ./.github/workflows/e2e-k8s-workflow.yaml
     with:
-      test_scheduler_manifest: "deployment"
+      test_scheduler_extender_type: "deployment"
+      test_legacy: "false"
 
   use-legacy:
     needs: build
     uses: ./.github/workflows/e2e-k8s-workflow.yaml
     with:
-      use_legacy: "true"
+      test_scheduler_extender_type: "deployment"
+      test_legacy: "true"
