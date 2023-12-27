@@ -93,7 +93,7 @@ func testNodeDelete() {
 			}
 		}
 
-		By("deleting Node topolvm-e2e-worker3")
+		By("deleting Node " + targetNode)
 		_, err = kubectl("delete", "node", targetNode, "--wait=true")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -124,7 +124,7 @@ func testNodeDelete() {
 		}).Should(Succeed())
 
 		By("cleaning up LVMs that the deleted node had")
-		_, err = execAtLocal("docker", nil, "stop", "topolvm-e2e-worker3")
+		_, err = execAtLocal("docker", nil, "stop", targetNode)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		for _, lv := range targetLVs {

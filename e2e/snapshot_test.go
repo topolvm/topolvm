@@ -10,7 +10,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
-	"github.com/topolvm/topolvm"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -58,15 +57,11 @@ func testSnapRestore() {
 	It("should create a thin-snap with size equal to source", func() {
 		By("deploying Pod with PVC")
 
-		nodeName := "topolvm-e2e-worker"
-		if isDaemonsetLvmdEnvSet() {
-			nodeName = getDaemonsetLvmdNodeName()
-		}
 		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSize))
 		_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod", volName, topolvm.GetTopologyNodeKey(), nodeName))
+		thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod", volName))
 		_, err = kubectlWithInput(thinPodYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -120,7 +115,7 @@ func testSnapRestore() {
 		_, err = kubectlWithInput(thinPVCRestoreYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		thinPVCRestorePodYAML := []byte(fmt.Sprintf(thinRestorePodTemplateYAML, restorePodName, restorePVCName, topolvm.GetTopologyNodeKey(), nodeName))
+		thinPVCRestorePodYAML := []byte(fmt.Sprintf(thinRestorePodTemplateYAML, restorePodName, restorePVCName))
 		_, err = kubectlWithInput(thinPVCRestorePodYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -171,15 +166,11 @@ func testSnapRestore() {
 	It("should create a thin-snap with size greater than source", func() {
 		By("deploying Pod with PVC")
 
-		nodeName := "topolvm-e2e-worker"
-		if isDaemonsetLvmdEnvSet() {
-			nodeName = getDaemonsetLvmdNodeName()
-		}
 		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSize))
 		_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod", volName, topolvm.GetTopologyNodeKey(), nodeName))
+		thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod", volName))
 		_, err = kubectlWithInput(thinPodYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -233,7 +224,7 @@ func testSnapRestore() {
 		_, err = kubectlWithInput(thinPVCRestoreYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		thinPVCRestorePodYAML := []byte(fmt.Sprintf(thinRestorePodTemplateYAML, restorePodName, restorePVCName, topolvm.GetTopologyNodeKey(), nodeName))
+		thinPVCRestorePodYAML := []byte(fmt.Sprintf(thinRestorePodTemplateYAML, restorePodName, restorePVCName))
 		_, err = kubectlWithInput(thinPVCRestorePodYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -316,17 +307,12 @@ func testSnapRestore() {
 	It("validating if the restored PVCs are standalone", func() {
 		By("deleting the source PVC")
 
-		nodeName := "topolvm-e2e-worker"
-		if isDaemonsetLvmdEnvSet() {
-			nodeName = getDaemonsetLvmdNodeName()
-		}
-
 		By("creating a PVC and application")
 		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSize))
 		_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod", volName, topolvm.GetTopologyNodeKey(), nodeName))
+		thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod", volName))
 		_, err = kubectlWithInput(thinPodYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		By("verifying if the PVC is created")
@@ -365,7 +351,7 @@ func testSnapRestore() {
 		_, err = kubectlWithInput(thinPVCRestoreYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		thinPVCRestorePodYAML := []byte(fmt.Sprintf(thinRestorePodTemplateYAML, restorePodName, restorePVCName, topolvm.GetTopologyNodeKey(), nodeName))
+		thinPVCRestorePodYAML := []byte(fmt.Sprintf(thinRestorePodTemplateYAML, restorePodName, restorePVCName))
 		_, err = kubectlWithInput(thinPVCRestorePodYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 

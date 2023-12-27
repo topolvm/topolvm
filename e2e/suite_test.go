@@ -79,14 +79,6 @@ func skipIfDaemonsetLvmd() {
 	}
 }
 
-func getDaemonsetLvmdNodeName() string {
-	var nodes corev1.NodeList
-	err := getObjects(&nodes, "nodes")
-	Expect(err).ShouldNot(HaveOccurred())
-	Expect(nodes.Items).Should(HaveLen(1))
-	return nodes.Items[0].Name
-}
-
 //go:embed testdata/pause-pod.yaml
 var pausePodYAML []byte
 

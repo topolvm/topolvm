@@ -4,6 +4,8 @@ image:
   pullPolicy: Never
 
 controller:
+  nodeSelector:
+    kubernetes.io/hostname: topolvm-e2e-worker
   replicaCount: 1
   securityContext:
     enabled: false

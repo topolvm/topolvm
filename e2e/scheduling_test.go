@@ -32,9 +32,6 @@ func testScheduling() {
 	It("should schedule a pod with a PVC if a node has enough capacity", func() {
 		name := "pod-pvc"
 		nodeName := "topolvm-e2e-worker"
-		if isDaemonsetLvmdEnvSet() {
-			nodeName = getDaemonsetLvmdNodeName()
-		}
 
 		By("checking the pod with a PVC is running if a node capacity is sufficient")
 		var node corev1.Node
@@ -49,7 +46,7 @@ func testScheduling() {
 			return strconv.Itoa(s)
 		}()
 
-		lvYaml := buildPodPVCTemplateYAML(name, size, "topolvm-provisioner", nodeName)
+		lvYaml := buildPodPVCTemplateYAML(name, size, "topolvm-provisioner")
 		_, err = kubectlWithInput(lvYaml, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() error {
@@ -71,7 +68,7 @@ func testScheduling() {
 		By("checking the pod with a PVC is not scheduled if a node capacity is not enough")
 		name2 := name + "2"
 
-		lvYaml2 := buildPodPVCTemplateYAML(name2, size, "topolvm-provisioner", nodeName)
+		lvYaml2 := buildPodPVCTemplateYAML(name2, size, "topolvm-provisioner")
 		_, err = kubectlWithInput(lvYaml2, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() error {
@@ -117,7 +114,7 @@ func testScheduling() {
 			return strconv.Itoa(s)
 		}()
 
-		lvYaml3 := buildPodPVCTemplateYAML(name3, size, "topolvm-provisioner2", nodeName)
+		lvYaml3 := buildPodPVCTemplateYAML(name3, size, "topolvm-provisioner2")
 		_, err = kubectlWithInput(lvYaml3, "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() error {
@@ -138,6 +135,6 @@ func testScheduling() {
 	})
 }
 
-func buildPodPVCTemplateYAML(name, size, sc, node string) []byte {
-	return []byte(fmt.Sprintf(podPVCTemplateYAML, name, nsSchedulingTest, size, sc, name, nsSchedulingTest, name, topolvm.GetTopologyNodeKey(), node))
+func buildPodPVCTemplateYAML(name, size, sc string) []byte {
+	return []byte(fmt.Sprintf(podPVCTemplateYAML, name, nsSchedulingTest, size, sc, name, nsSchedulingTest, name))
 }
