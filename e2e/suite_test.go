@@ -63,8 +63,10 @@ func waitKindnet(g Gomega) {
 	g.Expect(err).ShouldNot(HaveOccurred())
 	var ds appsv1.DaemonSet
 	err = getObjects(&ds, "ds", "-n", "kube-system", "kindnet")
-	g.Expect(err).ShouldNot(HaveOccurred())
-	g.Expect(ds.Status.NumberReady).To(BeEquivalentTo(len(nodes.Items)))
+	if err != ErrObjectNotFound {
+		g.Expect(err).ShouldNot(HaveOccurred())
+		g.Expect(ds.Status.NumberReady).To(BeEquivalentTo(len(nodes.Items)))
+	}
 }
 
 func isDaemonsetLvmdEnvSet() bool {
@@ -114,13 +116,12 @@ var _ = BeforeSuite(func() {
 	Expect(err).Should(SatisfyAny(Not(HaveOccurred()), BeIdenticalTo(ErrObjectNotFound)))
 	nonControlPlaneNodeCount = len(nodes.Items)
 
-	if !isDaemonsetLvmdEnvSet() {
-		By("Waiting for kindnet to get ready")
-		// Because kindnet will crash. we need to confirm its readiness twice.
-		Eventually(waitKindnet).Should(Succeed())
-		time.Sleep(5 * time.Second)
-		Eventually(waitKindnet).Should(Succeed())
-	}
+	By("Waiting for kindnet to get ready if necessary")
+	// Because kindnet will crash. we need to confirm its readiness twice.
+	Eventually(waitKindnet).Should(Succeed())
+	time.Sleep(5 * time.Second)
+	Eventually(waitKindnet).Should(Succeed())
+
 	SetDefaultEventuallyTimeout(5 * time.Minute)
 
 	By("Waiting for mutating webhook to get ready")
