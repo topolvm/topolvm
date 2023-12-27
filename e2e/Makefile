@@ -142,13 +142,11 @@ prepare-test: $(KUBECTL)
 
 .PHONY: run-test
 run-test: GINKGO_FLAGS =
-run-test: DAEMONSET_LVMD =
 run-test: $(GINKGO)
 	$(SUDO) -E env \
 	PATH=${PATH} \
 	E2ETEST=1 \
 	KUBECTL=$(KUBECTL) \
-	DAEMONSET_LVMD=$(DAEMONSET_LVMD) \
 	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
 	USE_LEGACY=$(USE_LEGACY) \
 	$(GINKGO) --fail-fast -v $(GINKGO_FLAGS) .
@@ -260,7 +258,7 @@ incluster-lvmd/test: topolvm.img $(GINKGO) $(HELM) $(KUBECTL)
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system -l="app.kubernetes.io/component=controller,app.kubernetes.io/name=topolvm" pod
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system certificate/topolvm-mutatingwebhook
 	$(MAKE) prepare-test
-	$(MAKE) run-test DAEMONSET_LVMD=true
+	$(MAKE) run-test
 
 .PHONY: incluster-lvmd/clean
 incluster-lvmd/clean: incluster-lvmd/delete-minikube incluster-lvmd/remove-vg
