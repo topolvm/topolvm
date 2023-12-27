@@ -296,13 +296,8 @@ func testE2E() {
 	It("should choose a node with the largest capacity when volumeBindingMode == Immediate is specified", func() {
 		skipIfStorageCapacity("Storage Capacity Tracking doesn't check Storage Capacity when volumeBindingMode == Immediate is specified")
 
-		num := 3
-		if isDaemonsetLvmdEnvSet() {
-			num = 0
-		}
-
 		// Repeat applying a PVC to make sure that the volume is created on the node with the largest capacity in each loop.
-		for i := 0; i < num; i++ {
+		for i := 0; i < nonControlPlaneNodeCount; i++ {
 			By("getting the node with max capacity (loop: " + strconv.Itoa(i) + ")")
 			var maxCapNodes []string
 			Eventually(func() error {
@@ -334,8 +329,8 @@ func testE2E() {
 						maxCapNodes = append(maxCapNodes, node.GetName())
 					}
 				}
-				if len(maxCapNodes) != 3-i {
-					return fmt.Errorf("unexpected number of maxCapNodes: expected: %d, actual: %d", 3-i, len(maxCapNodes))
+				if len(maxCapNodes) != nonControlPlaneNodeCount-i {
+					return fmt.Errorf("unexpected number of maxCapNodes: expected: %d, actual: %d", nonControlPlaneNodeCount-i, len(maxCapNodes))
 				}
 				return nil
 			}).Should(Succeed())
