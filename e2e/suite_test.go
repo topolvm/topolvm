@@ -73,9 +73,22 @@ func isStorageCapacity() bool {
 	return os.Getenv("STORAGE_CAPACITY") == "true"
 }
 
-func skipIfDaemonsetLvmd() {
-	if isDaemonsetLvmdEnvSet() {
-		Skip("skip because current environment is daemonset lvmd")
+func skipIfStorageCapacity(reason ...string) {
+	if isStorageCapacity() {
+		msg := "skip because current environment is storage capacity"
+		if len(reason) > 0 {
+			msg += ": " + reason[0]
+		}
+		Skip(msg)
+	}
+}
+
+func skipIfSingleNode() {
+	var nodes corev1.NodeList
+	err := getObjects(&nodes, "nodes", "-l=node-role.kubernetes.io/control-plane!=")
+	Expect(err).Should(SatisfyAny(Not(HaveOccurred()), BeIdenticalTo(ErrObjectNotFound)))
+	if len(nodes.Items) == 0 {
+		Skip("This test requires multiple nodes")
 	}
 }
 
