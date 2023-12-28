@@ -8,16 +8,21 @@ TEST_LEGACY ?= false
 # systemd-service/daemonset/embedded
 TEST_LVMD_TYPE ?= systemd-service
 
+BACKING_STORE := ./build
 BINDIR := $(shell pwd)/bin
-SUDO := sudo
-CURL := curl -sSLf
 CLUSTER_NAME := topolvm-e2e
-KIND := ../bin/kind
-KUBECTL := $(BINDIR)/kubectl-$(KUBERNETES_VERSION)
-HELM := ../bin/helm
+CURL := curl -sSLf
 GINKGO := $(BINDIR)/ginkgo-$(GINKGO_VERSION)
-
+GINKGO_FLAGS :=
+GO_FILES := $(shell find .. -path ../e2e -prune -o -name '*.go' -print)
+HELM := ../bin/helm
+KIND := ../bin/kind
+KIND_CONFIG := topolvm-cluster.yaml
+KUBECTL := $(BINDIR)/kubectl-$(KUBERNETES_VERSION)
+MINIKUBE_FEATURE_GATES="ReadWriteOncePod=true"
 MINIKUBE_HOME = $(BINDIR)
+SUDO := sudo
+
 export MINIKUBE_HOME
 
 DOMAIN_NAME := topolvm.io
@@ -47,12 +52,6 @@ else ifeq ($(TEST_LVMD_TYPE),embedded)
 HELM_VALUES_FILES += manifests/values/embedded-lvmd.yaml
 endif
 
-KIND_CONFIG="topolvm-cluster.yaml"
-MINIKUBE_FEATURE_GATES="ReadWriteOncePod=true"
-
-GO_FILES := $(shell find .. -path ../e2e -prune -o -name '*.go' -print)
-BACKING_STORE := ./build
-
 topolvm.img: $(GO_FILES)
 	mkdir -p tmpbin
 	CGO_ENABLED=0 go build -o tmpbin/hypertopolvm ../pkg/hypertopolvm
@@ -67,16 +66,6 @@ ifeq ($(TEST_SCHEDULER_EXTENDER_TYPE),deployment)
 else
 	cp $< $@
 endif
-
-.PHONY: prepare-namespace
-prepare-namespace: $(KUBECTL)
-	$(KUBECTL) create namespace topolvm-system
-	$(KUBECTL) label namespace topolvm-system $(DOMAIN_NAME)/webhook=ignore
-	$(KUBECTL) label namespace kube-system $(DOMAIN_NAME)/webhook=ignore
-
-.PHONY: apply-certmanager-crds
-apply-certmanager-crds: $(KUBECTL)
-	$(KUBECTL) apply -f https://github.com/cert-manager/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
 
 .PHONY: launch-kind
 launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml $(KIND)
@@ -117,45 +106,16 @@ stop-lvmd:
 	done
 
 .PHONY: create-cluster
-create-cluster: topolvm.img $(HELM) $(KIND) $(KUBECTL)
+create-cluster: topolvm.img $(KIND)
 	$(MAKE) shutdown-kind
 	$(MAKE) launch-kind
-	$(MAKE) apply-certmanager-crds
-	$(MAKE) prepare-namespace
 	$(KIND) load image-archive --name=$(CLUSTER_NAME) $<
-	$(HELM) repo add jetstack https://charts.jetstack.io
-	$(HELM) repo update
-	$(HELM) dependency build ../charts/topolvm/
-	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ $(patsubst %,-f %,$(HELM_VALUES_FILES))
-	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/topolvm-controller
-	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system -l="app.kubernetes.io/component=controller,app.kubernetes.io/name=topolvm" pod
-	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system certificate/topolvm-mutatingwebhook
-
-.PHONY: prepare-test
-prepare-test: $(KUBECTL)
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/rbac-snapshot-controller.yaml
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml
-	sed 's/@DOMAIN_NAME@/$(DOMAIN_NAME)/' manifests/volumesnapshotclass_tpl.yaml | $(KUBECTL) apply -f -
-
-.PHONY: run-test
-run-test: GINKGO_FLAGS =
-run-test: $(GINKGO)
-	$(SUDO) -E env \
-	PATH=${PATH} \
-	E2ETEST=1 \
-	KUBECTL=$(KUBECTL) \
-	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
-	USE_LEGACY=$(USE_LEGACY) \
-	$(GINKGO) --fail-fast -v $(GINKGO_FLAGS) .
+	$(MAKE) common/setup-components
 
 .PHONY: test
 test:
 	$(MAKE) create-cluster
-	$(MAKE) prepare-test
-	$(MAKE) run-test
+	$(MAKE) common/test
 
 .PHONY: clean
 clean: stop-lvmd
@@ -239,7 +199,8 @@ incluster-lvmd/delete-minikube:
 	$(SUDO) -E $(BINDIR)/minikube delete || true
 
 .PHONY: incluster-lvmd/test
-incluster-lvmd/test: topolvm.img $(GINKGO) $(HELM) $(KUBECTL)
+# topolvm.img is to trigger the build of docker image
+incluster-lvmd/test: topolvm.img
 	@if [ "$(TEST_SCHEDULER_EXTENDER_TYPE)" != none ]; then \
 		echo "Using the scheduler extender is not supported"; \
 		exit 1; \
@@ -248,17 +209,8 @@ incluster-lvmd/test: topolvm.img $(GINKGO) $(HELM) $(KUBECTL)
 		echo "Running LVMd as systemd-service is not supported"; \
 		exit 1; \
 	fi
-	$(MAKE) apply-certmanager-crds
-	$(MAKE) prepare-namespace
-	$(HELM) repo add jetstack https://charts.jetstack.io
-	$(HELM) repo update
-	$(HELM) dependency build ../charts/topolvm/
-	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ $(patsubst %,-f %,$(HELM_VALUES_FILES))
-	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/topolvm-controller
-	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system -l="app.kubernetes.io/component=controller,app.kubernetes.io/name=topolvm" pod
-	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system certificate/topolvm-mutatingwebhook
-	$(MAKE) prepare-test
-	$(MAKE) run-test
+	$(MAKE) common/setup-components
+	$(MAKE) common/test
 
 .PHONY: incluster-lvmd/clean
 incluster-lvmd/clean: incluster-lvmd/delete-minikube incluster-lvmd/remove-vg
@@ -307,3 +259,38 @@ common/remove-vg:
 		$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_$${i} | cut -d: -f1); \
 		rm -f $(BACKING_STORE)/backing_store$(ID)_$${i}; \
 	done
+
+.PHONY: common/setup-components
+common/setup-components: $(HELM) $(KUBECTL)
+	@echo apply certmanager CRDs
+	$(KUBECTL) apply -f https://github.com/cert-manager/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
+
+	@echo install TopoLVM
+	$(KUBECTL) create namespace topolvm-system
+	$(KUBECTL) label namespace topolvm-system $(DOMAIN_NAME)/webhook=ignore
+	$(KUBECTL) label namespace kube-system $(DOMAIN_NAME)/webhook=ignore
+	$(HELM) repo add jetstack https://charts.jetstack.io
+	$(HELM) repo update
+	$(HELM) dependency build ../charts/topolvm/
+	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ $(patsubst %,-f %,$(HELM_VALUES_FILES))
+	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/topolvm-controller
+	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system -l="app.kubernetes.io/component=controller,app.kubernetes.io/name=topolvm" pod
+	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system certificate/topolvm-mutatingwebhook
+
+	@echo apply VolumeSnapshot manifests
+	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
+	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
+	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
+	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/rbac-snapshot-controller.yaml
+	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml
+	sed 's/@DOMAIN_NAME@/$(DOMAIN_NAME)/' manifests/volumesnapshotclass_tpl.yaml | $(KUBECTL) apply -f -
+
+.PHONY: common/test
+common/test: $(GINKGO)
+	$(SUDO) -E env \
+	PATH=${PATH} \
+	E2ETEST=1 \
+	KUBECTL=$(KUBECTL) \
+	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
+	USE_LEGACY=$(USE_LEGACY) \
+	$(GINKGO) --fail-fast -v $(GINKGO_FLAGS) .
