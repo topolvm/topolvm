@@ -1,22 +1,9 @@
-image:
-  repository: topolvm
-  tag: dev
-  pullPolicy: Never
-
 controller:
-  replicaCount: 1
-  securityContext:
+  storageCapacityTracking:
     enabled: false
-  nodeSelector:
-    kubernetes.io/hostname: topolvm-e2e-worker
-  # sanity test requires that the controller mounts this hostPath to communicate with it
-  volumes:
-    - name: socket-dir
-      hostPath:
-        path: /var/lib/kubelet/plugins/topolvm.io/controller
-        type: DirectoryOrCreate
 
 scheduler:
+  enabled: true
   type: deployment
   deployment:
     replicaCount: 2
@@ -29,21 +16,6 @@ scheduler:
   tolerations: null
   affinity: null
 
-lvmd:
-  managed: false
-
-node:
-  lvmdSocket: /tmp/topolvm/lvmd.sock
-
-storageClasses:
-  - name: topolvm-provisioner
-    storageClass:
-      fsType: xfs
-      isDefaultClass: false
-      volumeBindingMode: WaitForFirstConsumer
-      allowVolumeExpansion: true
-      additionalParameters:
-        topolvm.io/device-class: "ssd"
-
-cert-manager:
-  enabled: true
+webhook:
+  podMutatingWebhook:
+    enabled: true

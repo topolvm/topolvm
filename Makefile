@@ -1,15 +1,4 @@
-## Dependency versions
-
-CONTROLLER_RUNTIME_VERSION=$(shell awk '/sigs\.k8s\.io\/controller-runtime/ {print substr($$2, 2)}' go.mod)
-CONTROLLER_TOOLS_VERSION=$(shell awk '/sigs\.k8s\.io\/controller-tools/ {print substr($$2, 2)}' go.mod)
-PROTOC_VERSION=24.4
-HELM_VERSION=3.13.0
-HELM_DOCS_VERSION=1.11.2
-CHART_TESTING_VERSION=3.9.0
-BUILDX_VERSION=0.11.2
-CONTAINER_STRUCTURE_TEST_VERSION=1.16.0
-
-include common.mk
+include versions.mk
 
 SUDO := sudo
 CURL := curl -sSLf
@@ -32,12 +21,6 @@ TOPOLVM_VERSION ?= devel
 IMAGE_TAG ?= latest
 ORIGINAL_IMAGE_TAG ?=
 STRUCTURE_TEST_TARGET ?= normal
-
-ENVTEST_KUBERNETES_VERSION=1.27
-
-PROTOC_GEN_GO_VERSION := $(shell awk '/google.golang.org\/protobuf/ {print substr($$2, 2)}' go.mod)
-PROTOC_GEN_DOC_VERSION := $(shell awk '/github.com\/pseudomuto\/protoc-gen-doc/ {print substr($$2, 2)}' go.mod)
-PROTOC_GEN_GO_GRPC_VERSION := $(shell awk '/google.golang.org\/grpc\/cmd\/protoc-gen-go-grpc/ {print substr($$2, 2)}' go.mod)
 
 PUSH ?= false
 BUILDX_PUSH_OPTIONS := "-o type=tar,dest=build/topolvm.tar"

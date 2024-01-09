@@ -1,7 +1,19 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: %s
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: %s
+---
 apiVersion: v1
 kind: Pod
 metadata:
-  name: pause
+  name: %s
   labels:
     app.kubernetes.io/name: pause
 spec:
@@ -9,9 +21,9 @@ spec:
     - name: pause
       image: registry.k8s.io/pause
       volumeMounts:
-        - mountPath: /test1
+        - mountPath: /test
           name: my-volume
   volumes:
     - name: my-volume
       persistentVolumeClaim:
-        claimName: topo-pvc
+        claimName: %s

@@ -1,0 +1,9 @@
+controller:
+  # sanity test requires that the controller mounts this hostPath to communicate with it
+  volumes:
+    - name: socket-dir
+      hostPath:
+        path: /var/lib/kubelet/plugins/topolvm.cybozu.com/controller
+        type: DirectoryOrCreate
+
+useLegacy: true

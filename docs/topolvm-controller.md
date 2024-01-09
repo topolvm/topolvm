@@ -1,5 +1,4 @@
-topolvm-controller
-==================
+# topolvm-controller
 
 `topolvm-controller` provides a CSI controller service.  It also works as
 a custom Kubernetes controller to cleanup stale resources.
@@ -7,8 +6,7 @@ a custom Kubernetes controller to cleanup stale resources.
 Specifically, `topolvm-controller` watches `Node` resource deletion to
 cleanup `PersistentVolumeClaim` on the deleting Nodes.
 
-CSI controller features
------------------------
+## CSI Controller Features
 
 `topolvm-controller` implements following optional features:
 
@@ -16,8 +14,7 @@ CSI controller features
 - [`GET_CAPACITY`](https://github.com/container-storage-interface/spec/blob/v1.1.0/spec.md#getcapacity)
 - [`EXPAND_VOLUME`](https://github.com/container-storage-interface/spec/blob/v1.1.0/spec.md#controllerexpandvolume)
 
-Webhooks
---------
+## Webhooks
 
 `topolvm-controller` implements two webhooks:
 
@@ -35,9 +32,9 @@ pods which have at least one generic ephemeral volume which specify using the St
 For both PVCs and generic ephemeral volumes, the requested storage size for the
 volume is calculated as follows:
 - if the volume has no storage request, the size will be treated as 1 GiB.
-- if the volume has storage request, the size will be rounded up to GiB unit.
+- if the volume has storage request, the size is as is.
 
-The value of the resource request is the sum of rounded storage size
+The value of the resource request is the sum of storage sizes
 of unbound PVCs for TopoLVM.
 
 The following manifest exemplifies usage of TopoLVM PVCs:
@@ -163,12 +160,11 @@ Mutate new PVCs to add `topolvm.io/pvc` finalizer. This finalizer is required to
 
 At step 4, the StatefulSet pod is not deleted if the PVC finalizer does not exist.
 
-Controllers
------------
+## Controllers for Kubernetes Objects
 
-### Node finalizer
+### The Controller for Nodes
 
-`topolvm-metrics` adds `topolvm.io/node` finalizer.
+The controller adds `topolvm.io/node` finalizer.
 
 When a Node is being deleted, the controller deletes all PVCs and LogicalVolumes for TopoLVM
 on the deleting node. 
@@ -177,7 +173,7 @@ This node finalize procedure may be skipped with the `--skip-node-finalize` flag
 When this is true, the PVCs and the LogicalVolume CRs from a deleted node must be
 deleted manually by a cluster administrator.
 
-### PVC finalizer
+### The Controller for PersistentVolumeClams
 
 When a PVC for TopoLVM is being deleted, the controller waits for other
 finalizers to be completed.  Once it becomes the last finalizer, it removes

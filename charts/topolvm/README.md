@@ -1,82 +1,13 @@
 # TopoLVM Helm Chart
-----------------------------------------
 
 ## Prerequisites
 
-* Configure `kube-scheduler` on the underlying nodes, ref: https://github.com/topolvm/topolvm/tree/master/deploy#configure-kube-scheduler
 * `cert-manager` version `v1.7.0+` installed. ref: https://cert-manager.io/
 * Requires at least `v3.5.0+` version of helm to support
 
-## :warning: Migration from kustomize to Helm
+## Installation
 
-See [MIGRATION.md](./MIGRATION.md)
-
-## How to use TopoLVM Helm repository
-
-You need to add this repository to your Helm repositories:
-
-```sh
-helm repo add topolvm https://topolvm.github.io/topolvm
-helm repo update
-```
-
-## Dependencies
-
-| Repository | Name	| Version |
-| ---------- | ---- | ------- |
-| https://charts.jetstack.io | cert-manager | 1.7.0 |
-
-## Quick start
-
-By default, the [topolvm-scheduler](../../deploy/README.md#topolvm-scheduler) runs in a DaemonSet.
-It can alternatively run inside a Deployment.
-Also, [lvmd](../../deploy/README.md#lvmd) is run in a DaemonSet by default.
-
-### Installing the Chart
-
-> :memo: NOTE: This installation method requires cert-manger to be installed beforehand.
-
-To work webhooks properly, add a label to the target namespace. We also recommend to use a dedicated namespace.
-
-```sh
-kubectl label namespace topolvm-system topolvm.io/webhook=ignore
-kubectl label namespace kube-system topolvm.io/webhook=ignore
-```
-
-Install the chart with the release name `topolvm` into the namespace:
-
-```sh
-helm install --namespace=topolvm-system topolvm topolvm/topolvm
-```
-
-Specify parameters using `--set key=value[,key=value]` argument to `helm install`.
-
-Alternatively a YAML file that specifies the values for the parameters can be provided like this:
-
-```sh
-helm upgrade --namespace=topolvm-system -f values.yaml -i topolvm topolvm/topolvm
-```
-
-### Install together with cert-manager
-
-Before installing the chart, you must first install the cert-manager CustomResourceDefinition resources.
-
-```sh
-kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.7.0/cert-manager.crds.yaml
-```
-
-Set the `cert-manager.enabled=true` parameter when installing topolvm chart:
-
-```sh
-helm install --namespace=topolvm-system topolvm topolvm/topolvm --set cert-manager.enabled=true
-```
-
-## Configure kube-scheduler
-
-The current Chart does not provide an option to make kube-scheduler configurable.
-You need to configure kube-scheduler to use topolvm-scheduler extender by referring to the following document.
-
-[deploy/README.md#configure-kube-scheduler](../../deploy/README.md#configure-kube-scheduler)
+See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v13.0.0/docs/getting-started.md).
 
 ## Values
 
@@ -102,7 +33,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | controller.prometheus.podMonitor.scrapeTimeout | string | `""` | Scrape timeout. If not set, the Prometheus default scrape timeout is used. |
 | controller.replicaCount | int | `2` | Number of replicas for CSI controller service. |
 | controller.securityContext.enabled | bool | `true` | Enable securityContext. |
-| controller.storageCapacityTracking.enabled | bool | `false` | Enable Storage Capacity Tracking for csi-provisioner. |
+| controller.storageCapacityTracking.enabled | bool | `true` | Enable Storage Capacity Tracking for csi-provisioner. |
 | controller.terminationGracePeriodSeconds | int | `nil` | Specify terminationGracePeriodSeconds. |
 | controller.tolerations | list | `[]` | Specify tolerations. # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ |
 | controller.updateStrategy | object | `{}` | Specify updateStrategy. |
@@ -185,7 +116,7 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | scheduler.affinity | object | `{"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"node-role.kubernetes.io/control-plane","operator":"Exists"}]}]}}}` | Specify affinity on the Deployment or DaemonSet. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity |
 | scheduler.args | list | `[]` | Arguments to be passed to the command. |
 | scheduler.deployment.replicaCount | int | `2` | Number of replicas for Deployment. |
-| scheduler.enabled | bool | `true` | If true, enable scheduler extender for TopoLVM |
+| scheduler.enabled | bool | `false` | If true, enable scheduler extender for TopoLVM |
 | scheduler.labels | object | `{}` | Additional labels to be added to the Deployment or Daemonset. |
 | scheduler.minReadySeconds | int | `nil` | Specify minReadySeconds on the Deployment or DaemonSet. |
 | scheduler.nodeSelector | object | `{}` | Specify nodeSelector on the Deployment or DaemonSet. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/ |
@@ -205,11 +136,11 @@ You need to configure kube-scheduler to use topolvm-scheduler extender by referr
 | securityContext.runAsGroup | int | `10000` | Specify runAsGroup. |
 | securityContext.runAsUser | int | `10000` | Specify runAsUser. |
 | snapshot.enabled | bool | `true` | Turn on the snapshot feature. |
-| storageClasses | list | `[{"name":"topolvm-provisioner","storageClass":{"additionalParameters":{},"allowVolumeExpansion":true,"annotations":{},"fsType":"xfs","isDefaultClass":false,"reclaimPolicy":null,"volumeBindingMode":"WaitForFirstConsumer"}}]` | Whether to create storageclass(es) ref: https://kubernetes.io/docs/concepts/storage/storage-classes/ |
+| storageClasses | list | `[{"name":"topolvm-provisioner","storageClass":{"additionalParameters":{},"allowVolumeExpansion":true,"annotations":{},"fsType":"xfs","isDefaultClass":false,"mountOptions":[],"reclaimPolicy":null,"volumeBindingMode":"WaitForFirstConsumer"}}]` | Whether to create storageclass(es) ref: https://kubernetes.io/docs/concepts/storage/storage-classes/ |
 | useLegacy | bool | `false` | If true, the legacy plugin name and legacy custom resource group is used(topolvm.cybozu.com). |
 | webhook.caBundle | string | `nil` | Specify the certificate to be used for AdmissionWebhook. |
 | webhook.existingCertManagerIssuer | object | `{}` | Specify the cert-manager issuer to be used for AdmissionWebhook. |
-| webhook.podMutatingWebhook.enabled | bool | `true` | Enable Pod MutatingWebhook. |
+| webhook.podMutatingWebhook.enabled | bool | `false` | Enable Pod MutatingWebhook. |
 | webhook.pvcMutatingWebhook.enabled | bool | `true` | Enable PVC MutatingWebhook. |
 
 ## Generate Manifests
@@ -220,7 +151,7 @@ You can use the `helm template` command to render manifests.
 helm template --include-crds --namespace=topolvm-system topolvm topolvm/topolvm
 ```
 
-## About the legacy flag
+## About the Legacy Flag
 
 In https://github.com/topolvm/topolvm/pull/592, the domain name which is used for CRD and other purposes was changed from topolvm.cybozu.com to topolvm.io.
 Automatic domain name migration to topolvm.io is risky from the data integrity point of view, and migration to topolvm.io has a large impact on the entire TopoLVM system, including CRDs.

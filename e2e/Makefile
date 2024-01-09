@@ -1,14 +1,12 @@
-# parameters
-KUBERNETES_VERSION ?= 1.27.3
-TEST_SCHEDULER_MANIFEST ?= daemonset
-STORAGE_CAPACITY ?= false
-EXTERNAL_SNAPSHOTTER_VERSION ?= v6.3.0
-USE_LEGACY ?= ""
+include ../versions.mk
 
-## Dependency versions
-MINIKUBE_VERSION := v1.31.2
-CERT_MANAGER_VERSION := v1.13.1
-GINKGO_VERSION := $(shell awk '/github.com\/onsi\/ginkgo\/v2/ {print $$2}' ../go.mod)
+# parameters
+# none/daemonset/deployment
+TEST_SCHEDULER_EXTENDER_TYPE ?= deployment
+# true/false
+TEST_LEGACY ?= false
+# systemd-service/daemonset/embedded
+TEST_LVMD_TYPE ?= systemd-service
 
 BINDIR := $(shell pwd)/bin
 SUDO := sudo
@@ -22,38 +20,38 @@ GINKGO := $(BINDIR)/ginkgo-$(GINKGO_VERSION)
 MINIKUBE_HOME = $(BINDIR)
 export MINIKUBE_HOME
 
-export TEST_KUBERNETES_VERSION=$(shell echo $(KUBERNETES_VERSION) | grep -o '^[0-9]*\.[0-9]*')
+DOMAIN_NAME := topolvm.io
+HELM_VALUES_FILES := manifests/values/base.yaml
+SCHEDULER_CONFIG := ../deploy/scheduler-config/scheduler-config.yaml
+STORAGE_CAPACITY := true
+USE_LEGACY :=
 
-HELM_VALUES_FILE := manifests/values/daemonset-scheduler.yaml
-ifeq ($(TEST_SCHEDULER_MANIFEST),deployment)
-HELM_VALUES_FILE := manifests/values/deployment-scheduler.yaml
-endif
-ifeq ($(STORAGE_CAPACITY),true)
-HELM_VALUES_FILE := manifests/values/storage-capacity.yaml
+ifeq ($(TEST_SCHEDULER_EXTENDER_TYPE),daemonset)
+HELM_VALUES_FILES += manifests/values/daemonset-scheduler.yaml
+STORAGE_CAPACITY := false
+else ifeq ($(TEST_SCHEDULER_EXTENDER_TYPE),deployment)
+HELM_VALUES_FILES += manifests/values/deployment-scheduler.yaml
+STORAGE_CAPACITY := false
 endif
 
+ifeq ($(TEST_LEGACY),true)
+DOMAIN_NAME := topolvm.cybozu.com
+HELM_VALUES_FILES += manifests/values/legacy.yaml
+SCHEDULER_CONFIG := ../deploy/scheduler-config/scheduler-config-legacy.yaml
+USE_LEGACY := true
+endif
+
+ifeq ($(TEST_LVMD_TYPE),systemd-service)
+HELM_VALUES_FILES += manifests/values/systemd-service-lvmd.yaml
+else ifeq ($(TEST_LVMD_TYPE),embedded)
+HELM_VALUES_FILES += manifests/values/embedded-lvmd.yaml
+endif
 
 KIND_CONFIG="topolvm-cluster.yaml"
 MINIKUBE_FEATURE_GATES="ReadWriteOncePod=true"
 
-HELM_VALUES_FILE_LVMD ?= manifests/values/daemonset-lvmd-storage-capacity.yaml
-
-SCHEDULER_CONFIG := scheduler-config-$(TEST_SCHEDULER_MANIFEST).yaml
-
-DOMAIN_NAME := topolvm.io
-PROVISINER_MANIFEST := manifests/provisioner.yaml
-ifeq ($(USE_LEGACY),true)
-HELM_VALUES_FILE := manifests/values/daemonset-scheduler-legacy.yaml
-SCHEDULER_CONFIG := scheduler-config-daemonset-legacy.yaml
-DOMAIN_NAME := topolvm.cybozu.com
-PROVISINER_MANIFEST := manifests/provisioner_legacy.yaml
-endif
-
-
 GO_FILES := $(shell find .. -path ../e2e -prune -o -name '*.go' -print)
 BACKING_STORE := ./build
-
-include ../common.mk
 
 topolvm.img: $(GO_FILES)
 	mkdir -p tmpbin
@@ -64,7 +62,11 @@ topolvm.img: $(GO_FILES)
 
 /tmp/topolvm/scheduler/scheduler-config.yaml: $(SCHEDULER_CONFIG)
 	mkdir -p /tmp/topolvm/scheduler
-	sed -e "s|@DEPLOYMENT_SCHEDULER_HOST@|topolvm-e2e-worker|" $< > $@
+ifeq ($(TEST_SCHEDULER_EXTENDER_TYPE),deployment)
+	sed -e 's|\(urlPrefix:\).*|\1 "http://topolvm-e2e-worker:30251"|' $< > $@
+else
+	cp $< $@
+endif
 
 .PHONY: prepare-namespace
 prepare-namespace: $(KUBECTL)
@@ -167,6 +169,7 @@ stop-lvmd:
 	done
 
 .PHONY: create-cluster
+create-cluster: HELM_VALUES_FILES += manifests/values/kind.yaml
 create-cluster: topolvm.img $(HELM) $(KIND) $(KUBECTL)
 	$(MAKE) shutdown-kind
 	$(MAKE) launch-kind
@@ -176,28 +179,31 @@ create-cluster: topolvm.img $(HELM) $(KIND) $(KUBECTL)
 	$(HELM) repo add jetstack https://charts.jetstack.io
 	$(HELM) repo update
 	$(HELM) dependency build ../charts/topolvm/
-	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE) --set "controller.nodeSelector.kubernetes\.io/hostname"=$(KIND_CLUSTER_NAME)-worker
+	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ $(patsubst %,-f %,$(HELM_VALUES_FILES))
 	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/topolvm-controller
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system -l="app.kubernetes.io/component=controller,app.kubernetes.io/name=topolvm" pod
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system certificate/topolvm-mutatingwebhook
 
 .PHONY: prepare-test
 prepare-test: $(KUBECTL)
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/rbac-snapshot-controller.yaml
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml
-	$(KUBECTL) apply -f $(PROVISINER_MANIFEST)
+	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
+	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
+	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
+	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/rbac-snapshot-controller.yaml
+	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml
+	sed 's/@DOMAIN_NAME@/$(DOMAIN_NAME)/' manifests/volumesnapshotclass_tpl.yaml | $(KUBECTL) apply -f -
 
 .PHONY: run-test
 run-test: GINKGO_FLAGS =
+run-test: DAEMONSET_LVMD =
 run-test: $(GINKGO)
 	$(SUDO) -E env \
 	PATH=${PATH} \
 	E2ETEST=1 \
 	KUBECTL=$(KUBECTL) \
+	DAEMONSET_LVMD=$(DAEMONSET_LVMD) \
 	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
+	USE_LEGACY=$(USE_LEGACY) \
 	$(GINKGO) --fail-fast -v $(GINKGO_FLAGS) .
 
 .PHONY: test
@@ -293,9 +299,21 @@ incluster-lvmd/setup-minikube:
 	$(CURL) -o $(BINDIR)/minikube https://github.com/kubernetes/minikube/releases/download/$(MINIKUBE_VERSION)/minikube-linux-amd64
 	chmod a+x $(BINDIR)/minikube
 
+	# These tools are required to use minikube for Kubernetes v1.24+
+	# For CNI plugins, see https://github.com/Mirantis/cri-dockerd/blob/v0.2.6/README.md#important
+	$(CURL) -o cni-plugins.tgz https://github.com/containernetworking/plugins/releases/download/$(CNI_PLUGINS_VERSION)/cni-plugins-linux-amd64-$(CNI_PLUGINS_VERSION).tgz
+	$(SUDO) mkdir -p /opt/cni/bin
+	$(SUDO) tar -C /opt/cni/bin -xf cni-plugins.tgz
+
+	# Install cri-docker
+	$(CURL) -o cri-dockerd.deb https://github.com/Mirantis/cri-dockerd/releases/download/$(CRI_DOCKERD_VERSION)/cri-dockerd_$(CRI_DOCKERD_VERSION:v%=%).3-0.ubuntu-focal_amd64.deb
+	$(SUDO) dpkg -i cri-dockerd.deb
+
+	$(CURL) -o crictl.tar.gz https://github.com/kubernetes-sigs/cri-tools/releases/download/$(CRICTL_VERSION)/crictl-$(CRICTL_VERSION)-linux-amd64.tar.gz
+	$(SUDO) tar -C /usr/local/bin -xf crictl.tar.gz
+
 .PHONY: incluster-lvmd/launch-minikube
 incluster-lvmd/launch-minikube:
-	@if [ "$(STORAGE_CAPACITY)" = false ]; then echo "Only storage capacity mode is supported."; exit 1; fi
 	$(SUDO) -E $(BINDIR)/minikube start \
 		--vm-driver=none \
 		--kubernetes-version=v$(KUBERNETES_VERSION) \
@@ -312,28 +330,25 @@ incluster-lvmd/delete-minikube:
 
 .PHONY: incluster-lvmd/test
 incluster-lvmd/test: topolvm.img $(GINKGO) $(HELM) $(KUBECTL)
+	@if [ "$(TEST_SCHEDULER_EXTENDER_TYPE)" != none ]; then \
+		echo "Using the scheduler extender is not supported"; \
+		exit 1; \
+	fi
+	@if [ "$(TEST_LVMD_TYPE)" = systemd-service ]; then \
+		echo "Running LVMd as systemd-service is not supported"; \
+		exit 1; \
+	fi
 	$(MAKE) apply-certmanager-crds
 	$(MAKE) prepare-namespace
 	$(HELM) repo add jetstack https://charts.jetstack.io
 	$(HELM) repo update
 	$(HELM) dependency build ../charts/topolvm/
-	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ -f $(HELM_VALUES_FILE_LVMD)
+	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ $(patsubst %,-f %,$(HELM_VALUES_FILES))
 	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/topolvm-controller
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system -l="app.kubernetes.io/component=controller,app.kubernetes.io/name=topolvm" pod
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system certificate/topolvm-mutatingwebhook
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/rbac-snapshot-controller.yaml
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml
-	$(KUBECTL) apply -f manifests/provisioner.yaml
-	$(SUDO) -E env \
-	PATH=${PATH} \
-	E2ETEST=1 \
-	KUBECTL=$(KUBECTL) \
-	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
-	DAEMONSET_LVMD=true \
-	$(GINKGO) --fail-fast -v .
+	$(MAKE) prepare-test
+	$(MAKE) run-test DAEMONSET_LVMD=true
 
 .PHONY: incluster-lvmd/clean
 incluster-lvmd/clean: incluster-lvmd/delete-minikube incluster-lvmd/remove-vg

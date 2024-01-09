@@ -1,0 +1,5 @@
+node:
+  lvmdEmbedded: true
+
+lvmd:
+  managed: false

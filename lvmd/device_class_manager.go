@@ -131,8 +131,8 @@ func ValidateDeviceClasses(deviceClasses []*DeviceClass) error {
 			return fmt.Errorf("stripe-size format is \"Size[k|UNIT]\": %s", dc.Name)
 		}
 	}
-	if countDefault != 1 {
-		return errors.New("should have only one default device-class")
+	if countDefault > 1 {
+		return errors.New("should not have multiple default device-class")
 	}
 	return nil
 }
@@ -176,7 +176,7 @@ func NewDeviceClassManager(deviceClasses []*DeviceClass) *DeviceClassManager {
 
 // DeviceClass returns the device-class by its name
 func (m DeviceClassManager) DeviceClass(dcName string) (*DeviceClass, error) {
-	if dcName == topolvm.DefaultDeviceClassName {
+	if dcName == topolvm.DefaultDeviceClassName && m.defaultDeviceClass != nil {
 		return m.defaultDeviceClass, nil
 	}
 	if v, ok := m.deviceClassByName[dcName]; ok {

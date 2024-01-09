@@ -1,11 +1,9 @@
-topolvm-node
-============
+# topolvm-node
 
 `topolvm-node` provides a CSI node service.  It also works as a custom
 Kubernetes controller to implement dynamic volume provisioning.
 
-CSI node features
------------------
+## CSI Node Features
 
 `topolvm-node` implements following optional features:
 
@@ -13,26 +11,24 @@ CSI node features
 - [`EXPAND_VOLUME`](https://github.com/container-storage-interface/spec/blob/v1.1.0/spec.md#nodeexpandvolume)
 
 
-Dynamic volume provisioning
----------------------------
+## Dynamic Volume Provisioning
 
 `topolvm-node` watches [`LogicalVolume`](./crd-logical-volume.md) and creates
-or deletes LVM logical volumes by sending requests to [`lvmd`](./lvmd.md).
+or deletes LVM logical volumes by sending requests to [`LVMd`](./lvmd.md).
 
-### Create a logical volume
+### Create a Logical Volume
 
 If `logicalvolume.status.volumeID` is empty,
-it means that the logical volume correspond to `LogicalVolume` is not provisioned with `lvmd`.
-So in that case, `topolvm-node` sends `CreateLV` request to `lvmd`.
+it means that the logical volume correspond to `LogicalVolume` is not provisioned with `LVMd`.
+So in that case, `topolvm-node` sends `CreateLV` request to `LVMd`.
 If its response is succeeded, `topolvm-node` set `logicalvolume.status.volumeID`.
 
-### Finalize LogicalVolume
+### Finalize a Logical Volume
 
 When a `LogicalVolume` resource is being deleted, `topolvm-node` sends
-a `RemoveLV` request to `lvmd`.
+a `RemoveLV` request to `LVMd`.
 
-Prometheus metrics
-------------------
+## Prometheus Metrics
 
 ### `topolvm_volumegroup_available_bytes`
 
@@ -92,30 +88,27 @@ free space in the LVM volume group in bytes.
 | `node`         | The node resource name |
 | `device_class` | The device class name. |
 
-Node resource
--------------
+## Operations to Node Resources
 
 `topolvm-node` adds `capacity.topolvm.io/<device-class>` annotations
 for each device-class and `capacity.topolvm.io/00default` annotation 
 for the default device-class to the corresponding `Node` resource of the running node.
-The value is the free storage capacity reported by `lvmd` in bytes.
+The value is the free storage capacity reported by `LVMd` in bytes.
 
 It also adds `topolvm.io/node` finalizer to the `Node`.
 The finalizer will be processed by [`topolvm-controller`](./topolvm-controller.md)
 to clean up PVCs and associated Pods bound to the node.
 
-Command-line flags
-------------------
+## Command-line Flags
 
 | Name                   | Type   | Default                         | Description                            |
 | ---------------------- | ------ | ------------------------------- | -------------------------------------- |
 | `csi-socket`           | string | `/run/topolvm/csi-topolvm.sock` | UNIX domain socket of `topolvm-node`.  |
-| `lvmd-socket`          | string | `/run/topolvm/lvmd.sock`        | UNIX domain socket of `lvmd` service.  |
+| `lvmd-socket`          | string | `/run/topolvm/lvmd.sock`        | UNIX domain socket of `LVMd` service.  |
 | `metrics-bind-address` | string | `:8080`                         | Bind address for the metrics endpoint. |
 | `nodename`             | string |                                 | `Node` resource name.                  |
 
-Environment variables
----------------------
+## Environment Variables
 
 - `NODE_NAME`: `Node` resource name.
 
