@@ -39,6 +39,7 @@ jobs:
           sed -r -i "s/^version: [[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/version: ${{ inputs.chart-version }}/g" charts/topolvm/Chart.yaml
           sed -r -i "s/ghcr.io\/topolvm\/topolvm-with-sidecar:[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/ghcr.io\/topolvm\/topolvm-with-sidecar:${{ inputs.app-version }}/g" charts/topolvm/Chart.yaml
           sed -r -i "s/ghcr.io\/topolvm\/topolvm:[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/ghcr.io\/topolvm\/topolvm:${{ inputs.app-version }}/g" charts/topolvm/Chart.yaml
+          make generate-helm-docs
       - name: Issue an access token
         uses: actions/create-github-app-token@v1
         id: app-token
