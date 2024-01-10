@@ -35,7 +35,7 @@ func testNodeDelete() {
 		By("waiting for node finalizer set")
 		Eventually(func() error {
 			var nodes corev1.NodeList
-			err := getObjects(&nodes, "nodes", "-l=node-role.kubernetes.io/control-plane!=")
+			err := getObjects(&nodes, "nodes", "-l=!node-role.kubernetes.io/control-plane")
 			if err != nil {
 				return err
 			}

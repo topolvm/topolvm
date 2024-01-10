@@ -112,7 +112,7 @@ var _ = BeforeSuite(func() {
 
 	By("Getting node count")
 	var nodes corev1.NodeList
-	err := getObjects(&nodes, "nodes", "-l=node-role.kubernetes.io/control-plane!=")
+	err := getObjects(&nodes, "nodes", "-l=!node-role.kubernetes.io/control-plane")
 	Expect(err).Should(SatisfyAny(Not(HaveOccurred()), BeIdenticalTo(ErrObjectNotFound)))
 	nonControlPlaneNodeCount = len(nodes.Items)
 
