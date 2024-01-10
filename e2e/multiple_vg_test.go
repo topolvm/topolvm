@@ -64,7 +64,7 @@ func testMultipleVolumeGroups() {
 			return err
 		}).Should(Succeed())
 
-		vgName := "node1-myvg2"
+		vgName := "node1-thick2"
 		Expect(vgName).Should(Equal(lv.vgName))
 	})
 

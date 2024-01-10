@@ -149,7 +149,7 @@ func testSnapRestore() {
 			return err
 		}).Should(Succeed())
 
-		vgName := "node1-myvg4"
+		vgName := "node1-thin1"
 		Expect(vgName).Should(Equal(lv.vgName))
 
 		poolName := "pool0"
@@ -267,7 +267,7 @@ func testSnapRestore() {
 
 		By(fmt.Sprintf("using lv with size %v", lv.size))
 
-		vgName := "node1-myvg4"
+		vgName := "node1-thin1"
 		Expect(vgName).Should(Equal(lv.vgName))
 
 		poolName := "pool0"
@@ -395,7 +395,7 @@ func testSnapRestore() {
 			return err
 		}).Should(Succeed())
 
-		vgName := "node1-myvg4"
+		vgName := "node1-thin1"
 		Expect(vgName).Should(Equal(lv.vgName))
 
 		poolName := "pool0"

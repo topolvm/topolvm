@@ -269,39 +269,31 @@ common/create-vg:
 	for i in $$(seq 2); do \
 		truncate --size=20G $(BACKING_STORE)/backing_store$(ID)_$${i}; \
 		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$(ID)_$${i}; \
-		$(SUDO) vgcreate -y node$(ID)-myvg$${i} $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_$${i} | cut -d: -f1); \
+		$(SUDO) vgcreate -y node$(ID)-thick$${i} $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_$${i} | cut -d: -f1); \
 	done
 
-	# Create Volume Group for testing raid1 volumes.
+	# Create Volume Groups for testing raid1 volumes and lvcreate-option-classes.
 	# This requires 2 PVs in each VG.
-	truncate --size=3G $(BACKING_STORE)/backing_store$(ID)_3
-	truncate --size=3G $(BACKING_STORE)/backing_store$(ID)_4
-	$(SUDO) losetup -f $(BACKING_STORE)/backing_store$(ID)_3
-	$(SUDO) losetup -f $(BACKING_STORE)/backing_store$(ID)_4
-	$(SUDO) vgcreate -y node$(ID)-myvg3 \
-		$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_3 | cut -d: -f1) \
-		$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_4 | cut -d: -f1)
+	for i in $$(seq 2); do \
+		truncate --size=3G $(BACKING_STORE)/backing_store$(ID)_$$((i*2+1)); \
+		truncate --size=3G $(BACKING_STORE)/backing_store$(ID)_$$((i*2+2)); \
+		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$(ID)_$$((i*2+1)); \
+		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$(ID)_$$((i*2+2)); \
+		$(SUDO) vgcreate -y node$(ID)-raid1-$${i} \
+			$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_$$((i*2+1)) | cut -d: -f1) \
+			$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_$$((i*2+2)) | cut -d: -f1); \
+	done
 
 	# Create Volume Group for thinpool
-	truncate --size=5G $(BACKING_STORE)/backing_store$(ID)_5
-	$(SUDO) losetup -f $(BACKING_STORE)/backing_store$(ID)_5
-	$(SUDO) vgcreate -y node$(ID)-myvg4 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_5 | cut -d: -f1)
-	$(SUDO) lvcreate -T -n pool0 -L 4G node$(ID)-myvg4
-
-	# Create Volume Group for testing lvcreate-option-classes.
-	# This requires 2 PVs in each VG.
-	truncate --size=3G $(BACKING_STORE)/backing_store$(ID)_6
-	truncate --size=3G $(BACKING_STORE)/backing_store$(ID)_7
-	$(SUDO) losetup -f $(BACKING_STORE)/backing_store$(ID)_6
+	truncate --size=5G $(BACKING_STORE)/backing_store$(ID)_7
 	$(SUDO) losetup -f $(BACKING_STORE)/backing_store$(ID)_7
-	$(SUDO) vgcreate -y node$(ID)-myvg5 \
-		$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_6 | cut -d: -f1) \
-		$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_7 | cut -d: -f1)
+	$(SUDO) vgcreate -y node$(ID)-thin1 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_7 | cut -d: -f1)
+	$(SUDO) lvcreate -T -n pool0 -L 4G node$(ID)-thin1
 
 .PHONY: common/remove-vg
 common/remove-vg:
-	for i in $$(seq 5); do \
-		$(SUDO) vgremove -ffy node$(ID)-myvg$${i}; \
+	for name in thick1 thick2 raid1-1 raid1-2 thin1; do \
+		$(SUDO) vgremove -ffy node$(ID)-$${name}; \
 	done; \
 	for i in $$(seq 7); do \
 		$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_$${i} | cut -d: -f1); \
