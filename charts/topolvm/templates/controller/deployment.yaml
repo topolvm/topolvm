@@ -236,9 +236,6 @@ spec:
             - /livenessprobe
             - --csi-address=/run/topolvm/csi-topolvm.sock
             - --http-endpoint=:9808
-          ports:
-            - containerPort: 9808
-              name: livenessprobe
           volumeMounts:
             - name: socket-dir
               mountPath: /run/topolvm
