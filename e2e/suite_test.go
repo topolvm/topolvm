@@ -14,11 +14,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var kubectlPath string
-
 // skipSpecs holds regexp strings that are used to skip tests.
 // It is intended to be setup by init function on each test file if necessary.
 var skipSpecs []string
+
+// They are initialized in BeforeSuite, it should be used only in Ginkgo nodes.
+var kubectlPath string
+var nonControlPlaneNodeCount int
 
 func TestMtest(t *testing.T) {
 	if os.Getenv("E2ETEST") == "" {
@@ -61,8 +63,10 @@ func waitKindnet(g Gomega) {
 	g.Expect(err).ShouldNot(HaveOccurred())
 	var ds appsv1.DaemonSet
 	err = getObjects(&ds, "ds", "-n", "kube-system", "kindnet")
-	g.Expect(err).ShouldNot(HaveOccurred())
-	g.Expect(ds.Status.NumberReady).To(BeEquivalentTo(len(nodes.Items)))
+	if err != ErrObjectNotFound {
+		g.Expect(err).ShouldNot(HaveOccurred())
+		g.Expect(ds.Status.NumberReady).To(BeEquivalentTo(len(nodes.Items)))
+	}
 }
 
 func isDaemonsetLvmdEnvSet() bool {
@@ -73,9 +77,19 @@ func isStorageCapacity() bool {
 	return os.Getenv("STORAGE_CAPACITY") == "true"
 }
 
-func skipIfDaemonsetLvmd() {
-	if isDaemonsetLvmdEnvSet() {
-		Skip("skip because current environment is daemonset lvmd")
+func skipIfStorageCapacity(reason ...string) {
+	if isStorageCapacity() {
+		msg := "skip because current environment is storage capacity"
+		if len(reason) > 0 {
+			msg += ": " + reason[0]
+		}
+		Skip(msg)
+	}
+}
+
+func skipIfSingleNode() {
+	if nonControlPlaneNodeCount == 0 {
+		Skip("This test requires multiple nodes")
 	}
 }
 
@@ -96,13 +110,18 @@ var _ = BeforeSuite(func() {
 	Expect(kubectlPath).ShouldNot(BeEmpty())
 	fmt.Println("This test uses a kubectl at " + kubectlPath)
 
-	if !isDaemonsetLvmdEnvSet() {
-		By("Waiting for kindnet to get ready")
-		// Because kindnet will crash. we need to confirm its readiness twice.
-		Eventually(waitKindnet).Should(Succeed())
-		time.Sleep(5 * time.Second)
-		Eventually(waitKindnet).Should(Succeed())
-	}
+	By("Getting node count")
+	var nodes corev1.NodeList
+	err := getObjects(&nodes, "nodes", "-l=!node-role.kubernetes.io/control-plane")
+	Expect(err).Should(SatisfyAny(Not(HaveOccurred()), BeIdenticalTo(ErrObjectNotFound)))
+	nonControlPlaneNodeCount = len(nodes.Items)
+
+	By("Waiting for kindnet to get ready if necessary")
+	// Because kindnet will crash. we need to confirm its readiness twice.
+	Eventually(waitKindnet).Should(Succeed())
+	time.Sleep(5 * time.Second)
+	Eventually(waitKindnet).Should(Succeed())
+
 	SetDefaultEventuallyTimeout(5 * time.Minute)
 
 	By("Waiting for mutating webhook to get ready")
@@ -113,7 +132,7 @@ var _ = BeforeSuite(func() {
 		}
 		return nil
 	}).Should(Succeed())
-	_, err := kubectlWithInput(pausePodYAML, "delete", "-f", "-")
+	_, err = kubectlWithInput(pausePodYAML, "delete", "-f", "-")
 	Expect(err).ShouldNot(HaveOccurred())
 })
 

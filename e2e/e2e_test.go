@@ -35,8 +35,6 @@ var nodeCapacityPVC2YAML []byte
 var e2eGenericEphemeralVolumeYAML []byte
 
 func testE2E() {
-	skipMessageForStorageCapacity := "skip because current environment is storage capacity"
-
 	testNamespacePrefix := "e2etest-"
 	var ns string
 	var cc CleanupContext
@@ -296,18 +294,10 @@ func testE2E() {
 	})
 
 	It("should choose a node with the largest capacity when volumeBindingMode == Immediate is specified", func() {
-		if isStorageCapacity() {
-			Skip(skipMessageForStorageCapacity + " and Storage Capacity Tracking doesn't check Storage Capacity when volumeBindingMode == Immediate is specified")
-			return
-		}
-
-		num := 3
-		if isDaemonsetLvmdEnvSet() {
-			num = 0
-		}
+		skipIfStorageCapacity("Storage Capacity Tracking doesn't check Storage Capacity when volumeBindingMode == Immediate is specified")
 
 		// Repeat applying a PVC to make sure that the volume is created on the node with the largest capacity in each loop.
-		for i := 0; i < num; i++ {
+		for i := 0; i < nonControlPlaneNodeCount; i++ {
 			By("getting the node with max capacity (loop: " + strconv.Itoa(i) + ")")
 			var maxCapNodes []string
 			Eventually(func() error {
@@ -339,8 +329,8 @@ func testE2E() {
 						maxCapNodes = append(maxCapNodes, node.GetName())
 					}
 				}
-				if len(maxCapNodes) != 3-i {
-					return fmt.Errorf("unexpected number of maxCapNodes: expected: %d, actual: %d", 3-i, len(maxCapNodes))
+				if len(maxCapNodes) != nonControlPlaneNodeCount-i {
+					return fmt.Errorf("unexpected number of maxCapNodes: expected: %d, actual: %d", nonControlPlaneNodeCount-i, len(maxCapNodes))
 				}
 				return nil
 			}).Should(Succeed())
@@ -377,11 +367,6 @@ func testE2E() {
 	})
 
 	It("should scheduled onto the correct node where PV exists (volumeBindingMode == Immediate)", func() {
-		if isStorageCapacity() {
-			Skip(skipMessageForStorageCapacity + " and Storage Capacity Tracking doesn't check Storage Capacity when volumeBindingMode == Immediate is specified")
-			return
-		}
-
 		By("creating pvc")
 		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1, "topolvm-provisioner-immediate"))
 		_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
@@ -453,6 +438,9 @@ func testE2E() {
 	})
 
 	It("should schedule pods and volumes according to topolvm-scheduler", func() {
+		skipIfStorageCapacity()
+		skipIfSingleNode()
+
 		/*
 			Check the operation of topolvm-scheduler in multi-node(3-node) environment.
 			As preparation, set the capacity of each node as follows.
@@ -478,8 +466,6 @@ func testE2E() {
 			- node2:  4 / 18 GiB -> filtered (insufficient capacity)
 			- node3:  4 / 18 GiB -> filtered (insufficient capacity)
 		*/
-		// Skip because this test requires multiple nodes but there is just one node in daemonset lvmd test environment.
-		skipIfDaemonsetLvmd()
 		By("initializing node capacity")
 		_, err := kubectlWithInput(nodeCapacityPVCYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())

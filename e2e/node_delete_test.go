@@ -22,8 +22,7 @@ var statefulSetTemplateYAML string
 func testNodeDelete() {
 
 	BeforeEach(func() {
-		// Skip because this test require multiple nodes but there is just one node in daemonset lvmd test environment.
-		skipIfDaemonsetLvmd()
+		skipIfSingleNode()
 
 		createNamespace(nsNodeDeleteTest)
 	})
@@ -36,7 +35,7 @@ func testNodeDelete() {
 		By("waiting for node finalizer set")
 		Eventually(func() error {
 			var nodes corev1.NodeList
-			err := getObjects(&nodes, "nodes", "-l=node-role.kubernetes.io/control-plane!=")
+			err := getObjects(&nodes, "nodes", "-l=!node-role.kubernetes.io/control-plane")
 			if err != nil {
 				return err
 			}
