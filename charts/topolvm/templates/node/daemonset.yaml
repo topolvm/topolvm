@@ -186,9 +186,6 @@ spec:
             - /livenessprobe
             - --csi-address={{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/csi-topolvm.sock
             - --http-endpoint=:9808
-          ports:
-            - containerPort: 9808
-              name: livenessprobe
           {{- with .Values.resources.liveness_probe }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
