@@ -60,7 +60,7 @@ func setupCommonResources() {
 		Provisioner:       "topolvm.io",
 		VolumeBindingMode: modePtr(storagev1.VolumeBindingWaitForFirstConsumer),
 		Parameters: map[string]string{
-			topolvm.GetDeviceClassKey(): "ssd",
+			topolvm.GetDeviceClassKey(): "dc1",
 		},
 	}
 	err := k8sClient.Create(testCtx, sc)
@@ -73,7 +73,7 @@ func setupCommonResources() {
 		Provisioner:       "topolvm.io",
 		VolumeBindingMode: modePtr(storagev1.VolumeBindingWaitForFirstConsumer),
 		Parameters: map[string]string{
-			topolvm.GetDeviceClassKey(): "hdd1",
+			topolvm.GetDeviceClassKey(): "dc2",
 		},
 	}
 	err = k8sClient.Create(testCtx, sc)
@@ -86,7 +86,7 @@ func setupCommonResources() {
 		Provisioner:       "topolvm.io",
 		VolumeBindingMode: modePtr(storagev1.VolumeBindingWaitForFirstConsumer),
 		Parameters: map[string]string{
-			topolvm.GetDeviceClassKey(): "hdd2",
+			topolvm.GetDeviceClassKey(): "dc3",
 		},
 	}
 	err = k8sClient.Create(testCtx, sc)
@@ -99,7 +99,7 @@ func setupCommonResources() {
 		Provisioner:       "topolvm.io",
 		VolumeBindingMode: modePtr(storagev1.VolumeBindingImmediate),
 		Parameters: map[string]string{
-			topolvm.GetDeviceClassKey(): "ssd",
+			topolvm.GetDeviceClassKey(): "dc1",
 		},
 	}
 	err = k8sClient.Create(testCtx, sc)

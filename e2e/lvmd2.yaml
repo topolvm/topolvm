@@ -1,9 +1,9 @@
 socket-name: /tmp/topolvm/lvmd2/lvmd.sock
 device-classes:
-  - name: "ssd"
+  - name: "dc1"
     volume-group: "node2-myvg1"
     spare-gb: 1
-  - name: "hdd1"
+  - name: "dc2"
     volume-group: "node2-myvg2"
     spare-gb: 1
   - name: "raid"

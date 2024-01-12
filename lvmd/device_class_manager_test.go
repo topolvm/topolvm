@@ -17,13 +17,13 @@ func TestValidateDeviceClasses(t *testing.T) {
 		{
 			deviceClasses: []*DeviceClass{
 				{
-					Name:        "hdd",
+					Name:        "dc1",
 					VolumeGroup: "node1-myvg1",
+					Default:     true,
 				},
 				{
-					Name:        "ssd",
+					Name:        "dc2",
 					VolumeGroup: "node1-myvg2",
-					Default:     true,
 				},
 			},
 			valid: true,
@@ -198,12 +198,12 @@ func TestValidateDeviceClasses(t *testing.T) {
 		{
 			deviceClasses: []*DeviceClass{
 				{
-					Name:        "hdd",
-					VolumeGroup: "node1-hdd",
+					Name:        "dc1",
+					VolumeGroup: "node1-myvg1",
 				},
 				{
-					Name:        "ssd",
-					VolumeGroup: "node1-ssd",
+					Name:        "dc2",
+					VolumeGroup: "node1-myvg2",
 				},
 			},
 			valid: true,
@@ -211,13 +211,13 @@ func TestValidateDeviceClasses(t *testing.T) {
 		{
 			deviceClasses: []*DeviceClass{
 				{
-					Name:        "hdd",
-					VolumeGroup: "node1-hdd",
+					Name:        "dc1",
+					VolumeGroup: "node1-myvg1",
 					Default:     true,
 				},
 				{
-					Name:        "ssd",
-					VolumeGroup: "node1-ssd",
+					Name:        "dc2",
+					VolumeGroup: "node1-myvg2",
 					Default:     true,
 				},
 			},
@@ -389,23 +389,23 @@ func TestDeviceClassManager(t *testing.T) {
 	lvcreateOptions := []string{"--mirrors=1"}
 	deviceClasses := []*DeviceClass{
 		{
-			Name:        "hdd1",
-			VolumeGroup: "hdd1-vg",
-			SpareGB:     &spare50gb,
-		},
-		{
-			Name:        "hdd2",
-			VolumeGroup: "hdd2-vg",
-			SpareGB:     &spare100gb,
-		},
-		{
-			Name:        "ssd",
-			VolumeGroup: "ssd-vg",
+			Name:        "dc1",
+			VolumeGroup: "vg1",
 			Default:     true,
 		},
 		{
+			Name:        "dc2",
+			VolumeGroup: "vg2",
+			SpareGB:     &spare50gb,
+		},
+		{
+			Name:        "dc3",
+			VolumeGroup: "vg3",
+			SpareGB:     &spare100gb,
+		},
+		{
 			Name:            "mirrors",
-			VolumeGroup:     "hdd1-vg",
+			VolumeGroup:     "vg2",
 			LVCreateOptions: lvcreateOptions,
 		},
 		{
@@ -422,12 +422,12 @@ func TestDeviceClassManager(t *testing.T) {
 	}
 	manager := NewDeviceClassManager(deviceClasses)
 
-	dc, err := manager.DeviceClass("hdd1")
+	dc, err := manager.DeviceClass("dc2")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if dc.GetSpare() != spare50gb<<30 {
-		t.Error("hdd1's spare should be 50GB")
+		t.Error("dc2's spare should be 50GB")
 	}
 
 	_, err = manager.DeviceClass("unknown")
@@ -435,12 +435,12 @@ func TestDeviceClassManager(t *testing.T) {
 		t.Error("'unknown' should not be found")
 	}
 
-	dc, err = manager.FindDeviceClassByVGName("hdd2-vg")
+	dc, err = manager.FindDeviceClassByVGName("vg3")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if dc.GetSpare() != spare100gb<<30 {
-		t.Error("hdd2's spare should be 100GB")
+		t.Error("dc3's spare should be 100GB")
 	}
 
 	_, err = manager.FindDeviceClassByVGName("unknown")
@@ -462,11 +462,11 @@ func TestDeviceClassManager(t *testing.T) {
 	if dc == nil {
 		t.Fatal("default not found")
 	}
-	if dc.Name != "ssd" {
+	if dc.Name != "dc1" {
 		t.Fatal("wrong device-class found")
 	}
 	if dc.GetSpare() != defaultSpareGB<<30 {
-		t.Error("ssd's spare should be default")
+		t.Error("dc1's spare should be default")
 	}
 	if dc.Type != TypeThick {
 		t.Error("Default type should be TypeThick")

@@ -312,7 +312,7 @@ func testE2E() {
 					if node.Name == "topolvm-e2e-control-plane" {
 						continue
 					}
-					strCap, ok := node.Annotations[topolvm.GetCapacityKeyPrefix()+"ssd"]
+					strCap, ok := node.Annotations[topolvm.GetCapacityKeyPrefix()+"dc1"]
 					if !ok {
 						return fmt.Errorf("capacity is not annotated: %s", node.Name)
 					}
@@ -501,7 +501,7 @@ func testE2E() {
 				continue
 			}
 
-			strCap, ok := node.Annotations[topolvm.GetCapacityKeyPrefix()+"ssd"]
+			strCap, ok := node.Annotations[topolvm.GetCapacityKeyPrefix()+"dc1"]
 			Expect(ok).To(Equal(true), "capacity is not annotated: "+node.Name)
 			capacity, err := strconv.Atoi(strCap)
 			Expect(err).ShouldNot(HaveOccurred())

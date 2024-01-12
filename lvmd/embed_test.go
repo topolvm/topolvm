@@ -16,13 +16,13 @@ func TestNewEmbeddedServiceClients(t *testing.T) {
 
 		{"volumegroup", []*DeviceClass{
 			{
-				Name:        "ssd",
+				Name:        "dc",
 				VolumeGroup: "test_vgservice",
 			}},
 		},
 		{"thinpool", []*DeviceClass{
 			{
-				Name:        "ssd",
+				Name:        "dc",
 				VolumeGroup: "test_vgservice",
 				Type:        TypeThin,
 				ThinPoolConfig: &ThinPoolConfig{
