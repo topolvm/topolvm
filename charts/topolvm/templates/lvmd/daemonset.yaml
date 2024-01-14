@@ -108,6 +108,9 @@ spec:
             path: {{ dir .Values.lvmd.socketName }}
             type: DirectoryOrCreate
         {{- end }}
+        {{- with .Values.lvmd.additionalVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       {{- with $lvmd.tolerations }}
       tolerations: {{ toYaml . | nindent 8 }}
       {{- end }}

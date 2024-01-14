@@ -234,6 +234,9 @@ spec:
             type: Directory
         {{- end }}
         {{- end }}
+        {{- with .Values.node.additionalVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
 
       {{- with .Values.node.tolerations }}
       tolerations: {{ toYaml . | nindent 8 }}
