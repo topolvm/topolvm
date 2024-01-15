@@ -9,11 +9,11 @@ appVersion: 0.25.0
 sources:
   - https://github.com/topolvm/topolvm
 
-dependencies:
-  - name: cert-manager
-    repository: https://charts.jetstack.io
-    version: 1.7.0
-    condition: cert-manager.enabled
+# dependencies:
+#   - name: cert-manager
+#     repository: https://charts.jetstack.io
+#     version: 1.7.0
+#     condition: cert-manager.enabled
 
 annotations:
   artifacthub.io/images: |

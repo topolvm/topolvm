@@ -1,6 +1,3 @@
-# useLegacy -- If true, the legacy plugin name and legacy custom resource group is used(topolvm.cybozu.com).
-useLegacy: false
-
 image:
   # image.repository -- TopoLVM image repository to use.
   repository: ghcr.io/topolvm/topolvm-with-sidecar

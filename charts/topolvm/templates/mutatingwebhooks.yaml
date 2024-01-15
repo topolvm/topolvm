@@ -12,13 +12,13 @@ metadata:
     {{- include "topolvm.labels" . | nindent 4 }}
 webhooks:
   {{- if .Values.webhook.podMutatingWebhook.enabled }}
-  - name: pod-hook.{{ include "topolvm.pluginName" . }}
+  - name: pod-hook.topolvm.io
     admissionReviewVersions:
     - v1
     - v1beta1
     namespaceSelector:
       matchExpressions:
-      - key: {{ include "topolvm.pluginName" . }}/webhook
+      - key: topolvm.io/webhook
         operator: NotIn
         values: ["ignore"]
     failurePolicy: Fail
@@ -43,13 +43,13 @@ webhooks:
     sideEffects: None
   {{- end }}
   {{- if .Values.webhook.pvcMutatingWebhook.enabled }}
-  - name: pvc-hook.{{ include "topolvm.pluginName" . }}
+  - name: pvc-hook.topolvm.io
     admissionReviewVersions:
     - v1
     - v1beta1
     namespaceSelector:
       matchExpressions:
-      - key: {{ include "topolvm.pluginName" . }}/webhook
+      - key: topolvm.io/webhook
         operator: NotIn
         values: ["ignore"]
     failurePolicy: Fail

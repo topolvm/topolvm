@@ -53,7 +53,7 @@ spec:
           {{- end }}
           command:
             - /topolvm-node
-            - --csi-socket={{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/csi-topolvm.sock
+            - --csi-socket={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.io/node/csi-topolvm.sock
             {{- if .Values.node.lvmdEmbedded }}
             - --embed-lvmd
             {{- else }}
@@ -93,10 +93,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            {{ if .Values.useLegacy }}
-            - name: USE_LEGACY
-              value: "true"
-            {{ end }}
             {{- with .Values.env.topolvm_node }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -105,7 +101,7 @@ spec:
             {{- toYaml .Values.node.volumeMounts.topolvmNode | nindent 12 }}
             {{- else }}
             - name: node-plugin-dir
-              mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/
+              mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.io/node/
             {{ if .Values.node.lvmdEmbedded }}
             - name: config
               mountPath: /etc/topolvm
@@ -132,8 +128,8 @@ spec:
           {{- end }}
           command:
             - /csi-node-driver-registrar
-            - --csi-address={{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/csi-topolvm.sock
-            - --kubelet-registration-path={{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/csi-topolvm.sock
+            - --csi-address={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.io/node/csi-topolvm.sock
+            - --kubelet-registration-path={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.io/node/csi-topolvm.sock
             - --http-endpoint=:9809
           ports:
             - containerPort: 9809
@@ -160,7 +156,7 @@ spec:
                 command:
                 - /bin/sh
                 - -c
-                - rm -rf /registration/{{ include "topolvm.pluginName" . }} /registration/{{ include "topolvm.pluginName" . }}-reg.sock
+                - rm -rf /registration/topolvm.io /registration/topolvm.io-reg.sock
           {{- with .Values.resources.csi_registrar }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
@@ -169,7 +165,7 @@ spec:
           {{- end }}
           volumeMounts:
             - name: node-plugin-dir
-              mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/
+              mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.io/node/
             - name: registration-dir
               mountPath: /registration
 
@@ -184,7 +180,7 @@ spec:
           {{- end }}
           command:
             - /livenessprobe
-            - --csi-address={{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/csi-topolvm.sock
+            - --csi-address={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.io/node/csi-topolvm.sock
             - --http-endpoint=:9808
           ports:
             - containerPort: 9808
@@ -197,7 +193,7 @@ spec:
           {{- end }}
           volumeMounts:
             - name: node-plugin-dir
-              mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/
+              mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.io/node/
 
       volumes:
         {{- if .Values.node.volumes }}
@@ -209,7 +205,7 @@ spec:
             type: Directory
         - name: node-plugin-dir
           hostPath:
-            path: {{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node
+            path: {{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.io/node
             type: DirectoryOrCreate
         - name: csi-plugin-dir
           hostPath:

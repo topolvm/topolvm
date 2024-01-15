@@ -1,7 +1,7 @@
 apiVersion: storage.k8s.io/v1
 kind: CSIDriver
 metadata:
-  name: {{ include "topolvm.pluginName" . }}
+  name: topolvm.io
   labels:
     {{- include "topolvm.labels" . | nindent 4 }}
 spec:

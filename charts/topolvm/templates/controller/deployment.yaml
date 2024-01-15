@@ -60,12 +60,8 @@ spec:
             {{- if .Values.controller.nodeFinalize.skipped }}
             - --skip-node-finalize
             {{- end }}
-          {{- if or .Values.useLegacy .Values.env.topolvm_controller }}
+          {{- if .Values.env.topolvm_controller }}
           env:
-            {{- if .Values.useLegacy }}
-            - name: USE_LEGACY
-              value: "true"
-            {{- end }}
             {{- with .Values.env.topolvm_controller }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
