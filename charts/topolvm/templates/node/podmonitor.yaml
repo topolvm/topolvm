@@ -1,12 +1,12 @@
-{{- if .Values.node.prometheus.podMonitor.enabled }}
+{{- if .Values.node.csi.prometheus.podMonitor.enabled }}
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
   name: {{ template "topolvm.fullname" . }}-node
-  namespace: {{ .Values.node.prometheus.podMonitor.namespace | default .Release.Namespace }}
+  namespace: {{ .Values.node.csi.prometheus.podMonitor.namespace | default .Release.Namespace }}
   labels:
     {{- include "topolvm.labels" . | nindent 4 }}
-    {{- with .Values.node.prometheus.podMonitor.additionalLabels }}
+    {{- with .Values.node.csi.prometheus.podMonitor.additionalLabels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:
@@ -20,17 +20,17 @@ spec:
   podMetricsEndpoints:
   - path: /metrics
     port: metrics
-    {{- with .Values.node.prometheus.podMonitor.interval }}
+    {{- with .Values.node.csi.prometheus.podMonitor.interval }}
     interval: {{ . }}
     {{- end }}
-    {{- with .Values.node.prometheus.podMonitor.scrapeTimeout }}
+    {{- with .Values.node.csi.prometheus.podMonitor.scrapeTimeout }}
     scrapeTimeout: {{ . }}
     {{- end }}
-    {{- with .Values.node.prometheus.podMonitor.relabelings }}
+    {{- with .Values.node.csi.prometheus.podMonitor.relabelings }}
     relabelings:
       {{- toYaml . | nindent 6 }}
     {{- end }}
-    {{- with .Values.node.prometheus.podMonitor.metricRelabelings }}
+    {{- with .Values.node.csi.prometheus.podMonitor.metricRelabelings }}
     metricRelabelings:
       {{- toYaml . | nindent 6 }}
     {{- end }}

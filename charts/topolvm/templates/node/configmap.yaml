@@ -1,0 +1,19 @@
+{{- if .Values.node.lvmdEmbedded }}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "topolvm.fullname" . }}-lvmd
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "topolvm.labels" . | nindent 4 }}
+data:
+  lvmd.yaml: |
+    socket-name: {{ .Values.node.lvmdSocket  }}
+    {{- if .Values.node.lvmd.deviceClasses }}
+    device-classes: {{ toYaml .Values.node.lvmd.deviceClasses | nindent 6 }}
+    {{- end }}
+    {{- if .Values.node.lvmd.lvcreateOptionClasses }}
+    lvcreate-option-classes: {{ toYaml .Values.node.lvmd.lvcreateOptionClasses | nindent 6 }}
+    {{- end }}
+{{- end }}    

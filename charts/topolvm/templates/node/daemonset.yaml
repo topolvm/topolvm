@@ -24,8 +24,8 @@ spec:
         {{- with .Values.node.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      {{- if and .Values.node.metrics.enabled .Values.node.metrics.annotations }}
-      annotations: {{ toYaml .Values.node.metrics.annotations | nindent 8 }}
+      {{- if and .Values.node.csi.metrics.enabled .Values.node.csi.metrics.annotations }}
+      annotations: {{ toYaml .Values.node.csi.metrics.annotations | nindent 8 }}
       {{- end }}
     spec:
       {{- with .Values.node.priorityClassName }}
@@ -37,29 +37,73 @@ spec:
       {{- end }}
       serviceAccountName: {{ template "topolvm.fullname" . }}-node
       {{- if .Values.node.lvmdEmbedded }}
-      hostPID: true
+      # hostPID: true
       {{- end }}
       {{- with .Values.node.initContainers }}
       initContainers: {{ toYaml . | nindent 6 }}
       {{- end }}
       containers:
-        - name: topolvm-node
+      {{- if .Values.node.lvmdEmbedded }}
+        - name: topolvm-lvmd
           image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
           {{- with .Values.image.pullPolicy }}
           imagePullPolicy: {{ . }}
           {{- end }}
-          {{- with .Values.node.securityContext }}
+          securityContext:
+            privileged: true
+          command:
+            - /lvmd
+            - --container
+          {{- with .Values.node.lvmd.args }}
+          args: {{ toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.node.lvmd.env }}
+          env:
+          {{- toYaml .Values.node.lvmd.env | nindent 10 }}
+          {{- end }}
+          livenessProbe:
+            exec:
+              command:
+                - /lvmd
+                - health
+            {{- with .Values.livenessProbe.lvmd.failureThreshold }}
+            failureThreshold: {{ . }}
+            {{- end }}
+            {{- with .Values.livenessProbe.lvmd.initialDelaySeconds }}
+            initialDelaySeconds: {{ . }}
+            {{- end }}
+            {{- with .Values.livenessProbe.lvmd.timeoutSeconds }}
+            timeoutSeconds: {{ . }}
+            {{- end }}
+            {{- with .Values.livenessProbe.lvmd.periodSeconds }}
+            periodSeconds: {{ . }}
+            {{- end }}
+          {{- with .Values.resources.lvmd }}
+          resources: {{ toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/topolvm
+            {{- if .Values.node.lvmd.additionalVolumes }}
+            {{- toYaml .Values.node.lvmd.additionalVolumes | nindent 12 }}
+            {{- else }}
+            - name: lvmd-socket-dir
+              mountPath: {{ dir .Values.node.lvmdSocket }}
+            {{- end }}     
+      {{- end }}             
+        - name: topolvm-nodecsi
+          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          {{- with .Values.image.pullPolicy }}
+          imagePullPolicy: {{ . }}
+          {{- end }}
+          {{- with .Values.node.csi.securityContext }}
           securityContext: {{ toYaml . | nindent 12 }}
           {{- end }}
           command:
             - /topolvm-node
             - --csi-socket={{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.io/node/csi-topolvm.sock
-            {{- if .Values.node.lvmdEmbedded }}
-            - --embed-lvmd
-            {{- else }}
             - --lvmd-socket={{ .Values.node.lvmdSocket }}
-            {{- end }}
-          {{- with .Values.node.args }}
+          {{- with .Values.node.csi.args }}
           args: {{ toYaml . | nindent 12 }}
           {{- end }}
           ports:
@@ -97,24 +141,18 @@ spec:
             {{- toYaml . | nindent 12 }}
             {{- end }}
           volumeMounts:
-            {{- if .Values.node.volumeMounts.topolvmNode }}
-            {{- toYaml .Values.node.volumeMounts.topolvmNode | nindent 12 }}
-            {{- else }}
             - name: node-plugin-dir
               mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.io/node/
-            {{ if .Values.node.lvmdEmbedded }}
-            - name: config
-              mountPath: /etc/topolvm
-            {{ else }}
             - name: lvmd-socket-dir
               mountPath: {{ dir .Values.node.lvmdSocket }}
-            {{ end }}
             - name: pod-volumes-dir
               mountPath: {{ .Values.node.kubeletWorkDirectory }}/pods
               mountPropagation: "Bidirectional"
             - name: csi-plugin-dir
               mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/kubernetes.io/csi
               mountPropagation: "Bidirectional"
+            {{- if .Values.node.csi.additionalVolumeMounts }}
+            {{- toYaml .Values.node.csi.additionalVolumeMounts | nindent 12 }}
             {{- end }}
 
         - name: csi-registrar
@@ -196,9 +234,6 @@ spec:
               mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/topolvm.io/node/
 
       volumes:
-        {{- if .Values.node.volumes }}
-        {{- toYaml .Values.node.volumes | nindent 8 }}
-        {{- else }}
         - name: registration-dir
           hostPath:
             path: {{ .Values.node.kubeletWorkDirectory }}/plugins_registry/
@@ -216,22 +251,23 @@ spec:
             path: {{ .Values.node.kubeletWorkDirectory }}/pods/
             type: DirectoryOrCreate
         {{- if .Values.node.lvmdEmbedded }}
-          {{ $global := . }}
-          {{- $lvmds := concat ( list .Values.lvmd ) .Values.lvmd.additionalConfigs }}
-          {{- range $lvmdidx, $lvmd := $lvmds }}
-            {{/* Undo the "." rewritten by the range block */}}
-            {{- with $global }}
         - name: config
           configMap:
-            name: {{ template "topolvm.fullname" . }}-lvmd-{{ $lvmdidx }}
-            {{- end }}
-          {{- end }}
+            name: {{ template "topolvm.fullname" . }}-lvmd
+        {{- end }}
+        {{- if .Values.node.lvmdEmbedded }}
+        - name: lvmd-socket-dir
+          emptyDir: 
+            medium: Memory
+            sizeLimit: 10Mi
         {{- else }}
         - name: lvmd-socket-dir
           hostPath:
-            path: {{ dir .Values.node.lvmdSocket }}
-            type: Directory
+            path: {{ dir .Values.node.lvmdSocket }}        
         {{- end }}
+        
+        {{- if .Values.node.additionalVolumes }}
+        {{- toYaml .Values.node.volumes | nindent 8 }}
         {{- end }}
 
       {{- with .Values.node.tolerations }}
