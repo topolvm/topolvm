@@ -104,7 +104,7 @@ scheduler:
   nodeSelector: {}
 
   # scheduler.priorityClassName -- Specify priorityClassName on the Deployment or DaemonSet.
-  priorityClassName:
+  priorityClassName: system-cluster-critical
 
   # scheduler.schedulerOptions -- Tune the Node scoring.
   # ref: https://github.com/topolvm/topolvm/blob/master/deploy/README.md
@@ -151,7 +151,7 @@ lvmd:
   args: []
 
   # lvmd.priorityClassName -- Specify priorityClassName.
-  priorityClassName:
+  priorityClassName: system-node-critical
 
   # lvmd.tolerations -- Specify tolerations.
   ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
@@ -268,7 +268,7 @@ node:
       #   action: replace
 
   # node.priorityClassName -- Specify priorityClassName.
-  priorityClassName:
+  priorityClassName: system-node-critical
 
   # node.tolerations -- Specify tolerations.
   ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
@@ -391,7 +391,7 @@ controller:
   terminationGracePeriodSeconds:  # 10
 
   # controller.priorityClassName -- Specify priorityClassName.
-  priorityClassName:
+  priorityClassName: system-cluster-critical
 
   # controller.updateStrategy -- Specify updateStrategy.
   updateStrategy: {}
