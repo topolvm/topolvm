@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
-	"github.com/cybozu-go/well"
 	"github.com/spf13/cobra"
 	"github.com/topolvm/topolvm"
 	"github.com/topolvm/topolvm/lvmd"
@@ -97,31 +98,25 @@ func subMain(ctx context.Context) error {
 	proto.RegisterVGServiceServer(grpcServer, vgService)
 	proto.RegisterLVServiceServer(grpcServer, lvmd.NewLVService(dcm, ocm, notifier))
 	grpc_health_v1.RegisterHealthServer(grpcServer, lvmd.NewHealthService())
-	well.Go(func(ctx context.Context) error {
-		return grpcServer.Serve(lis)
-	})
-	well.Go(func(ctx context.Context) error {
-		<-ctx.Done()
-		grpcServer.GracefulStop()
-		return nil
-	})
-	well.Go(func(ctx context.Context) error {
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	go func() {
 		ticker := time.NewTicker(10 * time.Minute)
 		for {
 			select {
 			case <-ctx.Done():
 				ticker.Stop()
-				return nil
+				grpcServer.GracefulStop()
+				return
 			case <-ticker.C:
 				notifier()
 			}
 		}
-	})
-	err = well.Wait()
-	if err != nil && !well.IsSignaled(err) {
-		return err
-	}
-	return nil
+	}()
+
+	return grpcServer.Serve(lis)
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
