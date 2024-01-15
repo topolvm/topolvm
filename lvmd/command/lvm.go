@@ -44,16 +44,20 @@ func callLVM(ctx context.Context, cmd string, args ...string) error {
 // cmd is a name of sub-command.
 func callLVMWithStdout(ctx context.Context, cmd string, args ...string) ([]byte, error) {
 	var stdout bytes.Buffer
+	var stderr bytes.Buffer
 	args = append([]string{cmd}, args...)
 
 	c := wrapExecCommand(lvm, args...)
 	c.Env = os.Environ()
 	c.Env = append(c.Env, "LC_ALL=C")
 	c.Stdout = &stdout
-	c.Stderr = os.Stderr
+	c.Stderr = &stderr
 
 	log.FromContext(ctx).Info("invoking LVM command", "args", args)
 	err := c.Run()
+
+	log.FromContext(ctx).Info("result of LVM command", "stdout", stdout.Bytes(), "stderr", stderr.Bytes())
+
 	return stdout.Bytes(), err
 }
 
