@@ -54,7 +54,7 @@ scheduler:
   # Use only if you choose `scheduler.type` deployment
   service:
     # scheduler.service.type -- Specify Service type.
-    type: LoadBalancer
+    type: ClusterIP
     # scheduler.service.clusterIP -- Specify Service clusterIP.
     clusterIP:  # None
     # scheduler.service.nodePort -- (int) Specify nodePort.
