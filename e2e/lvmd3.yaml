@@ -1,25 +1,25 @@
 socket-name: /tmp/topolvm/lvmd3/lvmd.sock
 device-classes:
   - name: "dc1"
-    volume-group: "node3-myvg1"
+    volume-group: "node3-thick1"
     spare-gb: 1
-  - name: "dc3"
-    volume-group: "node3-myvg2"
+  - name: "dc2"
+    volume-group: "node3-thick2"
     spare-gb: 1
-  - name: "raid"
-    volume-group: "node3-myvg3"
+  - name: "create-option-raid1"
+    volume-group: "node3-raid1-1"
     spare-gb: 1
     lvcreate-options:
       - "--type=raid1"
+  - name: "option-class-raid1"
+    volume-group: "node3-raid1-2"
+    spare-gb: 1
   - name: "thin"
-    volume-group: "node3-myvg4"
+    volume-group: "node3-thin1"
     type: thin
     thin-pool:
       name: "pool0"
       overprovision-ratio: 5.0
-  - name: "raid1"
-    volume-group: "node3-myvg5"
-    spare-gb: 1
 lvcreate-option-classes:
   - name: "raid1"
     options:

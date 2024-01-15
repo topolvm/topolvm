@@ -100,55 +100,10 @@ start-lvmd:
 	mkdir -p build $(BACKING_STORE)
 	go build -o build/lvmd ../pkg/lvmd
 	if [ $$(ls -1 $(BACKING_STORE)/backing_store* 2>/dev/null | wc -l) -ne 0 ]; then $(MAKE) stop-lvmd; fi
-
 	for i in $$(seq 3); do \
 		mkdir -p /tmp/topolvm/worker$$i; \
 		mkdir -p /tmp/topolvm/lvmd$$i; \
-		truncate --size=20G $(BACKING_STORE)/backing_store$${i}_1; \
-		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$${i}_1; \
-		$(SUDO) vgcreate -y node$${i}-myvg1 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_1 | cut -d: -f1); \
-	done
-
-	# Create additional Volume Groups
-	for i in $$(seq 3); do \
-		truncate --size=10G $(BACKING_STORE)/backing_store$${i}_2; \
-		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$${i}_2; \
-		$(SUDO) vgcreate -y node$${i}-myvg2 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_2 | cut -d: -f1); \
-	done
-
-	# Create Volume Group for testing raid1 volumes.
-	# This requires 2 PVs in each VG.
-	# node{i}-myvg3: backing_store{i}_3, backing_store{i}_4
-	for i in $$(seq 3); do \
-		truncate --size=3G $(BACKING_STORE)/backing_store$${i}_3; \
-		truncate --size=3G $(BACKING_STORE)/backing_store$${i}_4; \
-		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$${i}_3; \
-		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$${i}_4; \
-		$(SUDO) vgcreate -y node$${i}-myvg3 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_3 | cut -d: -f1) \
-			$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_4 | cut -d: -f1); \
-	done
-
-	# Create thin-p Volume Groups and thinpool
-	for i in $$(seq 3); do \
-		truncate --size=5G $(BACKING_STORE)/backing_store$${i}_5; \
-		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$${i}_5; \
-		$(SUDO) vgcreate -y node$${i}-myvg4 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_5 | cut -d: -f1); \
-		$(SUDO) lvcreate -T -n pool0 -L 4G node$${i}-myvg4; \
-	done
-
-	# Create Volume Group for testing lvcreate-option-classes.
-	# This requires 2 PVs in each VG.
-	# node{i}-myvg5: backing_store{i}_6, backing_store{i}_7
-	for i in $$(seq 3); do \
-		truncate --size=3G $(BACKING_STORE)/backing_store$${i}_6; \
-		truncate --size=3G $(BACKING_STORE)/backing_store$${i}_7; \
-		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$${i}_6; \
-		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$${i}_7; \
-		$(SUDO) vgcreate -y node$${i}-myvg5 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_6 | cut -d: -f1) \
-			$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_7 | cut -d: -f1); \
-	done
-
-	for i in $$(seq 3); do \
+		$(MAKE) common/create-vg ID=$$i; \
 		$(SUDO) systemctl reset-failed lvmd$$i.service || true; \
 		$(SUDO) systemd-run --unit=lvmd$$i.service $(shell pwd)/build/lvmd --config=$(shell pwd)/lvmd$$i.yaml; \
 	done
@@ -158,14 +113,7 @@ stop-lvmd:
 	$(MAKE) shutdown-kind
 	for i in $$(seq 3); do \
 		if systemctl is-active -q lvmd$$i.service; then $(SUDO) systemctl stop lvmd$$i.service; fi; \
-		for j in $$(seq 7); do \
-			if [ "$${j}" -lt 6 ]; then \
-				$(SUDO) vgremove -ffy node$${i}-myvg$${j}; \
-			fi; \
-			$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_$${j} | cut -d: -f1); \
-			$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_$${j} | cut -d: -f1); \
-			rm -f $(BACKING_STORE)/backing_store$${i}_$${j}; \
-		done; \
+		$(MAKE) common/remove-vg ID=$$i; \
 	done
 
 .PHONY: create-cluster
@@ -248,48 +196,11 @@ $(KUBECTL): | $(BINDIR)
 incluster-lvmd/create-vg:
 	mkdir -p build $(BACKING_STORE)
 	if [ $$(ls -1 $(BACKING_STORE)/backing_store_lvmd* 2>/dev/null | wc -l) -ne 0 ]; then $(MAKE) $(@D)/remove-vg; fi
-
-	for i in $$(seq 3); do \
-		truncate --size=20G $(BACKING_STORE)/backing_store_lvmd_$${i}; \
-		$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_$${i}; \
-		$(SUDO) vgcreate -y node-myvg$${i} $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_$${i} | cut -d: -f1); \
-	done
-
-	# Create Volume Group for testing raid1 volumes.
-	# This requires 2 PVs in each VG.
-	truncate --size=3G $(BACKING_STORE)/backing_store_lvmd_4
-	truncate --size=3G $(BACKING_STORE)/backing_store_lvmd_5
-	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_4
-	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_5
-	$(SUDO) vgcreate -y node-myvg4 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_4 | cut -d: -f1) \
-		$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_5 | cut -d: -f1)
-
-	# Create Volume Group for thinpool
-	truncate --size=5G $(BACKING_STORE)/backing_store_lvmd_6
-	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_6
-	$(SUDO) vgcreate -y node-myvg5 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_6 | cut -d: -f1)
-	$(SUDO) lvcreate -T -n pool0 -L 4G node-myvg5
-
-	# Create Volume Group for testing lvcreate-option-classes.
-	# This requires 2 PVs in each VG.
-	truncate --size=3G $(BACKING_STORE)/backing_store_lvmd_7
-	truncate --size=3G $(BACKING_STORE)/backing_store_lvmd_8
-	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_7
-	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_8
-	$(SUDO) vgcreate -y node-myvg6 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_7 | cut -d: -f1) \
-		$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_8 | cut -d: -f1)
-
+	$(MAKE) common/create-vg ID=1
 
 .PHONY: incluster-lvmd/remove-vg
 incluster-lvmd/remove-vg:
-	for i in $$(seq 8); do \
-		if [ "$${j}" -lt 7 ]; then \
-			$(SUDO) vgremove -ffy node-myvg$${i}; \
-		fi; \
-		$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_$${i} | cut -d: -f1); \
-		$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_$${i} | cut -d: -f1); \
-		rm -f $(BACKING_STORE)/backing_store_lvmd_$${i}; \
-	done
+	$(MAKE) common/remove-vg ID=1
 
 .PHONY: incluster-lvmd/setup-minikube
 incluster-lvmd/setup-minikube:
@@ -352,3 +263,40 @@ incluster-lvmd/test: topolvm.img $(GINKGO) $(HELM) $(KUBECTL)
 
 .PHONY: incluster-lvmd/clean
 incluster-lvmd/clean: incluster-lvmd/delete-minikube incluster-lvmd/remove-vg
+
+.PHONY: common/create-vg
+common/create-vg:
+	for i in $$(seq 2); do \
+		truncate --size=20G $(BACKING_STORE)/backing_store$(ID)_$${i}; \
+		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$(ID)_$${i}; \
+		$(SUDO) vgcreate -y node$(ID)-thick$${i} $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_$${i} | cut -d: -f1); \
+	done
+
+	# Create Volume Groups for testing raid1 volumes and lvcreate-option-classes.
+	# This requires 2 PVs in each VG.
+	for i in $$(seq 2); do \
+		truncate --size=3G $(BACKING_STORE)/backing_store$(ID)_$$((i*2+1)); \
+		truncate --size=3G $(BACKING_STORE)/backing_store$(ID)_$$((i*2+2)); \
+		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$(ID)_$$((i*2+1)); \
+		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$(ID)_$$((i*2+2)); \
+		$(SUDO) vgcreate -y node$(ID)-raid1-$${i} \
+			$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_$$((i*2+1)) | cut -d: -f1) \
+			$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_$$((i*2+2)) | cut -d: -f1); \
+	done
+
+	# Create Volume Group for thinpool
+	truncate --size=5G $(BACKING_STORE)/backing_store$(ID)_7
+	$(SUDO) losetup -f $(BACKING_STORE)/backing_store$(ID)_7
+	$(SUDO) vgcreate -y node$(ID)-thin1 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_7 | cut -d: -f1)
+	$(SUDO) lvcreate -T -n pool0 -L 4G node$(ID)-thin1
+
+.PHONY: common/remove-vg
+common/remove-vg:
+	for name in thick1 thick2 raid1-1 raid1-2 thin1; do \
+		$(SUDO) vgremove -ffy node$(ID)-$${name}; \
+	done; \
+	for i in $$(seq 7); do \
+		$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_$${i} | cut -d: -f1); \
+		$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_$${i} | cut -d: -f1); \
+		rm -f $(BACKING_STORE)/backing_store$(ID)_$${i}; \
+	done

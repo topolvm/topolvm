@@ -18,29 +18,26 @@ lvmd:
   socketName: /tmp/topolvm/lvmd.sock
   deviceClasses:
     - name: "dc1"
-      volume-group: "node-myvg1"
+      volume-group: "node1-thick1"
       default: true
       spare-gb: 1
     - name: "dc2"
-      volume-group: "node-myvg2"
+      volume-group: "node1-thick2"
       spare-gb: 1
-    - name: "dc3"
-      volume-group: "node-myvg3"
-      spare-gb: 1
-    - name: "raid"
-      volume-group: "node-myvg4"
+    - name: "create-option-raid1"
+      volume-group: "node1-raid1-1"
       spare-gb: 1
       lvcreate-options:
         - "--type=raid1"
+    - name: "option-class-raid1"
+      volume-group: "node1-raid1-2"
+      spare-gb: 1
     - name: "thin"
-      volume-group: "node-myvg5"
+      volume-group: "node1-thin1"
       type: thin
       thin-pool:
         name: "pool0"
         overprovision-ratio: 5.0
-    - name: "raid1"
-      volume-group: "node-myvg6"
-      spare-gb: 1
   lvcreateOptionClasses:
     - name: "raid1"
       options:
@@ -78,12 +75,6 @@ storageClasses:
       volumeBindingMode: WaitForFirstConsumer
       additionalParameters:
         '{{ include "topolvm.pluginName" . }}/device-class': "dc2"
-  - name: topolvm-provisioner3
-    storageClass:
-      isDefaultClass: false
-      volumeBindingMode: WaitForFirstConsumer
-      additionalParameters:
-        '{{ include "topolvm.pluginName" . }}/device-class': "dc3"
   - name: topolvm-provisioner-default
     storageClass:
       isDefaultClass: false
@@ -105,16 +96,16 @@ storageClasses:
       allowVolumeExpansion: true
       additionalParameters:
         '{{ include "topolvm.pluginName" . }}/device-class': "not-found-device"
-  - name: topolvm-provisioner-raid
+  - name: topolvm-provisioner-create-option-raid1
     storageClass:
       isDefaultClass: false
       additionalParameters:
-        '{{ include "topolvm.pluginName" . }}/device-class': "raid"
-  - name: topolvm-provisioner-raid1
+        '{{ include "topolvm.pluginName" . }}/device-class': "create-option-raid1"
+  - name: topolvm-provisioner-option-class-raid1
     storageClass:
       isDefaultClass: false
       additionalParameters:
-        '{{ include "topolvm.pluginName" . }}/device-class': "raid1"
+        '{{ include "topolvm.pluginName" . }}/device-class': "option-class-raid1"
         '{{ include "topolvm.pluginName" . }}/lvcreate-option-class': "raid1"
 
 cert-manager:
