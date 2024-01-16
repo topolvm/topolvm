@@ -14,17 +14,6 @@ WORKDIR /workdir
 RUN touch lvmd/proto/*.go
 RUN make build-topolvm TOPOLVM_VERSION=${TOPOLVM_VERSION} GOARCH=${TARGETARCH}
 
-# Build sidecars
-FROM --platform=$BUILDPLATFORM build-topolvm as build-sidecars
-
-# Get argument
-ARG TARGETARCH
-
-RUN apk add --no-cache \
-    make patch curl
-
-RUN make csi-sidecars GOARCH=${TARGETARCH}
-
 # TopoLVM container base without sidecars
 FROM --platform=$TARGETPLATFORM alpine:3.19 as topolvm
 
@@ -50,11 +39,12 @@ RUN ln -s hypertopolvm /lvmd \
     && ln -s hypertopolvm /topolvm-controller
 
 
+
 # TopoLVM container with sidecar
 FROM --platform=$TARGETPLATFORM topolvm as topolvm-with-sidecar
 
-COPY --from=build-sidecars /workdir/build/csi-provisioner /csi-provisioner
-COPY --from=build-sidecars /workdir/build/csi-node-driver-registrar /csi-node-driver-registrar
-COPY --from=build-sidecars /workdir/build/csi-resizer /csi-resizer
-COPY --from=build-sidecars /workdir/build/csi-snapshotter /csi-snapshotter
-COPY --from=build-sidecars /workdir/build/livenessprobe /livenessprobe
+COPY --from=gcr.io/k8s-staging-sig-storage/csi-provisioner:v3.6.0 /csi-provisioner /csi-provisioner
+COPY --from=gcr.io/k8s-staging-sig-storage/csi-node-driver-registrar:v2.8.0 /csi-node-driver-registrar /csi-node-driver-registrar
+COPY --from=gcr.io/k8s-staging-sig-storage/csi-resizer:v1.8.0 /csi-resizer /csi-resizer
+COPY --from=gcr.io/k8s-staging-sig-storage/csi-snapshotter:v6.3.0 /csi-snapshotter /csi-snapshotter
+COPY --from=gcr.io/k8s-staging-sig-storage/livenessprobe:v2.10.0 /livenessprobe /livenessprobe
