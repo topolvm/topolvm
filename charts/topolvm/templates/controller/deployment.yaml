@@ -51,7 +51,11 @@ spec:
           image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
           command:
             - /topolvm-controller
+            {{ if not .Values.controller.leaderElection.enabled }}
+            - --leader-election=false
+            {{ else }}
             - --leader-election-namespace={{ .Release.Namespace }}
+            {{ end }}
             {{- if or .Values.webhook.podMutatingWebhook.enabled .Values.webhook.pvcMutatingWebhook.enabled }}
             - --cert-dir=/certs
             {{- else }}
@@ -140,8 +144,10 @@ spec:
             - /csi-provisioner
             - --csi-address=/run/topolvm/csi-topolvm.sock
             - --feature-gates=Topology=true
+            {{ if .Values.controller.leaderElection.enabled }}
             - --leader-election
             - --leader-election-namespace={{ .Release.Namespace }}
+            {{ end }}
             - --http-endpoint=:9809
             {{- with .Values.controller.storageCapacityTracking.enabled }}
             - --enable-capacity
@@ -183,8 +189,10 @@ spec:
           command:
             - /csi-resizer
             - --csi-address=/run/topolvm/csi-topolvm.sock
+            {{ if .Values.controller.leaderElection.enabled }}
             - --leader-election
             - --leader-election-namespace={{ .Release.Namespace }}
+            {{ end }}
             - --http-endpoint=:9810
           ports:
             - containerPort: 9810
@@ -212,8 +220,10 @@ spec:
           command:
             - /csi-snapshotter
             - --csi-address=/run/topolvm/csi-topolvm.sock
+            {{ if .Values.controller.leaderElection.enabled }}
             - --leader-election
             - --leader-election-namespace={{ .Release.Namespace }}
+            {{ end }}
             - --http-endpoint=:9811
           ports:
             - containerPort: 9811

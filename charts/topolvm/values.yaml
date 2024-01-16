@@ -357,6 +357,10 @@ controller:
     # controller.nodeFinalize.skipped -- Skip automatic cleanup of PhysicalVolumeClaims when a Node is deleted.
     skipped: false
 
+  leaderElection:
+    # controller.leaderElection.enabled -- Enable leader election for controller and all sidecars.
+    enabled: true
+
   prometheus:
     podMonitor:
       # controller.prometheus.podMonitor.enabled -- Set this to `true` to create PodMonitor for Prometheus operator.
@@ -402,6 +406,10 @@ controller:
   #  rollingUpdate:
   #    maxSurge: 50%
   #    maxUnavailable: 50%
+  #
+  # For non-leader-election mode, you can use this non-HA non-conflicting strategy:
+  #  type: Recreate
+
 
   # controller.minReadySeconds -- (int) Specify minReadySeconds.
   minReadySeconds:  # 0
