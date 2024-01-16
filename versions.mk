@@ -26,13 +26,6 @@ PROTOC_GEN_DOC_VERSION := $(shell awk '/github.com\/pseudomuto\/protoc-gen-doc/ 
 PROTOC_GEN_GO_GRPC_VERSION := $(shell awk '/google.golang.org\/grpc\/cmd\/protoc-gen-go-grpc/ {print substr($$2, 2)}' $(SELF_DIR)/go.mod)
 PROTOC_GEN_GO_VERSION := $(shell awk '/google.golang.org\/protobuf/ {print substr($$2, 2)}' $(SELF_DIR)/go.mod)
 
-# CSI sidecar versions
-EXTERNAL_PROVISIONER_VERSION := 3.6.0
-EXTERNAL_RESIZER_VERSION := 1.8.0
-EXTERNAL_SNAPSHOTTER_VERSION := 6.3.0
-LIVENESSPROBE_VERSION := 2.10.0
-NODE_DRIVER_REGISTRAR_VERSION := 2.8.0
-
 # The container version of kind must be with the digest.
 # ref. https://github.com/kubernetes-sigs/kind/releases
 ifeq ($(KUBERNETES_VERSION), 1.27.3)

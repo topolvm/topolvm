@@ -17,9 +17,9 @@ FROM --platform=$TARGETPLATFORM ubuntu:18.04 as topolvm
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
     && apt-get -y install --no-install-recommends \
-        btrfs-progs \
-        file \
-        xfsprogs \
+    btrfs-progs \
+    file \
+    xfsprogs \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build-topolvm /workdir/build/hypertopolvm /hypertopolvm
@@ -42,15 +42,16 @@ ARG TARGETARCH
 ENV DEBIAN_FRONTEND=noninteractive
 RUN  apt-get update \
     && apt-get -y install --no-install-recommends \
-        patch
+    patch
 
 RUN make csi-sidecars GOARCH=${TARGETARCH}
+
 
 # TopoLVM container with sidecar
 FROM --platform=$TARGETPLATFORM topolvm as topolvm-with-sidecar
 
-COPY --from=build-sidecars /workdir/build/csi-provisioner /csi-provisioner
-COPY --from=build-sidecars /workdir/build/csi-node-driver-registrar /csi-node-driver-registrar
-COPY --from=build-sidecars /workdir/build/csi-resizer /csi-resizer
-COPY --from=build-sidecars /workdir/build/csi-snapshotter /csi-snapshotter
-COPY --from=build-sidecars /workdir/build/livenessprobe /livenessprobe
+COPY --from=gcr.io/k8s-staging-sig-storage/csi-provisioner:v3.6.0 /csi-provisioner /csi-provisioner
+COPY --from=gcr.io/k8s-staging-sig-storage/csi-node-driver-registrar:v2.8.0 /csi-node-driver-registrar /csi-node-driver-registrar
+COPY --from=gcr.io/k8s-staging-sig-storage/csi-resizer:v1.8.0 /csi-resizer /csi-resizer
+COPY --from=gcr.io/k8s-staging-sig-storage/csi-snapshotter:v6.3.0 /csi-snapshotter /csi-snapshotter
+COPY --from=gcr.io/k8s-staging-sig-storage/livenessprobe:v2.10.0 /livenessprobe /livenessprobe

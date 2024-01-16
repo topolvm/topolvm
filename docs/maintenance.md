@@ -76,6 +76,7 @@ Edit the following files.
 - `go.mod`
 - `Dockerfile`
 
+
 #### CSI Sidecars
 
 TopoLVM does not use all the sidecars listed [here](https://kubernetes-csi.github.io/docs/sidecar-containers.html).
@@ -85,7 +86,7 @@ Check the release pages of the sidecars under [kubernetes-csi](https://github.co
 
 DO NOT follow the "Status and Releases" tables in this [page](https://kubernetes-csi.github.io/docs/sidecar-containers.html) and the README.md files in the sidecar repositories because they are sometimes not updated properly.
 
-Edit `versions.mk` to change sidecars' version.
+Edit `Dockerfile` and `charts/topolvm/values.yaml` to change sidecars' version.
 
 Read the change logs which are linked from the release pages.
 Confirm diffs of RBAC between published files in upstream and following ones, and update it if required.

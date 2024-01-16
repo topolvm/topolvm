@@ -160,11 +160,6 @@ build/lvmd: $(GO_FILES)
 	mkdir -p build
 	GOARCH=$(GOARCH) CGO_ENABLED=0 go build -o $@ -ldflags "-w -s -X github.com/topolvm/topolvm.Version=$(TOPOLVM_VERSION)" ./pkg/lvmd
 
-.PHONY: csi-sidecars
-csi-sidecars: ## Build sidecar binaries.
-	mkdir -p build
-	make -f csi-sidecars.mk OUTPUT_DIR=build BUILD_PLATFORMS="linux $(GOARCH)"
-
 .PHONY: image
 image: image-normal image-with-sidecar ## Build topolvm images.
 
