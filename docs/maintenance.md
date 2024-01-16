@@ -17,53 +17,56 @@ The format is up to you, but this is very important to keep track of what change
 Basically, we should pay attention to breaking changes and security fixes first.
 If we find some interesting features added in new versions, please consider if we are going to use them or not and make a GitHub issue to incorporate them after the upgrading task is done.
 
-Note: Ubuntu 18.04 is used to keep the backward compatibility of XFS formatting. (https://github.com/topolvm/topolvm/pull/306)
+Note: Ubuntu 18.04 is used to keep the backward compatibility of XFS formatting. (<https://github.com/topolvm/topolvm/pull/306>)
 
 #### Kubernetes
 
 Choose the next version and check the [release note](https://kubernetes.io/docs/setup/release/notes/). e.g. 1.17, 1.18, 1.19 -> 1.18, 1.19, 1.20
 
 Edit the following files.
+
 - `README.md`
 - `deploy/README.md`
 - `versions.mk`
 - `.github/workflows/e2e-k8s-incluster-lvmd.yaml`
 - `.github/workflows/e2e-k8s-workflow.yaml`
+- `charts/topolvm/Chart.yaml` "kubeVersion"
 
 Next, we should update `go.mod` by the following commands.
 Please note that Kubernetes v1 corresponds with v0 for the release tags. For example, v1.17.2 corresponds with the `v0.17.2` tag.
+
 ```console
-$ VERSION=<upgrading Kubernetes release version>
-$ go get k8s.io/api@v${VERSION} k8s.io/apimachinery@v${VERSION} k8s.io/client-go@v${VERSION} k8s.io/mount-utils@v${VERSION}
+VERSION=<upgrading Kubernetes release version>
+go get k8s.io/api@v${VERSION} k8s.io/apimachinery@v${VERSION} k8s.io/client-go@v${VERSION} k8s.io/mount-utils@v${VERSION}
 ```
 
 Read the [controller-runtime's release note](https://github.com/kubernetes-sigs/controller-runtime/releases), and check which version is compatible with the Kubernetes versions.
 Then, upgrade the controller-runtime's version by the following commands.
 
 ```console
-$ VERSION=<upgrading controller-runtime version>
-$ go get sigs.k8s.io/controller-runtime@v${VERSION}
+VERSION=<upgrading controller-runtime version>
+go get sigs.k8s.io/controller-runtime@v${VERSION}
 ```
 
 Read the [`controller-tools`'s release note](https://github.com/kubernetes-sigs/controller-tools/releases), and update to the newest version that is compatible with all supported kubernetes versions. If there are breaking changes, we should decide how to manage these changes.
 Then, upgrade the controller-tools's version by the following commands.
 
 ```console
-$ VERSION=<upgrading controller-tools version>
-$ go get sigs.k8s.io/controller-tools@v${VERSION}
+VERSION=<upgrading controller-tools version>
+go get sigs.k8s.io/controller-tools@v${VERSION}
 ```
 
 At last, make it tidy.
 
 ```console
-$ go mod tidy
+go mod tidy
 ```
 
 Regenerate manifests using new controller-tools.
 
 ```console
-$ make setup
-$ make generate
+make setup
+make generate
 ```
 
 These are minimal changes for the Kubernetes upgrade, but if there are some breaking changes found in the release notes, you have to handle them as well in this step.
@@ -73,6 +76,7 @@ These are minimal changes for the Kubernetes upgrade, but if there are some brea
 Choose the same version of Go [used by the latest Kubernetes](https://github.com/kubernetes/kubernetes/blob/master/go.mod) supported by TopoLVM.
 
 Edit the following files.
+
 - `go.mod`
 - `Dockerfile`
 
@@ -89,7 +93,7 @@ Edit `versions.mk` to change sidecars' version.
 
 Read the change logs which are linked from the release pages.
 Confirm diffs of RBAC between published files in upstream and following ones, and update it if required.
-For example, see https://github.com/kubernetes-csi/external-provisioner/blob/master/deploy/kubernetes/rbac.yaml.
+For example, see <https://github.com/kubernetes-csi/external-provisioner/blob/master/deploy/kubernetes/rbac.yaml>.
 
 - `charts/topolvm/templates/controller/clusterroles.yaml`
 - `charts/topolvm/templates/controller/roles.yaml`
