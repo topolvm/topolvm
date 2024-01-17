@@ -30,7 +30,7 @@ type identityServer struct {
 }
 
 func (s identityServer) GetPluginInfo(ctx context.Context, req *csi.GetPluginInfoRequest) (*csi.GetPluginInfoResponse, error) {
-	idLogger.Info("GetPluginInfo", "req", req.String())
+	idLogger.V(2).Info("GetPluginInfo", "req", req.String())
 	return &csi.GetPluginInfoResponse{
 		Name:          topolvm.GetPluginName(),
 		VendorVersion: topolvm.Version,
@@ -38,7 +38,7 @@ func (s identityServer) GetPluginInfo(ctx context.Context, req *csi.GetPluginInf
 }
 
 func (s identityServer) GetPluginCapabilities(ctx context.Context, req *csi.GetPluginCapabilitiesRequest) (*csi.GetPluginCapabilitiesResponse, error) {
-	idLogger.Info("GetPluginCapabilities", "req", req.String())
+	idLogger.V(2).Info("GetPluginCapabilities", "req", req.String())
 	return &csi.GetPluginCapabilitiesResponse{
 		Capabilities: []*csi.PluginCapability{
 			{
@@ -74,7 +74,7 @@ func (s identityServer) GetPluginCapabilities(ctx context.Context, req *csi.GetP
 }
 
 func (s identityServer) Probe(ctx context.Context, req *csi.ProbeRequest) (*csi.ProbeResponse, error) {
-	idLogger.Info("Probe", "req", req.String())
+	idLogger.V(2).Info("Probe", "req", req.String())
 	ok, err := s.ready()
 	if err != nil {
 		idLogger.Error(err, "probe failed")

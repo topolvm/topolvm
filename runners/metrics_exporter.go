@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -206,21 +207,22 @@ func (m *metricsExporter) updateNode(ctx context.Context, wc proto.VGService_Wat
 			}
 		}
 
-		var node corev1.Node
-		if err := m.client.Get(ctx, types.NamespacedName{Name: m.nodeName}, &node); err != nil {
+		var nodeMetadata v1.PartialObjectMetadata
+
+		nodeMetadata.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("Node"))
+		if err := m.client.Get(ctx, types.NamespacedName{Name: m.nodeName}, &nodeMetadata); err != nil {
 			return err
 		}
 
-		if node.DeletionTimestamp != nil {
+		if nodeMetadata.DeletionTimestamp != nil {
 			meLogger.Info("node is deleting")
 			break
 		}
+		nodeMetadata2 := nodeMetadata.DeepCopy()
 
-		node2 := node.DeepCopy()
+		controllerutil.AddFinalizer(nodeMetadata2, topolvm.GetNodeFinalizer())
 
-		controllerutil.AddFinalizer(node2, topolvm.GetNodeFinalizer())
-
-		node2.Annotations[topolvm.GetCapacityKeyPrefix()+topolvm.DefaultDeviceClassAnnotationName] = strconv.FormatUint(res.FreeBytes, 10)
+		nodeMetadata2.Annotations[topolvm.GetCapacityKeyPrefix()+topolvm.DefaultDeviceClassAnnotationName] = strconv.FormatUint(res.FreeBytes, 10)
 		for _, item := range res.Items {
 			var freeSize uint64
 			if item.ThinPool != nil {
@@ -228,9 +230,9 @@ func (m *metricsExporter) updateNode(ctx context.Context, wc proto.VGService_Wat
 			} else {
 				freeSize = item.FreeBytes
 			}
-			node2.Annotations[topolvm.GetCapacityKeyPrefix()+item.DeviceClass] = strconv.FormatUint(freeSize, 10)
+			nodeMetadata2.Annotations[topolvm.GetCapacityKeyPrefix()+item.DeviceClass] = strconv.FormatUint(freeSize, 10)
 		}
-		if err := m.client.Patch(ctx, node2, client.MergeFrom(&node)); err != nil {
+		if err := m.client.Patch(ctx, nodeMetadata2, client.MergeFrom(&nodeMetadata)); err != nil {
 			return err
 		}
 	}
