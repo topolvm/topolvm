@@ -19,6 +19,7 @@ var config struct {
 	enableWebhooks              bool
 	webhookAddr                 string
 	certDir                     string
+	leaderElection              bool
 	leaderElectionID            string
 	leaderElectionNamespace     string
 	leaderElectionLeaseDuration time.Duration
@@ -58,6 +59,7 @@ func init() {
 	fs.StringVar(&config.webhookAddr, "webhook-addr", ":9443", "Listen address for the webhook endpoint")
 	fs.BoolVar(&config.enableWebhooks, "enable-webhooks", true, "Enable webhooks")
 	fs.StringVar(&config.certDir, "cert-dir", "", "certificate directory")
+	fs.BoolVar(&config.leaderElection, "leader-election", true, "Enables leader election. This field is required to be set to true if concurrency is greater than 1 at any given point in time during rollouts.")
 	fs.StringVar(&config.leaderElectionID, "leader-election-id", "topolvm", "ID for leader election by controller-runtime")
 	fs.StringVar(&config.leaderElectionNamespace, "leader-election-namespace", "", "Namespace where the leader election resource lives. Defaults to the pod namespace if not set.")
 	fs.DurationVar(&config.leaderElectionLeaseDuration, "leader-election-lease-duration", 15*time.Second, "Duration that non-leader candidates will wait to force acquire leadership. This is measured against time of last observed ack.")
