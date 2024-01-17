@@ -132,7 +132,7 @@ scheduler:
 # lvmd service
 lvmd:
   # lvmd.managed -- If true, set up lvmd service with DaemonSet.
-  managed: true
+  managed: false
 
   # lvmd.socketName -- Specify socketName.
   socketName: /run/topolvm/lvmd.sock
@@ -215,7 +215,7 @@ lvmd:
 node:
   # node.lvmdEmbedded -- Specify whether to embed lvmd in the node container.
   # Should not be used in conjunction with lvmd.managed otherwise lvmd will be started twice.
-  lvmdEmbedded: false
+  lvmdEmbedded: true
   # node.lvmdSocket -- Specify the socket to be used for communication with lvmd.
   lvmdSocket: /run/topolvm/lvmd.sock
   # node.kubeletWorkDirectory -- Specify the work directory of Kubelet on the host.
