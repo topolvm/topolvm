@@ -44,6 +44,12 @@ Finally, check if TopoLVM is running. All TopoLVM pods should be running.
 kubectl get pod -n topolvm-system
 ```
 
+## Configure node startup taint
+
+There are potential race conditions on node startup (especially when a node is first joining the cluster) where pods/processes that rely on the a CSI Driver can act on a node before the CSI Driver is able to startup up and become fully ready. To combat this, the TopoLVM contains a feature to automatically remove a taint from the node on startup. Users can taint their nodes when they join the cluster and/or on startup, to prevent other pods from running and/or being scheduled on the node prior to the CSI Driver becoming ready.
+
+This feature is activated by default, and cluster administrators should use the taint `topolvm.io/agent-not-ready:NoExecute` (any effect will work, but `NoExecute` is recommended).
+
 ## Usage
 
 You can create PersistentVolumes (PV) by TopoLVM after installation succeeded.

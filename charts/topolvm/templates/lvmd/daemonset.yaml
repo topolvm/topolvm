@@ -108,9 +108,12 @@ spec:
             path: {{ dir .Values.lvmd.socketName }}
             type: DirectoryOrCreate
         {{- end }}
-      {{- with $lvmd.tolerations }}
-      tolerations: {{ toYaml . | nindent 8 }}
-      {{- end }}
+      tolerations:
+        {{- with $lvmd.tolerations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        - key: "topolvm.io/agent-not-ready"
+          operator: "Exists"
       {{- with $lvmd.nodeSelector }}
       nodeSelector: {{ toYaml . | nindent 8 }}
       {{- end }}

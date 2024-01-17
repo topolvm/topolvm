@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -25,11 +26,17 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/health/grpc_health_v1"
+	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	k8stypes "k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -38,10 +45,23 @@ import (
 	//+kubebuilder:scaffold:imports
 )
 
+// constants for node k8s API use
+const (
+	// AgentNotReadyNodeTaintKey contains the key of taints to be removed on driver startup
+	AgentNotReadyNodeTaintKey = "topolvm.io/agent-not-ready"
+)
+
 var (
 	scheme      = runtime.NewScheme()
 	setupLog    = ctrl.Log.WithName("setup")
 	cfgFilePath string
+
+	// taintRemovalBackoff is the exponential backoff configuration for node taint removal
+	taintRemovalBackoff = wait.Backoff{
+		Duration: 500 * time.Millisecond,
+		Factor:   2,
+		Steps:    10, // Max delay = 0.5 * 2^9 = ~4 minutes
+	}
 )
 
 func init() {
@@ -146,6 +166,10 @@ func subMain(ctx context.Context) error {
 		os.Exit(1) // second signal. Exit directly.
 	}()
 
+	setupLog.Info("Setup K8s Client")
+	setupLog.Info("Clear Startup Taint")
+	go removeTaintInBackground()
+
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
@@ -198,5 +222,100 @@ func loadConfFile(ctx context.Context, cfgFilePath string) error {
 		"device_classes", config.lvmd.DeviceClasses,
 		"file_name", cfgFilePath,
 	)
+	return nil
+}
+
+// Struct for JSON patch operations
+type JSONPatch struct {
+	OP    string      `json:"op,omitempty"`
+	Path  string      `json:"path,omitempty"`
+	Value interface{} `json:"value"`
+}
+
+func getKubeClient() (*kubernetes.Clientset, error) {
+	var (
+		config *rest.Config
+		err    error
+	)
+	config, err = rest.InClusterConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	setupLog.Info("Using kube config: %+v", config)
+	// creates the clientset
+	return kubernetes.NewForConfig(config)
+}
+
+// removeTaintInBackground is a goroutine that retries removeNotReadyTaint with exponential backoff
+func removeTaintInBackground() {
+	backoffErr := wait.ExponentialBackoff(taintRemovalBackoff, func() (bool, error) {
+		err := removeNotReadyTaint()
+		if err != nil {
+			setupLog.Error(err, "Unexpected failure when attempting to remove node taint(s)")
+			return false, err
+		}
+		return true, nil
+	})
+
+	if backoffErr != nil {
+		setupLog.Error(backoffErr, "Retries exhausted, giving up attempting to remove node taint(s)")
+	}
+}
+
+func removeNotReadyTaint() error {
+	nodeName := os.Getenv("NODE_NAME")
+	if nodeName == "" {
+		setupLog.Info("NODE_NAME missing, skipping taint removal")
+		return nil
+	}
+	clientset, err := getKubeClient()
+	if err != nil {
+		setupLog.Info("Failed to setup k8s client")
+		return nil //lint:ignore nilerr If there are no k8s credentials, treat that as a soft failure
+	}
+
+	node, err := clientset.CoreV1().Nodes().Get(context.Background(), nodeName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	var taintsToKeep []corev1.Taint
+	for _, taint := range node.Spec.Taints {
+		if taint.Key != AgentNotReadyNodeTaintKey {
+			taintsToKeep = append(taintsToKeep, taint)
+		} else {
+			setupLog.Info("Queued taint for removal", "key", taint.Key, "effect", taint.Effect)
+		}
+	}
+
+	if len(taintsToKeep) == len(node.Spec.Taints) {
+		setupLog.Info("No taints to remove on node, skipping taint removal")
+		return nil
+	}
+
+	patchRemoveTaints := []JSONPatch{
+		{
+			OP:    "test",
+			Path:  "/spec/taints",
+			Value: node.Spec.Taints,
+		},
+		{
+			OP:    "replace",
+			Path:  "/spec/taints",
+			Value: taintsToKeep,
+		},
+	}
+
+	patch, err := json.Marshal(patchRemoveTaints)
+	if err != nil {
+		return err
+	}
+
+	_, err = clientset.CoreV1().Nodes().Patch(context.Background(), nodeName, k8stypes.JSONPatchType, patch, metav1.PatchOptions{})
+	if err != nil {
+		return err
+	}
+	setupLog.Info("Removed taint(s) from local node", "node", nodeName)
 	return nil
 }
