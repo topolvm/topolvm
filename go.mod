@@ -108,3 +108,8 @@ require (
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 )
+
+exclude (
+	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.35.0 // to fix CVE-2023-47108
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.35.1 // to fix CVE-2023-45142
+)
