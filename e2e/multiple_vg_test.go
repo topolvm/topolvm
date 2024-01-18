@@ -33,11 +33,7 @@ func testMultipleVolumeGroups() {
 
 	It("should use the specified device-class", func() {
 		By("deploying Pod with PVC")
-		nodeName := "topolvm-e2e-worker"
-		if isDaemonsetLvmdEnvSet() {
-			nodeName = getDaemonsetLvmdNodeName()
-		}
-		manifest := fmt.Sprintf(multipleVGPodPVCTemplateYAML, "topo-pvc-dc", "topolvm-provisioner2", "pause-dc", "topo-pvc-dc", nodeName)
+		manifest := fmt.Sprintf(multipleVGPodPVCTemplateYAML, "topo-pvc-dc", "topolvm-provisioner2", "pause-dc", "topo-pvc-dc")
 		_, err := kubectlWithInput([]byte(manifest), "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -70,11 +66,7 @@ func testMultipleVolumeGroups() {
 
 	It("should not schedule a pod because there are no nodes that have specified device-classes", func() {
 		By("deploying Pod with PVC")
-		nodeName := "topolvm-e2e-worker"
-		if isDaemonsetLvmdEnvSet() {
-			nodeName = getDaemonsetLvmdNodeName()
-		}
-		manifest := fmt.Sprintf(multipleVGPodPVCTemplateYAML, "topo-pvc-not-found-dc", "topolvm-provisioner-not-found-device", "pause-not-found-dc", "topo-pvc-not-found-dc", nodeName)
+		manifest := fmt.Sprintf(multipleVGPodPVCTemplateYAML, "topo-pvc-not-found-dc", "topolvm-provisioner-not-found-device", "pause-not-found-dc", "topo-pvc-not-found-dc")
 		_, err := kubectlWithInput([]byte(manifest), "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -102,11 +94,7 @@ func testMultipleVolumeGroups() {
 
 	It("should run a pod using the default device-class", func() {
 		By("deploying Pod with PVC")
-		nodeName := "topolvm-e2e-worker"
-		if isDaemonsetLvmdEnvSet() {
-			nodeName = getDaemonsetLvmdNodeName()
-		}
-		manifest := fmt.Sprintf(multipleVGPodPVCTemplateYAML, "topo-pvc-default", "topolvm-provisioner-default", "pause-default", "topo-pvc-default", nodeName)
+		manifest := fmt.Sprintf(multipleVGPodPVCTemplateYAML, "topo-pvc-default", "topolvm-provisioner-default", "pause-default", "topo-pvc-default")
 		_, err := kubectlWithInput([]byte(manifest), "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 

@@ -69,10 +69,6 @@ func waitKindnet(g Gomega) {
 	}
 }
 
-func isDaemonsetLvmdEnvSet() bool {
-	return os.Getenv("DAEMONSET_LVMD") != ""
-}
-
 func isStorageCapacity() bool {
 	return os.Getenv("STORAGE_CAPACITY") == "true"
 }
@@ -91,14 +87,6 @@ func skipIfSingleNode() {
 	if nonControlPlaneNodeCount == 0 {
 		Skip("This test requires multiple nodes")
 	}
-}
-
-func getDaemonsetLvmdNodeName() string {
-	var nodes corev1.NodeList
-	err := getObjects(&nodes, "nodes")
-	Expect(err).ShouldNot(HaveOccurred())
-	Expect(nodes.Items).Should(HaveLen(1))
-	return nodes.Items[0].Name
 }
 
 //go:embed testdata/pause-pod.yaml

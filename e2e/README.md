@@ -36,8 +36,7 @@ make create-cluster
 Then, you can test specific suite.
 
 ```bash
-make prepare-test
-make run-test GINKGO_FLAGS="--focus hook"
+make common/test GINKGO_FLAGS="--focus hook"
 ```
 
 You can cleanup test environment as follows:
