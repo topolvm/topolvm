@@ -78,6 +78,9 @@ Edit the following files.
 
 #### CSI Sidecars
 
+> [!NOTE]
+> TopoLVM builds csi-sidecars for the cases that we want to use own-patched binaries (e.g. can't wait official binaries in case of emergency.)
+
 TopoLVM does not use all the sidecars listed [here](https://kubernetes-csi.github.io/docs/sidecar-containers.html).
 Have a look at `csi-sidecars.mk` first and understand what sidecars are actually being used.
 
