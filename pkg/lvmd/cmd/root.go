@@ -73,7 +73,7 @@ func subMain(ctx context.Context) error {
 		}
 
 		if dc.Type == lvmd.TypeThin {
-			_, err = vg.FindPool(dc.ThinPoolConfig.Name)
+			_, err = vg.FindPool(ctx, dc.ThinPoolConfig.Name)
 			if err != nil {
 				logger.Error(err, "Thin pool not found:", "thinpool", dc.ThinPoolConfig.Name)
 				return err

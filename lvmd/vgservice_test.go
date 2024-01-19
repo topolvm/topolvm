@@ -188,7 +188,7 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	)
 
 	// thick lvs
-	res, err := vgService.GetLVList(context.Background(), &proto.GetLVListRequest{DeviceClass: thickdev})
+	res, err := vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: thickdev})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -198,7 +198,7 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	}
 
 	// thin lvs
-	res, err = vgService.GetLVList(context.Background(), &proto.GetLVListRequest{DeviceClass: thindev})
+	res, err = vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: thindev})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -210,13 +210,12 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 
 	// create thick volume
 	testtag := "testtag"
-	_, err = vg.CreateVolume(ctx, "test1", 1<<30, []string{testtag}, 0, "", nil)
-	if err != nil {
+	if err := vg.CreateVolume(ctx, "test1", 1<<30, []string{testtag}, 0, "", nil); err != nil {
 		t.Fatal(err)
 	}
 
 	// thick lv validation
-	res, err = vgService.GetLVList(context.Background(), &proto.GetLVListRequest{DeviceClass: thickdev})
+	res, err = vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: thickdev})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -240,13 +239,12 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	}
 
 	// create thin volume
-	_, err = pool.CreateVolume(ctx, "testp1", 1<<30, []string{testtag}, 0, "", nil)
-	if err != nil {
+	if err = pool.CreateVolume(ctx, "testp1", 1<<30, []string{testtag}, 0, "", nil); err != nil {
 		t.Fatal(err)
 	}
 
 	// thin lv validation
-	res, err = vgService.GetLVList(context.Background(), &proto.GetLVListRequest{DeviceClass: thindev})
+	res, err = vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: thindev})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -274,13 +272,18 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	}
 
 	// thick lv creation
-	_, err = vg.CreateVolume(ctx, "test2", 1<<30, nil, 0, "", nil)
-	if err != nil {
+
+	if err = vg.CreateVolume(ctx, "test2", 1<<30, nil, 0, "", nil); err != nil {
 		t.Fatal(err)
 	}
 
 	// thin lv creation, within overprovision limit (10G)
-	testp2, err := pool.CreateVolume(ctx, "testp2", 1<<30, nil, 0, "", nil)
+
+	if err := pool.CreateVolume(ctx, "testp2", 1<<30, nil, 0, "", nil); err != nil {
+		t.Fatal(err)
+	}
+
+	testp2, err := pool.FindVolume(ctx, "testp2")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -298,7 +301,7 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	}
 
 	// thick lv validation
-	res, err = vgService.GetLVList(context.Background(), &proto.GetLVListRequest{DeviceClass: thickdev})
+	res, err = vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: thickdev})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -308,7 +311,7 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	}
 
 	// thick lv validation
-	res, err = vgService.GetLVList(context.Background(), &proto.GetLVListRequest{DeviceClass: thickdev})
+	res, err = vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: thickdev})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -318,7 +321,7 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	}
 
 	// thick lv size validations
-	res2, err := vgService.GetFreeBytes(context.Background(), &proto.GetFreeBytesRequest{DeviceClass: thickdev})
+	res2, err := vgService.GetFreeBytes(ctx, &proto.GetFreeBytesRequest{DeviceClass: thickdev})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -337,11 +340,11 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	}
 
 	// thin lv size validations
-	res2, err = vgService.GetFreeBytes(context.Background(), &proto.GetFreeBytesRequest{DeviceClass: thindev})
+	res2, err = vgService.GetFreeBytes(ctx, &proto.GetFreeBytesRequest{DeviceClass: thindev})
 	if err != nil {
 		t.Fatal(err)
 	}
-	tpu, err := pool.Free()
+	tpu, err := pool.Free(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -353,22 +356,29 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	}
 
 	// Creation of thick volumes
-	test3Vol, err := vg.CreateVolume(ctx, "test3", 1<<30, nil, 2, "4k", nil)
+
+	if err := vg.CreateVolume(ctx, "test3", 1<<30, nil, 2, "4k", nil); err != nil {
+		t.Fatal(err)
+	}
+	test3Vol, err := vg.FindVolume(ctx, "test3")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	test4Vol, err := vg.CreateVolume(ctx, "test4", 1<<30, nil, 2, "4M", nil)
+	if err := vg.CreateVolume(ctx, "test4", 1<<30, nil, 2, "4M", nil); err != nil {
+		t.Fatal(err)
+	}
+	test4Vol, err := vg.FindVolume(ctx, "test4")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Remove volumes to make room for a raid volume
-	test3Vol.Remove(ctx)
-	test4Vol.Remove(ctx)
+	_ = vg.RemoveVolume(ctx, test3Vol.Name())
+	_ = vg.RemoveVolume(ctx, test4Vol.Name())
 
 	// Remove one of the thin lvs
-	testp2.Remove(ctx)
+	_ = vg.RemoveVolume(ctx, testp2.Name())
 
 	t.Run("thinpool-stripe-raid", func(t *testing.T) {
 		t.Skip("investigate support of striped and raid for thinlvs")
@@ -376,31 +386,35 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 		// 1. confirm that stripe, stripesize and raid isn't possible on thin lv
 		// 2. if above is true, enforce some sensible defaults during validation of deviceclass
 		// thick lv with raid
-		_, err = vg.CreateVolume(ctx, "test5", 1<<30, nil, 0, "", []string{"--type=raid1"})
-		if err != nil {
+		if err := vg.CreateVolume(ctx, "test5", 1<<30, nil, 0, "", []string{"--type=raid1"}); err != nil {
 			t.Fatal(err)
 		}
 
 		// thin lv with stripe, stripesize and raid options
-		testp3Vol, err := pool.CreateVolume(ctx, "test3", 1<<30, nil, 2, "4k", nil)
+		if err := pool.CreateVolume(ctx, "test3", 1<<30, nil, 2, "4k", nil); err != nil {
+			t.Fatal(err)
+		}
+		testp3Vol, err := vg.FindVolume(ctx, "test3")
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		testp4Vol, err := pool.CreateVolume(ctx, "test4", 1<<30, nil, 2, "4M", nil)
+		if err := pool.CreateVolume(ctx, "test4", 1<<30, nil, 2, "4M", nil); err != nil {
+			t.Fatal(err)
+		}
+		testp4Vol, err := vg.FindVolume(ctx, "test4")
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		// thin lv with raid
-		_, err = pool.CreateVolume(ctx, "test5", 1<<30, nil, 0, "", []string{"--type=raid1"})
-		if err != nil {
+		if err = pool.CreateVolume(ctx, "test5", 1<<30, nil, 0, "", []string{"--type=raid1"}); err != nil {
 			t.Fatal(err)
 		}
 
 		// Remove thin volumes
-		testp3Vol.Remove(ctx)
-		testp4Vol.Remove(ctx)
+		_ = vg.RemoveVolume(ctx, testp3Vol.Name())
+		_ = vg.RemoveVolume(ctx, testp4Vol.Name())
 
 	})
 }

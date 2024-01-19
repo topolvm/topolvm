@@ -147,25 +147,16 @@ func (r *LogicalVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *LogicalVolumeReconciler) removeLVIfExists(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) error {
 	// Finalizer's process ( RemoveLV then removeString ) is not atomic,
 	// so checking existence of LV to ensure its idempotence
-	respList, err := r.vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: lv.Spec.DeviceClass})
-	if err != nil {
-		log.Error(err, "failed to list LV")
-		return err
-	}
-
-	for _, v := range respList.Volumes {
-		if v.Name != string(lv.UID) {
-			continue
-		}
-		_, err := r.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: string(lv.UID), DeviceClass: lv.Spec.DeviceClass})
-		if err != nil {
-			log.Error(err, "failed to remove LV", "name", lv.Name, "uid", lv.UID)
-			return err
-		}
-		log.Info("removed LV", "name", lv.Name, "uid", lv.UID)
+	_, err := r.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: string(lv.UID), DeviceClass: lv.Spec.DeviceClass})
+	if status.Code(err) == codes.NotFound {
+		log.Info("LV already removed", "name", lv.Name, "uid", lv.UID)
 		return nil
 	}
-	log.Info("LV already removed", "name", lv.Name, "uid", lv.UID)
+	if err != nil {
+		log.Error(err, "failed to remove LV", "name", lv.Name, "uid", lv.UID)
+		return err
+	}
+	log.Info("removed LV", "name", lv.Name, "uid", lv.UID)
 	return nil
 }
 
