@@ -1,11 +1,13 @@
+# More info: https://docs.docker.com/engine/reference/builder/#dockerignore-file
+# Ignore build and test binaries.
 .git
-bin
-build
-charts
-config
-deploy
-docs
-e2e
-example
-include
-testbin
+bin/
+build/
+charts/
+config/
+deploy/
+docs/
+e2e/
+example/
+include/
+testbin/
