@@ -8,16 +8,21 @@ TEST_LEGACY ?= false
 # systemd-service/daemonset/embedded
 TEST_LVMD_TYPE ?= systemd-service
 
+BACKING_STORE := ./build
 BINDIR := $(shell pwd)/bin
-SUDO := sudo
+CLUSTER_NAME := topolvm-e2e
 CURL := curl -sSLf
-KIND_CLUSTER_NAME := topolvm-e2e
-KIND := ../bin/kind
-KUBECTL := $(BINDIR)/kubectl-$(KUBERNETES_VERSION)
-HELM := ../bin/helm
 GINKGO := $(BINDIR)/ginkgo-$(GINKGO_VERSION)
-
+GINKGO_FLAGS :=
+GO_FILES := $(shell find .. -path ../e2e -prune -o -name '*.go' -print)
+HELM := ../bin/helm
+KIND := ../bin/kind
+KIND_CONFIG := topolvm-cluster.yaml
+KUBECTL := $(BINDIR)/kubectl-$(KUBERNETES_VERSION)
+MINIKUBE_FEATURE_GATES="ReadWriteOncePod=true"
 MINIKUBE_HOME = $(BINDIR)
+SUDO := sudo
+
 export MINIKUBE_HOME
 
 DOMAIN_NAME := topolvm.io
@@ -47,12 +52,6 @@ else ifeq ($(TEST_LVMD_TYPE),embedded)
 HELM_VALUES_FILES += manifests/values/embedded-lvmd.yaml
 endif
 
-KIND_CONFIG="topolvm-cluster.yaml"
-MINIKUBE_FEATURE_GATES="ReadWriteOncePod=true"
-
-GO_FILES := $(shell find .. -path ../e2e -prune -o -name '*.go' -print)
-BACKING_STORE := ./build
-
 topolvm.img: $(GO_FILES)
 	mkdir -p tmpbin
 	CGO_ENABLED=0 go build -o tmpbin/hypertopolvm ../pkg/hypertopolvm
@@ -68,25 +67,15 @@ else
 	cp $< $@
 endif
 
-.PHONY: prepare-namespace
-prepare-namespace: $(KUBECTL)
-	$(KUBECTL) create namespace topolvm-system
-	$(KUBECTL) label namespace topolvm-system $(DOMAIN_NAME)/webhook=ignore
-	$(KUBECTL) label namespace kube-system $(DOMAIN_NAME)/webhook=ignore
-
-.PHONY: apply-certmanager-crds
-apply-certmanager-crds: $(KUBECTL)
-	$(KUBECTL) apply -f https://github.com/cert-manager/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
-
 .PHONY: launch-kind
 launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml $(KIND)
 	$(SUDO) rm -rf /tmp/topolvm/controller /tmp/topolvm/worker*
 	sed -e "s|@KUBERNETES_VERSION@|$(KUBERNETES_VERSION)|" $(KIND_CONFIG) > /tmp/$(KIND_CONFIG)
-	$(KIND) create cluster --name=$(KIND_CLUSTER_NAME) --config /tmp/$(KIND_CONFIG) --image $(KIND_NODE_IMAGE)
+	$(KIND) create cluster --name=$(CLUSTER_NAME) --config /tmp/$(KIND_CONFIG) --image $(KIND_NODE_IMAGE)
 
 .PHONY: shutdown-kind
 shutdown-kind: $(KIND)
-	$(KIND) delete cluster --name=$(KIND_CLUSTER_NAME) || true
+	$(KIND) delete cluster --name=$(CLUSTER_NAME) || true
 	sleep 2
 	for d in $$($(SUDO) find /tmp/topolvm -type d); do \
 		if $(SUDO) mountpoint -q $$d; then \
@@ -100,55 +89,10 @@ start-lvmd:
 	mkdir -p build $(BACKING_STORE)
 	go build -o build/lvmd ../pkg/lvmd
 	if [ $$(ls -1 $(BACKING_STORE)/backing_store* 2>/dev/null | wc -l) -ne 0 ]; then $(MAKE) stop-lvmd; fi
-
 	for i in $$(seq 3); do \
 		mkdir -p /tmp/topolvm/worker$$i; \
 		mkdir -p /tmp/topolvm/lvmd$$i; \
-		truncate --size=20G $(BACKING_STORE)/backing_store$${i}_1; \
-		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$${i}_1; \
-		$(SUDO) vgcreate -y node$${i}-myvg1 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_1 | cut -d: -f1); \
-	done
-
-	# Create additional Volume Groups
-	for i in $$(seq 3); do \
-		truncate --size=10G $(BACKING_STORE)/backing_store$${i}_2; \
-		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$${i}_2; \
-		$(SUDO) vgcreate -y node$${i}-myvg2 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_2 | cut -d: -f1); \
-	done
-
-	# Create Volume Group for testing raid1 volumes.
-	# This requires 2 PVs in each VG.
-	# node{i}-myvg3: backing_store{i}_3, backing_store{i}_4
-	for i in $$(seq 3); do \
-		truncate --size=3G $(BACKING_STORE)/backing_store$${i}_3; \
-		truncate --size=3G $(BACKING_STORE)/backing_store$${i}_4; \
-		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$${i}_3; \
-		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$${i}_4; \
-		$(SUDO) vgcreate -y node$${i}-myvg3 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_3 | cut -d: -f1) \
-			$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_4 | cut -d: -f1); \
-	done
-
-	# Create thin-p Volume Groups and thinpool
-	for i in $$(seq 3); do \
-		truncate --size=5G $(BACKING_STORE)/backing_store$${i}_5; \
-		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$${i}_5; \
-		$(SUDO) vgcreate -y node$${i}-myvg4 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_5 | cut -d: -f1); \
-		$(SUDO) lvcreate -T -n pool0 -L 4G node$${i}-myvg4; \
-	done
-
-	# Create Volume Group for testing lvcreate-option-classes.
-	# This requires 2 PVs in each VG.
-	# node{i}-myvg5: backing_store{i}_6, backing_store{i}_7
-	for i in $$(seq 3); do \
-		truncate --size=3G $(BACKING_STORE)/backing_store$${i}_6; \
-		truncate --size=3G $(BACKING_STORE)/backing_store$${i}_7; \
-		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$${i}_6; \
-		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$${i}_7; \
-		$(SUDO) vgcreate -y node$${i}-myvg5 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_6 | cut -d: -f1) \
-			$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_7 | cut -d: -f1); \
-	done
-
-	for i in $$(seq 3); do \
+		$(MAKE) common/create-vg ID=$$i; \
 		$(SUDO) systemctl reset-failed lvmd$$i.service || true; \
 		$(SUDO) systemd-run --unit=lvmd$$i.service $(shell pwd)/build/lvmd --config=$(shell pwd)/lvmd$$i.yaml; \
 	done
@@ -158,59 +102,20 @@ stop-lvmd:
 	$(MAKE) shutdown-kind
 	for i in $$(seq 3); do \
 		if systemctl is-active -q lvmd$$i.service; then $(SUDO) systemctl stop lvmd$$i.service; fi; \
-		for j in $$(seq 7); do \
-			if [ "$${j}" -lt 6 ]; then \
-				$(SUDO) vgremove -ffy node$${i}-myvg$${j}; \
-			fi; \
-			$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_$${j} | cut -d: -f1); \
-			$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$${i}_$${j} | cut -d: -f1); \
-			rm -f $(BACKING_STORE)/backing_store$${i}_$${j}; \
-		done; \
+		$(MAKE) common/remove-vg ID=$$i; \
 	done
 
 .PHONY: create-cluster
-create-cluster: HELM_VALUES_FILES += manifests/values/kind.yaml
-create-cluster: topolvm.img $(HELM) $(KIND) $(KUBECTL)
+create-cluster: topolvm.img $(KIND)
 	$(MAKE) shutdown-kind
 	$(MAKE) launch-kind
-	$(MAKE) apply-certmanager-crds
-	$(MAKE) prepare-namespace
-	$(KIND) load image-archive --name=$(KIND_CLUSTER_NAME) $<
-	$(HELM) repo add jetstack https://charts.jetstack.io
-	$(HELM) repo update
-	$(HELM) dependency build ../charts/topolvm/
-	$(HELM) install --namespace=topolvm-system topolvm ../charts/topolvm/ $(patsubst %,-f %,$(HELM_VALUES_FILES))
-	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/topolvm-controller
-	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system -l="app.kubernetes.io/component=controller,app.kubernetes.io/name=topolvm" pod
-	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system certificate/topolvm-mutatingwebhook
-
-.PHONY: prepare-test
-prepare-test: $(KUBECTL)
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/rbac-snapshot-controller.yaml
-	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml
-	sed 's/@DOMAIN_NAME@/$(DOMAIN_NAME)/' manifests/volumesnapshotclass_tpl.yaml | $(KUBECTL) apply -f -
-
-.PHONY: run-test
-run-test: GINKGO_FLAGS =
-run-test: DAEMONSET_LVMD =
-run-test: $(GINKGO)
-	$(SUDO) -E env \
-	PATH=${PATH} \
-	E2ETEST=1 \
-	KUBECTL=$(KUBECTL) \
-	DAEMONSET_LVMD=$(DAEMONSET_LVMD) \
-	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
-	USE_LEGACY=$(USE_LEGACY) \
-	$(GINKGO) --fail-fast -v $(GINKGO_FLAGS) .
+	$(KIND) load image-archive --name=$(CLUSTER_NAME) $<
+	$(MAKE) common/setup-components
 
 .PHONY: test
 test:
 	$(MAKE) create-cluster
-	$(MAKE) prepare-test
-	$(MAKE) run-test
+	$(MAKE) common/test
 
 .PHONY: clean
 clean: stop-lvmd
@@ -248,48 +153,11 @@ $(KUBECTL): | $(BINDIR)
 incluster-lvmd/create-vg:
 	mkdir -p build $(BACKING_STORE)
 	if [ $$(ls -1 $(BACKING_STORE)/backing_store_lvmd* 2>/dev/null | wc -l) -ne 0 ]; then $(MAKE) $(@D)/remove-vg; fi
-
-	for i in $$(seq 3); do \
-		truncate --size=20G $(BACKING_STORE)/backing_store_lvmd_$${i}; \
-		$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_$${i}; \
-		$(SUDO) vgcreate -y node-myvg$${i} $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_$${i} | cut -d: -f1); \
-	done
-
-	# Create Volume Group for testing raid1 volumes.
-	# This requires 2 PVs in each VG.
-	truncate --size=3G $(BACKING_STORE)/backing_store_lvmd_4
-	truncate --size=3G $(BACKING_STORE)/backing_store_lvmd_5
-	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_4
-	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_5
-	$(SUDO) vgcreate -y node-myvg4 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_4 | cut -d: -f1) \
-		$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_5 | cut -d: -f1)
-
-	# Create Volume Group for thinpool
-	truncate --size=5G $(BACKING_STORE)/backing_store_lvmd_6
-	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_6
-	$(SUDO) vgcreate -y node-myvg5 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_6 | cut -d: -f1)
-	$(SUDO) lvcreate -T -n pool0 -L 4G node-myvg5
-
-	# Create Volume Group for testing lvcreate-option-classes.
-	# This requires 2 PVs in each VG.
-	truncate --size=3G $(BACKING_STORE)/backing_store_lvmd_7
-	truncate --size=3G $(BACKING_STORE)/backing_store_lvmd_8
-	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_7
-	$(SUDO) losetup -f $(BACKING_STORE)/backing_store_lvmd_8
-	$(SUDO) vgcreate -y node-myvg6 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_7 | cut -d: -f1) \
-		$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_8 | cut -d: -f1)
-
+	$(MAKE) common/create-vg ID=1
 
 .PHONY: incluster-lvmd/remove-vg
 incluster-lvmd/remove-vg:
-	for i in $$(seq 8); do \
-		if [ "$${j}" -lt 7 ]; then \
-			$(SUDO) vgremove -ffy node-myvg$${i}; \
-		fi; \
-		$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_$${i} | cut -d: -f1); \
-		$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store_lvmd_$${i} | cut -d: -f1); \
-		rm -f $(BACKING_STORE)/backing_store_lvmd_$${i}; \
-	done
+	$(MAKE) common/remove-vg ID=1
 
 .PHONY: incluster-lvmd/setup-minikube
 incluster-lvmd/setup-minikube:
@@ -318,6 +186,8 @@ incluster-lvmd/launch-minikube:
 		--vm-driver=none \
 		--kubernetes-version=v$(KUBERNETES_VERSION) \
 		--extra-config=kubelet.read-only-port=10255 \
+		--extra-config=kubeadm.node-name=$(CLUSTER_NAME)-worker \
+		--extra-config=kubelet.hostname-override=$(CLUSTER_NAME)-worker \
 		--feature-gates=$(MINIKUBE_FEATURE_GATES) \
 		--cni=calico
 	$(SUDO) chown -R $$USER $$HOME/.kube $(MINIKUBE_HOME)/.minikube
@@ -329,7 +199,8 @@ incluster-lvmd/delete-minikube:
 	$(SUDO) -E $(BINDIR)/minikube delete || true
 
 .PHONY: incluster-lvmd/test
-incluster-lvmd/test: topolvm.img $(GINKGO) $(HELM) $(KUBECTL)
+# topolvm.img is to trigger the build of docker image
+incluster-lvmd/test: topolvm.img
 	@if [ "$(TEST_SCHEDULER_EXTENDER_TYPE)" != none ]; then \
 		echo "Using the scheduler extender is not supported"; \
 		exit 1; \
@@ -338,8 +209,58 @@ incluster-lvmd/test: topolvm.img $(GINKGO) $(HELM) $(KUBECTL)
 		echo "Running LVMd as systemd-service is not supported"; \
 		exit 1; \
 	fi
-	$(MAKE) apply-certmanager-crds
-	$(MAKE) prepare-namespace
+	$(MAKE) common/setup-components
+	$(MAKE) common/test
+
+.PHONY: incluster-lvmd/clean
+incluster-lvmd/clean: incluster-lvmd/delete-minikube incluster-lvmd/remove-vg
+
+.PHONY: common/create-vg
+common/create-vg:
+	for i in $$(seq 2); do \
+		truncate --size=20G $(BACKING_STORE)/backing_store$(ID)_$${i}; \
+		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$(ID)_$${i}; \
+		$(SUDO) vgcreate -y node$(ID)-thick$${i} $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_$${i} | cut -d: -f1); \
+	done
+
+	# Create Volume Groups for testing raid1 volumes and lvcreate-option-classes.
+	# This requires 2 PVs in each VG.
+	for i in $$(seq 2); do \
+		truncate --size=3G $(BACKING_STORE)/backing_store$(ID)_$$((i*2+1)); \
+		truncate --size=3G $(BACKING_STORE)/backing_store$(ID)_$$((i*2+2)); \
+		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$(ID)_$$((i*2+1)); \
+		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$(ID)_$$((i*2+2)); \
+		$(SUDO) vgcreate -y node$(ID)-raid1-$${i} \
+			$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_$$((i*2+1)) | cut -d: -f1) \
+			$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_$$((i*2+2)) | cut -d: -f1); \
+	done
+
+	# Create Volume Group for thinpool
+	truncate --size=5G $(BACKING_STORE)/backing_store$(ID)_7
+	$(SUDO) losetup -f $(BACKING_STORE)/backing_store$(ID)_7
+	$(SUDO) vgcreate -y node$(ID)-thin1 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_7 | cut -d: -f1)
+	$(SUDO) lvcreate -T -n pool0 -L 4G node$(ID)-thin1
+
+.PHONY: common/remove-vg
+common/remove-vg:
+	for name in thick1 thick2 raid1-1 raid1-2 thin1; do \
+		$(SUDO) vgremove -ffy node$(ID)-$${name}; \
+	done; \
+	for i in $$(seq 7); do \
+		$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_$${i} | cut -d: -f1); \
+		$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_$${i} | cut -d: -f1); \
+		rm -f $(BACKING_STORE)/backing_store$(ID)_$${i}; \
+	done
+
+.PHONY: common/setup-components
+common/setup-components: $(HELM) $(KUBECTL)
+	@echo apply certmanager CRDs
+	$(KUBECTL) apply -f https://github.com/cert-manager/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.crds.yaml
+
+	@echo install TopoLVM
+	$(KUBECTL) create namespace topolvm-system
+	$(KUBECTL) label namespace topolvm-system $(DOMAIN_NAME)/webhook=ignore
+	$(KUBECTL) label namespace kube-system $(DOMAIN_NAME)/webhook=ignore
 	$(HELM) repo add jetstack https://charts.jetstack.io
 	$(HELM) repo update
 	$(HELM) dependency build ../charts/topolvm/
@@ -347,8 +268,21 @@ incluster-lvmd/test: topolvm.img $(GINKGO) $(HELM) $(KUBECTL)
 	$(KUBECTL) wait --for=condition=available --timeout=120s -n topolvm-system deployments/topolvm-controller
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system -l="app.kubernetes.io/component=controller,app.kubernetes.io/name=topolvm" pod
 	$(KUBECTL) wait --for=condition=ready --timeout=120s -n topolvm-system certificate/topolvm-mutatingwebhook
-	$(MAKE) prepare-test
-	$(MAKE) run-test DAEMONSET_LVMD=true
 
-.PHONY: incluster-lvmd/clean
-incluster-lvmd/clean: incluster-lvmd/delete-minikube incluster-lvmd/remove-vg
+	@echo apply VolumeSnapshot manifests
+	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
+	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
+	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
+	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/rbac-snapshot-controller.yaml
+	$(KUBECTL) apply -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v$(EXTERNAL_SNAPSHOTTER_VERSION)/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml
+	sed 's/@DOMAIN_NAME@/$(DOMAIN_NAME)/' manifests/volumesnapshotclass_tpl.yaml | $(KUBECTL) apply -f -
+
+.PHONY: common/test
+common/test: $(GINKGO)
+	$(SUDO) -E env \
+	PATH=${PATH} \
+	E2ETEST=1 \
+	KUBECTL=$(KUBECTL) \
+	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
+	USE_LEGACY=$(USE_LEGACY) \
+	$(GINKGO) --fail-fast -v $(GINKGO_FLAGS) .

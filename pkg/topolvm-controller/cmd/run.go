@@ -64,7 +64,7 @@ func subMain() error {
 		Scheme:                  scheme,
 		MetricsBindAddress:      config.metricsAddr,
 		HealthProbeBindAddress:  config.healthAddr,
-		LeaderElection:          true,
+		LeaderElection:          config.leaderElection,
 		LeaderElectionID:        config.leaderElectionID,
 		LeaderElectionNamespace: config.leaderElectionNamespace,
 		RenewDeadline:           &config.leaderElectionRenewDeadline,

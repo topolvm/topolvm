@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
-	"github.com/topolvm/topolvm"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -40,15 +39,11 @@ func testPVCClone() {
 	It("should create a PVC Clone", func() {
 		By("deploying Pod with PVC")
 
-		nodeName := "topolvm-e2e-worker"
-		if isDaemonsetLvmdEnvSet() {
-			nodeName = getDaemonsetLvmdNodeName()
-		}
 		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSize))
 		_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsCloneTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod", volName, topolvm.GetTopologyNodeKey(), nodeName))
+		thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod", volName))
 		_, err = kubectlWithInput(thinPodYAML, "apply", "-n", nsCloneTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		By("confirming if the source PVC is created")
@@ -81,7 +76,7 @@ func testPVCClone() {
 		_, err = kubectlWithInput(thinPVCCloneYAML, "apply", "-n", nsCloneTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		thinPodCloneYAML := []byte(fmt.Sprintf(thinPodCloneTemplateYAML, thinClonePodName, thinClonePVCName, topolvm.GetTopologyNodeKey(), nodeName))
+		thinPodCloneYAML := []byte(fmt.Sprintf(thinPodCloneTemplateYAML, thinClonePodName, thinClonePVCName))
 		_, err = kubectlWithInput(thinPodCloneYAML, "apply", "-n", nsCloneTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -109,10 +104,7 @@ func testPVCClone() {
 			return err
 		}).Should(Succeed())
 
-		vgName := "node1-myvg4"
-		if isDaemonsetLvmdEnvSet() {
-			vgName = "node-myvg5"
-		}
+		vgName := "node1-thin1"
 		Expect(vgName).Should(Equal(lv.vgName))
 
 		poolName := "pool0"
@@ -133,17 +125,12 @@ func testPVCClone() {
 	})
 
 	It("validate if the cloned PVC is standalone", func() {
-
-		nodeName := "topolvm-e2e-worker"
-		if isDaemonsetLvmdEnvSet() {
-			nodeName = getDaemonsetLvmdNodeName()
-		}
 		By("creating a PVC")
 		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSize))
 		_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsCloneTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod", volName, topolvm.GetTopologyNodeKey(), nodeName))
+		thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod", volName))
 		_, err = kubectlWithInput(thinPodYAML, "apply", "-n", nsCloneTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() error {
@@ -163,7 +150,7 @@ func testPVCClone() {
 		_, err = kubectlWithInput(thinPVCCloneYAML, "apply", "-n", nsCloneTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		thinPodCloneYAML := []byte(fmt.Sprintf(thinPodCloneTemplateYAML, thinClonePodName, thinClonePVCName, topolvm.GetTopologyNodeKey(), nodeName))
+		thinPodCloneYAML := []byte(fmt.Sprintf(thinPodCloneTemplateYAML, thinClonePodName, thinClonePVCName))
 		_, err = kubectlWithInput(thinPodCloneYAML, "apply", "-n", nsCloneTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -192,10 +179,7 @@ func testPVCClone() {
 			return err
 		}).Should(Succeed())
 
-		vgName := "node1-myvg4"
-		if isDaemonsetLvmdEnvSet() {
-			vgName = "node-myvg5"
-		}
+		vgName := "node1-thin1"
 		Expect(vgName).Should(Equal(lv.vgName))
 
 		poolName := "pool0"

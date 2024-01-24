@@ -22,8 +22,7 @@ var statefulSetTemplateYAML string
 func testNodeDelete() {
 
 	BeforeEach(func() {
-		// Skip because this test require multiple nodes but there is just one node in daemonset lvmd test environment.
-		skipIfDaemonsetLvmd()
+		skipIfSingleNode()
 
 		createNamespace(nsNodeDeleteTest)
 	})
@@ -36,7 +35,7 @@ func testNodeDelete() {
 		By("waiting for node finalizer set")
 		Eventually(func() error {
 			var nodes corev1.NodeList
-			err := getObjects(&nodes, "nodes", "-l=node-role.kubernetes.io/control-plane!=")
+			err := getObjects(&nodes, "nodes", "-l=!node-role.kubernetes.io/control-plane")
 			if err != nil {
 				return err
 			}
@@ -93,7 +92,7 @@ func testNodeDelete() {
 			}
 		}
 
-		By("deleting Node topolvm-e2e-worker3")
+		By("deleting Node " + targetNode)
 		_, err = kubectl("delete", "node", targetNode, "--wait=true")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -124,7 +123,7 @@ func testNodeDelete() {
 		}).Should(Succeed())
 
 		By("cleaning up LVMs that the deleted node had")
-		_, err = execAtLocal("docker", nil, "stop", "topolvm-e2e-worker3")
+		_, err = execAtLocal("docker", nil, "stop", targetNode)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		for _, lv := range targetLVs {

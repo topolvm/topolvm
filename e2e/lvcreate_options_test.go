@@ -34,7 +34,7 @@ func testLVCreateOptions() {
 
 	It("should use lvcreate-options when creating LV", func() {
 		By("creating Pod with PVC using raid device-class")
-		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1, "topolvm-provisioner-raid"))
+		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1, "topolvm-provisioner-create-option-raid1"))
 		podYaml := []byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu", "topo-pvc"))
 
 		_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
@@ -71,7 +71,7 @@ func testLVCreateOptions() {
 
 	It("should use lvcreate-option-classes when creating LV", func() {
 		By("creating Pod with PVC using raid1 device-class")
-		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc-raid1", "Filesystem", 1, "topolvm-provisioner-raid1"))
+		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc-raid1", "Filesystem", 1, "topolvm-provisioner-option-class-raid1"))
 		podYaml := []byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu2", "topo-pvc-raid1"))
 
 		_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")

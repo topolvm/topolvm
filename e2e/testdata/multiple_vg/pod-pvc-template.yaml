@@ -27,3 +27,5 @@ spec:
     - name: my-volume
       persistentVolumeClaim:
         claimName: %s
+  nodeSelector:
+    kubernetes.io/hostname: topolvm-e2e-worker

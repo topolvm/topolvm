@@ -33,7 +33,7 @@ func testMultipleVolumeGroups() {
 
 	It("should use the specified device-class", func() {
 		By("deploying Pod with PVC")
-		manifest := fmt.Sprintf(multipleVGPodPVCTemplateYAML, "topo-pvc-dc", "topolvm-provisioner3", "pause-dc", "topo-pvc-dc")
+		manifest := fmt.Sprintf(multipleVGPodPVCTemplateYAML, "topo-pvc-dc", "topolvm-provisioner2", "pause-dc", "topo-pvc-dc")
 		_, err := kubectlWithInput([]byte(manifest), "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -60,10 +60,7 @@ func testMultipleVolumeGroups() {
 			return err
 		}).Should(Succeed())
 
-		vgName := "node3-myvg2"
-		if isDaemonsetLvmdEnvSet() {
-			vgName = "node-myvg3"
-		}
+		vgName := "node1-thick2"
 		Expect(vgName).Should(Equal(lv.vgName))
 	})
 

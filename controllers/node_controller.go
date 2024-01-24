@@ -10,10 +10,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	crlog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
@@ -41,8 +43,9 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	log := crlog.FromContext(ctx)
 
 	// your logic here
-	node := &corev1.Node{}
-	err := r.client.Get(ctx, req.NamespacedName, node)
+	var node v1.PartialObjectMetadata
+	node.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("Node"))
+	err := r.client.Get(ctx, req.NamespacedName, &node)
 	switch {
 	case err == nil:
 	case apierrors.IsNotFound(err):
@@ -55,18 +58,17 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, nil
 	}
 
-	if !controllerutil.ContainsFinalizer(node, topolvm.GetNodeFinalizer()) {
+	if !controllerutil.ContainsFinalizer(&node, topolvm.GetNodeFinalizer()) {
 		return ctrl.Result{}, nil
 	}
 
-	if result, err := r.doFinalize(ctx, log, node); result.Requeue || err != nil {
+	if result, err := r.doFinalize(ctx, log, &node); result.Requeue || err != nil {
 		return result, err
 	}
 
 	node2 := node.DeepCopy()
 	controllerutil.RemoveFinalizer(node2, topolvm.GetNodeFinalizer())
-	patch := client.MergeFrom(node)
-	if err := r.client.Patch(ctx, node2, patch); err != nil {
+	if err := r.client.Patch(ctx, node2, client.MergeFrom(&node)); err != nil {
 		log.Error(err, "failed to remove finalizer", "name", node.Name)
 		return ctrl.Result{}, err
 	}
@@ -90,7 +92,7 @@ func (r *NodeReconciler) targetStorageClasses(ctx context.Context) (map[string]b
 	return targets, nil
 }
 
-func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *corev1.Node) (ctrl.Result, error) {
+func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node client.Object) (ctrl.Result, error) {
 	if r.skipNodeFinalize {
 		log.Info("skipping node finalize")
 		return ctrl.Result{}, nil
@@ -103,7 +105,7 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 	}
 
 	var pvcs corev1.PersistentVolumeClaimList
-	err = r.client.List(ctx, &pvcs, client.MatchingFields{keySelectedNode: node.Name})
+	err = r.client.List(ctx, &pvcs, client.MatchingFields{keySelectedNode: node.GetName()})
 	if err != nil {
 		log.Error(err, "unable to fetch PersistentVolumeClaimList")
 		return ctrl.Result{}, err
@@ -125,8 +127,8 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node *
 		log.Info("deleted PVC", "name", pvc.Name, "namespace", pvc.Namespace)
 	}
 
-	lvList := new(topolvmv1.LogicalVolumeList)
-	err = r.client.List(ctx, lvList, client.MatchingFields{keyLogicalVolumeNode: node.Name})
+	lvList := &topolvmv1.LogicalVolumeList{}
+	err = r.client.List(ctx, lvList, client.MatchingFields{keyLogicalVolumeNode: node.GetName()})
 	if err != nil {
 		log.Error(err, "failed to get LogicalVolumes")
 		return ctrl.Result{}, err
@@ -150,8 +152,7 @@ func (r *NodeReconciler) cleanupLogicalVolume(ctx context.Context, log logr.Logg
 		// Flag the LV as pending deletion, so the LogicalVolumeReconciler doesn't re-add the finalizer before it sees the deletion
 		lv2.Annotations[topolvm.GetLVPendingDeletionKey()] = "true"
 		controllerutil.RemoveFinalizer(lv2, topolvm.GetLogicalVolumeFinalizer())
-		patch := client.MergeFrom(lv)
-		if err := r.client.Patch(ctx, lv2, patch); err != nil {
+		if err := r.client.Patch(ctx, lv2, client.MergeFrom(lv)); err != nil {
 			log.Error(err, "failed to patch LogicalVolume", "name", lv.Name)
 			return err
 		}
@@ -200,6 +201,7 @@ func (r *NodeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		WithEventFilter(pred).
-		For(&corev1.Node{}).
+		Named("node-controller").
+		WatchesMetadata(&corev1.Node{}, &handler.EnqueueRequestForObject{}).
 		Complete(r)
 }

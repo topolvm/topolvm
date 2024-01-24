@@ -7,6 +7,7 @@ import (
 
 	"github.com/topolvm/topolvm"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -25,8 +26,9 @@ func NewNodeService(r client.Reader) *NodeService {
 	return &NodeService{reader: r}
 }
 
-func (s NodeService) getNodes(ctx context.Context) (*corev1.NodeList, error) {
-	nl := new(corev1.NodeList)
+func (s NodeService) getNodes(ctx context.Context) (*v1.PartialObjectMetadataList, error) {
+	nl := new(v1.PartialObjectMetadataList)
+	nl.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("NodeList"))
 	err := s.reader.List(ctx, nl)
 	if err != nil {
 		return nil, err
@@ -34,7 +36,7 @@ func (s NodeService) getNodes(ctx context.Context) (*corev1.NodeList, error) {
 	return nl, nil
 }
 
-func (s NodeService) extractCapacityFromAnnotation(node *corev1.Node, deviceClass string) (int64, error) {
+func (s NodeService) extractCapacityFromAnnotation(node *v1.PartialObjectMetadata, deviceClass string) (int64, error) {
 	if deviceClass == topolvm.DefaultDeviceClassName {
 		deviceClass = topolvm.DefaultDeviceClassAnnotationName
 	}
@@ -47,7 +49,8 @@ func (s NodeService) extractCapacityFromAnnotation(node *corev1.Node, deviceClas
 
 // GetCapacityByName returns VG capacity of specified node by name.
 func (s NodeService) GetCapacityByName(ctx context.Context, name, deviceClass string) (int64, error) {
-	n := new(corev1.Node)
+	n := new(v1.PartialObjectMetadata)
+	n.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("Node"))
 	err := s.reader.Get(ctx, client.ObjectKey{Name: name}, n)
 	if err != nil {
 		return 0, err
