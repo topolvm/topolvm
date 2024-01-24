@@ -501,12 +501,12 @@ func (s controllerServerNoLocked) ValidateVolumeCapabilities(ctx context.Context
 func (s controllerServerNoLocked) GetCapacity(ctx context.Context, req *csi.GetCapacityRequest) (*csi.GetCapacityResponse, error) {
 	topology := req.GetAccessibleTopology()
 	capabilities := req.GetVolumeCapabilities()
-	ctrlLogger.Info("GetCapacity called",
+	ctrlLogger.V(1).Info("GetCapacity called",
 		"volume_capabilities", capabilities,
 		"parameters", req.GetParameters(),
 		"accessible_topology", topology)
 	if capabilities != nil {
-		ctrlLogger.Info("capability argument is not nil, but TopoLVM ignores it")
+		ctrlLogger.V(1).Info("capability argument is not nil, but TopoLVM ignores it")
 	}
 
 	deviceClass := req.GetParameters()[topolvm.GetDeviceClassKey()]
