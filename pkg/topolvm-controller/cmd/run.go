@@ -24,6 +24,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 	//+kubebuilder:scaffold:imports
 )
@@ -61,8 +63,10 @@ func subMain() error {
 		return fmt.Errorf("invalid webhook port: %v", err)
 	}
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme:                  scheme,
-		MetricsBindAddress:      config.metricsAddr,
+		Scheme: scheme,
+		Metrics: metricsserver.Options{
+			BindAddress: config.metricsAddr,
+		},
 		HealthProbeBindAddress:  config.healthAddr,
 		LeaderElection:          config.leaderElection,
 		LeaderElectionID:        config.leaderElectionID,
@@ -70,9 +74,11 @@ func subMain() error {
 		RenewDeadline:           &config.leaderElectionRenewDeadline,
 		RetryPeriod:             &config.leaderElectionRetryPeriod,
 		LeaseDuration:           &config.leaderElectionLeaseDuration,
-		Host:                    hookHost,
-		Port:                    hookPort,
-		CertDir:                 config.certDir,
+		WebhookServer: webhook.NewServer(webhook.Options{
+			Host:    hookHost,
+			Port:    hookPort,
+			CertDir: config.certDir,
+		}),
 	})
 	if err != nil {
 		return err

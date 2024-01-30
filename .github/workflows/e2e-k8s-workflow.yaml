@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        kubernetes_versions: ["1.27.3", "1.26.6", "1.25.11"]
+        kubernetes_versions: ["1.28.0", "1.27.3", "1.26.6"]
     env:
       KUBERNETES_VERSION: ${{ matrix.kubernetes_versions }}
       TEST_SCHEDULER_EXTENDER_TYPE: ${{ inputs.test_scheduler_extender_type }}

@@ -14,7 +14,7 @@ It can be considered as a specific implementation of [local persistent volumes](
 
 Our supported platform are:
 
-- Kubernetes: 1.27, 1.26, 1.25
+- Kubernetes: 1.28, 1.27, 1.26
 - Node OS: Linux with LVM2 (\*1)
 - CPU Architecture: x86 (\*2), arm64 (\*3), ppc64le (\*3)
 - Filesystems: ext4, xfs, btrfs(experimental)

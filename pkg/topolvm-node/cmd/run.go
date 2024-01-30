@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/yaml"
 	//+kubebuilder:scaffold:imports
 )
@@ -63,9 +64,11 @@ func subMain(ctx context.Context) error {
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&config.zapOpts)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: config.metricsAddr,
-		LeaderElection:     false,
+		Scheme: scheme,
+		Metrics: metricsserver.Options{
+			BindAddress: config.metricsAddr,
+		},
+		LeaderElection: false,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")

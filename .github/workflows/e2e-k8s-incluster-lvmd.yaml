@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        kubernetes_versions: ["1.27.3", "1.26.6", "1.25.11"]
+        kubernetes_versions: ["1.28.0", "1.27.3", "1.26.6"]
         test_lvmd_type: ["daemonset", "embedded"]
     env:
       KUBERNETES_VERSION: ${{ matrix.kubernetes_versions }}
