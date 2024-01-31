@@ -25,7 +25,6 @@ Choose the next version and check the [release note](https://kubernetes.io/docs/
 
 Edit the following files.
 - `README.md`
-- `deploy/README.md`
 - `versions.mk`
 - `.github/workflows/e2e-k8s-incluster-lvmd.yaml`
 - `.github/workflows/e2e-k8s-workflow.yaml`

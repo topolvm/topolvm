@@ -96,11 +96,6 @@ scheduler:
       operator: Exists
     - key: node-role.kubernetes.io/control-plane
       effect: NoSchedule
-    # node-role.kubernetes.io/master taint will not be used in k8s 1.25+.
-    # cf. https://github.com/kubernetes/enhancements/blob/master/keps/sig-cluster-lifecycle/kubeadm/2067-rename-master-label-taint/README.md
-    # TODO: remove this when minimum supported version becomes 1.25.
-    - key: node-role.kubernetes.io/master
-      effect: NoSchedule
 
   # scheduler.nodeSelector -- Specify nodeSelector on the Deployment or DaemonSet.
   ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
