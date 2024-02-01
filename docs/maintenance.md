@@ -17,8 +17,6 @@ The format is up to you, but this is very important to keep track of what change
 Basically, we should pay attention to breaking changes and security fixes first.
 If we find some interesting features added in new versions, please consider if we are going to use them or not and make a GitHub issue to incorporate them after the upgrading task is done.
 
-Note: Ubuntu 18.04 is used to keep the backward compatibility of XFS formatting. (https://github.com/topolvm/topolvm/pull/306)
-
 #### Kubernetes
 
 Choose the next version and check the [release note](https://kubernetes.io/docs/setup/release/notes/). e.g. 1.17, 1.18, 1.19 -> 1.18, 1.19, 1.20

@@ -1,4 +1,4 @@
-# Limitations
+# Limitations <!-- omit in toc -->
 
 <!-- Created by VSCode Markdown All in One command: Create Table of Contents -->
 - [StorageClass Reclaim Policy](#storageclass-reclaim-policy)
@@ -7,6 +7,7 @@
 - [Snapshots Can Be Created Only for Thin Volumes](#snapshots-can-be-created-only-for-thin-volumes)
 - [Snapshots Can Be Restored Only on the Same Node with the Source Volume](#snapshots-can-be-restored-only-on-the-same-node-with-the-source-volume)
 - [Use lvcreate-options at Your Own Risk](#use-lvcreate-options-at-your-own-risk)
+- [Error when using TopoLVM on old Linux kernel hosts with official docker image](#error-when-using-topolvm-on-old-linux-kernel-hosts-with-official-docker-image)
 
 ## StorageClass Reclaim Policy
 
@@ -91,3 +92,15 @@ This volume will use 100 GB in total since it is of type RAID1.
 The VG has 200 GB total and 100 GB spare configured so TopoLVM will now consider this VG full.
 
 For more details please see [this proposal](./proposals/lvcreate-options.md).
+
+## Error when using TopoLVM on old Linux kernel hosts with official docker image
+
+If you need to support older Linux kernel (like CentOS v7.x) in your environment, please build TopoLVM docker image with the older base image by yourself.
+
+When you use TopoLVM on old Linux kernel hosts with official docker image, you may see the following issues:
+
+- [mkfs.xfs incompatibility whith RHEL/Centos7.X #257](https://github.com/topolvm/topolvm/issues/257)
+- [xfs mount failed #283](https://github.com/topolvm/topolvm/issues/283)
+
+This is because the official docker image is based on Ubuntu 22.04 and [xfsprogs v5.13 or later](https://packages.ubuntu.com/search?keywords=xfsprogs). It is possible to use incompatible filesystem options on older Linux kernels. Also, we don't know which kernel version exactly causes the problem, because the official xfs Q&A does not provide compatible kernel versions.
+In the past, we used Ubuntu 18.04 as a base image and used older xfsprogs whenever possible, but Ubuntu 18.04 became the end of support and we have upgraded the base image version.
