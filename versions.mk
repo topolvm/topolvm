@@ -12,6 +12,8 @@ CONTAINER_STRUCTURE_TEST_VERSION := 1.16.0
 CRI_DOCKERD_VERSION := v0.3.9
 # https://github.com/kubernetes-sigs/cri-tools/releases
 CRICTL_VERSION := v1.29.0
+# https://github.com/golangci/golangci-lint/releases
+GOLANGCI_LINT_VERSION := v1.55.2
 # https://github.com/norwoodj/helm-docs/releases
 HELM_DOCS_VERSION := 1.12.0
 # https://github.com/helm/helm/releases
