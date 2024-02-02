@@ -175,6 +175,15 @@ lvmd:
   #  - name: lvmd-socket-dir
   #    mountPath: /run/topolvm
 
+  # lvmd.additionalVolumes -- Specify additional volumes without conflicting with default volumes
+  # most useful for initContainers but available to all containers in the pod.
+  additionalVolumes: []
+  #  - name: custom-config-map
+  #    configMap:
+  # # Provide the name of the ConfigMap containing the files you want
+  # # to add to the container
+  # name: special-config
+
   # lvmd.env -- extra environment variables
   env: []
   #  - name: LVM_SYSTEM_DIR
@@ -302,6 +311,15 @@ node:
   #    hostPath:
   #      path: /run/topolvm
   #      type: Directory
+
+  # node.additionalVolumes -- Specify additional volumes without conflicting with default volumes
+  # most useful for initContainers but available to all containers in the pod.
+  additionalVolumes: []
+  #  - name: custom-config-map
+  #    configMap:
+  # # Provide the name of the ConfigMap containing the files you want
+  # # to add to the container
+  # name: special-config
 
   volumeMounts:
     # node.volumeMounts.topolvmNode -- Specify volumes.
