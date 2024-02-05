@@ -22,13 +22,13 @@ type LogicalVolumeSpec struct {
 
 	// 'source' specifies the logicalvolume name of the source; if present.
 	// This field is populated only when LogicalVolume has a source.
-	// +kubebuilder:validation:Optional
+	//+kubebuilder:validation:Optional
 	Source string `json:"source,omitempty"`
 
 	//'accessType' specifies how the user intends to consume the snapshot logical volume.
 	// Set to "ro" when creating a snapshot and to "rw" when restoring a snapshot or creating a clone.
 	// This field is populated only when LogicalVolume has a source.
-	// +kubebuilder:validation:Optional
+	//+kubebuilder:validation:Optional
 	AccessType string `json:"accessType,omitempty"`
 }
 
