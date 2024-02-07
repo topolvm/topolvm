@@ -7,13 +7,6 @@ import (
 	"strings"
 )
 
-type vg struct {
-	name string
-	uuid string
-	size uint64
-	free uint64
-}
-
 type lv struct {
 	name            string
 	fullName        string
@@ -34,35 +27,6 @@ type lv struct {
 
 func (u *lv) isThinPool() bool {
 	return u.attr[0] == 't'
-}
-
-func (u *vg) UnmarshalJSON(data []byte) error {
-	type vgInternal struct {
-		Name string `json:"vg_name"`
-		UUID string `json:"vg_uuid"`
-		Size string `json:"vg_size"`
-		Free string `json:"vg_free"`
-	}
-
-	var temp vgInternal
-	if err := json.Unmarshal(data, &temp); err != nil {
-		return err
-	}
-
-	u.name = temp.Name
-	u.uuid = temp.UUID
-
-	var convErr error
-	u.size, convErr = strconv.ParseUint(temp.Size, 10, 64)
-	if convErr != nil {
-		return convErr
-	}
-	u.free, convErr = strconv.ParseUint(temp.Free, 10, 64)
-	if convErr != nil {
-		return convErr
-	}
-
-	return nil
 }
 
 func (u *lv) UnmarshalJSON(data []byte) error {
@@ -136,47 +100,54 @@ func (u *lv) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func parseFullReportResult(data []byte) ([]vg, []lv, error) {
-	type fullReportResult struct {
+func getLVReport(ctx context.Context, name string) (map[string]lv, error) {
+	type lvReport struct {
 		Report []struct {
-			VG []vg `json:"vg"`
 			LV []lv `json:"lv"`
 		} `json:"report"`
 	}
 
-	var result fullReportResult
-	if err := json.Unmarshal(data, &result); err != nil {
-		return nil, nil, err
-	}
+	var res = new(lvReport)
 
-	var vgs []vg
-	var lvs []lv
-	for _, report := range result.Report {
-		vgs = append(vgs, report.VG...)
-		lvs = append(lvs, report.LV...)
-	}
-	return vgs, lvs, nil
-}
-
-// Issue single lvm command that retrieves everything we need in one call and get the output as JSON
-func getLVMState(ctx context.Context) ([]vg, []lv, error) {
 	args := []string{
-		"--reportformat", "json",
-		"--units", "b", "--nosuffix",
-		"--configreport", "vg", "-o", "vg_name,vg_uuid,vg_size,vg_free",
-		"--configreport", "lv", "-o", "lv_uuid,lv_name,lv_full_name,lv_path,lv_size," +
+		"lvs",
+		name,
+		"-o",
+		"lv_uuid,lv_name,lv_full_name,lv_path,lv_size," +
 			"lv_kernel_major,lv_kernel_minor,origin,origin_size,pool_lv,lv_tags," +
 			"lv_attr,vg_name,data_percent,metadata_percent,pool_lv",
-		// fullreport doesn't have an option to omit an entire section, so we
-		// omit all fields instead.
-		"--configreport", "pv", "-o,",
-		"--configreport", "pvseg", "-o,",
-		"--configreport", "seg", "-o,",
+		"--units",
+		"b",
+		"--nosuffix",
+		"--reportformat",
+		"json",
 	}
-	stdout, err := callLVMWithStdout(ctx, "fullreport", args...)
-	if err != nil {
-		return nil, nil, err
+	err := callLVMInto(ctx, res, args...)
+
+	if lvmErr, ok := AsLVMError(err); ok && lvmErr.ExitCode() == 5 {
+		// lvs returns 5 if the volume does not exist, so we can convert this to ErrNotFound
+		// join it to the original error so that the caller can still see the stderr output.
+		return nil, ErrNotFound
 	}
 
-	return parseFullReportResult(stdout)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(res.Report) == 0 {
+		return nil, ErrNotFound
+	}
+
+	lvs := res.Report[0].LV
+
+	if len(lvs) == 0 {
+		return nil, ErrNotFound
+	}
+
+	lvmap := make(map[string]lv, len(lvs))
+	for _, lv := range lvs {
+		lvmap[lv.name] = lv
+	}
+
+	return lvmap, nil
 }

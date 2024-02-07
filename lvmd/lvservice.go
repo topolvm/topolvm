@@ -30,10 +30,9 @@ type lvService struct {
 }
 
 func (s *lvService) notify() {
-	if s.notifyFunc == nil {
-		return
+	if s.notifyFunc != nil {
+		s.notifyFunc()
 	}
-	s.notifyFunc()
 }
 
 func (s *lvService) CreateLV(ctx context.Context, req *proto.CreateLVRequest) (*proto.CreateLVResponse, error) {
@@ -69,12 +68,12 @@ func (s *lvService) CreateLV(ctx context.Context, req *proto.CreateLVRequest) (*
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 	case TypeThin:
-		pool, err = vg.FindPool(dc.ThinPoolConfig.Name)
+		pool, err = vg.FindPool(ctx, dc.ThinPoolConfig.Name)
 		if err != nil {
 			logger.Error(err, "failed to get thinpool")
 			return nil, status.Error(codes.Internal, err.Error())
 		}
-		tpu, err := pool.Free()
+		tpu, err := pool.Free(ctx)
 		if err != nil {
 			logger.Error(err, "failed to get free bytes")
 			return nil, status.Error(codes.Internal, err.Error())
@@ -108,18 +107,25 @@ func (s *lvService) CreateLV(ctx context.Context, req *proto.CreateLVRequest) (*
 		}
 	}
 
-	var lv *command.LogicalVolume
 	switch dc.Type {
 	case TypeThick:
-		lv, err = vg.CreateVolume(ctx, req.GetName(), requested, req.GetTags(), stripe, stripeSize, lvcreateOptions)
+		err = vg.CreateVolume(ctx, req.GetName(), requested, req.GetTags(), stripe, stripeSize, lvcreateOptions)
 	case TypeThin:
-		lv, err = pool.CreateVolume(ctx, req.GetName(), requested, req.GetTags(), stripe, stripeSize, lvcreateOptions)
+		err = pool.CreateVolume(ctx, req.GetName(), requested, req.GetTags(), stripe, stripeSize, lvcreateOptions)
 	default:
 		return nil, status.Error(codes.Internal, fmt.Sprintf("unsupported device class target: %s", dc.Type))
 	}
-
 	if err != nil {
 		logger.Error(err, "failed to create volume",
+			"requested", requested,
+			"tags", req.GetTags())
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	lv, err := vg.FindVolume(ctx, req.GetName())
+
+	if err != nil {
+		logger.Error(err, "failed to find volume",
 			"requested", requested,
 			"tags", req.GetTags())
 		return nil, status.Error(codes.Internal, err.Error())
@@ -150,27 +156,25 @@ func (s *lvService) RemoveLV(ctx context.Context, req *proto.RemoveLVRequest) (*
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
 	}
+
 	vg, err := command.FindVolumeGroup(ctx, dc.VolumeGroup)
-	if err != nil {
+	if errors.Is(err, ErrNotFound) {
+		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
+	} else if err != nil {
+		logger.Error(err, "failed to get volume group", "name", dc.VolumeGroup)
 		return nil, err
 	}
-	// ListVolumes on VolumeGroup or ThinPool returns ThinLogicalVolumes as well
-	// and no special handling for removal of LogicalVolume is needed
-	for _, lv := range vg.ListVolumes() {
-		if lv.Name() != req.GetName() {
-			continue
-		}
 
-		err = lv.Remove(ctx)
-		if err != nil {
-			logger.Error(err, "failed to remove volume", "name", lv.Name())
-			return nil, status.Error(codes.Internal, err.Error())
-		}
-		s.notify()
-
-		logger.Info("removed a LV", "name", req.GetName())
-		break
+	if err := vg.RemoveVolume(ctx, req.GetName()); errors.Is(err, ErrNotFound) {
+		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
+	} else if err != nil {
+		logger.Error(err, "failed to remove volume", "name", req.GetName())
+		return nil, err
 	}
+
+	s.notify()
+
+	logger.Info("removed a LV", "name", req.GetName())
 
 	return &proto.Empty{}, nil
 }
@@ -200,7 +204,7 @@ func (s *lvService) CreateLVSnapshot(ctx context.Context, req *proto.CreateLVSna
 
 	// Fetch the source logical volume
 	sourceVolume := req.GetSourceVolume()
-	sourceLV, err := vg.FindVolume(sourceVolume)
+	sourceLV, err := vg.FindVolume(ctx, sourceVolume)
 	if errors.Is(err, command.ErrNotFound) {
 		logger.Error(err, "source logical volume is not found", "sourceVolume", sourceVolume)
 		return nil, status.Errorf(codes.NotFound, "source logical volume %s is not found", sourceVolume)
@@ -246,9 +250,15 @@ func (s *lvService) CreateLVSnapshot(ctx context.Context, req *proto.CreateLVSna
 		"accessType", req.AccessType,
 	)
 	// Create snapshot lv
-	snapLV, err := sourceLV.ThinSnapshot(ctx, req.GetName(), req.GetTags())
-	if err != nil {
+
+	if err := sourceLV.ThinSnapshot(ctx, req.GetName(), req.GetTags()); err != nil {
 		logger.Error(err, "failed to create snapshot volume")
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	snapLV, err := vg.FindVolume(ctx, req.GetName())
+	if err != nil {
+		logger.Error(err, "failed to get snapshot after creation")
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -260,9 +270,8 @@ func (s *lvService) CreateLVSnapshot(ctx context.Context, req *proto.CreateLVSna
 	// If source volume is thin, activate the thin snapshot lv with accessmode.
 	if err := snapLV.Activate(ctx, req.AccessType); err != nil {
 		logger.Error(err, "failed to activate snapshot volume")
-		err := snapLV.Remove(ctx)
-		if err != nil {
-			logger.Error(err, "failed to delete snapshot")
+		if err := vg.RemoveVolume(ctx, req.GetName()); err != nil {
+			logger.Error(err, "failed to delete snapshot after activation failed")
 		} else {
 			logger.Info("deleted a snapshot")
 		}
@@ -305,7 +314,7 @@ func (s *lvService) ResizeLV(ctx context.Context, req *proto.ResizeLVRequest) (*
 	}
 	// FindVolume on VolumeGroup or ThinPool returns ThinLogicalVolumes as well
 	// and no special handling for resize of LogicalVolume is needed
-	lv, err := vg.FindVolume(req.GetName())
+	lv, err := vg.FindVolume(ctx, req.GetName())
 	if errors.Is(err, command.ErrNotFound) {
 		logger.Error(err, "logical volume is not found")
 		return nil, status.Errorf(codes.NotFound, "logical volume %s is not found", req.GetName())
@@ -344,12 +353,12 @@ func (s *lvService) ResizeLV(ctx context.Context, req *proto.ResizeLVRequest) (*
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 	case TypeThin:
-		pool, err = vg.FindPool(dc.ThinPoolConfig.Name)
+		pool, err = vg.FindPool(ctx, dc.ThinPoolConfig.Name)
 		if err != nil {
 			logger.Error(err, "failed to get thinpool")
 			return nil, status.Error(codes.Internal, err.Error())
 		}
-		tpu, err := pool.Free()
+		tpu, err := pool.Free(ctx)
 		if err != nil {
 			logger.Error(err, "failed to get free bytes")
 			return nil, status.Error(codes.Internal, err.Error())

@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	gproto "google.golang.org/protobuf/proto"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // NewEmbeddedServiceClients creates clients locally calling instead of using gRPC.
@@ -23,7 +24,11 @@ func NewEmbeddedServiceClients(ctx context.Context, dcmapper *DeviceClassManager
 		vgServiceServer: vgServiceServerInstance,
 	}
 	caller.vgWatch = &embeddedChannelWatch{ctx: ctx, watch: make(chan any)}
-	go caller.vgServiceServer.Watch(&proto.Empty{}, caller.vgWatch)
+	go func() {
+		if err := caller.vgServiceServer.Watch(&proto.Empty{}, caller.vgWatch); err != nil {
+			log.FromContext(ctx).Error(err, "embedded channel watch error")
+		}
+	}()
 	return caller, caller
 }
 
