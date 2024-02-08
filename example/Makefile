@@ -10,7 +10,7 @@ HELM := $(BINDIR)/helm
 KUBECTL := $(BINDIR)/kubectl
 KIND := ../bin/kind
 
-GO_FILES := $(shell find .. -prune -o -path ../e2e -prune -o -name '*.go' -print)
+GO_FILES := $(shell find .. -prune -o -path ../test/e2e -prune -o -name '*.go' -print)
 BACKING_STORE := ./build
 
 BUILD_IMAGE := false
@@ -92,7 +92,7 @@ shutdown-kind:
 
 .PHONY: start-lvmd
 start-lvmd: $(TMPDIR)/lvmd/lvmd.yaml
-	go build -o build/lvmd ../pkg/lvmd
+	go build -o build/lvmd ../cmd/lvmd
 	if [ -f $(BACKING_STORE)/backing_store ]; then $(MAKE) stop-lvmd; fi; \
 	mkdir -p $(TMPDIR)/worker; \
 	mkdir -p $(TMPDIR)/lvmd; \

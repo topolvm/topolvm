@@ -72,16 +72,16 @@ help: ## Display this help.
 
 ##@ Development
 
-lvmd/proto/lvmd.pb.go: lvmd/proto/lvmd.proto
+internal/lvmd/proto/lvmd.pb.go: internal/lvmd/proto/lvmd.proto
 	$(PROTOC) --go_out=module=github.com/topolvm/topolvm:. $<
 
-lvmd/proto/lvmd_grpc.pb.go: lvmd/proto/lvmd.proto
+internal/lvmd/proto/lvmd_grpc.pb.go: internal/lvmd/proto/lvmd.proto
 	$(PROTOC) --go-grpc_out=module=github.com/topolvm/topolvm:. $<
 
-docs/lvmd-protocol.md: lvmd/proto/lvmd.proto
+docs/lvmd-protocol.md: internal/lvmd/proto/lvmd.proto
 	$(PROTOC) --doc_out=./docs --doc_opt=markdown,$@ $<
 
-PROTOBUF_GEN = lvmd/proto/lvmd.pb.go lvmd/proto/lvmd_grpc.pb.go docs/lvmd-protocol.md
+PROTOBUF_GEN = internal/lvmd/proto/lvmd.pb.go internal/lvmd/proto/lvmd_grpc.pb.go docs/lvmd-protocol.md
 
 .PHONY: manifests
 manifests: generate-legacy-api ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
@@ -89,7 +89,7 @@ manifests: generate-legacy-api ## Generate WebhookConfiguration, ClusterRole and
 		crd:crdVersions=v1 \
 		rbac:roleName=topolvm-controller \
 		webhook \
-		paths="./api/...;./controllers;./hook;./driver/internal/k8s;./pkg/..." \
+		paths="./api/...;./internal/...;./cmd/..." \
 		output:crd:artifacts:config=config/crd/bases
 	cat config/crd/bases/topolvm.io_logicalvolumes.yaml | xargs -d"	" printf "$$CRD_TEMPLATE" > charts/topolvm/templates/crds/topolvm.io_logicalvolumes.yaml
 	cat config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml | xargs -d"	" printf "$$LEGACY_CRD_TEMPLATE" > charts/topolvm/templates/crds/topolvm.cybozu.com_logicalvolumes.yaml
@@ -138,7 +138,7 @@ groupname-test: ## Run unit tests that depends on the groupname.
 	go install ./...
 
 	mkdir -p $(ENVTEST_ASSETS_DIR)
-	source <($(BINDIR)/setup-envtest use $(ENVTEST_KUBERNETES_VERSION) --bin-dir=$(ENVTEST_ASSETS_DIR) -p env); GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn TEST_LEGACY=true go test -count=1 -race -v --timeout=60s ./client/*
+	source <($(BINDIR)/setup-envtest use $(ENVTEST_KUBERNETES_VERSION) --bin-dir=$(ENVTEST_ASSETS_DIR) -p env); GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn TEST_LEGACY=true go test -count=1 -race -v --timeout=60s ./internal/client/*
 	TEST_LEGACY=true go test -count=1 -race -v --timeout=60s ./constants*.go
 
 .PHONY: clean
@@ -160,11 +160,11 @@ build-topolvm: build/hypertopolvm build/lvmd
 
 build/hypertopolvm: $(GO_FILES)
 	mkdir -p build
-	GOARCH=$(GOARCH) go build -o $@ -ldflags "-w -s -X github.com/topolvm/topolvm.Version=$(TOPOLVM_VERSION)" ./pkg/hypertopolvm
+	GOARCH=$(GOARCH) go build -o $@ -ldflags "-w -s -X github.com/topolvm/topolvm.Version=$(TOPOLVM_VERSION)" ./cmd/hypertopolvm
 
 build/lvmd: $(GO_FILES)
 	mkdir -p build
-	GOARCH=$(GOARCH) CGO_ENABLED=0 go build -o $@ -ldflags "-w -s -X github.com/topolvm/topolvm.Version=$(TOPOLVM_VERSION)" ./pkg/lvmd
+	GOARCH=$(GOARCH) CGO_ENABLED=0 go build -o $@ -ldflags "-w -s -X github.com/topolvm/topolvm.Version=$(TOPOLVM_VERSION)" ./cmd/lvmd
 
 .PHONY: csi-sidecars
 csi-sidecars: ## Build sidecar binaries.

@@ -3,7 +3,7 @@
 
 ## Table of Contents
 
-- [lvmd/proto/lvmd.proto](#lvmd/proto/lvmd.proto)
+- [internal/lvmd/proto/lvmd.proto](#internal/lvmd/proto/lvmd.proto)
     - [CreateLVRequest](#proto.CreateLVRequest)
     - [CreateLVResponse](#proto.CreateLVResponse)
     - [CreateLVSnapshotRequest](#proto.CreateLVSnapshotRequest)
@@ -27,10 +27,10 @@
 
 
 
-<a name="lvmd/proto/lvmd.proto"></a>
+<a name="internal/lvmd/proto/lvmd.proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
-## lvmd/proto/lvmd.proto
+## internal/lvmd/proto/lvmd.proto
 LVMd manages logical volumes of an LVM volume group.
 
 The protocol consists of two services:

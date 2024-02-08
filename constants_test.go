@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	testingutil "github.com/topolvm/topolvm/util/testing"
+	testingutil "github.com/topolvm/topolvm/test/util"
 )
 
 func TestUseLegacy(t *testing.T) {

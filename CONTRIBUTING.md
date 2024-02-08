@@ -1,13 +1,14 @@
 # Contributing Guide
 
-- [Ways to Contribute](#ways-to-contribute)
-- [Find an Issue](#find-an-issue)
-- [Ask for Help](#ask-for-help)
-- [Pull Request Lifecycle](#pull-request-lifecycle)
-- [Development Environment Setup](#development-environment-setup)
-- [Sign Your Commits](#sign-your-commits)
-  - [DCO](#dco)
-- [Pull Request Checklist](#pull-request-checklist)
+- [Contributing Guide](#contributing-guide)
+  - [Ways to Contribute](#ways-to-contribute)
+  - [Find an Issue](#find-an-issue)
+  - [Ask for Help](#ask-for-help)
+  - [Pull Request Lifecycle](#pull-request-lifecycle)
+  - [Development Environment Setup](#development-environment-setup)
+  - [Sign Your Commits](#sign-your-commits)
+    - [DCO](#dco)
+  - [Pull Request Checklist](#pull-request-checklist)
 
 Welcome! We are glad that you want to contribute to our project!
 
@@ -100,7 +101,7 @@ we suggest preparing a dedicated physical or virtual machine.
     make test
 
     # for end-to-end test
-    cd e2e
+    cd test/e2e
     make start-lvmd
     make test
     ```
