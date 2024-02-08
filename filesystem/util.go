@@ -1,11 +1,22 @@
+/*
+ * kernelHasMountinfoBug() and the constants only used in this function are copied
+ * from the following code:
+ * https://github.com/kubernetes/mount-utils/blob/6f4aae5a6ab58574cac605cdd48bf5c0862c047f/mount_helper_unix.go#L211-L242
+ *    LICENSE: http://www.apache.org/licenses/LICENSE-2.0
+ *    Copyright The Kubernetes Authors.
+ */
+
 package filesystem
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"sync"
 
 	"golang.org/x/sys/unix"
 	"k8s.io/utils/io"
@@ -56,7 +67,7 @@ func IsMounted(device, target string) (bool, error) {
 		return false, err
 	}
 
-	data, err := io.ConsistentRead("/proc/mounts", 3)
+	data, err := readMountInfo("/proc/mounts")
 	if err != nil {
 		return false, fmt.Errorf("could not read /proc/mounts: %v", err)
 	}
@@ -159,4 +170,57 @@ func Statfs(path string, buf *unix.Statfs_t) (err error) {
 		}
 		return err
 	}
+}
+
+// These variables are used solely by kernelHasMountinfoBug.
+var (
+	hasMountinfoBug        bool
+	checkMountinfoBugOnce  sync.Once
+	maxConsistentReadTimes = 3
+)
+
+// kernelHasMountinfoBug checks if the kernel bug that can lead to incomplete
+// mountinfo being read is fixed. It does so by checking the kernel version.
+//
+// The bug was fixed by the kernel commit 9f6c61f96f2d97 (since Linux 5.8).
+// Alas, there is no better way to check if the bug is fixed other than to
+// rely on the kernel version returned by uname.
+//
+// Copied from
+// https://github.com/kubernetes/mount-utils/blob/6f4aae5a6ab58574cac605cdd48bf5c0862c047f/mount_helper_unix.go#L204C1-L250
+// *    LICENSE: http://www.apache.org/licenses/LICENSE-2.0
+// *    Copyright The Kubernetes Authors.
+func kernelHasMountinfoBug() bool {
+	checkMountinfoBugOnce.Do(func() {
+		// Assume old kernel.
+		hasMountinfoBug = true
+
+		uname := unix.Utsname{}
+		err := unix.Uname(&uname)
+		if err != nil {
+			return
+		}
+
+		end := bytes.IndexByte(uname.Release[:], 0)
+		v := bytes.SplitN(uname.Release[:end], []byte{'.'}, 3)
+		if len(v) != 3 {
+			return
+		}
+		major, _ := strconv.Atoi(string(v[0]))
+		minor, _ := strconv.Atoi(string(v[1]))
+
+		if major > 5 || (major == 5 && minor >= 8) {
+			hasMountinfoBug = false
+		}
+	})
+
+	return hasMountinfoBug
+}
+
+func readMountInfo(path string) ([]byte, error) {
+	if kernelHasMountinfoBug() {
+		return io.ConsistentRead(path, maxConsistentReadTimes)
+	}
+
+	return os.ReadFile(path)
 }

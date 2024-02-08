@@ -2,7 +2,9 @@ package command
 
 import (
 	"context"
+	"io"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/go-logr/logr/testr"
@@ -60,7 +62,7 @@ func TestLvmJSON(t *testing.T) {
 		]
 	  }
 	`
-	vgs, lvs, err := parseFullReportResult([]byte(goodJSON))
+	vgs, lvs, err := parseFullReportResult(io.NopCloser(strings.NewReader(goodJSON)))
 
 	if err != nil {
 		t.Fatal(err)
@@ -216,7 +218,7 @@ func TestLvmInactiveMajorMinor(t *testing.T) {
 	  ]
 	}
   `
-	vgs, lvs, err := parseFullReportResult([]byte(inactiveMajorMinor))
+	vgs, lvs, err := parseFullReportResult(io.NopCloser(strings.NewReader(inactiveMajorMinor)))
 
 	if err != nil {
 		t.Fatal(err)
@@ -268,7 +270,7 @@ func TestLvmJSONBad(t *testing.T) {
 			],
 			"lv": [
 	`
-	vgs, lvs, err := parseFullReportResult([]byte(truncatedJSON))
+	vgs, lvs, err := parseFullReportResult(io.NopCloser(strings.NewReader(truncatedJSON)))
 
 	if vgs != nil {
 		t.Fatal("Expected vgs to be nil!")

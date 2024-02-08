@@ -12,7 +12,7 @@ RUN touch lvmd/proto/*.go
 RUN make build-topolvm TOPOLVM_VERSION=${TOPOLVM_VERSION} GOARCH=${TARGETARCH}
 
 # TopoLVM container
-FROM --platform=$TARGETPLATFORM ubuntu:18.04 as topolvm
+FROM --platform=$TARGETPLATFORM ubuntu:22.04 as topolvm
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \

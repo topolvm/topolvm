@@ -12,7 +12,6 @@ This document describes how to install TopoLVM with advanced configurations.
   - [Run LVMd as a Systemd Service](#run-lvmd-as-a-systemd-service)
   - [Migrate LVMd, which is running as a systemd service, to DaemonSet](#migrate-lvmd-which-is-running-as-a-systemd-service-to-daemonset)
 - [Certificates](#certificates)
-- [Snapshot](#snapshot)
 - [Scheduling](#scheduling)
   - [Using Storage Capacity Tracking](#using-storage-capacity-tracking)
   - [Using topolvm-scheduler](#using-topolvm-scheduler)
@@ -192,35 +191,6 @@ If you don't want to use cert-manager, you can use your own certificates as foll
      caBundle: ... # Base64-encoded, PEM-encoded CA certificate that signs the server certificate
    <snip>
    ```
-
-## Snapshot
-
-To create VolumeSnapshots, please follow [snapshot controller deployment](https://github.com/kubernetes-csi/external-snapshotter#usage) to install snapshot controller. Do this once per cluster.
-Refer to the [kubernetes guide](https://kubernetes.io/docs/concepts/storage/volume-snapshots/) for VolumeSnapshot creation.
-
-`VolumeSnapshotClass` example:
-
-```yaml
-apiVersion: snapshot.storage.k8s.io/v1
-kind: VolumeSnapshotClass
-metadata:
-  name: csi-topolvm-snapclass
-driver: topolvm.io
-deletionPolicy: Delete
-```
-
-`VolumeSnapshot` example:
-
-```yaml
-apiVersion: snapshot.storage.k8s.io/v1
-kind: VolumeSnapshot
-metadata:
-  name: new-snapshot
-spec:
-  volumeSnapshotClassName: csi-topolvm-snapclass
-  source:
-    persistentVolumeClaimName: snapshot-pvc
-```
 
 ## Scheduling
 

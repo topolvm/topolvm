@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        kubernetes_versions: ["1.27.3", "1.26.6", "1.25.11"]
+        kubernetes_versions: ["1.28.0", "1.27.3", "1.26.6"]
     env:
       KUBERNETES_VERSION: ${{ matrix.kubernetes_versions }}
       TEST_SCHEDULER_EXTENDER_TYPE: ${{ inputs.test_scheduler_extender_type }}
@@ -24,7 +24,7 @@ jobs:
         with:
           go-version-file: "go.mod"
       - name: cache go dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/go/pkg/mod
@@ -32,7 +32,7 @@ jobs:
           key: go-${{ hashFiles('go.sum', 'Makefile', 'versions.mk') }}
           restore-keys: |
             go-
-      - uses: actions/cache/restore@v3
+      - uses: actions/cache/restore@v4
         with:
           path: |
             bin

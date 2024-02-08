@@ -2,6 +2,7 @@ package lvmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"sync"
@@ -40,23 +41,29 @@ func (s *vgService) GetLVList(ctx context.Context, req *proto.GetLVListRequest) 
 	}
 	vg, err := command.FindVolumeGroup(ctx, dc.VolumeGroup)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), dc.VolumeGroup)
 	}
 
-	var lvs []*command.LogicalVolume
+	var lvs map[string]*command.LogicalVolume
 
 	switch dc.Type {
 	case TypeThick:
 		// thick logicalvolumes
-		lvs = vg.ListVolumes()
+		lvs, err = vg.ListVolumes(ctx)
+		if err != nil {
+			return nil, err
+		}
 	case TypeThin:
 		var pool *command.ThinPool
-		pool, err = vg.FindPool(dc.ThinPoolConfig.Name)
+		pool, err = vg.FindPool(ctx, dc.ThinPoolConfig.Name)
 		if err != nil {
 			return nil, err
 		}
 		// thin logicalvolumes
-		lvs = pool.ListVolumes()
+		lvs, err = pool.ListVolumes(ctx)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		// technically this block will not be hit however make sure we return error
 		// in such cases where deviceclass target is neither thick or thinpool
@@ -101,12 +108,12 @@ func (s *vgService) GetFreeBytes(ctx context.Context, req *proto.GetFreeBytesReq
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 	case TypeThin:
-		pool, err := vg.FindPool(dc.ThinPoolConfig.Name)
+		pool, err := vg.FindPool(ctx, dc.ThinPoolConfig.Name)
 		if err != nil {
 			logger.Error(err, "failed to get thinpool")
 			return nil, status.Error(codes.Internal, err.Error())
 		}
-		tpu, err := pool.Free()
+		tpu, err := pool.Free(ctx)
 		if err != nil {
 			logger.Error(err, "failed to get free bytes")
 			return nil, status.Error(codes.Internal, err.Error())
@@ -148,20 +155,25 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 			return status.Error(codes.Internal, err.Error())
 		}
 
-		for _, pool := range vg.ListPools() {
+		pools, err := vg.ListPools(server.Context(), "")
+		if err != nil {
+			return status.Error(codes.Internal, err.Error())
+		}
+
+		for _, pool := range pools {
 			dc, err := s.dcManager.FindDeviceClassByThinPoolName(vg.Name(), pool.Name())
 			// we either get nil or ErrNotFound
-			if err == ErrNotFound {
+			if errors.Is(err, ErrNotFound) {
 				continue
 			}
 
 			// if we find a device class then it'll be a thin target
 			tpi := &proto.ThinPoolItem{}
-			pool, err := vg.FindPool(dc.ThinPoolConfig.Name)
+			pool, err := vg.FindPool(server.Context(), dc.ThinPoolConfig.Name)
 			if err != nil {
 				return status.Error(codes.Internal, err.Error())
 			}
-			tpu, err := pool.Free()
+			tpu, err := pool.Free(server.Context())
 			if err != nil {
 				return status.Error(codes.Internal, err.Error())
 			}
@@ -190,7 +202,7 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 		}
 
 		dc, err := s.dcManager.FindDeviceClassByVGName(vg.Name())
-		if err == ErrNotFound {
+		if errors.Is(err, ErrNotFound) {
 			continue
 		}
 
@@ -249,6 +261,7 @@ func (s *vgService) Watch(_ *proto.Empty, server proto.VGService_WatchServer) er
 	num := s.addWatcher(ch)
 	defer s.removeWatcher(num)
 
+	// Initial notification on startup
 	if err := s.send(server); err != nil {
 		return err
 	}

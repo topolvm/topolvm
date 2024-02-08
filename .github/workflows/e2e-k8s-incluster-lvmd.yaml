@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        kubernetes_versions: ["1.27.3", "1.26.6", "1.25.11"]
+        kubernetes_versions: ["1.28.0", "1.27.3", "1.26.6"]
         test_lvmd_type: ["daemonset", "embedded"]
     env:
       KUBERNETES_VERSION: ${{ matrix.kubernetes_versions }}
@@ -31,7 +31,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: cache go dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/go/pkg/mod
@@ -40,7 +40,7 @@ jobs:
           restore-keys: |
             go-
       - name: cache e2e sidecar binaries
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             e2e/tmpbin

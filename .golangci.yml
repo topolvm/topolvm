@@ -1,0 +1,44 @@
+run:
+  deadline: 5m
+  allow-parallel-runners: true
+
+issues:
+  # don't skip warning about doc comments
+  # don't exclude the default set of lint
+  exclude-use-default: false
+  # restore some of the defaults
+  # (fill in the rest as needed)
+  exclude-rules:
+    - path: "api/*"
+      linters:
+        - lll
+    - path: "internal/*"
+      linters:
+        - dupl
+        - lll
+linters:
+  disable-all: true
+  enable:
+    # The rules violated to make lint work are commented out. We will fix it eventually.
+    # - dupl
+    # - errcheck
+    # - exportloopref
+    # - goconst
+    # - gocyclo
+    - gofmt
+    - goimports
+    - gosimple
+    - govet
+    - ineffassign
+    # - lll
+    - misspell
+    - nakedret
+    # - prealloc
+    # The staticcheck built into golangci-lint does not allow to exclude single lines and specific rules,
+    # so we disable it and run it independently.
+    # https://github.com/golangci/golangci-lint/issues/741
+    # - staticcheck
+    - typecheck
+    # - unconvert
+    # - unparam
+    - unused

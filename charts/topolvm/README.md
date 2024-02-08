@@ -7,7 +7,7 @@
 
 ## Installation
 
-See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v13.0.1/docs/getting-started.md).
+See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v14.0.0/docs/getting-started.md).
 
 ## Values
 
@@ -62,6 +62,7 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v13.
 | livenessProbe.topolvm_node | object | `{"failureThreshold":null,"initialDelaySeconds":10,"periodSeconds":60,"timeoutSeconds":3}` | Specify resources. # ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/ |
 | livenessProbe.topolvm_scheduler | object | `{"failureThreshold":null,"initialDelaySeconds":10,"periodSeconds":60,"timeoutSeconds":3}` | Specify livenessProbe. # ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/ |
 | lvmd.additionalConfigs | list | `[]` | Define additional LVM Daemon configs if you have additional types of nodes. Please ensure nodeSelectors are non overlapping. |
+| lvmd.additionalVolumes | list | `[]` | Specify additional volumes without conflicting with default volumes most useful for initContainers but available to all containers in the pod. |
 | lvmd.affinity | object | `{}` | Specify affinity. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity |
 | lvmd.args | list | `[]` | Arguments to be passed to the command. |
 | lvmd.deviceClasses | list | `[{"default":true,"name":"ssd","spare-gb":10,"volume-group":"myvg1"}]` | Specify the device-class settings. |
@@ -78,6 +79,7 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v13.
 | lvmd.updateStrategy | object | `{}` | Specify updateStrategy. |
 | lvmd.volumeMounts | list | `[]` | Specify volumeMounts. |
 | lvmd.volumes | list | `[]` | Specify volumes. |
+| node.additionalVolumes | list | `[]` | Specify additional volumes without conflicting with default volumes most useful for initContainers but available to all containers in the pod. |
 | node.affinity | object | `{}` | Specify affinity. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity |
 | node.args | list | `[]` | Arguments to be passed to the command. |
 | node.initContainers | list | `[]` | Additional initContainers for the node service. |
@@ -131,7 +133,7 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v13.
 | scheduler.service.nodePort | int | `nil` | Specify nodePort. |
 | scheduler.service.type | string | `"LoadBalancer"` | Specify Service type. |
 | scheduler.terminationGracePeriodSeconds | int | `nil` | Specify terminationGracePeriodSeconds on the Deployment or DaemonSet. |
-| scheduler.tolerations | list | `[{"key":"CriticalAddonsOnly","operator":"Exists"},{"effect":"NoSchedule","key":"node-role.kubernetes.io/control-plane"},{"effect":"NoSchedule","key":"node-role.kubernetes.io/master"}]` | Specify tolerations on the Deployment or DaemonSet. # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ |
+| scheduler.tolerations | list | `[{"key":"CriticalAddonsOnly","operator":"Exists"},{"effect":"NoSchedule","key":"node-role.kubernetes.io/control-plane"}]` | Specify tolerations on the Deployment or DaemonSet. # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ |
 | scheduler.type | string | `"daemonset"` | If you run with a managed control plane (such as GKE, AKS, etc), topolvm-scheduler should be deployed as Deployment and Service. topolvm-scheduler should otherwise be deployed as DaemonSet in unmanaged (i.e. bare metal) deployments. possible values:  daemonset/deployment |
 | scheduler.updateStrategy | object | `{}` | Specify updateStrategy on the Deployment or DaemonSet. |
 | securityContext.runAsGroup | int | `10000` | Specify runAsGroup. |
