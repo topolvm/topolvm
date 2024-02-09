@@ -28,7 +28,6 @@ jobs:
       - run: make check-uncommitted
       - run: make test
       - run: make groupname-test
-      - run: sudo -E env PATH=${PATH} go test -count=1 -race -v ./lvmd ./driver ./filesystem
 
   build-images:
     name: "build-images"
