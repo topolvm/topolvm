@@ -1,4 +1,4 @@
-module github.com/topolvm/topolvm
+module github.com/openshift/topolvm
 
 go 1.20
 
