@@ -10,8 +10,9 @@ import (
 
 	"github.com/go-logr/logr/testr"
 	"github.com/topolvm/topolvm/internal/lvmd/command"
-	"github.com/topolvm/topolvm/internal/lvmd/proto"
 	"github.com/topolvm/topolvm/internal/lvmd/testutils"
+	"github.com/topolvm/topolvm/pkg/lvmd/proto"
+	lvmdTypes "github.com/topolvm/topolvm/pkg/lvmd/types"
 	"google.golang.org/grpc/metadata"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -56,21 +57,21 @@ func testWatch(t *testing.T) {
 	overprovisionRatio := float64(2.0)
 	tests := []struct {
 		name          string
-		deviceClasses []*DeviceClass
+		deviceClasses []*lvmdTypes.DeviceClass
 	}{
 
-		{"volumegroup", []*DeviceClass{
+		{"volumegroup", []*lvmdTypes.DeviceClass{
 			{
 				Name:        "dc",
 				VolumeGroup: "test_vgservice",
 			}},
 		},
-		{"thinpool", []*DeviceClass{
+		{"thinpool", []*lvmdTypes.DeviceClass{
 			{
 				Name:        "dc",
 				VolumeGroup: "test_vgservice",
-				Type:        TypeThin,
-				ThinPoolConfig: &ThinPoolConfig{
+				Type:        lvmdTypes.TypeThin,
+				ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
 					Name:               "test_pool",
 					OverprovisionRatio: overprovisionRatio,
 				},
@@ -165,7 +166,7 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	thindev := poolName
 	vgService, _ := NewVGService(
 		NewDeviceClassManager(
-			[]*DeviceClass{
+			[]*lvmdTypes.DeviceClass{
 				{
 					// volumegroup target
 					Name:        thickdev,
@@ -177,8 +178,8 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 					Name:        thindev,
 					VolumeGroup: vg.Name(),
 					SpareGB:     &spareGB,
-					Type:        TypeThin,
-					ThinPoolConfig: &ThinPoolConfig{
+					Type:        lvmdTypes.TypeThin,
+					ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
 						Name:               poolName,
 						OverprovisionRatio: overprovisionRatio,
 					},

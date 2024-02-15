@@ -15,7 +15,8 @@ import (
 	"github.com/topolvm/topolvm"
 	"github.com/topolvm/topolvm/internal/lvmd"
 	"github.com/topolvm/topolvm/internal/lvmd/command"
-	"github.com/topolvm/topolvm/internal/lvmd/proto"
+	"github.com/topolvm/topolvm/pkg/lvmd/proto"
+	lvmdTypes "github.com/topolvm/topolvm/pkg/lvmd/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"k8s.io/klog/v2"
@@ -72,7 +73,7 @@ func subMain(ctx context.Context) error {
 			return err
 		}
 
-		if dc.Type == lvmd.TypeThin {
+		if dc.Type == lvmdTypes.TypeThin {
 			_, err = vg.FindPool(ctx, dc.ThinPoolConfig.Name)
 			if err != nil {
 				logger.Error(err, "Thin pool not found:", "thinpool", dc.ThinPoolConfig.Name)

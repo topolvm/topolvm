@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/topolvm/topolvm"
-	"github.com/topolvm/topolvm/internal/lvmd"
+	lvmdTypes "github.com/topolvm/topolvm/pkg/lvmd/types"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/yaml"
 )
@@ -15,9 +15,9 @@ type Config struct {
 	// SocketName is Unix domain socket name
 	SocketName string `json:"socket-name"`
 	// DeviceClasses is
-	DeviceClasses []*lvmd.DeviceClass `json:"device-classes"`
+	DeviceClasses []*lvmdTypes.DeviceClass `json:"device-classes"`
 	// LvcreateOptionClasses are classes that define options for the lvcreate command
-	LvcreateOptionClasses []*lvmd.LvcreateOptionClass `json:"lvcreate-option-classes"`
+	LvcreateOptionClasses []*lvmdTypes.LvcreateOptionClass `json:"lvcreate-option-classes"`
 }
 
 var config = &Config{

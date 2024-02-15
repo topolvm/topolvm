@@ -4,28 +4,29 @@ import (
 	"context"
 	"testing"
 
-	"github.com/topolvm/topolvm/internal/lvmd/proto"
+	"github.com/topolvm/topolvm/pkg/lvmd/proto"
+	lvmdTypes "github.com/topolvm/topolvm/pkg/lvmd/types"
 )
 
 func TestNewEmbeddedServiceClients(t *testing.T) {
 	overprovisionRatio := float64(2.0)
 	tests := []struct {
 		name          string
-		deviceClasses []*DeviceClass
+		deviceClasses []*lvmdTypes.DeviceClass
 	}{
 
-		{"volumegroup", []*DeviceClass{
+		{"volumegroup", []*lvmdTypes.DeviceClass{
 			{
 				Name:        "dc",
 				VolumeGroup: "test_vgservice",
 			}},
 		},
-		{"thinpool", []*DeviceClass{
+		{"thinpool", []*lvmdTypes.DeviceClass{
 			{
 				Name:        "dc",
 				VolumeGroup: "test_vgservice",
-				Type:        TypeThin,
-				ThinPoolConfig: &ThinPoolConfig{
+				Type:        lvmdTypes.TypeThin,
+				ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
 					Name:               "test_pool",
 					OverprovisionRatio: overprovisionRatio,
 				},

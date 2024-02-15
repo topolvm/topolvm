@@ -8,7 +8,7 @@
 syntax = "proto3";
 package proto;
 
-option go_package = "github.com/topolvm/topolvm/internal/lvmd/proto";
+option go_package = "github.com/topolvm/topolvm/pkg/lvmd/proto";
 
 message Empty {}
 

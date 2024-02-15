@@ -13,7 +13,7 @@ import (
 	"github.com/topolvm/topolvm"
 	"github.com/topolvm/topolvm/internal/driver/internal/k8s"
 	"github.com/topolvm/topolvm/internal/filesystem"
-	"github.com/topolvm/topolvm/internal/lvmd/proto"
+	"github.com/topolvm/topolvm/pkg/lvmd/proto"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -24,9 +24,6 @@ import (
 )
 
 const (
-	// DeviceDirectory is a directory where TopoLVM Node service creates device files.
-	DeviceDirectory = "/dev/topolvm"
-
 	findmntCmd = "/bin/findmnt"
 
 	deviceMode = 0600 | unix.S_IFBLK
@@ -208,7 +205,7 @@ func (s *nodeServerNoLocked) nodePublishFilesystemVolume(req *csi.NodePublishVol
 	}
 
 	// Find lv and create a block device with it
-	device := filepath.Join(DeviceDirectory, req.GetVolumeId())
+	device := filepath.Join(topolvm.DeviceDirectory, req.GetVolumeId())
 	err := s.createDeviceIfNeeded(device, lv)
 	if err != nil {
 		return err
@@ -340,7 +337,7 @@ func (s *nodeServerNoLocked) NodeUnpublishVolume(ctx context.Context, req *csi.N
 		return nil, status.Error(codes.InvalidArgument, "no target_path is provided")
 	}
 
-	device := filepath.Join(DeviceDirectory, volumeID)
+	device := filepath.Join(topolvm.DeviceDirectory, volumeID)
 
 	info, err := os.Stat(targetPath)
 	if os.IsNotExist(err) {
@@ -509,7 +506,7 @@ func (s *nodeServerNoLocked) NodeExpandVolume(ctx context.Context, req *csi.Node
 		return &csi.NodeExpandVolumeResponse{}, nil
 	}
 
-	device := filepath.Join(DeviceDirectory, volumeID)
+	device := filepath.Join(topolvm.DeviceDirectory, volumeID)
 	lvr, err := s.k8sLVService.GetVolume(ctx, volumeID)
 	deviceClass := topolvm.DefaultDeviceClassName
 	if err == nil {

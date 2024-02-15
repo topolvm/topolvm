@@ -7,7 +7,8 @@ import (
 	"math"
 
 	"github.com/topolvm/topolvm/internal/lvmd/command"
-	"github.com/topolvm/topolvm/internal/lvmd/proto"
+	"github.com/topolvm/topolvm/pkg/lvmd/proto"
+	lvmdTypes "github.com/topolvm/topolvm/pkg/lvmd/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -61,13 +62,13 @@ func (s *lvService) CreateLV(ctx context.Context, req *proto.CreateLVRequest) (*
 	free := uint64(0)
 	var pool *command.ThinPool
 	switch dc.Type {
-	case TypeThick:
+	case lvmdTypes.TypeThick:
 		free, err = vg.Free()
 		if err != nil {
 			logger.Error(err, "failed to get free bytes")
 			return nil, status.Error(codes.Internal, err.Error())
 		}
-	case TypeThin:
+	case lvmdTypes.TypeThin:
 		pool, err = vg.FindPool(ctx, dc.ThinPoolConfig.Name)
 		if err != nil {
 			logger.Error(err, "failed to get thinpool")
@@ -108,9 +109,9 @@ func (s *lvService) CreateLV(ctx context.Context, req *proto.CreateLVRequest) (*
 	}
 
 	switch dc.Type {
-	case TypeThick:
+	case lvmdTypes.TypeThick:
 		err = vg.CreateVolume(ctx, req.GetName(), requested, req.GetTags(), stripe, stripeSize, lvcreateOptions)
-	case TypeThin:
+	case lvmdTypes.TypeThin:
 		err = pool.CreateVolume(ctx, req.GetName(), requested, req.GetTags(), stripe, stripeSize, lvcreateOptions)
 	default:
 		return nil, status.Error(codes.Internal, fmt.Sprintf("unsupported device class target: %s", dc.Type))
@@ -189,9 +190,9 @@ func (s *lvService) CreateLVSnapshot(ctx context.Context, req *proto.CreateLVSna
 	}
 
 	switch dc.Type {
-	case TypeThin:
+	case lvmdTypes.TypeThin:
 		snapType = "thin-snapshot"
-	case TypeThick:
+	case lvmdTypes.TypeThick:
 		return nil, status.Error(codes.Unimplemented, "device class is not thin. Thick snapshots are not implemented yet")
 	default:
 		return nil, status.Errorf(codes.InvalidArgument, "invalid device class type %v", string(dc.Type))
@@ -346,13 +347,13 @@ func (s *lvService) ResizeLV(ctx context.Context, req *proto.ResizeLVRequest) (*
 	free := uint64(0)
 	var pool *command.ThinPool
 	switch dc.Type {
-	case TypeThick:
+	case lvmdTypes.TypeThick:
 		free, err = vg.Free()
 		if err != nil {
 			logger.Error(err, "failed to get free bytes")
 			return nil, status.Error(codes.Internal, err.Error())
 		}
-	case TypeThin:
+	case lvmdTypes.TypeThin:
 		pool, err = vg.FindPool(ctx, dc.ThinPoolConfig.Name)
 		if err != nil {
 			logger.Error(err, "failed to get thinpool")

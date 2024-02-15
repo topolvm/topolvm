@@ -8,7 +8,7 @@ ARG TARGETARCH
 COPY . /workdir
 WORKDIR /workdir
 
-RUN touch internal/lvmd/proto/*.go
+RUN touch pkg/lvmd/proto/*.go
 RUN make build-topolvm TOPOLVM_VERSION=${TOPOLVM_VERSION} GOARCH=${TARGETARCH}
 
 # TopoLVM container

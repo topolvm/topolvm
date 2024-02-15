@@ -1,20 +1,17 @@
 package lvmd
 
-type LvcreateOptionClass struct {
-	// Name for the lvcreate-option-class name
-	Name string `json:"name"`
-	// Options are extra arguments to pass to lvcreate
-	Options []string `json:"options"`
-}
+import (
+	lvmdTypes "github.com/topolvm/topolvm/pkg/lvmd/types"
+)
 
 type LvcreateOptionClassManager struct {
-	LvcreateOptionClassByName map[string]*LvcreateOptionClass
+	LvcreateOptionClassByName map[string]*lvmdTypes.LvcreateOptionClass
 }
 
 // NewLvcreateOptionClassManager creates a new LvcreateOptionClassManager
-func NewLvcreateOptionClassManager(LvcreateOptionClasses []*LvcreateOptionClass) *LvcreateOptionClassManager {
+func NewLvcreateOptionClassManager(LvcreateOptionClasses []*lvmdTypes.LvcreateOptionClass) *LvcreateOptionClassManager {
 	cm := LvcreateOptionClassManager{}
-	cm.LvcreateOptionClassByName = make(map[string]*LvcreateOptionClass)
+	cm.LvcreateOptionClassByName = make(map[string]*lvmdTypes.LvcreateOptionClass)
 	for _, c := range LvcreateOptionClasses {
 		cm.LvcreateOptionClassByName[c.Name] = c
 	}
@@ -22,6 +19,6 @@ func NewLvcreateOptionClassManager(LvcreateOptionClasses []*LvcreateOptionClass)
 }
 
 // LvcreateOptionClassClass returns the lvcreate-option-class by its name
-func (m LvcreateOptionClassManager) LvcreateOptionClass(name string) *LvcreateOptionClass {
+func (m LvcreateOptionClassManager) LvcreateOptionClass(name string) *lvmdTypes.LvcreateOptionClass {
 	return m.LvcreateOptionClassByName[name]
 }

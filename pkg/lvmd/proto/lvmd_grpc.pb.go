@@ -9,7 +9,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.3.0
 // - protoc             v4.25.2
-// source: internal/lvmd/proto/lvmd.proto
+// source: pkg/lvmd/proto/lvmd.proto
 
 package proto
 
@@ -229,7 +229,7 @@ var LVService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "internal/lvmd/proto/lvmd.proto",
+	Metadata: "pkg/lvmd/proto/lvmd.proto",
 }
 
 const (
@@ -427,5 +427,5 @@ var VGService_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "internal/lvmd/proto/lvmd.proto",
+	Metadata: "pkg/lvmd/proto/lvmd.proto",
 }

@@ -9,8 +9,9 @@ import (
 
 	"github.com/go-logr/logr/testr"
 	"github.com/topolvm/topolvm/internal/lvmd/command"
-	"github.com/topolvm/topolvm/internal/lvmd/proto"
 	"github.com/topolvm/topolvm/internal/lvmd/testutils"
+	"github.com/topolvm/topolvm/pkg/lvmd/proto"
+	lvmdTypes "github.com/topolvm/topolvm/pkg/lvmd/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -58,7 +59,7 @@ func TestLVService(t *testing.T) {
 	thindev := poolName
 	lvService := NewLVService(
 		NewDeviceClassManager(
-			[]*DeviceClass{
+			[]*lvmdTypes.DeviceClass{
 				{
 					// volumegroup target
 					Name:        thickdev,
@@ -68,14 +69,14 @@ func TestLVService(t *testing.T) {
 					// thinpool target
 					Name:        thindev,
 					VolumeGroup: vg.Name(),
-					Type:        TypeThin,
-					ThinPoolConfig: &ThinPoolConfig{
+					Type:        lvmdTypes.TypeThin,
+					ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
 						Name:               poolName,
 						OverprovisionRatio: overprovisionRatio,
 					},
 				},
 			},
-		), NewLvcreateOptionClassManager([]*LvcreateOptionClass{}), notifier)
+		), NewLvcreateOptionClassManager([]*lvmdTypes.LvcreateOptionClass{}), notifier)
 
 	// thick logical volume validations
 	res, err := lvService.CreateLV(context.Background(), &proto.CreateLVRequest{

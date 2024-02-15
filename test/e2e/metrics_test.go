@@ -16,6 +16,7 @@ import (
 	"github.com/prometheus/common/expfmt"
 	lvmdApp "github.com/topolvm/topolvm/cmd/lvmd/app"
 	"github.com/topolvm/topolvm/internal/lvmd"
+	lvmdTypes "github.com/topolvm/topolvm/pkg/lvmd/types"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 )
@@ -181,7 +182,7 @@ OUTER:
 	return true
 }
 
-func loadDeviceClasses(node string) ([]*lvmd.DeviceClass, error) {
+func loadDeviceClasses(node string) ([]*lvmdTypes.DeviceClass, error) {
 	var data []byte
 
 	var cm corev1.ConfigMap
@@ -214,7 +215,7 @@ func loadDeviceClasses(node string) ([]*lvmd.DeviceClass, error) {
 	return config.DeviceClasses, nil
 }
 
-func vgFreeByte(deviceClass *lvmd.DeviceClass) (int64, error) {
+func vgFreeByte(deviceClass *lvmdTypes.DeviceClass) (int64, error) {
 	output, err := execAtLocal("sudo", nil, "vgs",
 		"-o", "vg_free",
 		"--noheadings",
@@ -232,11 +233,11 @@ func vgFreeByte(deviceClass *lvmd.DeviceClass) (int64, error) {
 	}
 
 	// FIXME? the current implementation does not subtract spare-gb if the type is thin.
-	if deviceClass.Type == lvmd.TypeThin {
+	if deviceClass.Type == lvmdTypes.TypeThin {
 		return int64(free), nil
 	}
 
-	spare := int(deviceClass.GetSpare())
+	spare := int(lvmd.GetSpare(deviceClass))
 	if free < spare {
 		free = 0
 	} else {

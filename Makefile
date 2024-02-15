@@ -72,16 +72,16 @@ help: ## Display this help.
 
 ##@ Development
 
-internal/lvmd/proto/lvmd.pb.go: internal/lvmd/proto/lvmd.proto
+pkg/lvmd/proto/lvmd.pb.go: pkg/lvmd/proto/lvmd.proto
 	$(PROTOC) --go_out=module=github.com/topolvm/topolvm:. $<
 
-internal/lvmd/proto/lvmd_grpc.pb.go: internal/lvmd/proto/lvmd.proto
+pkg/lvmd/proto/lvmd_grpc.pb.go: pkg/lvmd/proto/lvmd.proto
 	$(PROTOC) --go-grpc_out=module=github.com/topolvm/topolvm:. $<
 
-docs/lvmd-protocol.md: internal/lvmd/proto/lvmd.proto
+docs/lvmd-protocol.md: pkg/lvmd/proto/lvmd.proto
 	$(PROTOC) --doc_out=./docs --doc_opt=markdown,$@ $<
 
-PROTOBUF_GEN = internal/lvmd/proto/lvmd.pb.go internal/lvmd/proto/lvmd_grpc.pb.go docs/lvmd-protocol.md
+PROTOBUF_GEN = pkg/lvmd/proto/lvmd.pb.go pkg/lvmd/proto/lvmd_grpc.pb.go docs/lvmd-protocol.md
 
 .PHONY: manifests
 manifests: generate-legacy-api ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.

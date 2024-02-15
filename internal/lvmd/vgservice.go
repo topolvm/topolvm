@@ -8,7 +8,8 @@ import (
 	"sync"
 
 	"github.com/topolvm/topolvm/internal/lvmd/command"
-	"github.com/topolvm/topolvm/internal/lvmd/proto"
+	"github.com/topolvm/topolvm/pkg/lvmd/proto"
+	lvmdTypes "github.com/topolvm/topolvm/pkg/lvmd/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -47,13 +48,13 @@ func (s *vgService) GetLVList(ctx context.Context, req *proto.GetLVListRequest) 
 	var lvs map[string]*command.LogicalVolume
 
 	switch dc.Type {
-	case TypeThick:
+	case lvmdTypes.TypeThick:
 		// thick logicalvolumes
 		lvs, err = vg.ListVolumes(ctx)
 		if err != nil {
 			return nil, err
 		}
-	case TypeThin:
+	case lvmdTypes.TypeThin:
 		var pool *command.ThinPool
 		pool, err = vg.FindPool(ctx, dc.ThinPoolConfig.Name)
 		if err != nil {
@@ -72,7 +73,7 @@ func (s *vgService) GetLVList(ctx context.Context, req *proto.GetLVListRequest) 
 
 	vols := make([]*proto.LogicalVolume, 0, len(lvs))
 	for _, lv := range lvs {
-		if dc.Type == TypeThick && lv.IsThin() {
+		if dc.Type == lvmdTypes.TypeThick && lv.IsThin() {
 			// do not send thin lvs if request is on TypeThick
 			continue
 		}
@@ -101,13 +102,13 @@ func (s *vgService) GetFreeBytes(ctx context.Context, req *proto.GetFreeBytesReq
 
 	var vgFree uint64
 	switch dc.Type {
-	case TypeThick:
+	case lvmdTypes.TypeThick:
 		vgFree, err = vg.Free()
 		if err != nil {
 			logger.Error(err, "failed to get free bytes")
 			return nil, status.Error(codes.Internal, err.Error())
 		}
-	case TypeThin:
+	case lvmdTypes.TypeThin:
 		pool, err := vg.FindPool(ctx, dc.ThinPoolConfig.Name)
 		if err != nil {
 			logger.Error(err, "failed to get thinpool")
@@ -126,7 +127,7 @@ func (s *vgService) GetFreeBytes(ctx context.Context, req *proto.GetFreeBytesReq
 		return nil, status.Error(codes.Internal, fmt.Sprintf("unsupported device class target: %s", dc.Type))
 	}
 
-	spare := dc.GetSpare()
+	spare := GetSpare(dc)
 	if vgFree < spare {
 		vgFree = 0
 	} else {
@@ -206,7 +207,7 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 			continue
 		}
 
-		spare := dc.GetSpare()
+		spare := GetSpare(dc)
 		if vgFree < spare {
 			vgFree = 0
 		} else {

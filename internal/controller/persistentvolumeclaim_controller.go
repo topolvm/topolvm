@@ -21,7 +21,7 @@ type PersistentVolumeClaimReconciler struct {
 	apiReader client.Reader
 }
 
-// NewPersistentVolumeClaimReconciler returns NodeReconciler.
+// NewPersistentVolumeClaimReconciler returns PersistentVolumeClaimReconciler.
 func NewPersistentVolumeClaimReconciler(client client.Client, apiReader client.Reader) *PersistentVolumeClaimReconciler {
 	return &PersistentVolumeClaimReconciler{
 		client:    client,
