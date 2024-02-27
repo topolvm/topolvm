@@ -2,6 +2,7 @@ package lvmd
 
 import (
 	"context"
+	"time"
 
 	"github.com/topolvm/topolvm/lvmd/proto"
 	"google.golang.org/grpc"
@@ -19,6 +20,7 @@ func NewEmbeddedServiceClients(ctx context.Context, dcmapper *DeviceClassManager
 ) {
 	vgServiceServerInstance, notifier := NewVGService(dcmapper)
 	lvServiceServerInstance := NewLVService(dcmapper, ocmapper, notifier)
+
 	caller := &embeddedServiceClients{
 		lvServiceServer: lvServiceServerInstance,
 		vgServiceServer: vgServiceServerInstance,
@@ -29,6 +31,20 @@ func NewEmbeddedServiceClients(ctx context.Context, dcmapper *DeviceClassManager
 			log.FromContext(ctx).Error(err, "embedded channel watch error")
 		}
 	}()
+
+	go func() {
+		ticker := time.NewTicker(10 * time.Minute)
+		for {
+			select {
+			case <-ctx.Done():
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				notifier()
+			}
+		}
+	}()
+
 	return caller, caller
 }
 
