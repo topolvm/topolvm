@@ -28,9 +28,9 @@ Dockerfile.cross
 # ignore tools
 /bin
 /build
-/e2e/build
-/e2e/tmpbin
 /include
+/test/e2e/build
+/test/e2e/tmpbin
 /testbin
 
 # ignore unneeded generated configs

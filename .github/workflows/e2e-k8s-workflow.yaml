@@ -36,9 +36,9 @@ jobs:
         with:
           path: |
             bin
-            e2e/bin
-            e2e/topolvm.img
+            test/e2e/bin
+            test/e2e/topolvm.img
           key: e2e-cache-${{ github.sha }}
-      - run: touch e2e/topolvm.img # update timestamp not to rebuild image
-      - run: make -C e2e start-lvmd
-      - run: make -C e2e test
+      - run: touch test/e2e/topolvm.img # update timestamp not to rebuild image
+      - run: make -C test/e2e start-lvmd
+      - run: make -C test/e2e test

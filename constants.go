@@ -100,3 +100,6 @@ const CreatedbyLabelKey = "app.kubernetes.io/created-by"
 
 // Label value that indicates The controller/user who created this resource
 const CreatedbyLabelValue = "topolvm-controller"
+
+// DeviceDirectory is a directory where TopoLVM Node service creates device files.
+const DeviceDirectory = "/dev/topolvm"
