@@ -15,6 +15,7 @@ import (
 var config struct {
 	csiSocket                   string
 	metricsAddr                 string
+	secureMetricsServer         bool
 	healthAddr                  string
 	enableWebhooks              bool
 	webhookAddr                 string
@@ -55,6 +56,7 @@ func init() {
 	fs := rootCmd.Flags()
 	fs.StringVar(&config.csiSocket, "csi-socket", topolvm.DefaultCSISocket, "UNIX domain socket filename for CSI")
 	fs.StringVar(&config.metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
+	fs.BoolVar(&config.secureMetricsServer, "secure-metrics-server", false, "Secures the metrics server")
 	fs.StringVar(&config.healthAddr, "health-probe-bind-address", ":8081", "The TCP address that the controller should bind to for serving health probes.")
 	fs.StringVar(&config.webhookAddr, "webhook-addr", ":9443", "Listen address for the webhook endpoint")
 	fs.BoolVar(&config.enableWebhooks, "enable-webhooks", true, "Enable webhooks")

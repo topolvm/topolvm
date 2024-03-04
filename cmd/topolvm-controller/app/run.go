@@ -24,6 +24,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -62,11 +63,17 @@ func subMain() error {
 	if err != nil {
 		return fmt.Errorf("invalid webhook port: %v", err)
 	}
+	metricsServerOptions := metricsserver.Options{
+		BindAddress: config.metricsAddr,
+	}
+	if config.secureMetricsServer {
+		metricsServerOptions.SecureServing = true
+		metricsServerOptions.FilterProvider = filters.WithAuthenticationAndAuthorization
+	}
+
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme: scheme,
-		Metrics: metricsserver.Options{
-			BindAddress: config.metricsAddr,
-		},
+		Scheme:                  scheme,
+		Metrics:                 metricsServerOptions,
 		HealthProbeBindAddress:  config.healthAddr,
 		LeaderElection:          config.leaderElection,
 		LeaderElectionID:        config.leaderElectionID,
