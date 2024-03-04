@@ -19,7 +19,7 @@ jobs:
       # This version is written in `charts/topolvm/README.md`,
       # so do not update it if not necessary.
       - name: "Install Helm"
-        uses: azure/setup-helm@v3
+        uses: azure/setup-helm@v4
         with:
           version: "v3.5.0"
 
