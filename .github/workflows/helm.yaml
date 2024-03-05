@@ -21,16 +21,6 @@ jobs:
         with:
           go-version-file: "go.mod"
 
-      - name: cache go dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: go-${{ hashFiles('go.sum', 'Makefile', 'versions.mk') }}
-          restore-keys: |
-            go-
-
       - name: "Setup Tools"
         run: |
           make tools
