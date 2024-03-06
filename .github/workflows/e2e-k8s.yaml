@@ -34,18 +34,18 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            e2e/tmpbin
+            test/e2e/tmpbin
           key: e2e-sidecars-${{ hashFiles('csi-sidecars.mk', 'versions.mk') }}
           restore-keys: |
             e2e-sidecars-
-      - run: make -C e2e setup
-      - run: make -C e2e topolvm.img
+      - run: make -C test/e2e setup
+      - run: make -C test/e2e topolvm.img
       - uses: actions/cache/save@v4
         with:
           path: |
             bin
-            e2e/bin
-            e2e/topolvm.img
+            test/e2e/bin
+            test/e2e/topolvm.img
           key: e2e-cache-${{ github.sha }}
 
   default:

@@ -43,11 +43,11 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            e2e/tmpbin
+            test/e2e/tmpbin
           key: e2e-sidecars-${{ hashFiles('csi-sidecars.mk', 'versions.mk') }}
           restore-keys: |
             e2e-sidecars-
-      - run: make -C e2e incluster-lvmd/create-vg
-      - run: make -C e2e incluster-lvmd/setup-minikube
-      - run: make -C e2e incluster-lvmd/launch-minikube
-      - run: make -C e2e incluster-lvmd/test
+      - run: make -C test/e2e incluster-lvmd/create-vg
+      - run: make -C test/e2e incluster-lvmd/setup-minikube
+      - run: make -C test/e2e incluster-lvmd/launch-minikube
+      - run: make -C test/e2e incluster-lvmd/test

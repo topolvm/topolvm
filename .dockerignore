@@ -7,7 +7,7 @@ charts/
 config/
 deploy/
 docs/
-e2e/
 example/
 include/
+test/
 testbin/
