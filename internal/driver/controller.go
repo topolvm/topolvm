@@ -20,6 +20,14 @@ import (
 
 var ctrlLogger = ctrl.Log.WithName("driver").WithName("controller")
 
+var (
+	ErrNoNegativeRequestBytes      = errors.New("required capacity must not be negative")
+	ErrNoNegativeLimitBytes        = errors.New("capacity limit must not be negative")
+	ErrRequestedExceedsLimit       = errors.New("requested capacity exceeds limit capacity")
+	ErrResultingRequestIsZero      = errors.New("requested capacity is 0")
+	ErrLimitLessThanMinimumXfsSize = fmt.Errorf("limit capacity is less than the minimum size for xfs (%d bytes)", topolvm.MinimumXfsSize)
+)
+
 // NewControllerServer returns a new ControllerServer.
 func NewControllerServer(mgr manager.Manager) (csi.ControllerServer, error) {
 	lvService, err := k8s.NewLogicalVolumeService(mgr)
@@ -139,11 +147,14 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 		return nil, status.Error(codes.InvalidArgument, "no volume capabilities are provided")
 	}
 
+	required, limit := req.GetCapacityRange().GetRequiredBytes(), req.GetCapacityRange().GetLimitBytes()
+
 	// check required volume capabilities
+	var mount *csi.VolumeCapability_MountVolume
 	for _, capability := range capabilities {
 		if block := capability.GetBlock(); block != nil {
 			ctrlLogger.Info("CreateVolume specifies volume capability", "access_type", "block")
-		} else if mount := capability.GetMount(); mount != nil {
+		} else if mount = capability.GetMount(); mount != nil {
 			ctrlLogger.Info("CreateVolume specifies volume capability",
 				"access_type", "mount",
 				"fs_type", mount.GetFsType(),
@@ -164,7 +175,7 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 		}
 	}
 
-	requestCapacityBytes, err := convertRequestCapacityBytes(req.GetCapacityRange().GetRequiredBytes(), req.GetCapacityRange().GetLimitBytes())
+	requestCapacityBytes, err := convertRequestCapacityBytes(required, limit, mount)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
@@ -416,18 +427,30 @@ func (s controllerServerNoLocked) DeleteSnapshot(ctx context.Context, req *csi.D
 }
 
 // convertRequestCapacityBytes converts requestBytes and limitBytes to a valid capacity.
-func convertRequestCapacityBytes(requestBytes, limitBytes int64) (int64, error) {
+func convertRequestCapacityBytes(requestBytes, limitBytes int64, mount *csi.VolumeCapability_MountVolume) (int64, error) {
 	if requestBytes < 0 {
-		return 0, errors.New("required capacity must not be negative")
+		return 0, ErrNoNegativeRequestBytes
 	}
 	if limitBytes < 0 {
-		return 0, errors.New("capacity limit must not be negative")
+		return 0, ErrNoNegativeLimitBytes
 	}
 
 	if limitBytes != 0 && requestBytes > limitBytes {
-		return 0, fmt.Errorf(
-			"requested capacity exceeds limit capacity: request=%d limit=%d", requestBytes, limitBytes,
-		)
+		return 0, fmt.Errorf("%w: request=%d limit=%d", ErrRequestedExceedsLimit, requestBytes, limitBytes)
+	}
+
+	if mount != nil {
+		switch mount.GetFsType() {
+		case "xfs":
+			if limitBytes != 0 && limitBytes < topolvm.MinimumXfsSize {
+				return 0, ErrLimitLessThanMinimumXfsSize
+			}
+			// if limitBytes is 0 or less than the minimum size for xfs, default to either requestBytes or the minimum
+			// size for xfs, whichever is larger.
+			if requestBytes < topolvm.MinimumXfsSize {
+				requestBytes = topolvm.MinimumXfsSize
+			}
+		}
 	}
 
 	// if requestBytes is 0 and
@@ -443,8 +466,8 @@ func convertRequestCapacityBytes(requestBytes, limitBytes int64) (int64, error) 
 
 		roundedLimit := roundDown(limitBytes, topolvm.MinimumSectorSize)
 		if roundedLimit == 0 {
-			return 0, fmt.Errorf("requested capacity is 0, because it defaulted to the limit (%d) and was rounded down to the nearest sector size (%d). "+
-				"specify the limit to be at least %d bytes", limitBytes, topolvm.MinimumSectorSize, topolvm.MinimumSectorSize)
+			return 0, fmt.Errorf("%w, because it defaulted to the limit (%d) and was rounded down to the nearest sector size (%d). "+
+				"specify the limit to be at least %d bytes", ErrResultingRequestIsZero, limitBytes, topolvm.MinimumSectorSize, topolvm.MinimumSectorSize)
 		}
 
 		return roundedLimit, nil
@@ -456,9 +479,8 @@ func convertRequestCapacityBytes(requestBytes, limitBytes int64) (int64, error) 
 		// after rounding up, we might overshoot the limit
 		if limitBytes > 0 && requestBytes > limitBytes {
 			return 0, fmt.Errorf(
-				"requested capacity rounded to nearest sector size (%d) exceeds limit capacity, "+
-					"either specify a lower request or a higher limit: request=%d limit=%d",
-				topolvm.MinimumSectorSize, requestBytes, limitBytes,
+				"%w, either specify a lower request or a higher limit (derived from %d sector size): request=%d limit=%d",
+				ErrRequestedExceedsLimit, topolvm.MinimumSectorSize, requestBytes, limitBytes,
 			)
 		}
 	}
@@ -624,7 +646,11 @@ func (s controllerServerNoLocked) ControllerExpandVolume(ctx context.Context, re
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	requestCapacityBytes, err := convertRequestCapacityBytes(req.GetCapacityRange().GetRequiredBytes(), req.GetCapacityRange().GetLimitBytes())
+	requestCapacityBytes, err := convertRequestCapacityBytes(
+		req.GetCapacityRange().GetRequiredBytes(),
+		req.GetCapacityRange().GetLimitBytes(),
+		req.GetVolumeCapability().GetMount(),
+	)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}

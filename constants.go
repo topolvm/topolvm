@@ -101,6 +101,14 @@ const DefaultSize = int64(DefaultSizeGb << 30)
 // Going lower than this size will cause validation issues on volume creation for the user.
 const MinimumSectorSize = int64(4096)
 
+// MinimumXfsSize is the minimum size in bytes for volumes (PVC or generic ephemeral volumes) that want to use an XFS
+// filesystem. For all intents and purposes, this is the minimum size for an XFS filesystem.
+// The theoretical limit was long time the size of an allocation group which is 16 MiB.
+// However, since introduction of a performance oriented minimum with
+// https://www.spinics.net/lists/linux-xfs/msg63099.html & https://www.spinics.net/lists/linux-xfs/msg63831.html
+// the minimum size is 300 MiB.
+const MinimumXfsSize = int64(300 << 20)
+
 // Label key that indicates The controller/user who created this resource
 // https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/#labels
 const CreatedbyLabelKey = "app.kubernetes.io/created-by"
