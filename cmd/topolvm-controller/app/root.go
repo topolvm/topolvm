@@ -8,8 +8,23 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/topolvm/topolvm"
+	"github.com/topolvm/topolvm/internal/driver"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+)
+
+const (
+	// DefaultMinimumAllocationSizeBlock is the default minimum size for a block volume.
+	// Derived from the usual physical extent size of 4Mi * 2 (for accommodating metadata)
+	DefaultMinimumAllocationSizeBlock = "8Mi"
+	// DefaultMinimumAllocationSizeXFS is the default minimum size for a filesystem volume with XFS formatting.
+	// Derived from the hard XFS minimum size of 300Mi that is enforced by the XFS filesystem.
+	DefaultMinimumAllocationSizeXFS = "300Mi"
+	// DefaultMinimumAllocationSizeExt4 is the default minimum size for a filesystem volume with ext4 formatting.
+	// Derived from the usual 4096K blocks, 1024 inode default and journaling overhead,
+	// Allows for more than 80% free space after formatting, anything lower significantly reduces this percentage.
+	DefaultMinimumAllocationSizeExt4 = "32Mi"
 )
 
 var config struct {
@@ -28,6 +43,7 @@ var config struct {
 	leaderElectionRetryPeriod   time.Duration
 	skipNodeFinalize            bool
 	zapOpts                     zap.Options
+	controllerServerSettings    driver.ControllerServerSettings
 }
 
 var rootCmd = &cobra.Command{
@@ -68,6 +84,21 @@ func init() {
 	fs.DurationVar(&config.leaderElectionRenewDeadline, "leader-election-renew-deadline", 10*time.Second, "Duration that the acting controlplane will retry refreshing leadership before giving up. This is measured against time of last observed ack.")
 	fs.DurationVar(&config.leaderElectionRetryPeriod, "leader-election-retry-period", 2*time.Second, "Duration the LeaderElector clients should wait between tries of actions.")
 	fs.BoolVar(&config.skipNodeFinalize, "skip-node-finalize", false, "skips automatic cleanup of PhysicalVolumeClaims when a Node is deleted")
+
+	driver.QuantityVar(fs, &config.controllerServerSettings.MinimumAllocationSettings.Block,
+		"minimum-allocation-block",
+		resource.MustParse(DefaultMinimumAllocationSizeBlock),
+		"Minimum Allocation Sizing for block storage. Logical Volumes will always be at least this big.")
+	config.controllerServerSettings.MinimumAllocationSettings.Filesystem = make(map[string]driver.Quantity)
+	for filesystem, minimum := range map[string]resource.Quantity{
+		"ext4": resource.MustParse(DefaultMinimumAllocationSizeExt4),
+		"xfs":  resource.MustParse(DefaultMinimumAllocationSizeXFS),
+	} {
+		config.controllerServerSettings.MinimumAllocationSettings.Filesystem[filesystem] = driver.NewQuantityFlagVar(fs,
+			fmt.Sprintf("minimum-allocation-%s", filesystem),
+			minimum,
+			fmt.Sprintf("Minimum Allocation Sizing for volumes with the %s filesystem. Logical Volumes will always be at least this big.", filesystem))
+	}
 
 	goflags := flag.NewFlagSet("klog", flag.ExitOnError)
 	klog.InitFlags(goflags)
