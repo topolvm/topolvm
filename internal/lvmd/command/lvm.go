@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"path"
+
+	"github.com/topolvm/topolvm"
 )
 
 const (
@@ -14,6 +16,10 @@ const (
 
 // ErrNotFound is returned when a VG or LV is not found.
 var ErrNotFound = errors.New("not found")
+
+// ErrNoMultipleOfSectorSize is returned when a volume is requested that is smaller than the minimum sector size.
+var ErrNoMultipleOfSectorSize = fmt.Errorf("cannot create volume as given size "+
+	"is not a multiple of %d and could get rejected", topolvm.MinimumSectorSize)
 
 // VolumeGroup represents a volume group of linux lvm.
 // The state should be considered immutable and will not automatically update.
@@ -200,6 +206,11 @@ func (vg *VolumeGroup) convertLV(lv lv) *LogicalVolume {
 // lvcreateOptions are additional arguments to pass to lvcreate.
 func (vg *VolumeGroup) CreateVolume(ctx context.Context, name string, size uint64, tags []string, stripe uint, stripeSize string,
 	lvcreateOptions []string) error {
+
+	if size%uint64(topolvm.MinimumSectorSize) != 0 {
+		return ErrNoMultipleOfSectorSize
+	}
+
 	lvcreateArgs := []string{"lvcreate", "-n", name, "-L", fmt.Sprintf("%vb", size), "-W", "y", "-y"}
 	for _, tag := range tags {
 		lvcreateArgs = append(lvcreateArgs, "--addtag")
@@ -315,6 +326,11 @@ func (t *ThinPool) Resize(ctx context.Context, newSize uint64) error {
 	if t.state.size == newSize {
 		return nil
 	}
+
+	if newSize%uint64(topolvm.MinimumSectorSize) != 0 {
+		return ErrNoMultipleOfSectorSize
+	}
+
 	if err := callLVM(ctx, "lvresize", "-f", "-L", fmt.Sprintf("%vb", newSize), t.state.fullName); err != nil {
 		return err
 	}
