@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/topolvm/topolvm"
 )
 
@@ -13,7 +12,6 @@ func Test_convertRequestCapacityBytes(t *testing.T) {
 	testCases := []struct {
 		requestBytes int64
 		limitBytes   int64
-		mountVolume  *csi.VolumeCapability_MountVolume
 		expected     int64
 		err          error
 	}{
@@ -72,37 +70,10 @@ func Test_convertRequestCapacityBytes(t *testing.T) {
 			limitBytes:   0,
 			expected:     1 << 30,
 		},
-		{
-			requestBytes: topolvm.MinimumSectorSize,
-			limitBytes:   topolvm.MinimumSectorSize,
-			mountVolume:  &csi.VolumeCapability_MountVolume{FsType: "ext4"},
-			expected:     topolvm.MinimumSectorSize,
-		},
-		{
-			requestBytes: 0,
-			limitBytes:   0,
-			mountVolume:  &csi.VolumeCapability_MountVolume{FsType: "xfs"},
-			expected:     topolvm.MinimumXfsSize,
-		},
-		{
-			requestBytes: 0,
-			limitBytes:   topolvm.MinimumSectorSize,
-			mountVolume:  &csi.VolumeCapability_MountVolume{FsType: "xfs"},
-			err:          ErrLimitLessThanMinimumXfsSize,
-		},
-		{
-			requestBytes: 1 << 30,
-			limitBytes:   1 << 30,
-			mountVolume:  &csi.VolumeCapability_MountVolume{FsType: "xfs"},
-			expected:     1 << 30,
-		},
 	}
 
 	for _, tc := range testCases {
 		tcName := fmt.Sprintf("request:%d limit:%d", tc.requestBytes, tc.limitBytes)
-		if tc.mountVolume != nil {
-			tcName += fmt.Sprintf(" %v", tc.mountVolume)
-		}
 		if tc.err != nil {
 			tcName += fmt.Sprintf(" = %s", tc.err)
 		} else {
@@ -110,7 +81,7 @@ func Test_convertRequestCapacityBytes(t *testing.T) {
 		}
 
 		t.Run(tcName, func(t *testing.T) {
-			v, err := convertRequestCapacityBytes(tc.requestBytes, tc.limitBytes, tc.mountVolume)
+			v, err := convertRequestCapacityBytes(tc.requestBytes, tc.limitBytes)
 			if !errors.Is(err, tc.err) {
 				t.Errorf("expected error %v, but got %v", tc.err, err)
 			}

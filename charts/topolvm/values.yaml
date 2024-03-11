@@ -627,7 +627,10 @@ storageClasses:
       volumeBindingMode: WaitForFirstConsumer
       # enables CSI drivers to expand volumes. This feature is available for Kubernetes 1.16 and later releases.
       allowVolumeExpansion: true
-      additionalParameters: {}
+      additionalParameters: {
+        # For XFS we recommend a minimum size of 300Mi for any volume. You can choose any arbitrary minimum allocation Size for your use case.
+        "topolvm.io/minimum-allocated-size": "300Mi"
+      }
       # "topolvm.io/device-class": "ssd"
       # mount options
       mountOptions: []

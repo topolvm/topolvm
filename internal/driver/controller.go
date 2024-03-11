@@ -14,6 +14,7 @@ import (
 	"github.com/topolvm/topolvm/internal/driver/internal/k8s"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"k8s.io/apimachinery/pkg/api/resource"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -21,11 +22,10 @@ import (
 var ctrlLogger = ctrl.Log.WithName("driver").WithName("controller")
 
 var (
-	ErrNoNegativeRequestBytes      = errors.New("required capacity must not be negative")
-	ErrNoNegativeLimitBytes        = errors.New("capacity limit must not be negative")
-	ErrRequestedExceedsLimit       = errors.New("requested capacity exceeds limit capacity")
-	ErrResultingRequestIsZero      = errors.New("requested capacity is 0")
-	ErrLimitLessThanMinimumXfsSize = fmt.Errorf("limit capacity is less than the minimum size for xfs (%d bytes)", topolvm.MinimumXfsSize)
+	ErrNoNegativeRequestBytes = errors.New("required capacity must not be negative")
+	ErrNoNegativeLimitBytes   = errors.New("capacity limit must not be negative")
+	ErrRequestedExceedsLimit  = errors.New("requested capacity exceeds limit capacity")
+	ErrResultingRequestIsZero = errors.New("requested capacity is 0")
 )
 
 // NewControllerServer returns a new ControllerServer.
@@ -125,6 +125,11 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 	deviceClass := req.GetParameters()[topolvm.GetDeviceClassKey()]
 	lvcreateOptionClass := req.GetParameters()[topolvm.GetLvcreateOptionClassKey()]
 
+	minimumSize, err := getMinimumAllocatedSize(req.GetParameters())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "failed to parse minimum size: %v", err)
+	}
+
 	ctrlLogger.Info("CreateVolume called",
 		"name", req.GetName(),
 		"device_class", deviceClass,
@@ -140,7 +145,6 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 		// sourceID   string
 		sourceName string
 		sourceVol  *v1.LogicalVolume
-		err        error
 	)
 
 	if capabilities == nil {
@@ -148,6 +152,12 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 	}
 
 	required, limit := req.GetCapacityRange().GetRequiredBytes(), req.GetCapacityRange().GetLimitBytes()
+
+	if minimumSize.CmpInt64(required) > 0 {
+		ctrlLogger.Info("required size is less than minimum size, "+
+			"using minimum size as required size", "required", required, "minimum", minimumSize.Value())
+		required = minimumSize.Value()
+	}
 
 	// check required volume capabilities
 	var mount *csi.VolumeCapability_MountVolume
@@ -175,7 +185,7 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 		}
 	}
 
-	requestCapacityBytes, err := convertRequestCapacityBytes(required, limit, mount)
+	requestCapacityBytes, err := convertRequestCapacityBytes(required, limit)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
@@ -427,7 +437,7 @@ func (s controllerServerNoLocked) DeleteSnapshot(ctx context.Context, req *csi.D
 }
 
 // convertRequestCapacityBytes converts requestBytes and limitBytes to a valid capacity.
-func convertRequestCapacityBytes(requestBytes, limitBytes int64, mount *csi.VolumeCapability_MountVolume) (int64, error) {
+func convertRequestCapacityBytes(requestBytes, limitBytes int64) (int64, error) {
 	if requestBytes < 0 {
 		return 0, ErrNoNegativeRequestBytes
 	}
@@ -437,20 +447,6 @@ func convertRequestCapacityBytes(requestBytes, limitBytes int64, mount *csi.Volu
 
 	if limitBytes != 0 && requestBytes > limitBytes {
 		return 0, fmt.Errorf("%w: request=%d limit=%d", ErrRequestedExceedsLimit, requestBytes, limitBytes)
-	}
-
-	if mount != nil {
-		switch mount.GetFsType() {
-		case "xfs":
-			if limitBytes != 0 && limitBytes < topolvm.MinimumXfsSize {
-				return 0, ErrLimitLessThanMinimumXfsSize
-			}
-			// if limitBytes is 0 or less than the minimum size for xfs, default to either requestBytes or the minimum
-			// size for xfs, whichever is larger.
-			if requestBytes < topolvm.MinimumXfsSize {
-				requestBytes = topolvm.MinimumXfsSize
-			}
-		}
 	}
 
 	// if requestBytes is 0 and
@@ -649,7 +645,6 @@ func (s controllerServerNoLocked) ControllerExpandVolume(ctx context.Context, re
 	requestCapacityBytes, err := convertRequestCapacityBytes(
 		req.GetCapacityRange().GetRequiredBytes(),
 		req.GetCapacityRange().GetLimitBytes(),
-		req.GetVolumeCapability().GetMount(),
 	)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
@@ -690,4 +685,19 @@ func (s controllerServerNoLocked) ControllerExpandVolume(ctx context.Context, re
 		CapacityBytes:         requestCapacityBytes,
 		NodeExpansionRequired: true,
 	}, nil
+}
+
+// getMinimumAllocatedSize returns the minimum size to be allocated from the parameters derived from the StorageClass.
+// If the key is not found, it returns 0.
+// If the value is not a valid quantity, it returns an error.
+func getMinimumAllocatedSize(parameters map[string]string) (resource.Quantity, error) {
+	minimumAllocatedSize, ok := parameters[topolvm.GetMinimumAllocatedSizeKey()]
+	if !ok {
+		return resource.MustParse("0"), nil
+	}
+	quantity, err := resource.ParseQuantity(minimumAllocatedSize)
+	if err != nil {
+		return resource.MustParse("0"), err
+	}
+	return quantity, nil
 }

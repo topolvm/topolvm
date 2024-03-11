@@ -45,6 +45,12 @@ func GetDeviceClassKey() string {
 	return fmt.Sprintf("%s/device-class", GetPluginName())
 }
 
+// GetMinimumAllocatedSizeKey returns the key used in CSI volume create requests to specify a minimum requested storage size.
+// The value is of the same format as a resource.Quantity.
+func GetMinimumAllocatedSizeKey() string {
+	return fmt.Sprintf("%s/minimum-allocated-size", GetPluginName())
+}
+
 // GetDeviceClassKey returns the key used in CSI volume create requests to specify a lvcreate-option-class.
 func GetLvcreateOptionClassKey() string {
 	return fmt.Sprintf("%s/lvcreate-option-class", GetPluginName())
@@ -100,14 +106,6 @@ const DefaultSize = int64(DefaultSizeGb << 30)
 // As it also aligns with 512 and 1024 byte sectors, and is the default for most modern disks.
 // Going lower than this size will cause validation issues on volume creation for the user.
 const MinimumSectorSize = int64(4096)
-
-// MinimumXfsSize is the minimum size in bytes for volumes (PVC or generic ephemeral volumes) that want to use an XFS
-// filesystem. For all intents and purposes, this is the minimum size for an XFS filesystem.
-// The theoretical limit was long time the size of an allocation group which is 16 MiB.
-// However, since introduction of a performance oriented minimum with
-// https://www.spinics.net/lists/linux-xfs/msg63099.html & https://www.spinics.net/lists/linux-xfs/msg63831.html
-// the minimum size is 300 MiB.
-const MinimumXfsSize = int64(300 << 20)
 
 // Label key that indicates The controller/user who created this resource
 // https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/#labels

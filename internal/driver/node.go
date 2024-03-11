@@ -485,7 +485,6 @@ func (s *nodeServerNoLocked) NodeExpandVolume(ctx context.Context, req *csi.Node
 	_, err := convertRequestCapacityBytes(
 		req.GetCapacityRange().GetRequiredBytes(),
 		req.GetCapacityRange().GetLimitBytes(),
-		req.GetVolumeCapability().GetMount(),
 	)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())

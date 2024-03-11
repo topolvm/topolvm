@@ -57,6 +57,15 @@ storageClasses:
       allowVolumeExpansion: true
       additionalParameters:
         '{{ include "topolvm.pluginName" . }}/device-class': "dc1"
+  - name: topolvm-provisioner-limited-by-size
+    storageClass:
+      fsType: xfs
+      isDefaultClass: false
+      volumeBindingMode: WaitForFirstConsumer
+      allowVolumeExpansion: true
+      additionalParameters:
+        '{{ include "topolvm.pluginName" . }}/device-class': "dc1"
+        '{{ include "topolvm.pluginName" . }}/minimum-allocated-size': "300Mi"
   - name: topolvm-provisioner-thin
     storageClass:
       fsType: xfs
