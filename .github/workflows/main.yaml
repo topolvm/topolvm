@@ -15,15 +15,6 @@ jobs:
           go-version-file: "go.mod"
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      - name: cache go dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: go-${{ hashFiles('go.sum', 'Makefile', 'versions.mk') }}
-          restore-keys: |
-            go-
       - run: make setup
       - run: make check-uncommitted
       - run: make test
@@ -31,19 +22,7 @@ jobs:
 
   build-images:
     name: "build-images"
-    runs-on: "ubuntu-20.04"
-    strategy:
-      fail-fast: true
-      matrix:
-        image:
-          - "normal"
-          - "with-sidecar"
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - run: make setup-docker-buildx
-      - run: make multi-platform-image-${{ matrix.image }}
+    uses: ./.github/workflows/build-images.yaml
 
   container-structure-test:
     name: "container-structure-test"
@@ -77,14 +56,5 @@ jobs:
           go-version-file: "go.mod"
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      - name: cache go dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: go-${{ hashFiles('go.sum', 'Makefile', 'versions.mk') }}
-          restore-keys: |
-            go-
       - run: make setup
       - run: make run

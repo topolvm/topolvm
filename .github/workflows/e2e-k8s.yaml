@@ -21,15 +21,6 @@ jobs:
           go-version-file: "go.mod"
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      - name: cache go dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: go-${{ hashFiles('go.sum', 'Makefile', 'versions.mk') }}
-          restore-keys: |
-            go-
       - name: cache e2e sidecar binaries
         uses: actions/cache@v4
         with:
