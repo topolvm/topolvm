@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/topolvm/topolvm"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 func Test_convertRequestCapacityBytes(t *testing.T) {
@@ -110,6 +112,81 @@ func Test_roundUp(t *testing.T) {
 			rounded := roundUp(tc.size, tc.multiple)
 			if rounded != tc.expected {
 				t.Errorf("%s, but was %d", name, rounded)
+			}
+		})
+	}
+}
+
+func Test_getMinimumAllocatedSize(t *testing.T) {
+	mockBlock := &csi.VolumeCapability{AccessType: &csi.VolumeCapability_Block{
+		Block: &csi.VolumeCapability_BlockVolume{},
+	}}
+	mockMount := &csi.VolumeCapability{AccessType: &csi.VolumeCapability_Mount{
+		Mount: &csi.VolumeCapability_MountVolume{},
+	}}
+
+	testCases := []struct {
+		parameters   map[string]string
+		capabilities []*csi.VolumeCapability
+		expected     resource.Quantity
+		err          error
+	}{
+		{
+			parameters:   map[string]string{},
+			capabilities: nil,
+			expected:     resource.MustParse("0"),
+			err:          nil,
+		},
+		{
+			parameters:   map[string]string{},
+			capabilities: []*csi.VolumeCapability{mockBlock},
+			expected:     resource.MustParse("0"),
+			err:          nil,
+		},
+		{
+			parameters: map[string]string{
+				topolvm.GetMinimumAllocatedSizeKeyFilesystem(): "5Mi",
+				topolvm.GetMinimumAllocatedSizeKeyBlock():      "3Mi",
+			},
+			capabilities: []*csi.VolumeCapability{mockBlock},
+			expected:     resource.MustParse("3Mi"),
+			err:          nil,
+		},
+		{
+			parameters: map[string]string{
+				topolvm.GetMinimumAllocatedSizeKeyFilesystem(): "5Mi",
+				topolvm.GetMinimumAllocatedSizeKeyBlock():      "3Mi",
+			},
+			capabilities: []*csi.VolumeCapability{mockMount},
+			expected:     resource.MustParse("5Mi"),
+			err:          nil,
+		},
+		{
+			parameters: map[string]string{
+				topolvm.GetMinimumAllocatedSizeKeyBlock(): "-1",
+			},
+			capabilities: []*csi.VolumeCapability{mockBlock},
+			expected:     resource.MustParse("0"),
+			err:          nil,
+		},
+		{
+			parameters: map[string]string{
+				topolvm.GetMinimumAllocatedSizeKeyBlock(): "abc",
+			},
+			capabilities: []*csi.VolumeCapability{mockBlock},
+			expected:     resource.MustParse("0"),
+			err:          resource.ErrFormatWrong,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("parameters: %v, capabilities: %v", tc.parameters, tc.capabilities), func(t *testing.T) {
+			v, err := getMinimumAllocatedSize(tc.parameters, tc.capabilities)
+			if !errors.Is(err, tc.err) {
+				t.Errorf("expected error %v, but got %v", tc.err, err)
+			}
+			if v.Cmp(tc.expected) != 0 {
+				t.Errorf("expected %s, but got %s", tc.expected.String(), v.String())
 			}
 		})
 	}

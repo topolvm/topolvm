@@ -125,7 +125,7 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 	deviceClass := req.GetParameters()[topolvm.GetDeviceClassKey()]
 	lvcreateOptionClass := req.GetParameters()[topolvm.GetLvcreateOptionClassKey()]
 
-	minimumSize, err := getMinimumAllocatedSize(req.GetParameters())
+	minimumSize, err := getMinimumAllocatedSize(req.GetParameters(), capabilities)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "failed to parse minimum size: %v", err)
 	}
@@ -160,11 +160,10 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 	}
 
 	// check required volume capabilities
-	var mount *csi.VolumeCapability_MountVolume
 	for _, capability := range capabilities {
 		if block := capability.GetBlock(); block != nil {
 			ctrlLogger.Info("CreateVolume specifies volume capability", "access_type", "block")
-		} else if mount = capability.GetMount(); mount != nil {
+		} else if mount := capability.GetMount(); mount != nil {
 			ctrlLogger.Info("CreateVolume specifies volume capability",
 				"access_type", "mount",
 				"fs_type", mount.GetFsType(),
@@ -688,16 +687,36 @@ func (s controllerServerNoLocked) ControllerExpandVolume(ctx context.Context, re
 }
 
 // getMinimumAllocatedSize returns the minimum size to be allocated from the parameters derived from the StorageClass.
-// If the key is not found, it returns 0.
+// it uses either the filesystem or block key to get the minimum allocated size.
+// it determines which key to use based on the capabilities.
+// If no key is found or neither capability exists, it returns 0.
 // If the value is not a valid quantity, it returns an error.
-func getMinimumAllocatedSize(parameters map[string]string) (resource.Quantity, error) {
-	minimumAllocatedSize, ok := parameters[topolvm.GetMinimumAllocatedSizeKey()]
+func getMinimumAllocatedSize(parameters map[string]string, capabilities []*csi.VolumeCapability) (resource.Quantity, error) {
+	var key string
+	for _, capability := range capabilities {
+		if capability.GetMount() != nil {
+			key = topolvm.GetMinimumAllocatedSizeKeyFilesystem()
+			break
+		}
+		if capability.GetBlock() != nil {
+			key = topolvm.GetMinimumAllocatedSizeKeyBlock()
+			break
+		}
+	}
+
+	minimumAllocatedSize, ok := parameters[key]
 	if !ok {
 		return resource.MustParse("0"), nil
 	}
+
 	quantity, err := resource.ParseQuantity(minimumAllocatedSize)
 	if err != nil {
 		return resource.MustParse("0"), err
 	}
+
+	if quantity.Sign() < 0 {
+		return resource.MustParse("0"), nil
+	}
+
 	return quantity, nil
 }

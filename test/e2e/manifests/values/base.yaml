@@ -65,7 +65,8 @@ storageClasses:
       allowVolumeExpansion: true
       additionalParameters:
         '{{ include "topolvm.pluginName" . }}/device-class': "dc1"
-        '{{ include "topolvm.pluginName" . }}/minimum-allocated-size': "300Mi"
+        '{{ include "topolvm.pluginName" . }}/minimum-allocated-size-filesystem': "300Mi"
+        '{{ include "topolvm.pluginName" . }}/minimum-allocated-size-block': "100Mi"
   - name: topolvm-provisioner-thin
     storageClass:
       fsType: xfs

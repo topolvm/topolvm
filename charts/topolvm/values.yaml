@@ -629,7 +629,7 @@ storageClasses:
       allowVolumeExpansion: true
       additionalParameters: {
         # For XFS we recommend a minimum size of 300Mi for any volume. You can choose any arbitrary minimum allocation Size for your use case.
-        "topolvm.io/minimum-allocated-size": "300Mi"
+        "topolvm.io/minimum-allocated-size-filesystem": "300Mi"
       }
       # "topolvm.io/device-class": "ssd"
       # mount options
