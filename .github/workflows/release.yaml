@@ -57,7 +57,7 @@ jobs:
         run: |
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           BRANCH=$(echo ${{ needs.prepare.outputs.version }} | cut -d "." -f 1-2)
-          make tag IMAGE_TAG=$BRANCH ORIGINAL_IMAGE_TAG=${{ needs.preapre.outputs.version }}
+          make tag IMAGE_TAG=$BRANCH ORIGINAL_IMAGE_TAG=${{ needs.prepare.outputs.version }}
         env:
           IMAGE_PREFIX: ${{ needs.prepare.outputs.image_prefix }}
       - name: "Get previous tag"
