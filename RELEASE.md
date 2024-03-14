@@ -39,7 +39,7 @@ The result should look something like:
 Bump version
 ------------
 
-1. Determine a new version number, and define the `VERSION` variable.
+1. Determine a new version number by [checking the differences](https://github.com/topolvm/topolvm/compare/vX.Y.Z...main) since the last release. Then, define the `VERSION` variable.
 
     ```console
     VERSION=1.2.3
@@ -72,7 +72,7 @@ Bump Chart Version
 TopoLVM Helm Chart will be released independently.
 This will prevent the TopoLVM version from going up just by modifying the Helm Chart.
 
-1. Determine a new version number, and manually run the workflow to create a PR to update the Helm Chart.
+1. Determine a new version number by [checking the differences](https://github.com/topolvm/topolvm/compare/topolvm-chart-vX.Y.Z...main) since the last release. Then, manually run the workflow to create a PR to update the Helm Chart.
 
    https://github.com/topolvm/topolvm/actions/workflows/create-chart-update-pr.yaml
 

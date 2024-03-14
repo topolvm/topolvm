@@ -106,6 +106,7 @@ to clean up PVCs and associated Pods bound to the node.
 | `csi-socket`           | string | `/run/topolvm/csi-topolvm.sock` | UNIX domain socket of `topolvm-node`.  |
 | `lvmd-socket`          | string | `/run/topolvm/lvmd.sock`        | UNIX domain socket of `LVMd` service.  |
 | `metrics-bind-address` | string | `:8080`                         | Bind address for the metrics endpoint. |
+| `secure-metrics-server`| bool   | `false`                         | Secures the metrics server.            |
 | `nodename`             | string |                                 | `Node` resource name.                  |
 
 ## Environment Variables
