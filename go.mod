@@ -6,7 +6,7 @@ require (
 	github.com/container-storage-interface/spec v1.6.0
 	github.com/go-logr/logr v1.2.4
 	github.com/go-logr/zapr v1.2.4
-	github.com/golang/protobuf v1.5.3
+	github.com/golang/protobuf v1.5.4
 	github.com/google/go-cmp v0.5.9
 	github.com/kubernetes-csi/csi-test/v5 v5.0.0
 	github.com/kubernetes-csi/external-snapshotter/client/v6 v6.3.0
