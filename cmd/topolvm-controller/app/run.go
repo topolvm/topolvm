@@ -137,7 +137,7 @@ func subMain() error {
 	// Add gRPC server to manager.
 	grpcServer := grpc.NewServer()
 	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityServer(checker.Ready))
-	controllerSever, err := driver.NewControllerServer(mgr)
+	controllerSever, err := driver.NewControllerServer(mgr, config.controllerServerSettings)
 	if err != nil {
 		return err
 	}

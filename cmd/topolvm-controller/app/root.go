@@ -1,16 +1,24 @@
 package app
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 	"github.com/topolvm/topolvm"
+	"github.com/topolvm/topolvm/internal/driver"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
+
+const configName = "topolvm-controller-config"
 
 var config struct {
 	csiSocket                   string
@@ -28,6 +36,9 @@ var config struct {
 	leaderElectionRetryPeriod   time.Duration
 	skipNodeFinalize            bool
 	zapOpts                     zap.Options
+	controllerServerSettings    driver.ControllerServerSettings
+
+	configFile string
 }
 
 var rootCmd = &cobra.Command{
@@ -46,14 +57,8 @@ It also works as a custom Kubernetes controller.`,
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-}
-
-func init() {
 	fs := rootCmd.Flags()
+	// Command-Line Flags
 	fs.StringVar(&config.csiSocket, "csi-socket", topolvm.DefaultCSISocket, "UNIX domain socket filename for CSI")
 	fs.StringVar(&config.metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	fs.BoolVar(&config.secureMetricsServer, "secure-metrics-server", false, "Secures the metrics server")
@@ -69,9 +74,80 @@ func init() {
 	fs.DurationVar(&config.leaderElectionRetryPeriod, "leader-election-retry-period", 2*time.Second, "Duration the LeaderElector clients should wait between tries of actions.")
 	fs.BoolVar(&config.skipNodeFinalize, "skip-node-finalize", false, "skips automatic cleanup of PhysicalVolumeClaims when a Node is deleted")
 
+	// Special Binding for Config File, this will change the file that is read.
+	fs.StringVar(&config.configFile, configName, fmt.Sprintf("%s.yaml", configName), "the file containing controller configuration settings. It can be in any format supported by viper (json, toml, yaml, hcl, ini, envfile). The default is yaml. The file can be located in the working directory, or in /etc/topolvm/")
+
+	// klog flag bindings
 	goflags := flag.NewFlagSet("klog", flag.ExitOnError)
 	klog.InitFlags(goflags)
+	// zap flag bindings
 	config.zapOpts.BindFlags(goflags)
-
 	fs.AddGoFlagSet(goflags)
+
+	// before we load the app, we need to load the config file into the flag set
+	// this will default the flags to the config file, and then the command line flags will override, if set.
+	rootCmd.PreRunE = func(_ *cobra.Command, _ []string) error {
+		if err := loadConfigFileIntoFlagSet(fs); err != nil {
+			return err
+		}
+
+		// Controller Server Settings
+		decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+			DecodeHook: mapstructure.TextUnmarshallerHookFunc(),
+			Result:     &config.controllerServerSettings,
+		})
+		if err != nil {
+			return err
+		}
+
+		// Decode the controller server settings, if they are set in the config file.
+		// If they are not set, the default zero-value will be used.
+		if err := decoder.Decode(viper.Get("controller-server-settings")); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
+
+// loadConfigFileIntoFlagSet loads the config file into the flag set and returns an error if it fails
+// This function does not error if the config file is not found, as it is not required.
+// Any value that is set in the flag set will override the config file.
+// The config file can be located in the current working directory, or in /etc/topolvm/
+// The config file can be any format that is supported by viper (json, toml, yaml, hcl, ini, envfile),
+// but the default is yaml.
+func loadConfigFileIntoFlagSet(fs *pflag.FlagSet) error {
+	// Flags readable from config file and environment variables
+	var errs []error
+	fs.VisitAll(func(f *pflag.Flag) {
+		// Skip the special config file flag
+		if f.Name == configName {
+			return
+		}
+		// Bind the flag to the config file
+		if err := viper.BindPFlag(f.Name, f); err != nil {
+			errs = append(errs, err)
+		}
+	})
+
+	viper.AddConfigPath("/etc/topolvm")
+	viper.AddConfigPath(".")
+
+	configSplit := strings.Split(config.configFile, ".")
+	name := strings.Join(configSplit[0:len(configSplit)-1], ".")
+	fileType := configSplit[len(configSplit)-1]
+	viper.SetConfigName(name)
+	viper.SetConfigType(fileType)
+
+	if err := viper.ReadInConfig(); err != nil {
+		var configFileNotFoundError viper.ConfigFileNotFoundError
+		if !errors.As(err, &configFileNotFoundError) {
+			return fmt.Errorf("fatal error config file: %w", err)
+		}
+	}
+	return nil
 }

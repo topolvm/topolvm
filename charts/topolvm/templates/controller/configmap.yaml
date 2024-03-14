@@ -1,0 +1,21 @@
+{{- if .Values.controller.configMap.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "topolvm.fullname" . }}-controller
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "topolvm.labels" . | nindent 4 }}
+    {{- with .Values.controller.configMap.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+data:
+  topolvm-controller-config.yaml: |
+    # This is the configuration file for the topolvm-controller.
+    # Any flags set directly on the controller will override the values in this file.
+    {{- with .Values.controller.configMap.data }}
+    {{ toYaml . | nindent 4 }}
+    {{- end }}
+    controller-server-settings: {{ toYaml .Values.controller.configMap.serverSettings | nindent 6 }}
+    {{- end }}

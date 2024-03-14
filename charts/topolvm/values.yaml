@@ -355,6 +355,34 @@ controller:
   # controller.replicaCount -- Number of replicas for CSI controller service.
   replicaCount: 2
 
+  configMap:
+    enabled: true
+
+    # controller.configMap.labels -- Additional labels that can be attached to the controller config map.
+    labels: {}
+
+    # controller.configMap.serverSettings -- Specify the topolvm-controller CSI server settings.
+    serverSettings:
+      allocation:
+        minimum:
+          # default minimum allocation sizes are used if not specified per device classes.
+          default:
+            # PVCs with VolumeMode Block will be allocated with this size at minimum.
+            block: 100Mi
+            # PVCs with VolumeMode Filesystem will be allocated with these sizes at minimum.
+            filesystem:
+              xfs: 300Mi
+              ext4: 100Mi
+    #     deviceClasses:
+    #       ssd:
+    #         block: 1Gi
+    #         filesystem:
+    #           xfs: 20Mi
+    #           ext4: 10Mi
+
+    # controller.configMap.data -- Specify additional data (such as flags) to be passed to topolvm-controller-config.yaml.
+    data: {}
+
   # controller.args -- Arguments to be passed to the command.
   args: []
 
@@ -627,10 +655,7 @@ storageClasses:
       volumeBindingMode: WaitForFirstConsumer
       # enables CSI drivers to expand volumes. This feature is available for Kubernetes 1.16 and later releases.
       allowVolumeExpansion: true
-      additionalParameters: {
-        # For XFS we recommend a minimum size of 300Mi for any volume. You can choose any arbitrary minimum allocation Size for your use case.
-        "topolvm.io/minimum-allocated-size-filesystem": "300Mi"
-      }
+      additionalParameters: {}
       # "topolvm.io/device-class": "ssd"
       # mount options
       mountOptions: []

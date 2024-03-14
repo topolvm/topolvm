@@ -146,9 +146,9 @@ func testE2E() {
 		}).Should(Succeed())
 	})
 
-	It("should be mounted in specified path but changed with "+topolvm.GetMinimumAllocatedSizeKeyFilesystem(), func() {
+	It("should be mounted in specified path but changed by the minimum allocation default for XFS", func() {
 		By("deploying Pod with PVC")
-		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 100, "topolvm-provisioner-limited-by-size"))
+		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 100, "topolvm-provisioner"))
 		podYaml := []byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu", "topo-pvc"))
 
 		_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
@@ -389,7 +389,7 @@ func testE2E() {
 		}).Should(Succeed())
 	})
 
-	It("should create a block device for Pod but changed with "+topolvm.GetMinimumAllocatedSizeKeyBlock(), func() {
+	It("should create a block device for Pod but changed by the minimum allocation default for block storage", func() {
 		deviceFile := "/dev/e2etest"
 
 		By("deploying ubuntu Pod with PVC to mount a block device")

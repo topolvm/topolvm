@@ -14,7 +14,6 @@ import (
 	"github.com/topolvm/topolvm/internal/driver/internal/k8s"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"k8s.io/apimachinery/pkg/api/resource"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -28,8 +27,13 @@ var (
 	ErrResultingRequestIsZero = errors.New("requested capacity is 0")
 )
 
+// ControllerServerSettings hold all settings that should be passed to the controller server.
+type ControllerServerSettings struct {
+	Allocation ControllerAllocationSettings `json:"allocation" ,yaml:"allocation"`
+}
+
 // NewControllerServer returns a new ControllerServer.
-func NewControllerServer(mgr manager.Manager) (csi.ControllerServer, error) {
+func NewControllerServer(mgr manager.Manager, settings ControllerServerSettings) (csi.ControllerServer, error) {
 	lvService, err := k8s.NewLogicalVolumeService(mgr)
 	if err != nil {
 		return nil, err
@@ -41,6 +45,7 @@ func NewControllerServer(mgr manager.Manager) (csi.ControllerServer, error) {
 		server: &controllerServerNoLocked{
 			lvService:   lvService,
 			nodeService: k8s.NewNodeService(mgr.GetClient()),
+			settings:    settings,
 		},
 	}, nil
 }
@@ -117,6 +122,8 @@ type controllerServerNoLocked struct {
 
 	lvService   *k8s.LogicalVolumeService
 	nodeService *k8s.NodeService
+
+	settings ControllerServerSettings
 }
 
 func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
@@ -124,11 +131,6 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 	source := req.GetVolumeContentSource()
 	deviceClass := req.GetParameters()[topolvm.GetDeviceClassKey()]
 	lvcreateOptionClass := req.GetParameters()[topolvm.GetLvcreateOptionClassKey()]
-
-	minimumSize, err := getMinimumAllocatedSize(req.GetParameters(), capabilities)
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "failed to parse minimum size: %v", err)
-	}
 
 	ctrlLogger.Info("CreateVolume called",
 		"name", req.GetName(),
@@ -145,18 +147,22 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 		// sourceID   string
 		sourceName string
 		sourceVol  *v1.LogicalVolume
+		err        error
 	)
 
 	if capabilities == nil {
 		return nil, status.Error(codes.InvalidArgument, "no volume capabilities are provided")
 	}
 
-	required, limit := req.GetCapacityRange().GetRequiredBytes(), req.GetCapacityRange().GetLimitBytes()
+	required, limit := s.settings.Allocation.MinMaxAllocationsFromSettings(
+		req.GetCapacityRange().GetRequiredBytes(),
+		req.GetCapacityRange().GetLimitBytes(),
+		deviceClass,
+		capabilities,
+	)
 
-	if minimumSize.CmpInt64(required) > 0 {
-		ctrlLogger.Info("required size is less than minimum size, "+
-			"using minimum size as required size", "required", required, "minimum", minimumSize.Value())
-		required = minimumSize.Value()
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "failed to calculate minimum/maximum allocation bytes: %v", err)
 	}
 
 	// check required volume capabilities
@@ -684,39 +690,4 @@ func (s controllerServerNoLocked) ControllerExpandVolume(ctx context.Context, re
 		CapacityBytes:         requestCapacityBytes,
 		NodeExpansionRequired: true,
 	}, nil
-}
-
-// getMinimumAllocatedSize returns the minimum size to be allocated from the parameters derived from the StorageClass.
-// it uses either the filesystem or block key to get the minimum allocated size.
-// it determines which key to use based on the capabilities.
-// If no key is found or neither capability exists, it returns 0.
-// If the value is not a valid quantity, it returns an error.
-func getMinimumAllocatedSize(parameters map[string]string, capabilities []*csi.VolumeCapability) (resource.Quantity, error) {
-	var key string
-	for _, capability := range capabilities {
-		if capability.GetMount() != nil {
-			key = topolvm.GetMinimumAllocatedSizeKeyFilesystem()
-			break
-		}
-		if capability.GetBlock() != nil {
-			key = topolvm.GetMinimumAllocatedSizeKeyBlock()
-			break
-		}
-	}
-
-	minimumAllocatedSize, ok := parameters[key]
-	if !ok {
-		return resource.MustParse("0"), nil
-	}
-
-	quantity, err := resource.ParseQuantity(minimumAllocatedSize)
-	if err != nil {
-		return resource.MustParse("0"), err
-	}
-
-	if quantity.Sign() < 0 {
-		return resource.MustParse("0"), nil
-	}
-
-	return quantity, nil
 }

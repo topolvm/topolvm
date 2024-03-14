@@ -124,6 +124,11 @@ spec:
             - name: certs
               mountPath: /certs
             {{- end }}
+            {{- if .Values.controller.configMap.enabled }}
+            - name: config
+              readOnly: true
+              mountPath: /etc/topolvm
+            {{- end }}
 
         - name: csi-provisioner
           {{- if .Values.image.csi.csiProvisioner }}
@@ -263,6 +268,13 @@ spec:
         {{- end }}
         {{- with .Values.controller.volumes }}
         {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if .Values.controller.configMap.enabled }}
+        - name: config
+          configMap:
+            name: {{ template "topolvm.fullname" . }}-controller
+            optional: true
+            defaultMode: 444
         {{- end }}
       {{- if ne .Values.controller.affinity "" }}
       affinity: {{ tpl .Values.controller.affinity . | nindent 8 }}

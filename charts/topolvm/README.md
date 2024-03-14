@@ -16,6 +16,10 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v14.
 | cert-manager.enabled | bool | `false` | Install cert-manager together. # ref: https://cert-manager.io/docs/installation/kubernetes/#installing-with-helm |
 | controller.affinity | string | `"podAntiAffinity:\n  requiredDuringSchedulingIgnoredDuringExecution:\n    - labelSelector:\n        matchExpressions:\n          - key: app.kubernetes.io/component\n            operator: In\n            values:\n              - controller\n          - key: app.kubernetes.io/name\n            operator: In\n            values:\n              - {{ include \"topolvm.name\" . }}\n      topologyKey: kubernetes.io/hostname\n"` | Specify affinity. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity |
 | controller.args | list | `[]` | Arguments to be passed to the command. |
+| controller.configMap.data | object | `{}` | Specify additional data (such as flags) to be passed to topolvm-controller-config.yaml. |
+| controller.configMap.enabled | bool | `true` |  |
+| controller.configMap.labels | object | `{}` | Additional labels that can be attached to the controller config map. |
+| controller.configMap.serverSettings | object | `{"allocation":{"minimum":{"default":{"block":"100Mi","filesystem":{"ext4":"100Mi","xfs":"300Mi"}}}}}` | Specify the topolvm-controller CSI server settings. |
 | controller.initContainers | list | `[]` | Additional initContainers for the controller service. |
 | controller.labels | object | `{}` | Additional labels to be added to the Deployment. |
 | controller.leaderElection.enabled | bool | `true` | Enable leader election for controller and all sidecars. |
@@ -139,7 +143,7 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v14.
 | securityContext.runAsGroup | int | `10000` | Specify runAsGroup. |
 | securityContext.runAsUser | int | `10000` | Specify runAsUser. |
 | snapshot.enabled | bool | `true` | Turn on the snapshot feature. |
-| storageClasses | list | `[{"name":"topolvm-provisioner","storageClass":{"additionalParameters":{"topolvm.io/minimum-allocated-size-filesystem":"300Mi"},"allowVolumeExpansion":true,"annotations":{},"fsType":"xfs","isDefaultClass":false,"mountOptions":[],"reclaimPolicy":null,"volumeBindingMode":"WaitForFirstConsumer"}}]` | Whether to create storageclass(es) ref: https://kubernetes.io/docs/concepts/storage/storage-classes/ |
+| storageClasses | list | `[{"name":"topolvm-provisioner","storageClass":{"additionalParameters":{},"allowVolumeExpansion":true,"annotations":{},"fsType":"xfs","isDefaultClass":false,"mountOptions":[],"reclaimPolicy":null,"volumeBindingMode":"WaitForFirstConsumer"}}]` | Whether to create storageclass(es) ref: https://kubernetes.io/docs/concepts/storage/storage-classes/ |
 | useLegacy | bool | `false` | If true, the legacy plugin name and legacy custom resource group is used(topolvm.cybozu.com). |
 | webhook.caBundle | string | `nil` | Specify the certificate to be used for AdmissionWebhook. |
 | webhook.existingCertManagerIssuer | object | `{}` | Specify the cert-manager issuer to be used for AdmissionWebhook. |

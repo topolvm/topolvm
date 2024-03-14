@@ -45,20 +45,6 @@ func GetDeviceClassKey() string {
 	return fmt.Sprintf("%s/device-class", GetPluginName())
 }
 
-// GetMinimumAllocatedSizeKeyBlock GetMinimumAllocatedSizeKeyFS returns the key used in CSI volume create requests
-// to specify a minimum requested storage size for PVCs with VolumeMode Block.
-// The value is of the same format as a resource.Quantity.
-func GetMinimumAllocatedSizeKeyBlock() string {
-	return fmt.Sprintf("%s/minimum-allocated-size-block", GetPluginName())
-}
-
-// GetMinimumAllocatedSizeKeyFilesystem GetMinimumAllocatedSizeKeyFS returns the key used in CSI volume create requests
-// to specify a minimum requested storage size for PVCs with VolumeMode Filesystem.
-// The value is of the same format as a resource.Quantity.
-func GetMinimumAllocatedSizeKeyFilesystem() string {
-	return fmt.Sprintf("%s/minimum-allocated-size-filesystem", GetPluginName())
-}
-
 // GetDeviceClassKey returns the key used in CSI volume create requests to specify a lvcreate-option-class.
 func GetLvcreateOptionClassKey() string {
 	return fmt.Sprintf("%s/lvcreate-option-class", GetPluginName())
