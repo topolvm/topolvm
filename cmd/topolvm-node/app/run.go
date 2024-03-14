@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/yaml"
 	//+kubebuilder:scaffold:imports
@@ -63,11 +64,17 @@ func subMain(ctx context.Context) error {
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&config.zapOpts)))
 
+	metricsServerOptions := metricsserver.Options{
+		BindAddress: config.metricsAddr,
+	}
+	if config.secureMetricsServer {
+		metricsServerOptions.SecureServing = true
+		metricsServerOptions.FilterProvider = filters.WithAuthenticationAndAuthorization
+	}
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme: scheme,
-		Metrics: metricsserver.Options{
-			BindAddress: config.metricsAddr,
-		},
+		Scheme:         scheme,
+		Metrics:        metricsServerOptions,
 		LeaderElection: false,
 	})
 	if err != nil {

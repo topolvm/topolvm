@@ -15,12 +15,13 @@ import (
 )
 
 var config struct {
-	csiSocket   string
-	lvmdSocket  string
-	metricsAddr string
-	zapOpts     zap.Options
-	embedLvmd   bool
-	lvmd        lvmd.Config
+	csiSocket           string
+	lvmdSocket          string
+	metricsAddr         string
+	secureMetricsServer bool
+	zapOpts             zap.Options
+	embedLvmd           bool
+	lvmd                lvmd.Config
 }
 
 var rootCmd = &cobra.Command{
@@ -53,6 +54,7 @@ func init() {
 	fs.StringVar(&config.csiSocket, "csi-socket", topolvm.DefaultCSISocket, "UNIX domain socket filename for CSI")
 	fs.StringVar(&config.lvmdSocket, "lvmd-socket", topolvm.DefaultLVMdSocket, "UNIX domain socket of lvmd service")
 	fs.StringVar(&config.metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
+	fs.BoolVar(&config.secureMetricsServer, "secure-metrics-server", false, "Secures the metrics server")
 	fs.String("nodename", "", "The resource name of the running node")
 	fs.BoolVar(&config.embedLvmd, "embed-lvmd", false, "Runs LVMD locally by embedding it instead of calling it externally via gRPC")
 	fs.StringVar(&cfgFilePath, "config", filepath.Join("/etc", "topolvm", "lvmd.yaml"), "config file")

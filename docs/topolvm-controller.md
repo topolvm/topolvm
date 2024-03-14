@@ -184,10 +184,11 @@ Command-line flags
 ------------------
 
 | Name                   | Type   | Default                                 | Description                                                                  |
-| ---------------------- | ------ | --------------------------------------- | ---------------------------------------------------------------------------- |
+| ---------------------- |--------|-----------------------------------------|------------------------------------------------------------------------------|
 | `cert-dir`             | string | `/tmp/k8s-webhook-server/serving-certs` | Directory for `tls.crt` and `tls.key` files.                                 |
 | `csi-socket`           | string | `/run/topolvm/csi-topolvm.sock`         | UNIX domain socket of `topolvm-controller`.                                  |
 | `metrics-bind-address` | string | `:8080`                                 | Listen address for Prometheus metrics.                                       |
+| `secure-metrics-server`| bool   | `false`                                 | Secures the metrics server.                                                  |
 | `leader-election-id`   | string | `topolvm`                               | ID for leader election by controller-runtime.                                |
 | `webhook-addr`         | string | `:9443`                                 | Listen address for the webhook endpoint.                                     |
 | `skip-node-finalize`   | bool   | `false`                                 | When true, skips automatic cleanup of PhysicalVolumeClaims on Node deletion. |
