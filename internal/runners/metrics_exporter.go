@@ -63,7 +63,6 @@ var _ manager.LeaderElectionRunnable = &metricsExporter{}
 // NewMetricsExporter creates controller-runtime's manager.Runnable to run
 // a metrics exporter for a node.
 func NewMetricsExporter(vgServiceClient proto.VGServiceClient, client client.Client, nodeName string) manager.Runnable {
-
 	// metrics available under volumegroup subsystem
 	availableBytes := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace:   metricsNamespace,
@@ -72,7 +71,6 @@ func NewMetricsExporter(vgServiceClient proto.VGServiceClient, client client.Cli
 		Help:        "LVM VG available bytes under lvmd management",
 		ConstLabels: prometheus.Labels{"node": nodeName},
 	}, []string{"device_class"})
-	metrics.Registry.MustRegister(availableBytes)
 
 	sizeBytes := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace:   metricsNamespace,
@@ -81,7 +79,6 @@ func NewMetricsExporter(vgServiceClient proto.VGServiceClient, client client.Cli
 		Help:        "LVM VG size bytes under lvmd management",
 		ConstLabels: prometheus.Labels{"node": nodeName},
 	}, []string{"device_class"})
-	metrics.Registry.MustRegister(sizeBytes)
 
 	// metrics available under thinpool subsystem
 	tpSizeBytes := prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -91,7 +88,6 @@ func NewMetricsExporter(vgServiceClient proto.VGServiceClient, client client.Cli
 		Help:        "LVM VG Thin Pool raw size bytes",
 		ConstLabels: prometheus.Labels{"node": nodeName},
 	}, []string{"device_class"})
-	metrics.Registry.MustRegister(tpSizeBytes)
 
 	dataPercent := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace:   metricsNamespace,
@@ -100,7 +96,6 @@ func NewMetricsExporter(vgServiceClient proto.VGServiceClient, client client.Cli
 		Help:        "LVM VG Thin Pool data usage percent",
 		ConstLabels: prometheus.Labels{"node": nodeName},
 	}, []string{"device_class"})
-	metrics.Registry.MustRegister(dataPercent)
 
 	metadataPercent := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace:   metricsNamespace,
@@ -109,7 +104,6 @@ func NewMetricsExporter(vgServiceClient proto.VGServiceClient, client client.Cli
 		Help:        "LVM VG Thin Pool metadata usage percent",
 		ConstLabels: prometheus.Labels{"node": nodeName},
 	}, []string{"device_class"})
-	metrics.Registry.MustRegister(metadataPercent)
 
 	opAvailableBytes := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace:   metricsNamespace,
@@ -118,7 +112,6 @@ func NewMetricsExporter(vgServiceClient proto.VGServiceClient, client client.Cli
 		Help:        "LVM VG Thin Pool bytes available with overprovisioning",
 		ConstLabels: prometheus.Labels{"node": nodeName},
 	}, []string{"device_class"})
-	metrics.Registry.MustRegister(opAvailableBytes)
 
 	return &metricsExporter{
 		client:         client,
@@ -135,13 +128,44 @@ func NewMetricsExporter(vgServiceClient proto.VGServiceClient, client client.Cli
 	}
 }
 
+func (m *metricsExporter) getCollectors() []prometheus.Collector {
+	return []prometheus.Collector{
+		m.availableBytes,
+		m.sizeBytes,
+		m.thinPool.tpSizeBytes,
+		m.thinPool.dataPercent,
+		m.thinPool.metadataPercent,
+		m.thinPool.opAvailableBytes,
+	}
+}
+
+func (m *metricsExporter) registerAll() error {
+	for _, c := range m.getCollectors() {
+		if err := metrics.Registry.Register(c); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (m *metricsExporter) unregisterAll() {
+	for _, c := range m.getCollectors() {
+		metrics.Registry.Unregister(c)
+	}
+}
+
 // Start implements controller-runtime's manager.Runnable.
 func (m *metricsExporter) Start(ctx context.Context) error {
+	if err := m.registerAll(); err != nil {
+		return err
+	}
+
 	metricsCh := make(chan NodeMetrics)
 	go func() {
 		for {
 			select {
 			case <-ctx.Done():
+				m.unregisterAll()
 				return
 			case met := <-metricsCh:
 
