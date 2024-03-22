@@ -23,24 +23,11 @@ func Test_MinimumAllocationSettings(t *testing.T) {
 
 		settings ControllerAllocationSettings
 
-		deviceClass  string
 		capabilities []*csi.VolumeCapability
 
 		input    testBytes
 		expected testBytes
 	}{
-		{
-			name:     "no settings result in pass through",
-			settings: ControllerAllocationSettings{},
-			input: testBytes{
-				required: 1 << 30,
-				limit:    2 << 30,
-			},
-			expected: testBytes{
-				required: 1 << 30,
-				limit:    2 << 30,
-			},
-		},
 		{
 			name:     "no settings result in pass through",
 			settings: ControllerAllocationSettings{},
@@ -132,45 +119,12 @@ func Test_MinimumAllocationSettings(t *testing.T) {
 			},
 		},
 		{
-			name:        "default minimum should be overwritten by deviceclass for block storage",
-			deviceClass: "ssd",
-			settings: ControllerAllocationSettings{
-				Minimum: MinimumAllocationSettings{
-					Default: AllocationSettings{
-						Block: Quantity(resource.MustParse("0")),
-					},
-					ByDeviceClass: map[string]AllocationSettings{
-						"ssd": {
-							Block: Quantity(resource.MustParse("1Gi")),
-						},
-					},
-				},
-			},
-			capabilities: []*csi.VolumeCapability{mockBlock},
-			input: testBytes{
-				required: 0,
-				limit:    2 << 30,
-			},
-			expected: testBytes{
-				required: 1 << 30,
-				limit:    2 << 30,
-			},
-		},
-		{
-			name:        "default minimum should be overwritten by deviceclass for filesystem storage (on match)",
-			deviceClass: "ssd",
+			name: "unknown filesystem minimum should be ignored",
 			settings: ControllerAllocationSettings{
 				Minimum: MinimumAllocationSettings{
 					Default: AllocationSettings{
 						Filesystem: map[string]Quantity{
-							"ext4": Quantity(resource.MustParse("0")),
-						},
-					},
-					ByDeviceClass: map[string]AllocationSettings{
-						"ssd": {
-							Filesystem: map[string]Quantity{
-								"ext4": Quantity(resource.MustParse("1Gi")),
-							},
+							"foo": Quantity(resource.MustParse("1Gi")),
 						},
 					},
 				},
@@ -181,7 +135,7 @@ func Test_MinimumAllocationSettings(t *testing.T) {
 				limit:    2 << 30,
 			},
 			expected: testBytes{
-				required: 1 << 30,
+				required: 0,
 				limit:    2 << 30,
 			},
 		},
@@ -190,7 +144,7 @@ func Test_MinimumAllocationSettings(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			required, limit := tc.settings.MinMaxAllocationsFromSettings(
-				tc.input.required, tc.input.limit, tc.deviceClass, tc.capabilities)
+				tc.input.required, tc.input.limit, tc.capabilities)
 
 			if required != tc.expected.required {
 				t.Errorf("expected minimum/required bytes to be %d, but got %d", tc.expected.required, required)
@@ -210,17 +164,17 @@ func TestQuantity_UnmarshalText(t *testing.T) {
 		err      bool
 	}{
 		{
-			name:     "valid quantity",
+			name:     "valid Quantity",
 			input:    "1Gi",
 			expected: 1 << 30,
 		},
 		{
-			name:     "negative quantity",
+			name:     "negative Quantity",
 			input:    "-1",
 			expected: -1,
 		},
 		{
-			name:     "invalid quantity",
+			name:     "invalid Quantity",
 			input:    "blub",
 			expected: 0,
 			err:      true,
@@ -230,7 +184,7 @@ func TestQuantity_UnmarshalText(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			var q Quantity
-			err := q.UnmarshalText([]byte(tc.input))
+			err := q.Set(tc.input)
 			if tc.err && err == nil {
 				t.Errorf("expected error, but got none")
 			}

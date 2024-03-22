@@ -15,21 +15,6 @@ controller:
       hostPath:
         path: /var/lib/kubelet/plugins/topolvm.io/controller
         type: DirectoryOrCreate
-  configMap:
-    allocation:
-      minimum:
-        # set defaults to 0 as we only want to test with a specific device class
-        default:
-          block: 0
-          filesystem:
-            xfs: 0
-            ext4: 0
-            btrfs: 0
-        deviceClasses:
-          topolvm-provisioner-limited-by-size:
-            block: 100Mi
-            filesystem:
-              xfs: 300Mi
 
 lvmd:
   socketName: /tmp/topolvm/lvmd.sock
@@ -72,12 +57,6 @@ storageClasses:
       allowVolumeExpansion: true
       additionalParameters:
         '{{ include "topolvm.pluginName" . }}/device-class': "dc1"
-  - name: topolvm-provisioner-limited-by-size
-    storageClass:
-      fsType: xfs
-      isDefaultClass: false
-      volumeBindingMode: WaitForFirstConsumer
-      allowVolumeExpansion: true
   - name: topolvm-provisioner-thin
     storageClass:
       fsType: xfs

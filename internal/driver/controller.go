@@ -157,7 +157,6 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 	required, limit := s.settings.Allocation.MinMaxAllocationsFromSettings(
 		req.GetCapacityRange().GetRequiredBytes(),
 		req.GetCapacityRange().GetLimitBytes(),
-		deviceClass,
 		capabilities,
 	)
 
