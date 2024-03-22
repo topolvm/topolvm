@@ -29,6 +29,9 @@ MINIKUBE_VERSION := v1.32.0
 # https://github.com/protocolbuffers/protobuf/releases
 PROTOC_VERSION :=  25.2
 
+# https://github.com/kubernetes-sigs/controller-runtime/tree/main/tools/setup-envtest
+# Usually on latest, but might need to be pinned from time to time
+ENVTEST_VERSION := bf15e44028f908c790721fc8fe67c7bf2d06a611
 ENVTEST_KUBERNETES_VERSION := $(shell echo $(KUBERNETES_VERSION) | cut -d "." -f 1-2)
 
 # Tools versions which are defined in go.mod
