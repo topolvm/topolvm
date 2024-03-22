@@ -11,7 +11,7 @@ metadata:
     {{- include "topolvm.labels" . | nindent 4 }}
 spec:
   secretName: {{ template "topolvm.fullname" . }}-webhook-ca
-  duration: 87600h # 10y
+  duration: 87600h0m0s # 10y
   issuerRef:
     group: cert-manager.io
     kind: Issuer
@@ -34,7 +34,7 @@ metadata:
     {{- include "topolvm.labels" . | nindent 4 }}
 spec:
   secretName: {{ template "topolvm.fullname" . }}-mutatingwebhook
-  duration: 8760h # 1y
+  duration: 8760h0m0s # 1y
   issuerRef:
     {{- with .Values.webhook.existingCertManagerIssuer }}
     {{- toYaml . | nindent 4 -}}
