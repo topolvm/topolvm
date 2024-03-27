@@ -8,6 +8,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/topolvm/topolvm"
+	"github.com/topolvm/topolvm/internal/driver"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
@@ -28,6 +30,7 @@ var config struct {
 	leaderElectionRetryPeriod   time.Duration
 	skipNodeFinalize            bool
 	zapOpts                     zap.Options
+	controllerServerSettings    driver.ControllerServerSettings
 }
 
 var rootCmd = &cobra.Command{
@@ -68,6 +71,21 @@ func init() {
 	fs.DurationVar(&config.leaderElectionRenewDeadline, "leader-election-renew-deadline", 10*time.Second, "Duration that the acting controlplane will retry refreshing leadership before giving up. This is measured against time of last observed ack.")
 	fs.DurationVar(&config.leaderElectionRetryPeriod, "leader-election-retry-period", 2*time.Second, "Duration the LeaderElector clients should wait between tries of actions.")
 	fs.BoolVar(&config.skipNodeFinalize, "skip-node-finalize", false, "skips automatic cleanup of PhysicalVolumeClaims when a Node is deleted")
+
+	driver.QuantityVar(fs, &config.controllerServerSettings.Allocation.Minimum.Default.Block,
+		"minimum-allocation-block",
+		resource.MustParse("100Mi"),
+		"Minimum Allocation Sizing for block storage. Logical Volumes will always be at least this big.")
+	config.controllerServerSettings.Allocation.Minimum.Default.Filesystem = make(map[string]driver.Quantity)
+	for filesystem, minimum := range map[string]resource.Quantity{
+		"ext4": resource.MustParse("100Mi"),
+		"xfs":  resource.MustParse("300Mi"),
+	} {
+		config.controllerServerSettings.Allocation.Minimum.Default.Filesystem[filesystem] = driver.NewQuantity(fs,
+			fmt.Sprintf("minimum-allocation-%s", filesystem),
+			minimum,
+			fmt.Sprintf("Minimum Allocation Sizing for volumes with the %s filesystem. Logical Volumes will always be at least this big.", filesystem))
+	}
 
 	goflags := flag.NewFlagSet("klog", flag.ExitOnError)
 	klog.InitFlags(goflags)
