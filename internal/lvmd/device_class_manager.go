@@ -9,8 +9,8 @@ import (
 	lvmdTypes "github.com/topolvm/topolvm/pkg/lvmd/types"
 )
 
-// ErrNotFound is returned when a VG or LV is not found.
-var ErrNotFound = errors.New("device-class not found")
+// ErrDeviceClassNotFound is returned when a VG or LV is not found.
+var ErrDeviceClassNotFound = errors.New("device-class not found")
 
 const (
 	defaultSpareGB = 10
@@ -148,7 +148,7 @@ func (m DeviceClassManager) DeviceClass(dcName string) (*lvmdTypes.DeviceClass, 
 	if v, ok := m.deviceClassByName[dcName]; ok {
 		return v, nil
 	}
-	return nil, ErrNotFound
+	return nil, ErrDeviceClassNotFound
 }
 
 // FindDeviceClassByVGName returns the device-class with the volume group name
@@ -156,7 +156,7 @@ func (m DeviceClassManager) FindDeviceClassByVGName(vgName string) (*lvmdTypes.D
 	if v, ok := m.deviceClassByVGName[vgName]; ok {
 		return v, nil
 	}
-	return nil, ErrNotFound
+	return nil, ErrDeviceClassNotFound
 }
 
 // FindDeviceClassByThinPoolName returns the device-class with volume group and pool combination
@@ -165,5 +165,5 @@ func (m DeviceClassManager) FindDeviceClassByThinPoolName(vgName string, poolNam
 	if v, ok := m.deviceClassByThinPoolName[name]; ok {
 		return v, nil
 	}
-	return nil, ErrNotFound
+	return nil, ErrDeviceClassNotFound
 }
