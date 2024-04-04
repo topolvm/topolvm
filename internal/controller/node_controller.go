@@ -153,12 +153,20 @@ func (r *NodeReconciler) cleanupLogicalVolume(ctx context.Context, log logr.Logg
 		lv2.Annotations[topolvm.GetLVPendingDeletionKey()] = "true"
 		controllerutil.RemoveFinalizer(lv2, topolvm.GetLogicalVolumeFinalizer())
 		if err := r.client.Patch(ctx, lv2, client.MergeFrom(lv)); err != nil {
+			if apierrors.IsNotFound(err) {
+				log.Info("LogicalVolume is already deleted", "name", lv.Name)
+				return nil
+			}
 			log.Error(err, "failed to patch LogicalVolume", "name", lv.Name)
 			return err
 		}
 	}
 
 	if err := r.client.Delete(ctx, lv); err != nil {
+		if apierrors.IsNotFound(err) {
+			log.Info("LogicalVolume is already deleted", "name", lv.Name)
+			return nil
+		}
 		log.Error(err, "failed to delete LogicalVolume", "name", lv.Name)
 		return err
 	}
