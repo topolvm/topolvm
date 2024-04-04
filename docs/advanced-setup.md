@@ -32,6 +32,9 @@ wisely if `volumeBindingMode` is `Immediate`.
 You can use it to set `device-class` that the StorageClass will use.
 The `device-class` is described in the [LVMd](lvmd.md) document.
 
+`reclaimPolicy` can be either `Delete` or `Retain`.
+If you delete a PVC whose corresponding PV has `Retain` reclaim policy, the corresponding `LogicalVolume` resource and the LVM logical volume are *NOT* deleted. If you delete this `LogicalVolume` resource after deleting the PVC, the related LVM logical volume is also deleted.
+
 ## Pod Priority
 
 Pods using TopoLVM should always be prioritized over other normal pods.
