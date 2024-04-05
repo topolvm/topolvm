@@ -163,8 +163,8 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 
 		for _, pool := range pools {
 			dc, err := s.dcManager.FindDeviceClassByThinPoolName(vg.Name(), pool.Name())
-			// we either get nil or ErrNotFound
-			if errors.Is(err, ErrNotFound) {
+			// we either get nil or ErrDeviceClassNotFound
+			if errors.Is(err, ErrDeviceClassNotFound) {
 				continue
 			}
 
@@ -203,7 +203,7 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 		}
 
 		dc, err := s.dcManager.FindDeviceClassByVGName(vg.Name())
-		if errors.Is(err, ErrNotFound) {
+		if errors.Is(err, ErrDeviceClassNotFound) {
 			continue
 		}
 

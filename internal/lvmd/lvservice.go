@@ -159,14 +159,14 @@ func (s *lvService) RemoveLV(ctx context.Context, req *proto.RemoveLVRequest) (*
 	}
 
 	vg, err := command.FindVolumeGroup(ctx, dc.VolumeGroup)
-	if errors.Is(err, ErrNotFound) {
+	if errors.Is(err, command.ErrNotFound) {
 		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
 	} else if err != nil {
 		logger.Error(err, "failed to get volume group", "name", dc.VolumeGroup)
 		return nil, err
 	}
 
-	if err := vg.RemoveVolume(ctx, req.GetName()); errors.Is(err, ErrNotFound) {
+	if err := vg.RemoveVolume(ctx, req.GetName()); errors.Is(err, command.ErrNotFound) {
 		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
 	} else if err != nil {
 		logger.Error(err, "failed to remove volume", "name", req.GetName())

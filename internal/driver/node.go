@@ -482,23 +482,15 @@ func (s *nodeServerNoLocked) NodeExpandVolume(ctx context.Context, req *csi.Node
 
 	// We need to check the capacity range but don't use the converted value
 	// because the filesystem can be resized without the requested size.
-	_, err := convertRequestCapacityBytes(req.GetCapacityRange().GetRequiredBytes(), req.GetCapacityRange().GetLimitBytes())
+	_, err := convertRequestCapacityBytes(
+		req.GetCapacityRange().GetRequiredBytes(),
+		req.GetCapacityRange().GetLimitBytes(),
+	)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	// Device type (block or fs, fs type detection) checking will be removed after CSI v1.2.0
-	// because `volume_capability` field will be added in csi.NodeExpandVolumeRequest
-	info, err := os.Stat(volumePath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, status.Errorf(codes.NotFound, "volume path is not exist: %s", volumePath)
-		}
-		return nil, status.Errorf(codes.Internal, "stat failed for %s: %v", volumePath, err)
-	}
-
-	isBlock := !info.IsDir()
-	if isBlock {
+	if isBlock := req.GetVolumeCapability().GetBlock() != nil; isBlock {
 		nodeLogger.Info("NodeExpandVolume(block) is skipped",
 			"volume_id", volumeID,
 			"target_path", volumePath,

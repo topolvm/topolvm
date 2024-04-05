@@ -433,7 +433,7 @@ func TestDeviceClassManager(t *testing.T) {
 	}
 
 	_, err = manager.DeviceClass("unknown")
-	if err != ErrNotFound {
+	if err != ErrDeviceClassNotFound {
 		t.Error("'unknown' should not be found")
 	}
 
@@ -446,7 +446,7 @@ func TestDeviceClassManager(t *testing.T) {
 	}
 
 	_, err = manager.FindDeviceClassByVGName("unknown")
-	if err != ErrNotFound {
+	if err != ErrDeviceClassNotFound {
 		t.Error("'unknown' should not be found")
 	}
 

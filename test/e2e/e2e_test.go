@@ -13,7 +13,9 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/topolvm/topolvm"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
+	"github.com/topolvm/topolvm/cmd/topolvm-controller/app"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 //go:embed testdata/e2e/pvc-template.yaml
@@ -57,7 +59,7 @@ func testE2E() {
 
 	It("should be mounted in specified path", func() {
 		By("deploying Pod with PVC")
-		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1, "topolvm-provisioner"))
+		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1024, "topolvm-provisioner"))
 		podYaml := []byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu", "topo-pvc"))
 
 		_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
@@ -118,6 +120,100 @@ func testE2E() {
 		Eventually(func() error {
 			return checkLVIsRegisteredInLVM(pvc.Spec.VolumeName)
 		}).Should(Succeed())
+
+		By("deleting the Pod and PVC")
+		_, err = kubectlWithInput(podYaml, "delete", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+		_, err = kubectlWithInput(claimYAML, "delete", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+
+		By("confirming that the PV is deleted")
+		Eventually(func() error {
+			var pv corev1.PersistentVolume
+			err := getObjects(&pv, "pv", volName)
+			switch {
+			case err == ErrObjectNotFound:
+				return nil
+			case err != nil:
+				return fmt.Errorf("failed to get pv/%s. err: %w", volName, err)
+			default:
+				return fmt.Errorf("target pv exists %s", volName)
+			}
+		}).Should(Succeed())
+
+		By("confirming that the lv correspond to LogicalVolume is deleted")
+		Eventually(func() error {
+			return checkLVIsDeletedInLVM(volName)
+		}).Should(Succeed())
+	})
+
+	It("should be mounted in specified path but changed by the minimum allocation default for XFS", func() {
+		By("deploying Pod with PVC")
+		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 100, "topolvm-provisioner"))
+		podYaml := []byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu", "topo-pvc"))
+
+		_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+		_, err = kubectlWithInput(podYaml, "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+
+		By("confirming that the specified device exists in the Pod")
+		Eventually(func() error {
+			_, err = kubectl("exec", "-n", ns, "ubuntu", "--", "mountpoint", "-d", "/test1")
+			if err != nil {
+				return fmt.Errorf("failed to check mount point. err: %w", err)
+			}
+
+			stdout, err := kubectl("exec", "-n", ns, "ubuntu", "grep", "/test1", "/proc/mounts")
+			if err != nil {
+				return err
+			}
+			fields := strings.Fields(string(stdout))
+			if fields[2] != "xfs" {
+				return errors.New("/test1 is not xfs")
+			}
+			return nil
+		}).Should(Succeed())
+
+		By("writing file under /test1")
+		writePath := "/test1/bootstrap.log"
+		_, err = kubectl("exec", "-n", ns, "ubuntu", "--", "cp", "/var/log/bootstrap.log", writePath)
+		Expect(err).ShouldNot(HaveOccurred())
+		_, err = kubectl("exec", "-n", ns, "ubuntu", "--", "sync")
+		Expect(err).ShouldNot(HaveOccurred())
+		stdout, err := kubectl("exec", "-n", ns, "ubuntu", "--", "cat", writePath)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(strings.TrimSpace(string(stdout))).ShouldNot(BeEmpty())
+
+		By("deleting the Pod, then recreating it")
+		_, err = kubectl("delete", "--now=true", "-n", ns, "pod/ubuntu")
+		Expect(err).ShouldNot(HaveOccurred())
+		_, err = kubectlWithInput(podYaml, "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+
+		By("confirming that the file exists")
+		Eventually(func() error {
+			stdout, err = kubectl("exec", "-n", ns, "ubuntu", "--", "cat", writePath)
+			if err != nil {
+				return fmt.Errorf("failed to cat. err: %w", err)
+			}
+			if len(strings.TrimSpace(string(stdout))) == 0 {
+				return fmt.Errorf(writePath + " is empty")
+			}
+			return nil
+		}).Should(Succeed())
+
+		By("confirming that the lv correspond to LogicalVolume resource is registered in LVM")
+		var pvc corev1.PersistentVolumeClaim
+		err = getObjects(&pvc, "pvc", "-n", ns, "topo-pvc")
+		Expect(err).ShouldNot(HaveOccurred())
+		Eventually(func() error {
+			return checkLVIsRegisteredInLVM(pvc.Spec.VolumeName)
+		}).Should(Succeed())
+
+		By("confirming that the lv was successfully sized to the minimum size of the StorageClass")
+		Expect(pvc.Status.Capacity.Storage().Cmp(resource.MustParse(app.DefaultMinimumAllocationSizeXFS))).Should(Equal(0),
+			"expected: %s as minimum capacity, actual: %s", app.DefaultMinimumAllocationSizeXFS, pvc.Status.Capacity.Storage().String())
 
 		By("deleting the Pod and PVC")
 		_, err = kubectlWithInput(podYaml, "delete", "-n", ns, "-f", "-")
@@ -214,7 +310,8 @@ func testE2E() {
 
 		By("deploying ubuntu Pod with PVC to mount a block device")
 		podYAML := []byte(fmt.Sprintf(podVolumeDeviceTemplateYAML, deviceFile))
-		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Block", 1, "topolvm-provisioner"))
+
+		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Block", 1024, "topolvm-provisioner"))
 
 		_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -293,6 +390,95 @@ func testE2E() {
 		}).Should(Succeed())
 	})
 
+	It("should create a block device for Pod but changed by the minimum allocation default for block storage", func() {
+		deviceFile := "/dev/e2etest"
+
+		By("deploying ubuntu Pod with PVC to mount a block device")
+		podYAML := []byte(fmt.Sprintf(podVolumeDeviceTemplateYAML, deviceFile))
+
+		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Block", 1, "topolvm-provisioner"))
+
+		_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+		_, err = kubectlWithInput(podYAML, "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+
+		By("confirming that a block device exists in ubuntu pod")
+		Eventually(func() error {
+			_, err = kubectl("exec", "-n", ns, "ubuntu", "--", "test", "-b", deviceFile)
+			if err != nil {
+				podinfo, _ := kubectl("-n", ns, "describe", "pod", "ubuntu")
+				return fmt.Errorf("failed to test. ubuntu pod info output: %s; err: %w", podinfo, err)
+			}
+			return nil
+		}).Should(Succeed())
+
+		By("writing data to a block device")
+		// /etc/hostname contains "ubuntu"
+		_, err = kubectl("exec", "-n", ns, "ubuntu", "--", "dd", "if=/etc/hostname", "of="+deviceFile)
+		Expect(err).ShouldNot(HaveOccurred())
+		_, err = kubectl("exec", "-n", ns, "ubuntu", "--", "sync")
+		Expect(err).ShouldNot(HaveOccurred())
+		stdout, err := kubectl("exec", "-n", ns, "ubuntu", "--", "dd", "if="+deviceFile, "of=/dev/stdout", "bs=6", "count=1", "status=none")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(string(stdout)).Should(Equal("ubuntu"))
+
+		By("deleting the Pod, then recreating it")
+		_, err = kubectl("delete", "--now=true", "-n", ns, "pod/ubuntu")
+		Expect(err).ShouldNot(HaveOccurred())
+		_, err = kubectlWithInput(podYAML, "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+
+		By("reading data from a block device")
+		Eventually(func() error {
+			stdout, err = kubectl("exec", "-n", ns, "ubuntu", "--", "dd", "if="+deviceFile, "of=/dev/stdout", "bs=6", "count=1", "status=none")
+			if err != nil {
+				return fmt.Errorf("failed to cat. err: %w", err)
+			}
+			if string(stdout) != "ubuntu" {
+				return fmt.Errorf("expected: ubuntu, actual: %s", string(stdout))
+			}
+			return nil
+		}).Should(Succeed())
+
+		By("confirming that the lv correspond to LogicalVolume resource is registered in LVM")
+		var pvc corev1.PersistentVolumeClaim
+		err = getObjects(&pvc, "pvc", "-n", ns, "topo-pvc")
+		Expect(err).ShouldNot(HaveOccurred())
+		Eventually(func() error {
+			return checkLVIsRegisteredInLVM(pvc.Spec.VolumeName)
+		}).Should(Succeed())
+
+		By("confirming that the lv was successfully sized to the minimum size of the StorageClass")
+		Expect(pvc.Status.Capacity.Storage().Cmp(resource.MustParse(app.DefaultMinimumAllocationSizeBlock))).Should(Equal(0),
+			"expected: %s as minimum capacity, actual: %s", app.DefaultMinimumAllocationSizeBlock, pvc.Status.Capacity.Storage().String())
+
+		By("deleting the Pod and PVC")
+		_, err = kubectlWithInput(podYAML, "delete", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+		_, err = kubectlWithInput(claimYAML, "delete", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+
+		By("confirming that the PV is deleted")
+		Eventually(func() error {
+			var pv corev1.PersistentVolume
+			err := getObjects(&pv, "pv", volName)
+			switch {
+			case err == ErrObjectNotFound:
+				return nil
+			case err != nil:
+				return fmt.Errorf("failed to get pv/%s. err: %w", volName, err)
+			default:
+				return fmt.Errorf("target PV exists %s", volName)
+			}
+		}).Should(Succeed())
+
+		By("confirming that the lv correspond to LogicalVolume is deleted")
+		Eventually(func() error {
+			return checkLVIsDeletedInLVM(volName)
+		}).Should(Succeed())
+	})
+
 	It("should choose a node with the largest capacity when volumeBindingMode == Immediate is specified", func() {
 		skipIfStorageCapacity("Storage Capacity Tracking doesn't check Storage Capacity when volumeBindingMode == Immediate is specified")
 
@@ -336,7 +522,7 @@ func testE2E() {
 			}).Should(Succeed())
 
 			By("creating pvc")
-			claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, fmt.Sprintf("topo-pvc-%d", i), "Filesystem", 1, "topolvm-provisioner-immediate"))
+			claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, fmt.Sprintf("topo-pvc-%d", i), "Filesystem", 1024, "topolvm-provisioner-immediate"))
 			_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -368,7 +554,7 @@ func testE2E() {
 
 	It("should scheduled onto the correct node where PV exists (volumeBindingMode == Immediate)", func() {
 		By("creating pvc")
-		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1, "topolvm-provisioner-immediate"))
+		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1024, "topolvm-provisioner-immediate"))
 		_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -549,7 +735,7 @@ func testE2E() {
 
 	It("should resize filesystem", func() {
 		By("deploying Pod with PVC")
-		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1, "topolvm-provisioner"))
+		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1024, "topolvm-provisioner"))
 		podYaml := []byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu", "topo-pvc"))
 
 		_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
@@ -563,7 +749,7 @@ func testE2E() {
 		}).Should(Succeed())
 
 		By("resizing PVC online")
-		claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 2, "topolvm-provisioner"))
+		claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 2*1024, "topolvm-provisioner"))
 		_, err = kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -590,7 +776,7 @@ func testE2E() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("resizing PVC offline")
-		claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 3, "topolvm-provisioner"))
+		claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 3*1024, "topolvm-provisioner"))
 		_, err = kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -620,7 +806,7 @@ func testE2E() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("resizing PVC")
-		claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 4, "topolvm-provisioner"))
+		claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 4*1024, "topolvm-provisioner"))
 		_, err = kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -650,7 +836,7 @@ func testE2E() {
 		Expect(err).To(BeEquivalentTo(ErrObjectNotFound))
 
 		By("resizing PVC over vg capacity")
-		claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 100, "topolvm-provisioner"))
+		claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 100*1024, "topolvm-provisioner"))
 		_, err = kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -679,7 +865,7 @@ func testE2E() {
 		By("deploying Pod with PVC")
 		deviceFile := "/dev/e2etest"
 		podYAML := []byte(fmt.Sprintf(podVolumeDeviceTemplateYAML, deviceFile))
-		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Block", 1, "topolvm-provisioner"))
+		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Block", 1024, "topolvm-provisioner"))
 
 		_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -696,7 +882,7 @@ func testE2E() {
 		}).Should(Succeed())
 
 		By("resizing PVC")
-		claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Block", 2, "topolvm-provisioner"))
+		claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Block", 2048, "topolvm-provisioner"))
 		_, err = kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -726,7 +912,7 @@ func testE2E() {
 
 	It("should delete a pod when the pvc is deleted", func() {
 		By("deploying a pod and PVC")
-		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1, "topolvm-provisioner"))
+		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1024, "topolvm-provisioner"))
 		podYaml := []byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu", "topo-pvc"))
 
 		_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
