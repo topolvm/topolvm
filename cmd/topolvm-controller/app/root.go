@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/topolvm/topolvm"
-	"github.com/topolvm/topolvm/internal/driver"
+	"github.com/topolvm/topolvm/pkg/driver"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
