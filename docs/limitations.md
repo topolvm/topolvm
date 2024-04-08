@@ -1,25 +1,12 @@
 # Limitations <!-- omit in toc -->
 
 <!-- Created by VSCode Markdown All in One command: Create Table of Contents -->
-- [StorageClass Reclaim Policy](#storageclass-reclaim-policy)
 - [Pod without PVC](#pod-without-pvc)
 - [Capacity Aware Scheduling May Go Wrong](#capacity-aware-scheduling-may-go-wrong)
 - [Snapshots Can Be Created Only for Thin Volumes](#snapshots-can-be-created-only-for-thin-volumes)
 - [Snapshots Can Be Restored Only on the Same Node with the Source Volume](#snapshots-can-be-restored-only-on-the-same-node-with-the-source-volume)
 - [Use lvcreate-options at Your Own Risk](#use-lvcreate-options-at-your-own-risk)
 - [Error when using TopoLVM on old Linux kernel hosts with official docker image](#error-when-using-topolvm-on-old-linux-kernel-hosts-with-official-docker-image)
-
-## StorageClass Reclaim Policy
-
-TopoLVM does not care about `Retain` [reclaim policy](https://kubernetes.io/docs/concepts/storage/storage-classes/#reclaim-policy)
-because CSI volumes can be referenced only via PersistentVolumeClaims.
-
-Ref: https://kubernetes.io/docs/concepts/storage/volumes/#csi
-
-> The `csi` volume type does not support direct reference from Pod and may
-> only be referenced in a Pod via a `PersistentVolumeClaim` object.
-
-If you delete a PVC whose corresponding PV has `Retain` reclaim policy, the corresponding `LogicalVolume` resource and the LVM logical volume are *NOT* deleted. If you delete this `LogicalVolume` resource after deleting the PVC, the related LVM logical volume is also deleted.
 
 ## Pod without PVC
 
