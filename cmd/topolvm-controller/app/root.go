@@ -25,6 +25,9 @@ const (
 	// Derived from the usual 4096K blocks, 1024 inode default and journaling overhead,
 	// Allows for more than 80% free space after formatting, anything lower significantly reduces this percentage.
 	DefaultMinimumAllocationSizeExt4 = "32Mi"
+	// DefaultMinimumAllocationSizeBtrfs is the default minimum size for a filesystem volume with btrfs formatting.
+	// Btrfs minimum data block size is 4KiB and by default the metadata block size is 16 KiB.
+	DefaultMinimumAllocationSizeBtrfs = "32Mi"
 )
 
 var config struct {
@@ -92,8 +95,9 @@ func init() {
 		"Minimum Allocation Sizing for block storage. Logical Volumes will always be at least this big.")
 	config.controllerServerSettings.MinimumAllocationSettings.Filesystem = make(map[string]driver.Quantity)
 	for filesystem, minimum := range map[string]resource.Quantity{
-		"ext4": resource.MustParse(DefaultMinimumAllocationSizeExt4),
-		"xfs":  resource.MustParse(DefaultMinimumAllocationSizeXFS),
+		"ext4":  resource.MustParse(DefaultMinimumAllocationSizeExt4),
+		"xfs":   resource.MustParse(DefaultMinimumAllocationSizeXFS),
+		"btrfs": resource.MustParse(DefaultMinimumAllocationSizeBtrfs),
 	} {
 		config.controllerServerSettings.MinimumAllocationSettings.Filesystem[filesystem] = driver.NewQuantityFlagVar(fs,
 			fmt.Sprintf("minimum-allocation-%s", filesystem),
