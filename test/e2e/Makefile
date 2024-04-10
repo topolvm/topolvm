@@ -285,4 +285,4 @@ common/test: $(GINKGO)
 	KUBECTL=$(KUBECTL) \
 	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
 	USE_LEGACY=$(USE_LEGACY) \
-	$(GINKGO) --fail-fast -v $(GINKGO_FLAGS) .
+	$(GINKGO) -p --fail-fast -v $(GINKGO_FLAGS) .
