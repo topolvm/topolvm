@@ -11,10 +11,10 @@ import (
 	topolvmlegacyv1 "github.com/topolvm/topolvm/api/legacy/v1"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	clientwrapper "github.com/topolvm/topolvm/internal/client"
-	"github.com/topolvm/topolvm/internal/controller"
-	"github.com/topolvm/topolvm/internal/driver"
 	"github.com/topolvm/topolvm/internal/hook"
 	"github.com/topolvm/topolvm/internal/runners"
+	"github.com/topolvm/topolvm/pkg/controller"
+	"github.com/topolvm/topolvm/pkg/driver"
 	"google.golang.org/grpc"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -106,14 +106,12 @@ func subMain() error {
 	}
 
 	// register controllers
-	nodecontroller := controller.NewNodeReconciler(client, config.skipNodeFinalize)
-	if err := nodecontroller.SetupWithManager(mgr); err != nil {
+	if err := controller.SetupNodeReconciler(mgr, client, config.skipNodeFinalize); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Node")
 		return err
 	}
 
-	pvccontroller := controller.NewPersistentVolumeClaimReconciler(client, apiReader)
-	if err := pvccontroller.SetupWithManager(mgr); err != nil {
+	if err := controller.SetupPersistentVolumeClaimReconciler(mgr, client, apiReader); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PersistentVolumeClaim")
 		return err
 	}

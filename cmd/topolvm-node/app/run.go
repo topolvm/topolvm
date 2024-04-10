@@ -16,11 +16,10 @@ import (
 	topolvmlegacyv1 "github.com/topolvm/topolvm/api/legacy/v1"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	clientwrapper "github.com/topolvm/topolvm/internal/client"
-	"github.com/topolvm/topolvm/internal/controller"
-	"github.com/topolvm/topolvm/internal/driver"
-	"github.com/topolvm/topolvm/internal/lvmd"
-	"github.com/topolvm/topolvm/internal/lvmd/command"
 	"github.com/topolvm/topolvm/internal/runners"
+	"github.com/topolvm/topolvm/pkg/controller"
+	"github.com/topolvm/topolvm/pkg/driver"
+	"github.com/topolvm/topolvm/pkg/lvmd"
 	"github.com/topolvm/topolvm/pkg/lvmd/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -89,13 +88,16 @@ func subMain(ctx context.Context) error {
 	var health grpc_health_v1.HealthClient
 
 	if config.embedLvmd {
-		command.Containerized = true
+		lvmd.Containerized(true)
 		if err := loadConfFile(ctx, cfgFilePath); err != nil {
 			return err
 		}
-		dcm := lvmd.NewDeviceClassManager(config.lvmd.DeviceClasses)
-		ocm := lvmd.NewLvcreateOptionClassManager(config.lvmd.LvcreateOptionClasses)
-		lvService, vgService = lvmd.NewEmbeddedServiceClients(ctx, dcm, ocm)
+
+		lvService, vgService = lvmd.NewEmbeddedServiceClients(
+			ctx,
+			config.lvmd.DeviceClasses,
+			config.lvmd.LvcreateOptionClasses,
+		)
 	} else {
 		dialer := &net.Dialer{}
 		dialFunc := func(ctx context.Context, a string) (net.Conn, error) {
@@ -110,9 +112,7 @@ func subMain(ctx context.Context) error {
 		health = grpc_health_v1.NewHealthClient(conn)
 	}
 
-	lvcontroller := controller.NewLogicalVolumeReconcilerWithServices(client, nodename, vgService, lvService)
-
-	if err := lvcontroller.SetupWithManager(mgr); err != nil {
+	if err := controller.SetupLogicalVolumeReconcilerWithServices(mgr, client, nodename, vgService, lvService); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "LogicalVolume")
 		return err
 	}
