@@ -17,7 +17,11 @@ issues:
         - dupl
         - lll
 linters:
-  disable-all: true
+  disable:
+    # The staticcheck built into golangci-lint does not allow to exclude single lines and specific rules,
+    # so we disable it and run it independently.
+    # https://github.com/golangci/golangci-lint/issues/741
+    - staticcheck
   enable:
     # The rules violated to make lint work are commented out. We will fix it eventually.
     # - dupl
@@ -34,10 +38,6 @@ linters:
     - misspell
     - nakedret
     # - prealloc
-    # The staticcheck built into golangci-lint does not allow to exclude single lines and specific rules,
-    # so we disable it and run it independently.
-    # https://github.com/golangci/golangci-lint/issues/741
-    # - staticcheck
     - typecheck
     # - unconvert
     # - unparam
