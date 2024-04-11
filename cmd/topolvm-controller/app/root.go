@@ -26,8 +26,8 @@ const (
 	// Allows for more than 80% free space after formatting, anything lower significantly reduces this percentage.
 	DefaultMinimumAllocationSizeExt4 = "32Mi"
 	// DefaultMinimumAllocationSizeBtrfs is the default minimum size for a filesystem volume with btrfs formatting.
-	// Btrfs minimum data block size is 4KiB and by default the metadata block size is 16 KiB.
-	DefaultMinimumAllocationSizeBtrfs = "32Mi"
+	// Btrfs minimum data block size is 4KiB, and by default, the metadata block size is 16 KiB.
+	DefaultMinimumAllocationSizeBtrfs = "200Mi"
 )
 
 var config struct {
