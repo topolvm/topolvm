@@ -75,6 +75,7 @@ func testNodeDelete() {
 
 		for _, pod := range pods.Items {
 			if pod.Spec.NodeName == targetNode {
+				pod := pod
 				targetPod = &pod
 				break
 			}

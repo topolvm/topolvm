@@ -26,7 +26,7 @@ linters:
     # The rules violated to make lint work are commented out. We will fix it eventually.
     # - dupl
     - errcheck
-    # - exportloopref
+    - exportloopref
     # - goconst
     # - gocyclo
     - gofmt
