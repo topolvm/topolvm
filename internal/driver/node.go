@@ -446,9 +446,9 @@ func (s *nodeServerNoLocked) NodeGetVolumeStats(ctx context.Context, req *csi.No
 	if sfs.Blocks > 0 {
 		usage = append(usage, &csi.VolumeUsage{
 			Unit:      csi.VolumeUsage_BYTES,
-			Total:     int64(sfs.Blocks) * int64(sfs.Frsize),
-			Used:      int64(sfs.Blocks-sfs.Bfree) * int64(sfs.Frsize),
-			Available: int64(sfs.Bavail) * int64(sfs.Frsize),
+			Total:     int64(sfs.Blocks) * sfs.Frsize,
+			Used:      int64(sfs.Blocks-sfs.Bfree) * sfs.Frsize,
+			Available: int64(sfs.Bavail) * sfs.Frsize,
 		})
 	}
 	if sfs.Files > 0 {

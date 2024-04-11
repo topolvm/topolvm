@@ -39,6 +39,6 @@ linters:
     - nakedret
     # - prealloc
     - typecheck
-    # - unconvert
+    - unconvert
     - unparam
     - unused
