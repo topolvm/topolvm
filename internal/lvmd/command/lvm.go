@@ -118,7 +118,7 @@ func ListVolumeGroups(ctx context.Context) ([]*VolumeGroup, error) {
 		return nil, err
 	}
 
-	var groups []*VolumeGroup
+	groups := make([]*VolumeGroup, 0, len(vgs))
 	for _, vg := range vgs {
 		groups = append(groups, &VolumeGroup{state: vg, reportLvs: filterLV(vg.name, lvs)})
 	}

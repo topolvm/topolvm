@@ -37,7 +37,7 @@ linters:
     # - lll
     - misspell
     - nakedret
-    # - prealloc
+    - prealloc
     - typecheck
     - unconvert
     - unparam

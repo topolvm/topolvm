@@ -177,7 +177,7 @@ func (s *nodeServerNoLocked) NodePublishVolume(ctx context.Context, req *csi.Nod
 }
 
 func makeMountOptions(readOnly bool, mountOption *csi.VolumeCapability_MountVolume) ([]string, error) {
-	var mountOptions []string
+	mountOptions := make([]string, 0, len(mountOption.MountFlags)+2)
 	if readOnly {
 		mountOptions = append(mountOptions, "ro")
 	}
