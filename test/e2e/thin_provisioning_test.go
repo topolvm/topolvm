@@ -24,7 +24,7 @@ func testThinProvisioning() {
 	var cc CleanupContext
 	BeforeEach(func() {
 		cc = commonBeforeEach()
-		ns = testNamespacePrefix + randomString(10)
+		ns = testNamespacePrefix + randomString()
 		createNamespace(ns)
 	})
 

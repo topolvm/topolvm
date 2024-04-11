@@ -27,7 +27,7 @@ const (
 func testPVCClone() {
 	var nsCloneTest string
 	BeforeEach(func() {
-		nsCloneTest = "clone-test-" + randomString(10)
+		nsCloneTest = "clone-test-" + randomString()
 		createNamespace(nsCloneTest)
 	})
 	AfterEach(func() {

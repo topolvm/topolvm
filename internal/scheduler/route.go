@@ -33,7 +33,7 @@ func NewHandler(defaultDiv float64, divisors map[string]float64) (http.Handler, 
 	return scheduler{defaultDiv, divisors}, nil
 }
 
-func status(w http.ResponseWriter, r *http.Request) {
+func status(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte("ok"))
 }

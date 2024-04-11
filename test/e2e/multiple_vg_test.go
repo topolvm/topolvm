@@ -20,7 +20,7 @@ func testMultipleVolumeGroups() {
 	testNamespacePrefix := "multivgtest-"
 	var ns string
 	BeforeEach(func() {
-		ns = testNamespacePrefix + randomString(10)
+		ns = testNamespacePrefix + randomString()
 		createNamespace(ns)
 	})
 

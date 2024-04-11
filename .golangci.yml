@@ -40,5 +40,5 @@ linters:
     # - prealloc
     - typecheck
     # - unconvert
-    # - unparam
+    - unparam
     - unused

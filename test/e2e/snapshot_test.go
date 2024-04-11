@@ -45,7 +45,7 @@ func testSnapRestore() {
 	var snapshot snapapi.VolumeSnapshot
 
 	BeforeEach(func() {
-		nsSnapTest = "snap-test-" + randomString(10)
+		nsSnapTest = "snap-test-" + randomString()
 		createNamespace(nsSnapTest)
 	})
 	AfterEach(func() {

@@ -44,7 +44,7 @@ func testE2E() {
 	BeforeEach(func() {
 		cc = commonBeforeEach()
 
-		ns = testNamespacePrefix + randomString(10)
+		ns = testNamespacePrefix + randomString()
 		createNamespace(ns)
 	})
 
