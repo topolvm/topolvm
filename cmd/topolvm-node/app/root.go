@@ -59,8 +59,8 @@ func init() {
 	fs.BoolVar(&config.embedLvmd, "embed-lvmd", false, "Runs LVMD locally by embedding it instead of calling it externally via gRPC")
 	fs.StringVar(&cfgFilePath, "config", filepath.Join("/etc", "topolvm", "lvmd.yaml"), "config file")
 
-	viper.BindEnv("nodename", "NODE_NAME")
-	viper.BindPFlag("nodename", fs.Lookup("nodename"))
+	_ = viper.BindEnv("nodename", "NODE_NAME")
+	_ = viper.BindPFlag("nodename", fs.Lookup("nodename"))
 
 	goflags := flag.NewFlagSet("klog", flag.ExitOnError)
 	klog.InitFlags(goflags)

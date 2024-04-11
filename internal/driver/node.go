@@ -423,7 +423,7 @@ func (s *nodeServerNoLocked) NodeGetVolumeStats(ctx context.Context, req *csi.No
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "open on %s was failed: %v", volumePath, err)
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 		pos, err := f.Seek(0, io.SeekEnd)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "seek on %s was failed: %v", volumePath, err)

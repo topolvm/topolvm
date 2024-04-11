@@ -34,7 +34,8 @@ func testLogicalVolume() {
 	AfterEach(func() {
 		// When a test fails, I want to investigate the cause. So please don't remove the namespace!
 		if !CurrentSpecReport().State.Is(types.SpecStateFailureStates) {
-			kubectl("delete", "namespaces/"+nsLogicalVolumeTest)
+			_, err := kubectl("delete", "namespaces/"+nsLogicalVolumeTest)
+			Expect(err).ShouldNot(HaveOccurred())
 		}
 
 		commonAfterEach(cc)

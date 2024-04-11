@@ -27,7 +27,8 @@ func testReadWriteOncePod() {
 	})
 
 	AfterEach(func() {
-		kubectl("delete", "namespaces/"+ns)
+		_, err := kubectl("delete", "namespaces/"+ns)
+		Expect(err).ShouldNot(HaveOccurred())
 		commonAfterEach(cc)
 	})
 

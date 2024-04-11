@@ -32,7 +32,8 @@ func testPVCClone() {
 	})
 	AfterEach(func() {
 		if !CurrentSpecReport().State.Is(types.SpecStateFailureStates) {
-			kubectl("delete", "namespaces/"+nsCloneTest)
+			_, err := kubectl("delete", "namespaces/"+nsCloneTest)
+			Expect(err).ShouldNot(HaveOccurred())
 		}
 	})
 

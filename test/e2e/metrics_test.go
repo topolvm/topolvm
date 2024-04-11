@@ -35,7 +35,8 @@ func testMetrics() {
 		cc = commonBeforeEach()
 	})
 	AfterEach(func() {
-		kubectl("delete", "namespaces/"+nsMetricsTest)
+		_, err := kubectl("delete", "namespaces/"+nsMetricsTest)
+		Expect(err).ShouldNot(HaveOccurred())
 		commonAfterEach(cc)
 	})
 
@@ -145,7 +146,7 @@ func getMetricsFamily(nodeIP string) (map[string]*dto.MetricFamily, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var parser expfmt.TextParser
 	return parser.TextToMetricFamilies(resp.Body)

@@ -91,7 +91,7 @@ func testWatch(t *testing.T) {
 			}
 			done := make(chan struct{})
 			go func() {
-				vgService.Watch(&proto.Empty{}, server1)
+				_ = vgService.Watch(&proto.Empty{}, server1)
 				done <- struct{}{}
 			}()
 
@@ -121,7 +121,7 @@ func testWatch(t *testing.T) {
 				ch:  ch2,
 			}
 			go func() {
-				vgService.Watch(&proto.Empty{}, server2)
+				_ = vgService.Watch(&proto.Empty{}, server2)
 			}()
 
 			notifier()
@@ -445,7 +445,9 @@ func TestVGService(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer testutils.CleanLoopbackVG(vgName, []string{loop1, loop2, loop3}, []string{vgName + "1", vgName + "2", vgName + "3"})
+	defer func() {
+		_ = testutils.CleanLoopbackVG(vgName, []string{loop1, loop2, loop3}, []string{vgName + "1", vgName + "2", vgName + "3"})
+	}()
 
 	vg, err := command.FindVolumeGroup(ctx, vgName)
 	if err != nil {

@@ -25,7 +25,8 @@ func testScheduling() {
 		cc = commonBeforeEach()
 	})
 	AfterEach(func() {
-		kubectl("delete", "namespaces/"+nsSchedulingTest)
+		_, err := kubectl("delete", "namespaces/"+nsSchedulingTest)
+		Expect(err).ShouldNot(HaveOccurred())
 		commonAfterEach(cc)
 	})
 

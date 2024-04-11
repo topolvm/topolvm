@@ -50,7 +50,8 @@ func testSnapRestore() {
 	})
 	AfterEach(func() {
 		if !CurrentSpecReport().State.Is(types.SpecStateFailureStates) {
-			kubectl("delete", "namespaces/"+nsSnapTest)
+			_, err := kubectl("delete", "namespaces/"+nsSnapTest)
+			Expect(err).ShouldNot(HaveOccurred())
 		}
 	})
 

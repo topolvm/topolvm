@@ -107,7 +107,7 @@ func subMain(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 		lvService, vgService = proto.NewLVServiceClient(conn), proto.NewVGServiceClient(conn)
 		health = grpc_health_v1.NewHealthClient(conn)
 	}

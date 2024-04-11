@@ -102,5 +102,5 @@ func (s scheduler) prioritize(w http.ResponseWriter, r *http.Request) {
 	result := scoreNodes(input.Pod, input.Nodes.Items, s.defaultDivisor, s.divisors)
 
 	w.Header().Set("content-type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	_ = json.NewEncoder(w).Encode(result)
 }
