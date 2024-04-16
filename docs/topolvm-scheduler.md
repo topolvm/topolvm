@@ -46,7 +46,7 @@ annotation.
 
 This verb scores nodes.  The score of a node is calculated by this formula:
 
-$$min(10, max(0, log2(capacity >> 30 / divisor)))$$
+$$ \mathrm{min} \left( 10, \ \mathrm{max} \left( 0, \ \log_{2}{ \left( \mathrm{capacity} \gg 30 / \mathrm{divisor} \right) } \right) \right) $$
 
 For example, the default of `divisor` is `1`, then if a node has the free disk capacity more than `1024GiB`, `topolvm-scheduler` scores the node as `10`. `divisor` should be adjusted to suit each environment.
 
