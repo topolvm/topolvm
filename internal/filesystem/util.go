@@ -30,29 +30,12 @@ type temporaryer interface {
 	Temporary() bool
 }
 
-func isSameDevice(dev1, dev2 string) (bool, error) {
-	if dev1 == dev2 {
-		return true, nil
-	}
+func isDeviceMapperDevice(device string) bool {
+	return strings.HasPrefix(device, "/dev/mapper/") || strings.HasPrefix(device, "/dev/dm-")
+}
 
-	var st1, st2 unix.Stat_t
-	if err := Stat(dev1, &st1); err != nil {
-		// Some filesystems like tmpfs and nfs aren't backed by block device files.
-		// In such case, given device path does not exist,
-		// we regard it is not an error but is false.
-		if os.IsNotExist(err) {
-			return false, nil
-		}
-		return false, fmt.Errorf("stat failed for %s: %v", dev1, err)
-	}
-	if err := Stat(dev2, &st2); err != nil {
-		if os.IsNotExist(err) {
-			return false, nil
-		}
-		return false, fmt.Errorf("stat failed for %s: %v", dev2, err)
-	}
-
-	return st1.Rdev == st2.Rdev, nil
+func majorMinorMatch(a, b unix.Stat_t) bool {
+	return unix.Major(a.Dev) == unix.Major(b.Dev) && unix.Minor(a.Dev) == unix.Minor(b.Dev)
 }
 
 // IsMounted returns true if device is mounted on target.
@@ -67,6 +50,14 @@ func IsMounted(device, target string) (bool, error) {
 		return false, err
 	}
 
+	var stat unix.Stat_t
+	if err := Stat(device, &stat); err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, fmt.Errorf("stat failed for %s: %v", device, err)
+	}
+
 	data, err := readMountInfo("/proc/mounts")
 	if err != nil {
 		return false, fmt.Errorf("could not read /proc/mounts: %v", err)
@@ -77,16 +68,27 @@ func IsMounted(device, target string) (bool, error) {
 		if len(fields) < 2 {
 			continue
 		}
+		candidate := fields[0]
 
-		// If the filesystem is nfs and its connection is broken, EvalSymlinks will be stuck.
-		// So it should be in before calling EvalSymlinks.
-		ok, err := isSameDevice(device, fields[0])
-		if err != nil {
-			return false, err
+		if device != candidate {
+			var candidatestat unix.Stat_t
+			if err := Stat(candidate, &candidatestat); err != nil {
+				if os.IsNotExist(err) {
+					// candidate is not statable, not mounted here
+					continue
+				}
+				return false, fmt.Errorf("stat failed for %s: %v", candidate, err)
+			}
+
+			if isDeviceMapperDevice(device) && !majorMinorMatch(stat, candidatestat) {
+				// candidate is a dm device but there is a mismatch in major/minor numbers, not mounted here
+				continue
+			} else if stat.Rdev != candidatestat.Rdev {
+				// candidate has different root device, not mounted here
+				continue
+			}
 		}
-		if !ok {
-			continue
-		}
+
 		d, err := filepath.EvalSymlinks(fields[1])
 		if err != nil {
 			return false, err
