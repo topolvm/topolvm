@@ -9,17 +9,14 @@
 package filesystem
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
-	"sync"
 
 	"golang.org/x/sys/unix"
-	"k8s.io/utils/io"
+	"k8s.io/mount-utils"
 )
 
 const (
@@ -30,17 +27,9 @@ type temporaryer interface {
 	Temporary() bool
 }
 
-func isDeviceMapperDevice(device string) bool {
-	return strings.HasPrefix(device, "/dev/mapper/") || strings.HasPrefix(device, "/dev/dm-")
-}
-
-func majorMinorMatch(a, b unix.Stat_t) bool {
-	return unix.Major(a.Dev) == unix.Major(b.Dev) && unix.Minor(a.Dev) == unix.Minor(b.Dev)
-}
-
 // IsMounted returns true if device is mounted on target.
-// The implementation uses /proc/mounts because some filesystem uses a virtual device.
-func IsMounted(device, target string) (bool, error) {
+// The implementation uses /proc/1/mountinfo because some filesystem uses a virtual device.
+func IsMounted(target string) (bool, error) {
 	abs, err := filepath.Abs(target)
 	if err != nil {
 		return false, err
@@ -50,50 +39,17 @@ func IsMounted(device, target string) (bool, error) {
 		return false, err
 	}
 
-	var stat unix.Stat_t
-	if err := Stat(device, &stat); err != nil {
-		if os.IsNotExist(err) {
-			return false, nil
-		}
-		return false, fmt.Errorf("stat failed for %s: %v", device, err)
-	}
-
-	data, err := readMountInfo("/proc/mounts")
+	data, err := mount.ParseMountInfo("/proc/1/mountinfo")
 	if err != nil {
-		return false, fmt.Errorf("could not read /proc/mounts: %v", err)
+		return false, fmt.Errorf("could not read /proc/1/mountinfo: %v", err)
 	}
 
-	for _, line := range strings.Split(string(data), "\n") {
-		fields := strings.Fields(line)
-		if len(fields) < 2 {
-			continue
-		}
-		candidate := fields[0]
-
-		if device != candidate {
-			var candidatestat unix.Stat_t
-			if err := Stat(candidate, &candidatestat); err != nil {
-				if os.IsNotExist(err) {
-					// candidate is not statable, not mounted here
-					continue
-				}
-				return false, fmt.Errorf("stat failed for %s: %v", candidate, err)
-			}
-
-			if isDeviceMapperDevice(device) && !majorMinorMatch(stat, candidatestat) {
-				// candidate is a dm device but there is a mismatch in major/minor numbers, not mounted here
-				continue
-			} else if stat.Rdev != candidatestat.Rdev {
-				// candidate has different root device, not mounted here
-				continue
-			}
+	for _, line := range data {
+		if line.MountPoint == target {
+			return true, nil
 		}
 
-		d, err := filepath.EvalSymlinks(fields[1])
-		if err != nil {
-			return false, err
-		}
-		if d == target {
+		if d, err := filepath.EvalSymlinks(line.MountPoint); err == nil && d == target {
 			return true, nil
 		}
 	}
@@ -175,57 +131,4 @@ func Statfs(path string, buf *unix.Statfs_t) (err error) {
 		}
 		return err
 	}
-}
-
-// These variables are used solely by kernelHasMountinfoBug.
-var (
-	hasMountinfoBug        bool
-	checkMountinfoBugOnce  sync.Once
-	maxConsistentReadTimes = 3
-)
-
-// kernelHasMountinfoBug checks if the kernel bug that can lead to incomplete
-// mountinfo being read is fixed. It does so by checking the kernel version.
-//
-// The bug was fixed by the kernel commit 9f6c61f96f2d97 (since Linux 5.8).
-// Alas, there is no better way to check if the bug is fixed other than to
-// rely on the kernel version returned by uname.
-//
-// Copied from
-// https://github.com/kubernetes/mount-utils/blob/6f4aae5a6ab58574cac605cdd48bf5c0862c047f/mount_helper_unix.go#L204C1-L250
-// *    LICENSE: http://www.apache.org/licenses/LICENSE-2.0
-// *    Copyright The Kubernetes Authors.
-func kernelHasMountinfoBug() bool {
-	checkMountinfoBugOnce.Do(func() {
-		// Assume old kernel.
-		hasMountinfoBug = true
-
-		uname := unix.Utsname{}
-		err := unix.Uname(&uname)
-		if err != nil {
-			return
-		}
-
-		end := bytes.IndexByte(uname.Release[:], 0)
-		v := bytes.SplitN(uname.Release[:end], []byte{'.'}, 3)
-		if len(v) != 3 {
-			return
-		}
-		major, _ := strconv.Atoi(string(v[0]))
-		minor, _ := strconv.Atoi(string(v[1]))
-
-		if major > 5 || (major == 5 && minor >= 8) {
-			hasMountinfoBug = false
-		}
-	})
-
-	return hasMountinfoBug
-}
-
-func readMountInfo(path string) ([]byte, error) {
-	if kernelHasMountinfoBug() {
-		return io.ConsistentRead(path, maxConsistentReadTimes)
-	}
-
-	return os.ReadFile(path)
 }
