@@ -91,7 +91,9 @@ func testScheduling() {
 			}
 
 			for _, c := range pod.Status.Conditions {
-				if c.Type == corev1.PodScheduled && c.Status == corev1.ConditionFalse && strings.Contains(c.Message, expectMessage) {
+				if c.Type == corev1.PodScheduled &&
+					c.Status == corev1.ConditionFalse &&
+					strings.Contains(c.Message, expectMessage) {
 					return nil
 				}
 			}

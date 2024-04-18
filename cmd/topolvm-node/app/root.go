@@ -49,6 +49,7 @@ func Execute() {
 	}
 }
 
+//nolint:lll
 func init() {
 	fs := rootCmd.Flags()
 	fs.StringVar(&config.csiSocket, "csi-socket", topolvm.DefaultCSISocket, "UNIX domain socket filename for CSI")

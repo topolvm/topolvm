@@ -160,7 +160,11 @@ func waitForTopoLVMNodeDSPatched(patch string, patchType string, desiredTopoLVMN
 }
 
 func startTopoLVMNode(desiredTopoLVMNodeCount int) {
-	waitForTopoLVMNodeDSPatched(`[{"op": "remove", "path": "/spec/template/spec/affinity"}]`, "json", desiredTopoLVMNodeCount)
+	waitForTopoLVMNodeDSPatched(
+		`[{"op": "remove", "path": "/spec/template/spec/affinity"}]`,
+		"json",
+		desiredTopoLVMNodeCount,
+	)
 }
 
 func stopTopoLVMNode(nodeName string, desiredTopoLVMNodeCount int) {

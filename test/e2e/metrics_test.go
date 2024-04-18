@@ -81,13 +81,15 @@ func testMetrics() {
 		It("should expose VG metrics", func() {
 			By("reading metrics API endpoint")
 			var pods corev1.PodList
-			err := getObjects(&pods, "pods", "-n", "topolvm-system", "-l=app.kubernetes.io/component=node,app.kubernetes.io/name=topolvm")
+			err := getObjects(&pods, "pods", "-n", "topolvm-system",
+				"-l=app.kubernetes.io/component=node,app.kubernetes.io/name=topolvm")
 			Expect(err).ShouldNot(HaveOccurred())
 
 			pod := pods.Items[0]
 			var mfs map[string]*dto.MetricFamily
 			Eventually(func(g Gomega) {
-				stdout, err := kubectl("exec", "-n", "topolvm-system", pod.Name, "-c=topolvm-node", "--", "curl", "http://localhost:8080/metrics")
+				stdout, err := kubectl("exec", "-n", "topolvm-system", pod.Name, "-c=topolvm-node", "--",
+					"curl", "http://localhost:8080/metrics")
 				g.Expect(err).ShouldNot(HaveOccurred())
 
 				var parser expfmt.TextParser
@@ -123,7 +125,8 @@ func testMetrics() {
 	Describe("CSI sidecar of topolvm-node", func() {
 		It("should open a port for metrics", func() {
 			Eventually(func() error {
-				_, err := kubectl("exec", "-n", "topolvm-system", "daemonset/topolvm-node", "-c=topolvm-node", "--", "curl", "http://localhost:9808/metrics")
+				_, err := kubectl("exec", "-n", "topolvm-system", "daemonset/topolvm-node", "-c=topolvm-node", "--",
+					"curl", "http://localhost:9808/metrics")
 				return err
 			}).Should(Succeed())
 		})
@@ -133,7 +136,8 @@ func testMetrics() {
 		It("should open ports for metrics", func() {
 			for _, port := range []string{"9808", "9809", "9810", "9811"} {
 				Eventually(func() error {
-					_, err := kubectl("exec", "-n", "topolvm-system", "deploy/topolvm-controller", "-c=topolvm-controller", "--", "curl", "http://localhost:"+port+"/metrics")
+					_, err := kubectl("exec", "-n", "topolvm-system", "deploy/topolvm-controller", "-c=topolvm-controller", "--",
+						"curl", "http://localhost:"+port+"/metrics")
 					return err
 				}).Should(Succeed())
 			}

@@ -103,7 +103,11 @@ func subMain(ctx context.Context) error {
 		dialFunc := func(ctx context.Context, a string) (net.Conn, error) {
 			return dialer.DialContext(ctx, "unix", a)
 		}
-		conn, err := grpc.Dial(config.lvmdSocket, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithContextDialer(dialFunc))
+		conn, err := grpc.Dial(
+			config.lvmdSocket,
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithContextDialer(dialFunc),
+		)
 		if err != nil {
 			return err
 		}
@@ -112,7 +116,8 @@ func subMain(ctx context.Context) error {
 		health = grpc_health_v1.NewHealthClient(conn)
 	}
 
-	if err := controller.SetupLogicalVolumeReconcilerWithServices(mgr, client, nodename, vgService, lvService); err != nil {
+	if err := controller.SetupLogicalVolumeReconcilerWithServices(
+		mgr, client, nodename, vgService, lvService); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "LogicalVolume")
 		return err
 	}
@@ -187,7 +192,12 @@ func checkFunc(health grpc_health_v1.HealthClient, r client.Reader) func() error
 	}
 }
 
-func ErrorLoggingInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+func ErrorLoggingInterceptor(
+	ctx context.Context,
+	req interface{},
+	info *grpc.UnaryServerInfo,
+	handler grpc.UnaryHandler,
+) (resp interface{}, err error) {
 	resp, err = handler(ctx, req)
 	if err != nil {
 		ctrl.Log.Error(err, "error on grpc call", "method", info.FullMethod)

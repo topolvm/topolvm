@@ -29,7 +29,11 @@ func healthSubMain(ctx context.Context, config *Config) error {
 	dialFunc := func(ctx context.Context, a string) (net.Conn, error) {
 		return dialer.DialContext(ctx, "unix", a)
 	}
-	conn, err := grpc.Dial(config.SocketName, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithContextDialer(dialFunc))
+	conn, err := grpc.Dial(
+		config.SocketName,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithContextDialer(dialFunc),
+	)
 	if err != nil {
 		return err
 	}
