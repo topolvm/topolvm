@@ -24,7 +24,7 @@ linters:
     - staticcheck
   enable:
     # The rules violated to make lint work are commented out. We will fix it eventually.
-    # - dupl
+    - dupl
     - errcheck
     - exportloopref
     # - goconst
