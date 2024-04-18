@@ -12,11 +12,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
 	"golang.org/x/sys/unix"
-	"k8s.io/mount-utils"
 )
 
 const (
@@ -25,36 +23,6 @@ const (
 
 type temporaryer interface {
 	Temporary() bool
-}
-
-// IsMounted returns true if device is mounted on target.
-// The implementation uses /proc/1/mountinfo because some filesystem uses a virtual device.
-func IsMounted(target string) (bool, error) {
-	abs, err := filepath.Abs(target)
-	if err != nil {
-		return false, err
-	}
-	target, err = filepath.EvalSymlinks(abs)
-	if err != nil {
-		return false, err
-	}
-
-	data, err := mount.ParseMountInfo("/proc/1/mountinfo")
-	if err != nil {
-		return false, fmt.Errorf("could not read /proc/1/mountinfo: %v", err)
-	}
-
-	for _, line := range data {
-		if line.MountPoint == target {
-			return true, nil
-		}
-
-		if d, err := filepath.EvalSymlinks(line.MountPoint); err == nil && d == target {
-			return true, nil
-		}
-	}
-
-	return false, nil
 }
 
 // DetectFilesystem returns filesystem type if device has a filesystem.

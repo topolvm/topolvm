@@ -230,7 +230,7 @@ func (s *nodeServerNoLocked) nodePublishFilesystemVolume(req *csi.NodePublishVol
 		return status.Errorf(codes.Internal, "target device is already formatted with different filesystem: volume=%s, current=%s, new:%s", req.GetVolumeId(), fsType, mountOption.FsType)
 	}
 
-	mounted, err := filesystem.IsMounted(req.GetTargetPath())
+	mounted, err := s.mounter.IsMountPoint(req.GetTargetPath())
 	if err != nil {
 		return status.Errorf(codes.Internal, "mount check failed: target=%s, error=%v", req.GetTargetPath(), err)
 	}
