@@ -218,7 +218,7 @@ func testE2E() {
 			}).Should(Succeed())
 
 			By("confirming that the lv was successfully sized to the minimum size of the StorageClass")
-			Expect(pvc.Status.Capacity.Storage().Cmp(resource.MustParse(app.DefaultMinimumAllocationSizeXFS))).
+			Expect(pvc.Status.Capacity.Storage().Cmp(resource.MustParse(minimumAllocationDefault))).
 				Should(Equal(0),
 					"expected: %s as minimum capacity, actual: %s",
 					minimumAllocationDefault,
