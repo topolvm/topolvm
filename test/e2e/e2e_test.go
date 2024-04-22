@@ -148,8 +148,8 @@ func testE2E() {
 				return checkLVIsDeletedInLVM(volName)
 			}).Should(Succeed())
 		},
-		Entry("xfs filesystem", "xfs", "topolvm-provisioner"),
-		Entry("btrfs filesystem", "btrfs", "topolvm-provisioner-btrfs"),
+		Entry("xfs", "xfs", "topolvm-provisioner"),
+		Entry("btrfs", "btrfs", "topolvm-provisioner-btrfs"),
 	)
 
 	DescribeTable("should be mounted in specified path but changed by the minimum allocation default",
@@ -250,8 +250,8 @@ func testE2E() {
 				return checkLVIsDeletedInLVM(volName)
 			}).Should(Succeed())
 		},
-		Entry("xfs filesystem", "xfs", "topolvm-provisioner", app.DefaultMinimumAllocationSizeXFS),
-		Entry("btrfs filesystem", "btrfs", "topolvm-provisioner-btrfs", app.DefaultMinimumAllocationSizeBtrfs),
+		Entry("xfs", "xfs", "topolvm-provisioner", app.DefaultMinimumAllocationSizeXFS),
+		Entry("btrfs", "btrfs", "topolvm-provisioner-btrfs", app.DefaultMinimumAllocationSizeBtrfs),
 	)
 
 	It("should use generic ephemeral volumes", func() {
@@ -890,12 +890,12 @@ func testE2E() {
 			_, err = kubectlWithInput(claimYAML, "delete", "-n", ns, "-f", "-")
 			Expect(err).ShouldNot(HaveOccurred())
 		},
-		Entry("xfs filesystem", "topolvm-provisioner", []int{
+		Entry("xfs", "topolvm-provisioner", []int{
 			2*1024*1024 - 10240, // 2MB - 10KiB XFS overhead
 			3*1024*1024 - 10240, // 3MB - 10KiB XFS overhead
 			4*1024*1024 - 10240, // 4MB - 10KiB XFS overhead
 		}),
-		Entry("btrfs filesystem", "topolvm-provisioner-btrfs", []int{
+		Entry("btrfs", "topolvm-provisioner-btrfs", []int{
 			2 * 1024 * 1024, // 2MB
 			3 * 1024 * 1024, // 3MB
 			4 * 1024 * 1024, // 4MB
