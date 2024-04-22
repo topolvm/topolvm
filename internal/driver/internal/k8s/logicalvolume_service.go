@@ -106,6 +106,7 @@ func (v *volumeGetter) Get(ctx context.Context, volumeID string) (*topolvmv1.Log
 	for _, lv := range lvList.Items {
 		if lv.Status.VolumeID == volumeID {
 			count++
+			lv := lv
 			foundLv = &lv
 		}
 	}

@@ -27,12 +27,13 @@ const (
 func testPVCClone() {
 	var nsCloneTest string
 	BeforeEach(func() {
-		nsCloneTest = "clone-test-" + randomString(10)
+		nsCloneTest = "clone-test-" + randomString()
 		createNamespace(nsCloneTest)
 	})
 	AfterEach(func() {
 		if !CurrentSpecReport().State.Is(types.SpecStateFailureStates) {
-			kubectl("delete", "namespaces/"+nsCloneTest)
+			_, err := kubectl("delete", "namespaces/"+nsCloneTest)
+			Expect(err).ShouldNot(HaveOccurred())
 		}
 	})
 

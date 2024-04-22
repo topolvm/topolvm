@@ -27,11 +27,12 @@ func testReadWriteOncePod() {
 	})
 
 	AfterEach(func() {
-		kubectl("delete", "namespaces/"+ns)
+		_, err := kubectl("delete", "namespaces/"+ns)
+		Expect(err).ShouldNot(HaveOccurred())
 		commonAfterEach(cc)
 	})
 
-	It("should not schedule pods if the pods will use the PVC that is already used from another pod and an access mode of the PVC is ReadWriteOncePod", func() {
+	It("should not schedule pods if the pods will use the PVC that is already used from another pod", func() {
 		podName := "testpod-1"
 		pvcName := "testpod"
 		size := "5Gi"
@@ -85,8 +86,13 @@ func testReadWriteOncePod() {
 			}
 
 			for _, c := range pod.Status.Conditions {
+				//nolint:lll
 				// https://github.com/kubernetes/kubernetes/blob/v1.22.0/pkg/scheduler/framework/plugins/volumerestrictions/volume_restrictions.go#L53-L54
-				if c.Type == corev1.PodScheduled && c.Status == corev1.ConditionFalse && strings.Contains(c.Message, "node has pod using PersistentVolumeClaim with the same name and ReadWriteOncePod access mode") {
+
+				if c.Type == corev1.PodScheduled &&
+					c.Status == corev1.ConditionFalse &&
+					strings.Contains(c.Message,
+						"node has pod using PersistentVolumeClaim with the same name and ReadWriteOncePod access mode") {
 					return nil
 				}
 			}

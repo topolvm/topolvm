@@ -130,7 +130,7 @@ func Test_lvm_command(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer testutils.CleanLoopbackVG(vgName, []string{loop}, []string{vgName})
+		defer func() { _ = testutils.CleanLoopbackVG(vgName, []string{loop}, []string{vgName}) }()
 
 		vg, err := FindVolumeGroup(ctx, vgName)
 		if err != nil {

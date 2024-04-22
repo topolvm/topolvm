@@ -106,9 +106,12 @@ func DetectFilesystem(device string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer func() { _ = f.Close() }()
 	// synchronizes dirty data
-	f.Sync()
-	f.Close()
+	err = f.Sync()
+	if err != nil {
+		return "", err
+	}
 
 	out, err := exec.Command(blkidCmd, "-c", "/dev/null", "-o", "export", device).CombinedOutput()
 	if err != nil {

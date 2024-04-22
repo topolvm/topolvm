@@ -53,7 +53,7 @@ func testMountOption() {
 
 		f, err := os.Open("/proc/mounts")
 		Expect(err).ShouldNot(HaveOccurred())
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 		mounts, err := io.ReadAll(f)
 		Expect(err).ShouldNot(HaveOccurred())
 

@@ -45,12 +45,13 @@ func testSnapRestore() {
 	var snapshot snapapi.VolumeSnapshot
 
 	BeforeEach(func() {
-		nsSnapTest = "snap-test-" + randomString(10)
+		nsSnapTest = "snap-test-" + randomString()
 		createNamespace(nsSnapTest)
 	})
 	AfterEach(func() {
 		if !CurrentSpecReport().State.Is(types.SpecStateFailureStates) {
-			kubectl("delete", "namespaces/"+nsSnapTest)
+			_, err := kubectl("delete", "namespaces/"+nsSnapTest)
+			Expect(err).ShouldNot(HaveOccurred())
 		}
 	})
 

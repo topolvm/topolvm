@@ -91,5 +91,5 @@ func (s scheduler) predicate(w http.ResponseWriter, r *http.Request) {
 	requested := extractRequestedSize(input.Pod)
 	result := filterNodes(*input.Nodes, requested)
 	w.Header().Set("content-type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	_ = json.NewEncoder(w).Encode(result)
 }

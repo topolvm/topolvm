@@ -13,8 +13,8 @@ func createDevice() (string, error) {
 		return "", err
 	}
 	defer func() {
-		f.Close()
-		os.Remove(f.Name())
+		_ = f.Close()
+		_ = os.Remove(f.Name())
 	}()
 
 	if err := f.Truncate(1 << 30); err != nil {
@@ -44,7 +44,7 @@ func TestDetectFilesystem(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer exec.Command("losetup", "-d", dev).Run()
+	defer func() { _ = exec.Command("losetup", "-d", dev).Run() }()
 
 	fs, err := DetectFilesystem(dev)
 	if err != nil {

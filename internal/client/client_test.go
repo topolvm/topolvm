@@ -46,7 +46,7 @@ var (
 var _ = Describe("client", func() {
 	Context("current env", func() {
 		BeforeEach(func() {
-			os.Setenv("USE_LEGACY", "")
+			_ = os.Setenv("USE_LEGACY", "")
 			err := k8sDelegatedClient.DeleteAllOf(testCtx, &topolvmv1.LogicalVolume{})
 			Expect(err).ShouldNot(HaveOccurred())
 			err = k8sDelegatedClient.DeleteAllOf(testCtx, &topolvmlegacyv1.LogicalVolume{})
@@ -54,7 +54,7 @@ var _ = Describe("client", func() {
 			cm := &corev1.ConfigMap{}
 			cm.Name = configmapName
 			cm.Namespace = configmapNamespace
-			k8sDelegatedClient.Delete(testCtx, cm)
+			_ = k8sDelegatedClient.Delete(testCtx, cm)
 		})
 
 		Context("wrappedReader", func() {
@@ -404,7 +404,7 @@ var _ = Describe("client", func() {
 
 	Context("legacy env", func() {
 		BeforeEach(func() {
-			os.Setenv("USE_LEGACY", "true")
+			_ = os.Setenv("USE_LEGACY", "true")
 			err := k8sDelegatedClient.DeleteAllOf(testCtx, &topolvmv1.LogicalVolume{})
 			Expect(err).ShouldNot(HaveOccurred())
 			err = k8sDelegatedClient.DeleteAllOf(testCtx, &topolvmlegacyv1.LogicalVolume{})
@@ -412,7 +412,7 @@ var _ = Describe("client", func() {
 			cm := &corev1.ConfigMap{}
 			cm.Name = configmapName
 			cm.Namespace = configmapNamespace
-			k8sDelegatedClient.Delete(testCtx, cm)
+			_ = k8sDelegatedClient.Delete(testCtx, cm)
 		})
 
 		Context("wrappedReader", func() {
@@ -1421,7 +1421,7 @@ var _ = Describe("client", func() {
 					svc := &corev1.Service{}
 					svc.Name = configmapName
 					svc.Namespace = configmapNamespace
-					k8sDelegatedClient.Delete(testCtx, svc)
+					_ = k8sDelegatedClient.Delete(testCtx, svc)
 				})
 
 				Context("Update", func() {

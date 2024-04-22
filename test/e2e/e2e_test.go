@@ -44,14 +44,15 @@ func testE2E() {
 	BeforeEach(func() {
 		cc = commonBeforeEach()
 
-		ns = testNamespacePrefix + randomString(10)
+		ns = testNamespacePrefix + randomString()
 		createNamespace(ns)
 	})
 
 	AfterEach(func() {
 		// When a test fails, I want to investigate the cause. So please don't remove the namespace!
 		if !CurrentSpecReport().State.Is(types.SpecStateFailureStates) {
-			kubectl("delete", "namespaces/"+ns)
+			_, err := kubectl("delete", "namespaces/"+ns)
+			Expect(err).ShouldNot(HaveOccurred())
 		}
 
 		commonAfterEach(cc)
@@ -212,8 +213,12 @@ func testE2E() {
 		}).Should(Succeed())
 
 		By("confirming that the lv was successfully sized to the minimum size of the StorageClass")
-		Expect(pvc.Status.Capacity.Storage().Cmp(resource.MustParse(app.DefaultMinimumAllocationSizeXFS))).Should(Equal(0),
-			"expected: %s as minimum capacity, actual: %s", app.DefaultMinimumAllocationSizeXFS, pvc.Status.Capacity.Storage().String())
+		Expect(pvc.Status.Capacity.Storage().Cmp(resource.MustParse(app.DefaultMinimumAllocationSizeXFS))).
+			Should(Equal(0),
+				"expected: %s as minimum capacity, actual: %s",
+				app.DefaultMinimumAllocationSizeXFS,
+				pvc.Status.Capacity.Storage().String(),
+			)
 
 		By("deleting the Pod and PVC")
 		_, err = kubectlWithInput(podYaml, "delete", "-n", ns, "-f", "-")
@@ -334,7 +339,8 @@ func testE2E() {
 		Expect(err).ShouldNot(HaveOccurred())
 		_, err = kubectl("exec", "-n", ns, "ubuntu", "--", "sync")
 		Expect(err).ShouldNot(HaveOccurred())
-		stdout, err := kubectl("exec", "-n", ns, "ubuntu", "--", "dd", "if="+deviceFile, "of=/dev/stdout", "bs=6", "count=1", "status=none")
+		stdout, err := kubectl("exec", "-n", ns, "ubuntu", "--",
+			"dd", "if="+deviceFile, "of=/dev/stdout", "bs=6", "count=1", "status=none")
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(string(stdout)).Should(Equal("ubuntu"))
 
@@ -346,7 +352,8 @@ func testE2E() {
 
 		By("reading data from a block device")
 		Eventually(func() error {
-			stdout, err = kubectl("exec", "-n", ns, "ubuntu", "--", "dd", "if="+deviceFile, "of=/dev/stdout", "bs=6", "count=1", "status=none")
+			stdout, err = kubectl("exec", "-n", ns, "ubuntu", "--",
+				"dd", "if="+deviceFile, "of=/dev/stdout", "bs=6", "count=1", "status=none")
 			if err != nil {
 				return fmt.Errorf("failed to cat. err: %w", err)
 			}
@@ -419,7 +426,8 @@ func testE2E() {
 		Expect(err).ShouldNot(HaveOccurred())
 		_, err = kubectl("exec", "-n", ns, "ubuntu", "--", "sync")
 		Expect(err).ShouldNot(HaveOccurred())
-		stdout, err := kubectl("exec", "-n", ns, "ubuntu", "--", "dd", "if="+deviceFile, "of=/dev/stdout", "bs=6", "count=1", "status=none")
+		stdout, err := kubectl("exec", "-n", ns, "ubuntu", "--",
+			"dd", "if="+deviceFile, "of=/dev/stdout", "bs=6", "count=1", "status=none")
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(string(stdout)).Should(Equal("ubuntu"))
 
@@ -431,7 +439,8 @@ func testE2E() {
 
 		By("reading data from a block device")
 		Eventually(func() error {
-			stdout, err = kubectl("exec", "-n", ns, "ubuntu", "--", "dd", "if="+deviceFile, "of=/dev/stdout", "bs=6", "count=1", "status=none")
+			stdout, err = kubectl("exec", "-n", ns, "ubuntu", "--",
+				"dd", "if="+deviceFile, "of=/dev/stdout", "bs=6", "count=1", "status=none")
 			if err != nil {
 				return fmt.Errorf("failed to cat. err: %w", err)
 			}
@@ -450,8 +459,10 @@ func testE2E() {
 		}).Should(Succeed())
 
 		By("confirming that the lv was successfully sized to the minimum size of the StorageClass")
-		Expect(pvc.Status.Capacity.Storage().Cmp(resource.MustParse(app.DefaultMinimumAllocationSizeBlock))).Should(Equal(0),
-			"expected: %s as minimum capacity, actual: %s", app.DefaultMinimumAllocationSizeBlock, pvc.Status.Capacity.Storage().String())
+		Expect(pvc.Status.Capacity.Storage().Cmp(resource.MustParse(app.DefaultMinimumAllocationSizeBlock))).
+			Should(Equal(0),
+				"expected: %s as minimum capacity, actual: %s",
+				app.DefaultMinimumAllocationSizeBlock, pvc.Status.Capacity.Storage().String())
 
 		By("deleting the Pod and PVC")
 		_, err = kubectlWithInput(podYAML, "delete", "-n", ns, "-f", "-")
@@ -480,7 +491,9 @@ func testE2E() {
 	})
 
 	It("should choose a node with the largest capacity when volumeBindingMode == Immediate is specified", func() {
-		skipIfStorageCapacity("Storage Capacity Tracking doesn't check Storage Capacity when volumeBindingMode == Immediate is specified")
+		skipIfStorageCapacity(
+			"Storage Capacity Tracking doesn't check Storage Capacity when volumeBindingMode == Immediate is specified",
+		)
 
 		// Repeat applying a PVC to make sure that the volume is created on the node with the largest capacity in each loop.
 		for i := 0; i < nonControlPlaneNodeCount; i++ {
@@ -516,13 +529,15 @@ func testE2E() {
 					}
 				}
 				if len(maxCapNodes) != nonControlPlaneNodeCount-i {
-					return fmt.Errorf("unexpected number of maxCapNodes: expected: %d, actual: %d", nonControlPlaneNodeCount-i, len(maxCapNodes))
+					return fmt.Errorf("unexpected number of maxCapNodes: expected: %d, actual: %d",
+						nonControlPlaneNodeCount-i, len(maxCapNodes))
 				}
 				return nil
 			}).Should(Succeed())
 
 			By("creating pvc")
-			claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, fmt.Sprintf("topo-pvc-%d", i), "Filesystem", 1024, "topolvm-provisioner-immediate"))
+			claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML,
+				fmt.Sprintf("topo-pvc-%d", i), "Filesystem", 1024, "topolvm-provisioner-immediate"))
 			_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -705,7 +720,8 @@ func testE2E() {
 
 		var boundNode string
 		By("confirming that claiming 8GB pv to the targetNode is successful")
-		_, err = kubectlWithInput([]byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu1", "topo-pvc1")), "apply", "-n", ns, "-f", "-")
+		podYaml := []byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu1", "topo-pvc1"))
+		_, err = kubectlWithInput(podYaml, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() error {
 			boundNode, err = waitCreatingPodWithPVC("ubuntu1", ns)
@@ -714,7 +730,8 @@ func testE2E() {
 		Expect(boundNode).To(Equal(targetNode), "bound: %s, target: %s", boundNode, targetNode)
 
 		By("confirming that claiming 6GB pv to the targetNode is successful")
-		_, err = kubectlWithInput([]byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu2", "topo-pvc2")), "apply", "-n", ns, "-f", "-")
+		podYaml = []byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu2", "topo-pvc2"))
+		_, err = kubectlWithInput(podYaml, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() error {
 			boundNode, err = waitCreatingPodWithPVC("ubuntu2", ns)
@@ -723,7 +740,8 @@ func testE2E() {
 		Expect(boundNode).To(Equal(targetNode), "bound: %s, target: %s", boundNode, targetNode)
 
 		By("confirming that claiming 8GB pv to the targetNode is unsuccessful")
-		_, err = kubectlWithInput([]byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu3", "topo-pvc3")), "apply", "-n", ns, "-f", "-")
+		podYaml = []byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu3", "topo-pvc3"))
+		_, err = kubectlWithInput(podYaml, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		time.Sleep(15 * time.Second)
