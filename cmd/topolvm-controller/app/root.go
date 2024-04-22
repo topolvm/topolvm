@@ -26,7 +26,8 @@ const (
 	// Allows for more than 80% free space after formatting, anything lower significantly reduces this percentage.
 	DefaultMinimumAllocationSizeExt4 = "32Mi"
 	// DefaultMinimumAllocationSizeBtrfs is the default minimum size for a filesystem volume with btrfs formatting.
-	// Btrfs minimum data block size is 4KiB, and by default, the metadata block size is 16 KiB.
+	// Btrfs changes its minimum allocation size based on various underlying device block settings and the host OS,
+	// but 200Mi seemed to be safe after some experimentation.
 	DefaultMinimumAllocationSizeBtrfs = "200Mi"
 )
 
