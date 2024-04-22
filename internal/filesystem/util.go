@@ -1,11 +1,3 @@
-/*
- * kernelHasMountinfoBug() and the constants only used in this function are copied
- * from the following code:
- * https://github.com/kubernetes/mount-utils/blob/6f4aae5a6ab58574cac605cdd48bf5c0862c047f/mount_helper_unix.go#L211-L242
- *    LICENSE: http://www.apache.org/licenses/LICENSE-2.0
- *    Copyright The Kubernetes Authors.
- */
-
 package filesystem
 
 import (
