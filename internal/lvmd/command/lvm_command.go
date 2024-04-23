@@ -76,11 +76,14 @@ func runCommand(ctx context.Context, cmd *exec.Cmd) (io.ReadCloser, error) {
 	}
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
+		_ = stdout.Close()
 		return nil, err
 	}
 
 	log.FromContext(ctx).Info("invoking command", "args", cmd.Args)
 	if err := cmd.Start(); err != nil {
+		_ = stdout.Close()
+		_ = stderr.Close()
 		return nil, err
 	}
 	// Return a read closer that will wait for the command to finish when closed to release all resources.
