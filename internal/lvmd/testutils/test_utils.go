@@ -45,7 +45,7 @@ func MakeLoopbackVG(ctx context.Context, name string, devices ...string) error {
 }
 
 func MakeLoopbackLV(ctx context.Context, name string, vg string) error {
-	args := []string{"-L1G", "-n", name, vg}
+	args := []string{"-L1G", "-y", "-n", name, vg}
 	out, err := exec.Command("lvcreate", args...).CombinedOutput()
 	if err != nil {
 		log.FromContext(ctx).Error(err, "failed lvcreate", "output", string(out))

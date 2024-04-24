@@ -7,6 +7,7 @@ import (
 	"path"
 
 	"github.com/topolvm/topolvm"
+	"github.com/topolvm/topolvm/internal/filesystem"
 )
 
 // ErrNotFound is returned when a VG or LV is not found.
@@ -555,7 +556,32 @@ func (l *LogicalVolume) Resize(ctx context.Context, newSize uint64) error {
 	if l.size == newSize {
 		return nil
 	}
-	if err := callLVM(ctx, "lvresize", "-L", fmt.Sprintf("%vb", newSize), l.fullname); err != nil {
+
+	args := []string{"lvresize", "-L", fmt.Sprintf("%vb", newSize), l.fullname}
+
+	fs, err := filesystem.DetectFilesystem(l.Path())
+	if err != nil {
+		return fmt.Errorf("cannot determine if LogicalVolume %s has a filesystem: %v", l.fullname, err)
+	}
+
+	if len(fs) > 0 {
+		isValidFSForResize := false
+		for _, valid := range []string{"ext4", "xfs", "btrfs"} {
+			if fs == valid {
+				isValidFSForResize = true
+				break
+			}
+		}
+
+		if isValidFSForResize {
+			args = append(args, "--resizefs")
+			// , "--fsmode", "nochange" add when lvm version is updated in ubuntu
+		} else {
+			return fmt.Errorf("filesystem %s is not supported for resize", fs)
+		}
+	}
+
+	if err := callLVM(ctx, args...); err != nil {
 		return err
 	}
 
