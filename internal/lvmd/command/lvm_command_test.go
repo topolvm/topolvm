@@ -40,6 +40,39 @@ func Test_lvm_command(t *testing.T) {
 		}
 	})
 
+	t.Run("simple lvm vgs should return not found but other failures should not", func(t *testing.T) {
+		var messages []string
+		funcLog := funcr.New(func(_, args string) {
+			messages = append(messages, args)
+		}, funcr.Options{
+			Verbosity: 9,
+		})
+
+		ctx := log.IntoContext(context.Background(), funcLog)
+
+		err := callLVM(ctx, "vgs", "non-existing-vg")
+		if err == nil {
+			t.Fatal(err, "vg should not exist")
+		}
+
+		if !IsLVMNotFound(err) {
+			t.Fatal("error should be not found")
+		}
+
+		if len(messages) != 1 || !strings.Contains(messages[0], "invoking command") {
+			t.Fatal("there should be nothing in stdout except the invoking command log")
+		}
+
+		err = callLVM(ctx, "foobar")
+		if err == nil {
+			t.Fatal(err, "command should not be recognized")
+		}
+
+		if IsLVMNotFound(err) {
+			t.Fatal("error should not be not found")
+		}
+	})
+
 	t.Run("simple lvm vgcreate with non existing device should fail and show logs", func(t *testing.T) {
 		// fakeDeviceName is a string that does not exist on the system (or rather is highly unlikely to exist)
 		// it is used to test the error handling of the callLVMStreamed function

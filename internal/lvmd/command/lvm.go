@@ -578,9 +578,7 @@ func (l *LogicalVolume) Resize(ctx context.Context, newSize uint64) error {
 func (vg *VolumeGroup) RemoveVolume(ctx context.Context, name string) error {
 	err := callLVM(ctx, "lvremove", "-f", fullName(name, vg))
 
-	if lvmErr, ok := AsLVMError(err); ok && lvmErr.ExitCode() == 5 {
-		// lvremove returns 5 if the volume does not exist, so we can convert this to ErrNotFound
-		// join it to the original error so that the caller can still see the stderr output.
+	if IsLVMNotFound(err) {
 		return errors.Join(ErrNotFound, err)
 	}
 
