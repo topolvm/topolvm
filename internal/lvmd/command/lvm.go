@@ -611,7 +611,7 @@ func (l *LogicalVolume) Resize(ctx context.Context, newSize uint64) error {
 				break
 			}
 		}
-		// If we do not find an active mountpoint
+		// If we do not find an active mountpoint, create our own temporary mount for resizing
 		if !found {
 			mountDir, err := os.MkdirTemp("", "topolvm-tmp-mount-*")
 			defer os.RemoveAll(mountDir)
@@ -629,8 +629,6 @@ func (l *LogicalVolume) Resize(ctx context.Context, newSize uint64) error {
 			if _, err := resizer.Resize(l.Path(), mountDir); err != nil {
 				return fmt.Errorf("cannot resize filesystem: %v", err)
 			}
-
-			return fmt.Errorf("filesystem not mounted, cannot resize online")
 		}
 	}
 
