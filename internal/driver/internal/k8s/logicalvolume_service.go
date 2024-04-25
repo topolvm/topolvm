@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/topolvm/topolvm"
@@ -16,6 +17,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -222,7 +225,7 @@ func (s *LogicalVolumeService) DeleteVolume(ctx context.Context, volumeID string
 
 	lv, err := s.GetVolume(ctx, volumeID)
 	if err != nil {
-		if err == ErrVolumeNotFound {
+		if errors.Is(err, ErrVolumeNotFound) {
 			logger.Info("volume is not found", "volume_id", volumeID)
 			return nil
 		}
@@ -238,23 +241,23 @@ func (s *LogicalVolumeService) DeleteVolume(ctx context.Context, volumeID string
 	}
 
 	// wait until delete the target volume
-	for {
-		logger.Info("waiting for delete LogicalVolume", "name", lv.Name)
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(100 * time.Millisecond):
-		}
-
-		err := s.getter.Get(ctx, client.ObjectKey{Name: lv.Name}, new(topolvmv1.LogicalVolume))
-		if err != nil {
+	return wait.Backoff{
+		Duration: 100 * time.Millisecond, // initial backoff
+		Factor:   2,                      // factor for duration increase
+		Jitter:   0.1,
+		Steps:    math.MaxInt, // run for infinity; we assume context gets canceled
+		Cap:      10 * time.Second,
+	}.DelayFunc().Until(ctx, true, false, func(ctx context.Context) (bool, error) {
+		if err := s.getter.Get(ctx, client.ObjectKey{Name: lv.Name}, new(topolvmv1.LogicalVolume)); err != nil {
 			if apierrors.IsNotFound(err) {
-				return nil
+				return true, nil
 			}
 			logger.Error(err, "failed to get LogicalVolume", "name", lv.Name)
-			return err
+			return false, err
 		}
-	}
+		logger.Info("waiting for LogicalVolume to be deleted", "name", lv.Name)
+		return false, nil
+	})
 }
 
 // CreateSnapshot creates a snapshot of existing volume.
@@ -301,48 +304,58 @@ func (s *LogicalVolumeService) CreateSnapshot(ctx context.Context, node, dc, sou
 
 // ExpandVolume expands volume
 func (s *LogicalVolumeService) ExpandVolume(ctx context.Context, volumeID string, requestBytes int64) error {
-	logger.Info("k8s.ExpandVolume called", "volumeID", volumeID, "size", requestBytes)
+	logger := logger.WithValues("volume_id", volumeID, "size", requestBytes)
+	logger.Info("k8s.ExpandVolume called")
+	request := resource.NewQuantity(requestBytes, resource.BinarySI)
 
 	lv, err := s.GetVolume(ctx, volumeID)
 	if err != nil {
 		return err
 	}
 
-	err = s.updateSpecSize(ctx, volumeID, resource.NewQuantity(requestBytes, resource.BinarySI))
+	err = s.updateSpecSize(ctx, volumeID, request)
 	if err != nil {
 		return err
 	}
 
-	// wait until topolvm-node expands the target volume
-	for {
-		logger.Info("waiting for update of 'status.currentSize'", "name", lv.Name)
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(1 * time.Second):
+	return wait.Backoff{
+		Duration: 1 * time.Second, // initial backoff
+		Factor:   2,               // factor for duration increase
+		Jitter:   0.1,
+		Steps:    math.MaxInt, // run for infinity; we assume context gets canceled
+		Cap:      10 * time.Second,
+	}.DelayFunc().Until(ctx, true, false, func(ctx context.Context) (bool, error) {
+		var changedLV topolvmv1.LogicalVolume
+		if err := s.getter.Get(ctx, client.ObjectKey{Name: lv.Name}, &changedLV); err != nil {
+			logger.Error(err, "failed to get LogicalVolume", "name", lv.Name)
+			return false, err
 		}
 
-		var changedLV topolvmv1.LogicalVolume
-		err := s.getter.Get(ctx, client.ObjectKey{Name: lv.Name}, &changedLV)
-		if err != nil {
-			logger.Error(err, "failed to get LogicalVolume", "name", lv.Name)
-			return err
-		}
 		if changedLV.Status.Code != codes.OK {
-			return status.Error(changedLV.Status.Code, changedLV.Status.Message)
+			return false, status.Error(changedLV.Status.Code, changedLV.Status.Message)
 		}
+
 		if changedLV.Status.CurrentSize == nil {
+			logger.Info("waiting for update of 'status.currentSize' "+
+				"to be filled initially", "name", lv.Name)
 			// WA: since Status.CurrentSize is added in v0.4.0. it may be missing.
 			// if the expansion is completed, it is filled, so wait for that.
-			continue
-		}
-		if changedLV.Status.CurrentSize.Value() != changedLV.Spec.Size.Value() {
-			logger.Info("failed to match current size and requested size", "current", changedLV.Status.CurrentSize.Value(), "requested", changedLV.Spec.Size.Value())
-			continue
+			return false, nil
 		}
 
-		return nil
-	}
+		if changedLV.Status.CurrentSize.Cmp(*request) != 0 {
+			logger.Info("waiting for update of 'status.currentSize' to be updated to signal successful expansion",
+				"name", lv.Name,
+				"status.currentSize", changedLV.Status.CurrentSize,
+				"spec.size", changedLV.Spec.Size,
+				"request", request,
+			)
+			return false, nil
+		}
+
+		logger.Info("LogicalVolume successfully expanded")
+		return true, nil
+	})
 }
 
 // GetVolume returns LogicalVolume by volume ID.
@@ -352,56 +365,51 @@ func (s *LogicalVolumeService) GetVolume(ctx context.Context, volumeID string) (
 
 // updateSpecSize updates .Spec.Size of LogicalVolume.
 func (s *LogicalVolumeService) updateSpecSize(ctx context.Context, volumeID string, size *resource.Quantity) error {
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(1 * time.Second):
-		}
-
-		lv, err := s.GetVolume(ctx, volumeID)
-		if err != nil {
-			return err
-		}
-
-		lv.Spec.Size = *size
-		if lv.Annotations == nil {
-			lv.Annotations = make(map[string]string)
-		}
-		lv.Annotations[topolvm.GetResizeRequestedAtKey()] = time.Now().UTC().String()
-
-		if err := s.writer.Update(ctx, lv); err != nil {
-			if apierrors.IsConflict(err) {
-				logger.Info("detect conflict when LogicalVolume spec update", "name", lv.Name)
-				continue
+	return wait.ExponentialBackoffWithContext(ctx,
+		retry.DefaultBackoff,
+		func(ctx context.Context) (bool, error) {
+			lv, err := s.GetVolume(ctx, volumeID)
+			if err != nil {
+				return false, err
 			}
-			logger.Error(err, "failed to update LogicalVolume spec", "name", lv.Name)
-			return err
-		}
+			lv.Spec.Size = *size
+			if lv.Annotations == nil {
+				lv.Annotations = make(map[string]string)
+			}
+			lv.Annotations[topolvm.GetResizeRequestedAtKey()] = time.Now().UTC().String()
 
-		return nil
-	}
+			if err := s.writer.Update(ctx, lv); err != nil {
+				if apierrors.IsConflict(err) {
+					logger.Info("detected conflict when trying to update LogicalVolume spec", "name", lv.Name)
+					return false, nil
+				} else {
+					logger.Error(err, "failed to update LogicalVolume spec", "name", lv.Name)
+					return false, err
+				}
+			}
+			return true, nil
+		})
 }
 
 // waitForStatusUpdate waits for logical volume creation/failure/timeout, whichever comes first.
 func (s *LogicalVolumeService) waitForStatusUpdate(ctx context.Context, name string) (string, error) {
-	for {
-		logger.Info("waiting for setting 'status.volumeID'", "name", name)
-		select {
-		case <-ctx.Done():
-			return "", ctx.Err()
-		case <-time.After(100 * time.Millisecond):
-		}
-
+	var volumeID string
+	return volumeID, wait.Backoff{
+		Duration: 1 * time.Second, // initial backoff
+		Factor:   2,               // factor for duration increase
+		Jitter:   0.1,
+		Steps:    math.MaxInt, // run for infinity; we assume context gets canceled
+		Cap:      10 * time.Second,
+	}.DelayFunc().Until(ctx, true, false, func(ctx context.Context) (bool, error) {
 		var newLV topolvmv1.LogicalVolume
-		err := s.getter.Get(ctx, client.ObjectKey{Name: name}, &newLV)
-		if err != nil {
+		if err := s.getter.Get(ctx, client.ObjectKey{Name: name}, &newLV); err != nil {
 			logger.Error(err, "failed to get LogicalVolume", "name", name)
-			return "", err
+			return false, err
 		}
 		if newLV.Status.VolumeID != "" {
-			logger.Info("end k8s.LogicalVolume", "volume_id", newLV.Status.VolumeID)
-			return newLV.Status.VolumeID, nil
+			logger.Info("LogicalVolume successfully provisioned", "volume_id", newLV.Status.VolumeID)
+			volumeID = newLV.Status.VolumeID
+			return true, nil
 		}
 		if newLV.Status.Code != codes.OK {
 			err := s.writer.Delete(ctx, &newLV)
@@ -409,7 +417,8 @@ func (s *LogicalVolumeService) waitForStatusUpdate(ctx context.Context, name str
 				// log this error but do not return this error, because newLV.Status.Message is more important
 				logger.Error(err, "failed to delete LogicalVolume")
 			}
-			return "", status.Error(newLV.Status.Code, newLV.Status.Message)
+			return false, status.Error(newLV.Status.Code, newLV.Status.Message)
 		}
-	}
+		return false, nil
+	})
 }
