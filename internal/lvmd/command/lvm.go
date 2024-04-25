@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"path"
 
 	"github.com/topolvm/topolvm"
@@ -576,6 +577,9 @@ func (l *LogicalVolume) Resize(ctx context.Context, newSize uint64) error {
 		return err
 	}
 
+	// if we have a filesystem first search for a read-write mount directory that
+	// can be used for the resize operation. This is needed because some FS such as btrfs and xfs
+	// need to be mounted to be resized.
 	if len(fs) > 0 {
 		mountPoints, err := mounter.List()
 		if err != nil {
@@ -583,6 +587,16 @@ func (l *LogicalVolume) Resize(ctx context.Context, newSize uint64) error {
 		}
 		found := false
 		for _, point := range mountPoints {
+			ro := false
+			for _, opt := range point.Opts {
+				if opt == "ro" {
+					ro = true
+					break
+				}
+			}
+			if ro {
+				continue
+			}
 			if point.Device == l.Path() {
 				needsResize, err := resizer.NeedResize(l.Path(), point.Path)
 				if err != nil {
@@ -597,8 +611,26 @@ func (l *LogicalVolume) Resize(ctx context.Context, newSize uint64) error {
 				break
 			}
 		}
+		// If we do not find an active mountpoint
 		if !found {
-			return fmt.Errorf("not mount path found for %s, cannot resize filesystem", l.fullname)
+			mountDir, err := os.MkdirTemp("", "topolvm-tmp-mount-*")
+			defer os.RemoveAll(mountDir)
+			if err != nil {
+				return fmt.Errorf("cannot create temporary directory for temporary mount: %v", err)
+			}
+			mountoptions := []string{"rw"}
+			if fs == "xfs" {
+				mountoptions = append(mountoptions, "nouuid")
+			}
+			if err := mounter.Mount(l.Path(), mountDir, fs, mountoptions); err != nil {
+				return fmt.Errorf("cannot mount filesystem for resize operation: %v", err)
+			}
+			defer mountutil.CleanupMountPoint(mountDir, mounter, false)
+			if _, err := resizer.Resize(l.Path(), mountDir); err != nil {
+				return fmt.Errorf("cannot resize filesystem: %v", err)
+			}
+
+			return fmt.Errorf("filesystem not mounted, cannot resize online")
 		}
 	}
 
