@@ -160,10 +160,6 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 		capabilities,
 	)
 
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "failed to calculate minimum/maximum allocation bytes: %v", err)
-	}
-
 	// check required volume capabilities
 	for _, capability := range capabilities {
 		if block := capability.GetBlock(); block != nil {
