@@ -4,3 +4,11 @@ metadata:
   name: topolvm-provisioner-thin
 driver: "@DOMAIN_NAME@"
 deletionPolicy: Delete
+---
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: topolvm-provisioner-thin-btrfs
+driver: "@DOMAIN_NAME@"
+deletionPolicy: Delete
+---
