@@ -27,6 +27,9 @@ When tests fail, use `kubectl` to inspect the Kubernetes cluster.
 make test
 ```
 
+> [!NOTE]
+> If launching kind failed, please check [the known issues](https://kind.sigs.k8s.io/docs/user/known-issues).
+
 You can also start a cluster without running tests by the following command.
 
 ```bash
