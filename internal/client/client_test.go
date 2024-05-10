@@ -1485,6 +1485,7 @@ var _ = Describe("client", func() {
 						svc.Name = configmapName
 						svc.Namespace = configmapNamespace
 						svc.Spec = corev1.ServiceSpec{
+							Type:     corev1.ServiceTypeLoadBalancer,
 							Selector: map[string]string{"app": "MyApp"},
 							Ports: []corev1.ServicePort{
 								{
@@ -1524,6 +1525,7 @@ var _ = Describe("client", func() {
 						svc.Name = configmapName
 						svc.Namespace = configmapNamespace
 						svc.Spec = corev1.ServiceSpec{
+							Type:     corev1.ServiceTypeLoadBalancer,
 							Selector: map[string]string{"app": "MyApp"},
 							Ports: []corev1.ServicePort{
 								{
@@ -1627,6 +1629,7 @@ var _ = Describe("client", func() {
 						svc.Name = configmapName
 						svc.Namespace = configmapNamespace
 						svc.Spec = corev1.ServiceSpec{
+							Type:     corev1.ServiceTypeLoadBalancer,
 							Selector: map[string]string{"app": "MyApp"},
 							Ports: []corev1.ServicePort{
 								{
@@ -1664,6 +1667,7 @@ var _ = Describe("client", func() {
 						svc.Name = configmapName
 						svc.Namespace = configmapNamespace
 						svc.Spec = corev1.ServiceSpec{
+							Type:     corev1.ServiceTypeLoadBalancer,
 							Selector: map[string]string{"app": "MyApp"},
 							Ports: []corev1.ServicePort{
 								{
@@ -1703,6 +1707,7 @@ var _ = Describe("client", func() {
 						svc.Name = configmapName
 						svc.Namespace = configmapNamespace
 						svc.Spec = corev1.ServiceSpec{
+							Type:     corev1.ServiceTypeLoadBalancer,
 							Selector: map[string]string{"app": "MyApp"},
 							Ports: []corev1.ServicePort{
 								{

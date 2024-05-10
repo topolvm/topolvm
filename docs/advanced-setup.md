@@ -249,7 +249,7 @@ apiVersion: kubeadm.k8s.io/v1beta3
 kind: ClusterConfiguration
 metadata:
   name: config
-kubernetesVersion: v1.27.3
+kubernetesVersion: v1.29.2
 scheduler:
   extraVolumes:
     - name: "config"
@@ -301,7 +301,7 @@ Almost all scoring algorithms in `kube-scheduler` are weighted as `"weight": 1`.
 So if you want to give a priority to the scoring by `topolvm-scheduler`, you have to set the weight as a value larger than one like as follows:
 
 ```yaml
-apiVersion: kubescheduler.config.k8s.io/v1beta3
+apiVersion: kubescheduler.config.k8s.io/v1
 kind: KubeSchedulerConfiguration
 ...
 extenders:

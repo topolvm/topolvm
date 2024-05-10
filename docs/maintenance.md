@@ -22,6 +22,7 @@ If we find some interesting features added in new versions, please consider if w
 Choose the next version and check the [release note](https://kubernetes.io/docs/setup/release/notes/). e.g. 1.17, 1.18, 1.19 -> 1.18, 1.19, 1.20
 
 Edit the following files.
+- `docs/advanced-setup.md`
 - `README.md`
 - `versions.mk`
 - `.github/workflows/e2e-k8s-incluster-lvmd.yaml`
@@ -93,6 +94,8 @@ For example, see https://github.com/kubernetes-csi/external-provisioner/blob/mas
 
 - `charts/topolvm/templates/controller/clusterroles.yaml`
 - `charts/topolvm/templates/controller/roles.yaml`
+
+If the `external-snapshotter` sidecar is updated, you also update `go.mod` and source code accordingly.
 
 #### Depending Tools
 
