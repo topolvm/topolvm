@@ -19,7 +19,12 @@ const (
 	lvm     = "/sbin/lvm"
 )
 
-var Containerized = false
+var containerized = false
+
+// Containerized sets whether to run lvm commands in a container.
+func Containerized(sw bool) {
+	containerized = sw
+}
 
 // callLVM calls lvm sub-commands and prints the output to the log.
 func callLVM(ctx context.Context, args ...string) error {
@@ -62,7 +67,7 @@ func callLVMStreamed(ctx context.Context, args ...string) (io.ReadCloser, error)
 
 // wrapExecCommand calls cmd with args but wrapped to run on the host with nsenter if Containerized is true.
 func wrapExecCommand(cmd string, args ...string) *exec.Cmd {
-	if Containerized {
+	if containerized {
 		args = append([]string{"-m", "-u", "-i", "-n", "-p", "-t", "1", cmd}, args...)
 		cmd = nsenter
 	}

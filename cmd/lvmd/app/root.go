@@ -25,8 +25,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
-var cfgFilePath string
-var zapOpts zap.Options
+var (
+	cfgFilePath   string
+	containerized bool
+	zapOpts       zap.Options
+)
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -51,6 +54,8 @@ volume group.
 func subMain(ctx context.Context) error {
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zapOpts)))
 	logger := log.FromContext(ctx)
+
+	command.Containerized(containerized)
 
 	if err := loadConfFile(ctx, cfgFilePath); err != nil {
 		return err
@@ -132,7 +137,7 @@ func Execute() {
 //nolint:lll
 func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFilePath, "config", filepath.Join("/etc", "topolvm", "lvmd.yaml"), "config file")
-	rootCmd.PersistentFlags().BoolVar(&command.Containerized, "container", false, "Run within a container")
+	rootCmd.PersistentFlags().BoolVar(&containerized, "container", false, "Run within a container")
 
 	goflags := flag.NewFlagSet("klog", flag.ExitOnError)
 	klog.InitFlags(goflags)
