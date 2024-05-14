@@ -28,6 +28,7 @@ import (
 var (
 	cfgFilePath   string
 	containerized bool
+	lvmPath       string
 	zapOpts       zap.Options
 )
 
@@ -56,6 +57,7 @@ func subMain(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
 	command.Containerized(containerized)
+	command.SetLVMPath(lvmPath)
 
 	if err := loadConfFile(ctx, cfgFilePath); err != nil {
 		return err
@@ -138,6 +140,7 @@ func Execute() {
 func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFilePath, "config", filepath.Join("/etc", "topolvm", "lvmd.yaml"), "config file")
 	rootCmd.PersistentFlags().BoolVar(&containerized, "container", false, "Run within a container")
+	rootCmd.PersistentFlags().StringVar(&lvmPath, "lvm-path", "", "lvm command path on the host OS")
 
 	goflags := flag.NewFlagSet("klog", flag.ExitOnError)
 	klog.InitFlags(goflags)

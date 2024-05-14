@@ -6,3 +6,6 @@ import (
 
 // Containerized sets whether to run lvm commands in a container.
 var Containerized = internalLvmdCommand.Containerized
+
+// SetLVMPath sets the path to the lvm command.
+var SetLVMPath = internalLvmdCommand.SetLVMPath

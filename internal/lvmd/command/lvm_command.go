@@ -16,14 +16,23 @@ import (
 
 const (
 	nsenter = "/usr/bin/nsenter"
-	lvm     = "/sbin/lvm"
 )
 
-var containerized = false
+var (
+	containerized = false
+	lvm           = "/sbin/lvm"
+)
 
 // Containerized sets whether to run lvm commands in a container.
 func Containerized(sw bool) {
 	containerized = sw
+}
+
+// SetLVMPath sets the path to the lvm command.
+func SetLVMPath(path string) {
+	if path != "" {
+		lvm = path
+	}
 }
 
 // callLVM calls lvm sub-commands and prints the output to the log.
