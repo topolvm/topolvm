@@ -194,6 +194,7 @@ Represents a logical volume.
 | tags | [string](#string) | repeated | Tags to add to the volume during creation |
 | size_bytes | [int64](#int64) |  | Volume size in canonical CSI bytes. |
 | path | [string](#string) |  | Path to the lv as per lvm. |
+| attr | [string](#string) |  | Attributes of the lv. |
 
 
 

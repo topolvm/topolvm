@@ -323,6 +323,111 @@ func testE2E() {
 		}).Should(Succeed())
 	})
 
+	It("should react to failing devices with VolumeConditionAbnormal", func(ctx SpecContext) {
+		storageClass := "topolvm-provisioner-volumehealth"
+		By(fmt.Sprintf("deploying Pod with PVC based on StorageClass: %s", storageClass))
+		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 200, storageClass))
+		podYaml := []byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu", "topo-pvc"))
+
+		_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+		_, err = kubectlWithInput(podYaml, "apply", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+
+		By("confirming that the lv correspond to LogicalVolume resource is registered in LVM")
+		Eventually(func() error {
+			var pvc corev1.PersistentVolumeClaim
+			if err = getObjects(&pvc, "pvc", "-n", ns, "topo-pvc"); err != nil {
+				return err
+			}
+			return checkLVIsRegisteredInLVM(pvc.Spec.VolumeName)
+		}).Should(Succeed())
+
+		By("confirming the PVC is bound")
+		Eventually(func() error {
+			var pvc corev1.PersistentVolumeClaim
+			err := getObjects(&pvc, "pvc", "-n", ns, "topo-pvc")
+			if err != nil {
+				return fmt.Errorf("failed to get PVC. err: %w", err)
+			}
+			if pvc.Status.Phase != corev1.ClaimBound {
+				return errors.New("PVC is not bound")
+			}
+			return nil
+		}).Should(Succeed())
+
+		By("confirming that the specified device is mounted in the Pod")
+		Eventually(func() error {
+			return verifyMountExists(ns, "ubuntu", "/test1")
+		}).Should(Succeed())
+
+		By("triggering a volume health partial activation failure")
+		var failureDeviceCount int
+		if nonControlPlaneNodeCount == 0 {
+			failureDeviceCount = 1
+		} else {
+			failureDeviceCount = nonControlPlaneNodeCount
+		}
+		for i := 0; i < failureDeviceCount; i++ {
+			out, err := execAtLocal("sudo",
+				nil,
+				"dmsetup",
+				"remove",
+				"-f",
+				// This is the device name that is used in the volume health test vg for the crypt setup
+				fmt.Sprintf("/dev/mapper/crypt-%v", i+1),
+			)
+			Expect(err).To(Or(
+				Not(HaveOccurred()),
+				MatchError(
+					ContainSubstring(fmt.Sprintf("remove ioctl on crypt-%v  failed: Device or resource busy", i+1)),
+				),
+			), "The only accepted error for the dmsetup remove command is a busy device "+
+				"due to removing it while it is active")
+			if len(out) > 0 {
+				GinkgoT().Logf("dmsetup stdout=%s", string(out))
+			}
+		}
+
+		By("confirming that a VolumeConditionAbnormal event has occurred")
+		fieldSelector := "reason=VolumeConditionAbnormal"
+		Eventually(func() error {
+			var events corev1.EventList
+			if err = getObjects(&events, "events", "-n", ns, "--field-selector="+fieldSelector); err != nil {
+				return err
+			}
+			if len(events.Items) == 0 {
+				return errors.New("no events found, there should be at least one event regarding an abnormal volume condition")
+			}
+			return nil
+		}).WithTimeout(2 * time.Minute).Should(Succeed())
+
+		By("deleting the Pod and PVC")
+		_, err = kubectlWithInput(podYaml, "delete", "--now=true", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+		_, err = kubectlWithInput(claimYAML, "delete", "-n", ns, "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+
+		By("confirming that the PV is deleted")
+		Eventually(func() error {
+			var pv corev1.PersistentVolume
+			err := getObjects(&pv, "pv", volName)
+			switch {
+			case errors.Is(err, ErrObjectNotFound):
+				return nil
+			case err != nil:
+				return fmt.Errorf("failed to get pv/%s. err: %w", volName, err)
+			default:
+				return fmt.Errorf("target pv exists %s", volName)
+			}
+		}).Should(Succeed())
+
+		By("confirming that the lv correspond to LogicalVolume is deleted")
+		Eventually(func() error {
+			return checkLVIsDeletedInLVM(volName)
+		}).Should(Succeed())
+	})
+
 	It("should create a block device for Pod", func() {
 		By("deploying ubuntu Pod with PVC to mount a block device")
 		podYAML := []byte(fmt.Sprintf(podVolumeDeviceTemplateYAML, deviceFile))

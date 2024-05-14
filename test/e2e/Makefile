@@ -19,7 +19,7 @@ HELM := ../../bin/helm
 KIND := ../../bin/kind
 KIND_CONFIG := topolvm-cluster.yaml
 KUBECTL := $(BINDIR)/kubectl-$(KUBERNETES_VERSION)
-MINIKUBE_FEATURE_GATES="ReadWriteOncePod=true"
+MINIKUBE_FEATURE_GATES="ReadWriteOncePod=true,CSIVolumeHealth=true"
 MINIKUBE_HOME = $(BINDIR)
 SUDO := sudo
 
@@ -240,13 +240,25 @@ common/create-vg:
 	$(SUDO) losetup -f $(BACKING_STORE)/backing_store$(ID)_7
 	$(SUDO) vgcreate -y node$(ID)-thin1 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_7 | cut -d: -f1)
 	$(SUDO) lvcreate -T -n pool0 -L 4G node$(ID)-thin1
+	# Create Volume Group for Volume Health Monitoring Failure Check
+	truncate --size=2G $(BACKING_STORE)/backing_store$(ID)_8
+	truncate --size=2G $(BACKING_STORE)/backing_store$(ID)_9
+	# Setup loop devices
+	$(SUDO) losetup -f $(BACKING_STORE)/backing_store$(ID)_8; \
+	$(SUDO) losetup -f $(BACKING_STORE)/backing_store$(ID)_9; \
+	echo test | $(SUDO) cryptsetup open --type plain \
+		$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_8 | cut -d: -f1) crypt-$(ID)
+	$(SUDO) vgcreate -y node$(ID)-volume-health \
+		/dev/mapper/crypt-$(ID) \
+		$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_9 | cut -d: -f1)
 
 .PHONY: common/remove-vg
 common/remove-vg:
-	for name in thick1 thick2 raid1-1 raid1-2 thin1; do \
+	for name in thick1 thick2 raid1-1 raid1-2 thin1 volume-health; do \
 		$(SUDO) vgremove -ffy node$(ID)-$${name}; \
 	done; \
-	for i in $$(seq 7); do \
+	$(SUDO) dmsetup remove -f /dev/mapper/crypt-$(ID) || true
+	for i in $$(seq 9); do \
 		$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_$${i} | cut -d: -f1); \
 		$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store$(ID)_$${i} | cut -d: -f1); \
 		rm -f $(BACKING_STORE)/backing_store$(ID)_$${i}; \
