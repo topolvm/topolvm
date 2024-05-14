@@ -14,6 +14,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+const (
+	nsenter = "/usr/bin/nsenter"
+	lvm     = "/sbin/lvm"
+)
+
 var Containerized = false
 
 // callLVM calls lvm sub-commands and prints the output to the log.
