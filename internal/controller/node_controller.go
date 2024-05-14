@@ -62,8 +62,8 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, nil
 	}
 
-	if result, err := r.doFinalize(ctx, log, &node); result.Requeue || err != nil {
-		return result, err
+	if err := r.doFinalize(ctx, log, &node); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	node2 := node.DeepCopy()
@@ -92,23 +92,23 @@ func (r *NodeReconciler) targetStorageClasses(ctx context.Context) (map[string]b
 	return targets, nil
 }
 
-func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node client.Object) (ctrl.Result, error) {
+func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node client.Object) error {
 	if r.skipNodeFinalize {
 		log.Info("skipping node finalize")
-		return ctrl.Result{}, nil
+		return nil
 	}
 
 	scs, err := r.targetStorageClasses(ctx)
 	if err != nil {
 		log.Error(err, "unable to fetch StorageClass")
-		return ctrl.Result{}, err
+		return err
 	}
 
 	var pvcs corev1.PersistentVolumeClaimList
 	err = r.client.List(ctx, &pvcs, client.MatchingFields{keySelectedNode: node.GetName()})
 	if err != nil {
 		log.Error(err, "unable to fetch PersistentVolumeClaimList")
-		return ctrl.Result{}, err
+		return err
 	}
 
 	for _, pvc := range pvcs.Items {
@@ -122,7 +122,7 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node c
 		err = r.client.Delete(ctx, &pvc)
 		if err != nil {
 			log.Error(err, "unable to delete PVC", "name", pvc.Name, "namespace", pvc.Namespace)
-			return ctrl.Result{}, err
+			return err
 		}
 		log.Info("deleted PVC", "name", pvc.Name, "namespace", pvc.Namespace)
 	}
@@ -131,16 +131,16 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node c
 	err = r.client.List(ctx, lvList, client.MatchingFields{keyLogicalVolumeNode: node.GetName()})
 	if err != nil {
 		log.Error(err, "failed to get LogicalVolumes")
-		return ctrl.Result{}, err
+		return err
 	}
 	for _, lv := range lvList.Items {
 		err = r.cleanupLogicalVolume(ctx, log, &lv)
 		if err != nil {
-			return ctrl.Result{}, err
+			return err
 		}
 	}
 
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func (r *NodeReconciler) cleanupLogicalVolume(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) error {

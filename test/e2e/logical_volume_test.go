@@ -34,7 +34,8 @@ func testLogicalVolume() {
 	AfterEach(func() {
 		// When a test fails, I want to investigate the cause. So please don't remove the namespace!
 		if !CurrentSpecReport().State.Is(types.SpecStateFailureStates) {
-			kubectl("delete", "namespaces/"+nsLogicalVolumeTest)
+			_, err := kubectl("delete", "namespaces/"+nsLogicalVolumeTest)
+			Expect(err).ShouldNot(HaveOccurred())
 		}
 
 		commonAfterEach(cc)
@@ -159,7 +160,11 @@ func waitForTopoLVMNodeDSPatched(patch string, patchType string, desiredTopoLVMN
 }
 
 func startTopoLVMNode(desiredTopoLVMNodeCount int) {
-	waitForTopoLVMNodeDSPatched(`[{"op": "remove", "path": "/spec/template/spec/affinity"}]`, "json", desiredTopoLVMNodeCount)
+	waitForTopoLVMNodeDSPatched(
+		`[{"op": "remove", "path": "/spec/template/spec/affinity"}]`,
+		"json",
+		desiredTopoLVMNodeCount,
+	)
 }
 
 func stopTopoLVMNode(nodeName string, desiredTopoLVMNodeCount int) {

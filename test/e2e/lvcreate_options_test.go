@@ -19,90 +19,59 @@ func testLVCreateOptions() {
 	BeforeEach(func() {
 		cc = commonBeforeEach()
 
-		ns = testNamespacePrefix + randomString(10)
+		ns = testNamespacePrefix + randomString()
 		createNamespace(ns)
 	})
 
 	AfterEach(func() {
 		// When a test fails, I want to investigate the cause. So please don't remove the namespace!
 		if !CurrentSpecReport().State.Is(types.SpecStateFailureStates) {
-			kubectl("delete", "namespaces/"+ns)
+			_, err := kubectl("delete", "namespaces/"+ns)
+			Expect(err).ShouldNot(HaveOccurred())
 		}
 
 		commonAfterEach(cc)
 	})
 
-	It("should use lvcreate-options when creating LV", func() {
-		By("creating Pod with PVC using raid device-class")
-		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1024, "topolvm-provisioner-create-option-raid1"))
-		podYaml := []byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu", "topo-pvc"))
+	DescribeTable(
+		"LVM option should be used",
+		func(deviceClass string, storageClassName string) {
+			By(fmt.Sprintf("creating Pod with PVC using %s device-class", deviceClass))
+			claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1024, storageClassName))
+			podYaml := []byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu", "topo-pvc"))
 
-		_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred())
-		_, err = kubectlWithInput(podYaml, "apply", "-n", ns, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred())
+			_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
+			Expect(err).ShouldNot(HaveOccurred())
+			_, err = kubectlWithInput(podYaml, "apply", "-n", ns, "-f", "-")
+			Expect(err).ShouldNot(HaveOccurred())
 
-		By("finding the corresponding LV")
+			By("finding the corresponding LV")
 
-		var lvName string
-		Eventually(func() error {
-			var pvc corev1.PersistentVolumeClaim
-			err := getObjects(&pvc, "pvc", "-n", ns, "topo-pvc")
-			if err != nil {
-				return fmt.Errorf("failed to get PVC. err: %w", err)
-			}
+			var lvName string
+			Eventually(func() error {
+				var pvc corev1.PersistentVolumeClaim
+				err := getObjects(&pvc, "pvc", "-n", ns, "topo-pvc")
+				if err != nil {
+					return fmt.Errorf("failed to get PVC. err: %w", err)
+				}
 
-			var lv topolvmv1.LogicalVolume
-			err = getObjects(&lv, "logicalvolumes", pvc.Spec.VolumeName)
-			if err != nil {
-				return fmt.Errorf("failed to get logicalvolume. err: %w", err)
-			}
-			lvName = string(lv.UID)
-			return nil
-		}).Should(Succeed())
+				var lv topolvmv1.LogicalVolume
+				err = getObjects(&lv, "logicalvolumes", pvc.Spec.VolumeName)
+				if err != nil {
+					return fmt.Errorf("failed to get logicalvolume. err: %w", err)
+				}
+				lvName = string(lv.UID)
+				return nil
+			}).Should(Succeed())
 
-		By("checking that the LV is of type raid")
-		stdout, err := execAtLocal("sudo", nil, "lvs", "-o", "lv_attr", "--noheadings", "--select", "lv_name="+lvName)
-		Expect(err).ShouldNot(HaveOccurred())
-		attribute_bit1 := string(strings.TrimSpace(string(stdout))[0])
-		// lv_attr bit 1 represents the volume type, where 'r' is for raid
-		Expect(attribute_bit1).To(Equal("r"))
-	})
-
-	It("should use lvcreate-option-classes when creating LV", func() {
-		By("creating Pod with PVC using raid1 device-class")
-		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc-raid1", "Filesystem", 1024, "topolvm-provisioner-option-class-raid1"))
-		podYaml := []byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu2", "topo-pvc-raid1"))
-
-		_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred())
-		_, err = kubectlWithInput(podYaml, "apply", "-n", ns, "-f", "-")
-		Expect(err).ShouldNot(HaveOccurred())
-
-		By("finding the corresponding LV")
-
-		var lvName string
-		Eventually(func() error {
-			var pvc corev1.PersistentVolumeClaim
-			err := getObjects(&pvc, "pvc", "-n", ns, "topo-pvc-raid1")
-			if err != nil {
-				return fmt.Errorf("failed to get PVC. err: %w", err)
-			}
-
-			var lv topolvmv1.LogicalVolume
-			err = getObjects(&lv, "logicalvolumes", pvc.Spec.VolumeName)
-			if err != nil {
-				return fmt.Errorf("failed to get logicalvolume. err: %w", err)
-			}
-			lvName = string(lv.UID)
-			return nil
-		}).Should(Succeed())
-
-		By("checking that the LV is of type raid")
-		stdout, err := execAtLocal("sudo", nil, "lvs", "-o", "lv_attr", "--noheadings", "--select", "lv_name="+lvName)
-		Expect(err).ShouldNot(HaveOccurred())
-		attribute_bit1 := string(strings.TrimSpace(string(stdout))[0])
-		// lv_attr bit 1 represents the volume type, where 'r' is for raid
-		Expect(attribute_bit1).To(Equal("r"))
-	})
+			By("checking that the LV is of type raid")
+			stdout, err := execAtLocal("sudo", nil, "lvs", "-o", "lv_attr", "--noheadings", "--select", "lv_name="+lvName)
+			Expect(err).ShouldNot(HaveOccurred())
+			attribute_bit1 := string(strings.TrimSpace(string(stdout))[0])
+			// lv_attr bit 1 represents the volume type, where 'r' is for raid
+			Expect(attribute_bit1).To(Equal("r"))
+		},
+		Entry("when using lvcreate-options", "create-option-raid1", "topolvm-provisioner-create-option-raid1"),
+		Entry("when using lvcreateOptionClasses", "option-class-raid1", "topolvm-provisioner-option-class-raid1"),
+	)
 }

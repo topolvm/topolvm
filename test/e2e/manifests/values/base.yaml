@@ -57,9 +57,25 @@ storageClasses:
       allowVolumeExpansion: true
       additionalParameters:
         '{{ include "topolvm.pluginName" . }}/device-class': "dc1"
+  - name: topolvm-provisioner-btrfs
+    storageClass:
+      fsType: btrfs
+      isDefaultClass: false
+      volumeBindingMode: WaitForFirstConsumer
+      allowVolumeExpansion: true
+      additionalParameters:
+        '{{ include "topolvm.pluginName" . }}/device-class': "dc1"
   - name: topolvm-provisioner-thin
     storageClass:
       fsType: xfs
+      isDefaultClass: false
+      volumeBindingMode: WaitForFirstConsumer
+      allowVolumeExpansion: true
+      additionalParameters:
+        '{{ include "topolvm.pluginName" . }}/device-class': "thin"
+  - name: topolvm-provisioner-thin-btrfs
+    storageClass:
+      fsType: btrfs
       isDefaultClass: false
       volumeBindingMode: WaitForFirstConsumer
       allowVolumeExpansion: true

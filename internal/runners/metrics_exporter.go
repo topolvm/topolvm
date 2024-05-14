@@ -176,8 +176,8 @@ func (m *metricsExporter) Start(ctx context.Context) error {
 				if met.DeviceClassType == TypeThin {
 					// metrics for thinpool subsystem exclusively
 					m.thinPool.tpSizeBytes.WithLabelValues(met.DeviceClass).Set(float64(met.ThinPoolSizeBytes))
-					m.thinPool.dataPercent.WithLabelValues(met.DeviceClass).Set(float64(met.DataPercent))
-					m.thinPool.metadataPercent.WithLabelValues(met.DeviceClass).Set(float64(met.MetadataPercent))
+					m.thinPool.dataPercent.WithLabelValues(met.DeviceClass).Set(met.DataPercent)
+					m.thinPool.metadataPercent.WithLabelValues(met.DeviceClass).Set(met.MetadataPercent)
 					m.thinPool.opAvailableBytes.WithLabelValues(met.DeviceClass).Set(float64(met.OverProvisionBytes))
 				}
 			}

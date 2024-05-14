@@ -12,7 +12,7 @@ import (
 )
 
 func usage() {
-	io.WriteString(os.Stderr, `Usage: hypertopolvm COMMAND [ARGS ...]
+	_, _ = io.WriteString(os.Stderr, `Usage: hypertopolvm COMMAND [ARGS ...]
 
 COMMAND:
     topolvm-controller:  TopoLVM CSI controller service.

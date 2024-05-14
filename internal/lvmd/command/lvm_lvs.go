@@ -3,6 +3,7 @@ package command
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strconv"
 	"strings"
 )
@@ -124,10 +125,8 @@ func getLVReport(ctx context.Context, name string) (map[string]lv, error) {
 	}
 	err := callLVMInto(ctx, res, args...)
 
-	if lvmErr, ok := AsLVMError(err); ok && lvmErr.ExitCode() == 5 {
-		// lvs returns 5 if the volume does not exist, so we can convert this to ErrNotFound
-		// join it to the original error so that the caller can still see the stderr output.
-		return nil, ErrNotFound
+	if IsLVMNotFound(err) {
+		return nil, errors.Join(ErrNotFound, err)
 	}
 
 	if err != nil {

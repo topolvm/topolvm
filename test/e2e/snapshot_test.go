@@ -45,16 +45,17 @@ func testSnapRestore() {
 	var snapshot snapapi.VolumeSnapshot
 
 	BeforeEach(func() {
-		nsSnapTest = "snap-test-" + randomString(10)
+		nsSnapTest = "snap-test-" + randomString()
 		createNamespace(nsSnapTest)
 	})
 	AfterEach(func() {
 		if !CurrentSpecReport().State.Is(types.SpecStateFailureStates) {
-			kubectl("delete", "namespaces/"+nsSnapTest)
+			_, err := kubectl("delete", "namespaces/"+nsSnapTest)
+			Expect(err).ShouldNot(HaveOccurred())
 		}
 	})
 
-	It("should create a thin-snap with size equal to source", func() {
+	DescribeTable("should create a thin-snap with size equal to source", func(provisioner string) {
 		By("deploying Pod with PVC")
 
 		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSize))
@@ -92,7 +93,7 @@ func testSnapRestore() {
 		Expect(strings.TrimSpace(string(stdout))).ShouldNot(BeEmpty())
 
 		By("creating a snap")
-		thinSnapshotYAML := []byte(fmt.Sprintf(thinSnapshotTemplateYAML, snapName, "topolvm-provisioner-thin", "thinvol"))
+		thinSnapshotYAML := []byte(fmt.Sprintf(thinSnapshotTemplateYAML, snapName, provisioner, "thinvol"))
 		_, err = kubectlWithInput(thinSnapshotYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -161,11 +162,13 @@ func testSnapRestore() {
 			}
 			return nil
 		}).Should(Succeed())
-	})
+	},
+		Entry("xfs", "topolvm-provisioner-thin"),
+		Entry("btrfs", "topolvm-provisioner-thin-btrfs"),
+	)
 
-	It("should create a thin-snap with size greater than source", func() {
+	DescribeTable("should create a thin-snap with size greater than source", func(provisioner string) {
 		By("deploying Pod with PVC")
-
 		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSize))
 		_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -201,7 +204,7 @@ func testSnapRestore() {
 		Expect(strings.TrimSpace(string(stdout))).ShouldNot(BeEmpty())
 
 		By("creating a snap")
-		thinSnapshotYAML := []byte(fmt.Sprintf(thinSnapshotTemplateYAML, snapName, "topolvm-provisioner-thin", "thinvol"))
+		thinSnapshotYAML := []byte(fmt.Sprintf(thinSnapshotTemplateYAML, snapName, provisioner, "thinvol"))
 		_, err = kubectlWithInput(thinSnapshotYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -301,12 +304,12 @@ func testSnapRestore() {
 			}
 			return nil
 		}).Should(Succeed())
+	},
+		Entry("xfs", "topolvm-provisioner-thin"),
+		Entry("btrfs", "topolvm-provisioner-thin-btrfs"),
+	)
 
-	})
-
-	It("validating if the restored PVCs are standalone", func() {
-		By("deleting the source PVC")
-
+	DescribeTable("validating if the restored PVCs are standalone", func(provisioner string) {
 		By("creating a PVC and application")
 		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSize))
 		_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsSnapTest, "-f", "-")
@@ -329,7 +332,7 @@ func testSnapRestore() {
 		}).Should(Succeed())
 
 		By("creating a snap of the PVC")
-		thinSnapshotYAML := []byte(fmt.Sprintf(thinSnapshotTemplateYAML, snapName, "topolvm-provisioner-thin", "thinvol"))
+		thinSnapshotYAML := []byte(fmt.Sprintf(thinSnapshotTemplateYAML, snapName, provisioner, "thinvol"))
 		_, err = kubectlWithInput(thinSnapshotYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() error {
@@ -404,5 +407,8 @@ func testSnapRestore() {
 
 		_, err = getLVInfo(lvName)
 		Expect(err).Should(Succeed())
-	})
+	},
+		Entry("xfs", "topolvm-provisioner-thin"),
+		Entry("btrfs", "topolvm-provisioner-thin-btrfs"),
+	)
 }

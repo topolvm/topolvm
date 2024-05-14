@@ -47,10 +47,10 @@ func createNamespace(ns string) {
 	fmt.Fprintln(os.Stderr, "created namespace: "+ns)
 }
 
-func randomString(n int) string {
+func randomString() string {
 	var letter = []rune("abcdefghijklmnopqrstuvwxyz")
 
-	b := make([]rune, n)
+	b := make([]rune, 10)
 	for i := range b {
 		b[i] = letter[rand.Intn(len(letter))]
 	}

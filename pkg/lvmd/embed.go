@@ -8,7 +8,11 @@ import (
 	lvmdTypes "github.com/topolvm/topolvm/pkg/lvmd/types"
 )
 
-func NewEmbeddedServiceClients(ctx context.Context, deviceClasses []*lvmdTypes.DeviceClass, LvcreateOptionClasses []*lvmdTypes.LvcreateOptionClass) (
+func NewEmbeddedServiceClients(
+	ctx context.Context,
+	deviceClasses []*lvmdTypes.DeviceClass,
+	LvcreateOptionClasses []*lvmdTypes.LvcreateOptionClass,
+) (
 	proto.LVServiceClient,
 	proto.VGServiceClient,
 ) {

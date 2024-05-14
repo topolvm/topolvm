@@ -25,7 +25,8 @@ func testScheduling() {
 		cc = commonBeforeEach()
 	})
 	AfterEach(func() {
-		kubectl("delete", "namespaces/"+nsSchedulingTest)
+		_, err := kubectl("delete", "namespaces/"+nsSchedulingTest)
+		Expect(err).ShouldNot(HaveOccurred())
 		commonAfterEach(cc)
 	})
 
@@ -90,7 +91,9 @@ func testScheduling() {
 			}
 
 			for _, c := range pod.Status.Conditions {
-				if c.Type == corev1.PodScheduled && c.Status == corev1.ConditionFalse && strings.Contains(c.Message, expectMessage) {
+				if c.Type == corev1.PodScheduled &&
+					c.Status == corev1.ConditionFalse &&
+					strings.Contains(c.Message, expectMessage) {
 					return nil
 				}
 			}

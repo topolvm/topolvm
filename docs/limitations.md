@@ -7,6 +7,7 @@
 - [Snapshots Can Be Restored Only on the Same Node with the Source Volume](#snapshots-can-be-restored-only-on-the-same-node-with-the-source-volume)
 - [Use lvcreate-options at Your Own Risk](#use-lvcreate-options-at-your-own-risk)
 - [Error when using TopoLVM on old Linux kernel hosts with official docker image](#error-when-using-topolvm-on-old-linux-kernel-hosts-with-official-docker-image)
+- [Restoring Snapshots or creating Clones with differing StorageClass from their source can fail](#restoring-snapshots-or-creating-clones-with-differing-storageclass-from-their-source-can-fail)
 
 ## Pod without PVC
 
@@ -91,3 +92,10 @@ When you use TopoLVM on old Linux kernel hosts with official docker image, you m
 
 This is because the official docker image is based on Ubuntu 22.04 and [xfsprogs v5.13 or later](https://packages.ubuntu.com/search?keywords=xfsprogs). It is possible to use incompatible filesystem options on older Linux kernels. Also, we don't know which kernel version exactly causes the problem, because the official xfs Q&A does not provide compatible kernel versions.
 In the past, we used Ubuntu 18.04 as a base image and used older xfsprogs whenever possible, but Ubuntu 18.04 became the end of support and we have upgraded the base image version.
+
+## Restoring Snapshots or creating Clones with differing StorageClass from their source can fail
+
+TopoLVM assumes that PersistentVolumes created via Snapshotting or Cloning have the same storage class as the original PersistentVolume. However, this assumption is not verified on PersistentVolume creation with [external-provisioner in version `v3.2` or higher](https://github.com/kubernetes-csi/external-provisioner/blob/v3.2.0/CHANGELOG/CHANGELOG-3.2.md#feature).
+This was originally introduced to support changes for cloud-providers where storage-class attributes might change ([see the PR for implementation details](https://github.com/kubernetes-csi/external-provisioner/pull/699)) during the restore process, however this doesn't apply for TopoLVM.
+
+Thus, if a pod consumes a restored/cloned PV having a different storage class from the original PV, this pod will not get scheduled if the StorageClass contents differ from the source StorageClass (e.g. by using a different device class).

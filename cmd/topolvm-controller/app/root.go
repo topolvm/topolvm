@@ -25,6 +25,10 @@ const (
 	// Derived from the usual 4096K blocks, 1024 inode default and journaling overhead,
 	// Allows for more than 80% free space after formatting, anything lower significantly reduces this percentage.
 	DefaultMinimumAllocationSizeExt4 = "32Mi"
+	// DefaultMinimumAllocationSizeBtrfs is the default minimum size for a filesystem volume with btrfs formatting.
+	// Btrfs changes its minimum allocation size based on various underlying device block settings and the host OS,
+	// but 200Mi seemed to be safe after some experimentation.
+	DefaultMinimumAllocationSizeBtrfs = "200Mi"
 )
 
 var config struct {
@@ -68,6 +72,7 @@ func Execute() {
 	}
 }
 
+//nolint:lll
 func init() {
 	fs := rootCmd.Flags()
 	fs.StringVar(&config.csiSocket, "csi-socket", topolvm.DefaultCSISocket, "UNIX domain socket filename for CSI")
@@ -91,8 +96,9 @@ func init() {
 		"Minimum Allocation Sizing for block storage. Logical Volumes will always be at least this big.")
 	config.controllerServerSettings.MinimumAllocationSettings.Filesystem = make(map[string]driver.Quantity)
 	for filesystem, minimum := range map[string]resource.Quantity{
-		"ext4": resource.MustParse(DefaultMinimumAllocationSizeExt4),
-		"xfs":  resource.MustParse(DefaultMinimumAllocationSizeXFS),
+		"ext4":  resource.MustParse(DefaultMinimumAllocationSizeExt4),
+		"xfs":   resource.MustParse(DefaultMinimumAllocationSizeXFS),
+		"btrfs": resource.MustParse(DefaultMinimumAllocationSizeBtrfs),
 	} {
 		config.controllerServerSettings.MinimumAllocationSettings.Filesystem[filesystem] = driver.NewQuantityFlagVar(fs,
 			fmt.Sprintf("minimum-allocation-%s", filesystem),

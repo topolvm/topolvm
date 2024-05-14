@@ -305,7 +305,7 @@ func TestLvmRetrieval(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer testutils.CleanLoopbackVG(vgName, []string{loop}, []string{vgName})
+	defer func() { _ = testutils.CleanLoopbackVG(vgName, []string{loop}, []string{vgName}) }()
 
 	vgs, lvs, err := getLVMState(ctx)
 

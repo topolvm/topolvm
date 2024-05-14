@@ -35,10 +35,12 @@ func (r gRPCServerRunner) Start(ctx context.Context) error {
 		return err
 	}
 
-	go r.srv.Serve(lis)
-	<-ctx.Done()
-	r.srv.GracefulStop()
-	return nil
+	go func() {
+		<-ctx.Done()
+		r.srv.GracefulStop()
+	}()
+
+	return r.srv.Serve(lis)
 }
 
 // NeedLeaderElection implements controller-runtime's manager.LeaderElectionRunnable.

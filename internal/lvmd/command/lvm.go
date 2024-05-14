@@ -118,7 +118,7 @@ func ListVolumeGroups(ctx context.Context) ([]*VolumeGroup, error) {
 		return nil, err
 	}
 
-	var groups []*VolumeGroup
+	groups := make([]*VolumeGroup, 0, len(vgs))
 	for _, vg := range vgs {
 		groups = append(groups, &VolumeGroup{state: vg, reportLvs: filterLV(vg.name, lvs)})
 	}
@@ -261,7 +261,7 @@ func (vg *VolumeGroup) ListPools(ctx context.Context, poolname string) (map[stri
 
 	for _, lv := range lvs {
 		if lv.isThinPool() {
-			ret[lv.name] = newThinPool(lv.name, vg, lv)
+			ret[lv.name] = newThinPool(vg, lv)
 		}
 	}
 	return ret, nil
@@ -294,7 +294,7 @@ func fullName(name string, vg *VolumeGroup) string {
 	return fmt.Sprintf("%v/%v", vg.Name(), name)
 }
 
-func newThinPool(name string, vg *VolumeGroup, lvmLv lv) *ThinPool {
+func newThinPool(vg *VolumeGroup, lvmLv lv) *ThinPool {
 	return &ThinPool{
 		vg,
 		lvmLv,
@@ -578,9 +578,7 @@ func (l *LogicalVolume) Resize(ctx context.Context, newSize uint64) error {
 func (vg *VolumeGroup) RemoveVolume(ctx context.Context, name string) error {
 	err := callLVM(ctx, "lvremove", "-f", fullName(name, vg))
 
-	if lvmErr, ok := AsLVMError(err); ok && lvmErr.ExitCode() == 5 {
-		// lvremove returns 5 if the volume does not exist, so we can convert this to ErrNotFound
-		// join it to the original error so that the caller can still see the stderr output.
+	if IsLVMNotFound(err) {
 		return errors.Join(ErrNotFound, err)
 	}
 

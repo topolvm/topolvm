@@ -30,7 +30,7 @@ func TestUseLegacy(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			os.Setenv("USE_LEGACY", tt.envval)
+			_ = os.Setenv("USE_LEGACY", tt.envval)
 			if UseLegacy() != tt.expected {
 				t.Fatalf("return value is not %s", strconv.FormatBool(tt.expected))
 			}
@@ -58,7 +58,7 @@ func TestGetPluginName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			os.Setenv("USE_LEGACY", tt.envval)
+			_ = os.Setenv("USE_LEGACY", tt.envval)
 			if GetPluginName() != tt.expected {
 				t.Fatalf("return value is not %s", tt.expected)
 			}
@@ -127,7 +127,7 @@ func doContainTest(t *testing.T, f func() string) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			os.Setenv("USE_LEGACY", tt.envval)
+			_ = os.Setenv("USE_LEGACY", tt.envval)
 			val := f()
 			if !strings.Contains(val, tt.contained) {
 				t.Fatalf("return value %q does not contain strings: %s", val, tt.contained)

@@ -2,7 +2,6 @@ package command
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -76,11 +75,14 @@ func runCommand(ctx context.Context, cmd *exec.Cmd) (io.ReadCloser, error) {
 	}
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
+		_ = stdout.Close()
 		return nil, err
 	}
 
 	log.FromContext(ctx).Info("invoking command", "args", cmd.Args)
 	if err := cmd.Start(); err != nil {
+		_ = stdout.Close()
+		_ = stderr.Close()
 		return nil, err
 	}
 	// Return a read closer that will wait for the command to finish when closed to release all resources.
@@ -95,11 +97,9 @@ type commandReadCloser struct {
 	stderr io.ReadCloser
 }
 
+// Close closes stdout and stderr and waits for the command to exit. Close
+// should not be called before all reads from stdout have completed.
 func (p commandReadCloser) Close() error {
-	if err := p.ReadCloser.Close(); err != nil {
-		return err
-	}
-
 	// Read the stderr output after the read has finished since we are sure by then the command must have run.
 	stderr, err := io.ReadAll(p.stderr)
 	if err != nil {
@@ -114,48 +114,4 @@ func (p commandReadCloser) Close() error {
 		}
 	}
 	return nil
-}
-
-// AsLVMError returns the LVMError from the error if it exists and a bool indicating if is an LVMError or not.
-func AsLVMError(err error) (LVMError, bool) {
-	var lvmErr LVMError
-	ok := errors.As(err, &lvmErr)
-	return lvmErr, ok
-}
-
-// LVMError is an error that wraps the original error and the stderr output of the lvm command if found.
-// It also provides an exit code if present that can be used to determine the type of error from LVM.
-// Regular inaccessible errors will have an exit code of 5.
-type LVMError interface {
-	error
-	ExitCode() int
-	Unwrap() error
-}
-
-type lvmErr struct {
-	err    error
-	stderr []byte
-}
-
-func (e *lvmErr) Error() string {
-	if e.stderr != nil {
-		return fmt.Sprintf("%v: %v", e.err, string(bytes.TrimSpace(e.stderr)))
-	}
-	return e.err.Error()
-}
-
-func (e *lvmErr) Unwrap() error {
-	return e.err
-}
-
-func (e *lvmErr) ExitCode() int {
-	type exitError interface {
-		ExitCode() int
-		error
-	}
-	var err exitError
-	if errors.As(e.err, &err) {
-		return err.ExitCode()
-	}
-	return -1
 }

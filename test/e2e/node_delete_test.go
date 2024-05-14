@@ -28,7 +28,8 @@ func testNodeDelete() {
 	})
 
 	AfterEach(func() {
-		kubectl("delete", "namespaces/"+nsNodeDeleteTest)
+		_, err := kubectl("delete", "namespaces/"+nsNodeDeleteTest)
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	It("should re-create pods and PVCs on other nodes than the deleted node", func() {
@@ -74,6 +75,7 @@ func testNodeDelete() {
 
 		for _, pod := range pods.Items {
 			if pod.Spec.NodeName == targetNode {
+				pod := pod
 				targetPod = &pod
 				break
 			}

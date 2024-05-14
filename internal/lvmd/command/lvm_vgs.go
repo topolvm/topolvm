@@ -3,6 +3,7 @@ package command
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strconv"
 )
 
@@ -54,11 +55,10 @@ func getVGReport(ctx context.Context, name string) (vg, error) {
 	}
 	err := callLVMInto(ctx, res, args...)
 
-	if lvmErr, ok := AsLVMError(err); ok && lvmErr.ExitCode() == 5 {
-		// vgs returns 5 if the volume group does not exist, so we can convert this to ErrNotFound
-		// join it to the original error so that the caller can still see the stderr output.
-		return vg{}, ErrNotFound
+	if IsLVMNotFound(err) {
+		return vg{}, errors.Join(ErrNotFound, err)
 	}
+
 	if err != nil {
 		return vg{}, err
 	}
