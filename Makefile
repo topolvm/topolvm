@@ -253,7 +253,7 @@ install-kind: | $(BINDIR)
 .PHONY: install-container-structure-test
 install-container-structure-test: | $(BINDIR)
 	$(CURL) -o $(CONTAINER_STRUCTURE_TEST) \
-		https://storage.googleapis.com/container-structure-test/v$(CONTAINER_STRUCTURE_TEST_VERSION)/container-structure-test-linux-amd64 \
+		https://github.com/GoogleContainerTools/container-structure-test/releases/download/v$(CONTAINER_STRUCTURE_TEST_VERSION)/container-structure-test-linux-amd64 \
     && chmod +x $(CONTAINER_STRUCTURE_TEST)
 
 .PHONY: install-helm
