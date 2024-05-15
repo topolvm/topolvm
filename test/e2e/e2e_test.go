@@ -840,6 +840,18 @@ func testE2E() {
 			_, err = kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 			Expect(err).ShouldNot(HaveOccurred())
 
+			By("verifying PVC is updated")
+			Eventually(func() error {
+				var pvc corev1.PersistentVolumeClaim
+				if err := getObjects(&pvc, "pvc", "-n", ns, "topo-pvc"); err != nil {
+					return fmt.Errorf("failed to get PVC. err: %w", err)
+				}
+				if pvc.Status.Capacity.Storage().Cmp(*pvc.Spec.Resources.Requests.Storage()) != 0 {
+					return fmt.Errorf("capacity was not yet updated in status: %s", pvc.Status.Capacity.Storage().String())
+				}
+				return nil
+			}, timeout).Should(Succeed())
+
 			By("confirming that the specified device is resized in the Pod")
 			Eventually(func() error {
 				stdout, err := kubectl("exec", "-n", ns, "ubuntu", "--", "df", "--output=size", "/test1")
@@ -863,7 +875,17 @@ func testE2E() {
 				"reason=VolumeResizeFailed"
 			var events corev1.EventList
 			err = getObjects(&events, "events", "-n", ns, "--field-selector="+fieldSelector)
-			Expect(err).To(BeEquivalentTo(ErrObjectNotFound))
+			wasModified := "the object has been modified; please apply your changes to the latest version and try again"
+			if !errors.Is(err, ErrObjectNotFound) {
+				for _, item := range events.Items {
+					if strings.Contains(item.Message, wasModified) {
+						By("VolumeResizeFailed event was skipped, " +
+							"as it was caused by resizer resource version inconsistency")
+					} else {
+						Fail(fmt.Sprintf("unexpected VolumeResizeFailed event: %s", item.Message))
+					}
+				}
+			}
 
 			By("resizing PVC over vg capacity")
 			claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 100*1024, storageClass))
@@ -880,6 +902,16 @@ func testE2E() {
 				case err != nil:
 					return fmt.Errorf("failed to get event. err: %w", err)
 				default:
+					foundValid := false
+					for _, item := range events.Items {
+						if !strings.Contains(item.Message, wasModified) {
+							foundValid = true
+							break
+						}
+					}
+					if !foundValid {
+						return errors.New("no valid failure event found (filtered to not contain conflicts)")
+					}
 					return nil
 				}
 			}).Should(Succeed())
