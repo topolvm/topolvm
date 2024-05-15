@@ -92,8 +92,6 @@ scheduler:
   # scheduler.tolerations -- Specify tolerations on the Deployment or DaemonSet.
   ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
   tolerations:
-    - key: CriticalAddonsOnly
-      operator: Exists
     - key: node-role.kubernetes.io/control-plane
       effect: NoSchedule
 
@@ -102,7 +100,7 @@ scheduler:
   nodeSelector: {}
 
   # scheduler.priorityClassName -- Specify priorityClassName on the Deployment or DaemonSet.
-  priorityClassName:
+  priorityClassName: system-cluster-critical
 
   # scheduler.schedulerOptions -- Tune the Node scoring.
   # ref: https://github.com/topolvm/topolvm/blob/master/deploy/README.md
