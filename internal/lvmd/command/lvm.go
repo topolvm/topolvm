@@ -9,11 +9,6 @@ import (
 	"github.com/topolvm/topolvm"
 )
 
-const (
-	nsenter = "/usr/bin/nsenter"
-	lvm     = "/sbin/lvm"
-)
-
 // ErrNotFound is returned when a VG or LV is not found.
 var ErrNotFound = errors.New("not found")
 

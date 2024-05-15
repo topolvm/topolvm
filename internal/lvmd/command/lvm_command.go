@@ -14,7 +14,26 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-var Containerized = false
+const (
+	nsenter = "/usr/bin/nsenter"
+)
+
+var (
+	containerized = false
+	lvm           = "/sbin/lvm"
+)
+
+// Containerized sets whether to run lvm commands in a container.
+func Containerized(sw bool) {
+	containerized = sw
+}
+
+// SetLVMPath sets the path to the lvm command.
+func SetLVMPath(path string) {
+	if path != "" {
+		lvm = path
+	}
+}
 
 // callLVM calls lvm sub-commands and prints the output to the log.
 func callLVM(ctx context.Context, args ...string) error {
@@ -57,7 +76,7 @@ func callLVMStreamed(ctx context.Context, args ...string) (io.ReadCloser, error)
 
 // wrapExecCommand calls cmd with args but wrapped to run on the host with nsenter if Containerized is true.
 func wrapExecCommand(cmd string, args ...string) *exec.Cmd {
-	if Containerized {
+	if containerized {
 		args = append([]string{"-m", "-u", "-i", "-n", "-p", "-t", "1", cmd}, args...)
 		cmd = nsenter
 	}

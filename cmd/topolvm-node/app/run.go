@@ -116,6 +116,8 @@ func subMain(ctx context.Context) error {
 		health = grpc_health_v1.NewHealthClient(conn)
 	}
 
+	lvmd.SetLVMPath(config.lvmPath)
+
 	if err := controller.SetupLogicalVolumeReconcilerWithServices(
 		mgr, client, nodename, vgService, lvService); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "LogicalVolume")
