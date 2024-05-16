@@ -434,11 +434,12 @@ func (s *nodeServerNoLocked) NodeGetVolumeStats(ctx context.Context, req *csi.No
 
 	var usage []*csi.VolumeUsage
 	if sfs.Blocks > 0 {
+		//nolint:unconvert // explicit conversion of Frsize for s390x.
 		usage = append(usage, &csi.VolumeUsage{
 			Unit:      csi.VolumeUsage_BYTES,
-			Total:     int64(sfs.Blocks) * sfs.Frsize,
-			Used:      int64(sfs.Blocks-sfs.Bfree) * sfs.Frsize,
-			Available: int64(sfs.Bavail) * sfs.Frsize,
+			Total:     int64(sfs.Blocks) * int64(sfs.Frsize),
+			Used:      int64(sfs.Blocks-sfs.Bfree) * int64(sfs.Frsize),
+			Available: int64(sfs.Bavail) * int64(sfs.Frsize),
 		})
 	}
 	if sfs.Files > 0 {
