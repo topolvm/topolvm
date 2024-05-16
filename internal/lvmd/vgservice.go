@@ -77,6 +77,7 @@ func (s *vgService) GetLVList(ctx context.Context, req *proto.GetLVListRequest) 
 			// do not send thin lvs if request is on TypeThick
 			continue
 		}
+
 		vols = append(vols, &proto.LogicalVolume{
 			Name:      lv.Name(),
 			SizeGb:    (lv.Size() + (1 << 30) - 1) >> 30,
@@ -84,6 +85,7 @@ func (s *vgService) GetLVList(ctx context.Context, req *proto.GetLVListRequest) 
 			DevMajor:  lv.MajorNumber(),
 			DevMinor:  lv.MinorNumber(),
 			Tags:      lv.Tags(),
+			Attr:      lv.Attr(),
 		})
 	}
 	return &proto.GetLVListResponse{Volumes: vols}, nil
