@@ -18,6 +18,8 @@ jobs:
       - run: make setup
       - run: make check-uncommitted
       - run: make test
+      - run: make build-topolvm GOARCH=s390x
+        name: "Build TopoLVM for s390x architecture"
       - run: make groupname-test
 
   build-images:
