@@ -22,6 +22,7 @@ Our supported platform are:
 \*1 The host's Linux Kernel must be v4.9 or later which supports `rmapbt` and `reflink`, if you use xfs filesystem with an official docker image.  
 \*2 Tier1 support. The official docker images are provided and all functionalities are tested by CI.  
 \*3 Tier2 support. The official docker images are provided, but no tests run by CI.  
+\*4 Tier3 support. No docker images are provided, and no tests run by CI, but binaries are built.
 
 Docker images are available on [ghcr.io](https://github.com/orgs/topolvm/packages).  
 
