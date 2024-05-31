@@ -11,25 +11,28 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-logr/zapr"
 	"github.com/spf13/cobra"
 	"github.com/topolvm/topolvm"
 	"github.com/topolvm/topolvm/internal/lvmd"
 	"github.com/topolvm/topolvm/internal/lvmd/command"
 	"github.com/topolvm/topolvm/pkg/lvmd/proto"
 	lvmdTypes "github.com/topolvm/topolvm/pkg/lvmd/types"
+	"go.elastic.co/ecszap"
+	uberzap "go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"k8s.io/klog/v2"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 var (
-	cfgFilePath   string
-	containerized bool
-	lvmPath       string
-	zapOpts       zap.Options
+	cfgFilePath      string
+	containerized    bool
+	lvmPath          string
+	zapOpts          zap.Options
+	ECSFormatLogging bool
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -53,7 +56,7 @@ volume group.
 }
 
 func subMain(ctx context.Context) error {
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zapOpts)))
+	setLogging()
 	logger := log.FromContext(ctx)
 
 	command.Containerized(containerized)
@@ -141,8 +144,20 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFilePath, "config", filepath.Join("/etc", "topolvm", "lvmd.yaml"), "config file")
 	rootCmd.PersistentFlags().BoolVar(&containerized, "container", false, "Run within a container")
 	rootCmd.PersistentFlags().StringVar(&lvmPath, "lvm-path", "", "lvm command path on the host OS")
+	rootCmd.PersistentFlags().BoolVar(&ECSFormatLogging, "ecs-format-logging", false, "Enable Elastic Common Schema (ECS) format logging")
 
 	goflags := flag.NewFlagSet("klog", flag.ExitOnError)
 	klog.InitFlags(goflags)
 	zapOpts.BindFlags(goflags)
+}
+
+func setLogging() {
+	if ECSFormatLogging {
+		encoderConfig := ecszap.NewDefaultEncoderConfig()
+		core := ecszap.NewCore(encoderConfig, os.Stdout, uberzap.InfoLevel)
+		zaplogger := uberzap.New(core)
+		log.SetLogger(zapr.NewLogger(zaplogger))
+	} else {
+		log.SetLogger(zap.New(zap.UseFlagOptions(&zapOpts)))
+	}
 }

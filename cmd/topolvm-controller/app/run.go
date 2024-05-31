@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
 	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	"github.com/go-logr/zapr"
 	"github.com/topolvm/topolvm"
 	topolvmlegacyv1 "github.com/topolvm/topolvm/api/legacy/v1"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
@@ -15,6 +17,8 @@ import (
 	"github.com/topolvm/topolvm/internal/runners"
 	"github.com/topolvm/topolvm/pkg/controller"
 	"github.com/topolvm/topolvm/pkg/driver"
+	"go.elastic.co/ecszap"
+	uberzap "go.uber.org/zap"
 	"google.golang.org/grpc"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -23,6 +27,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -48,8 +53,7 @@ func init() {
 
 // Run builds and starts the manager with leader election.
 func subMain() error {
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&config.zapOpts)))
-
+	setLogging()
 	cfg, err := ctrl.GetConfig()
 	if err != nil {
 		return err
@@ -161,4 +165,15 @@ func subMain() error {
 		return err
 	}
 	return nil
+}
+
+func setLogging() {
+	if config.ECSFormatLogging {
+		encoderConfig := ecszap.NewDefaultEncoderConfig()
+		core := ecszap.NewCore(encoderConfig, os.Stdout, uberzap.InfoLevel)
+		zaplogger := uberzap.New(core)
+		log.SetLogger(zapr.NewLogger(zaplogger))
+	} else {
+		log.SetLogger(zap.New(zap.UseFlagOptions(&config.zapOpts)))
+	}
 }
