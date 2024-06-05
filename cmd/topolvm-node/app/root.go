@@ -23,6 +23,7 @@ var config struct {
 	embedLvmd           bool
 	lvmPath             string
 	lvmd                lvmd.Config
+	ECSFormatLogging    bool
 }
 
 var rootCmd = &cobra.Command{
@@ -61,6 +62,7 @@ func init() {
 	fs.BoolVar(&config.embedLvmd, "embed-lvmd", false, "Runs LVMD locally by embedding it instead of calling it externally via gRPC")
 	fs.StringVar(&config.lvmPath, "lvm-path", "", "lvm command path on the host OS")
 	fs.StringVar(&cfgFilePath, "config", filepath.Join("/etc", "topolvm", "lvmd.yaml"), "config file")
+	fs.BoolVar(&config.ECSFormatLogging, "ecs-format-logging", false, "Enable Elastic Common Schema (ECS) format logging")
 
 	_ = viper.BindEnv("nodename", "NODE_NAME")
 	_ = viper.BindPFlag("nodename", fs.Lookup("nodename"))

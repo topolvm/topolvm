@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	"github.com/go-logr/zapr"
 	"github.com/spf13/viper"
 	"github.com/topolvm/topolvm"
 	topolvmlegacyv1 "github.com/topolvm/topolvm/api/legacy/v1"
@@ -21,6 +22,8 @@ import (
 	"github.com/topolvm/topolvm/pkg/driver"
 	"github.com/topolvm/topolvm/pkg/lvmd"
 	"github.com/topolvm/topolvm/pkg/lvmd/proto"
+	"go.elastic.co/ecszap"
+	uberzap "go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/health/grpc_health_v1"
@@ -61,7 +64,7 @@ func subMain(ctx context.Context) error {
 		return errors.New("node name is not given")
 	}
 
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&config.zapOpts)))
+	setLogging()
 
 	metricsServerOptions := metricsserver.Options{
 		BindAddress: config.metricsAddr,
@@ -221,4 +224,15 @@ func loadConfFile(ctx context.Context, cfgFilePath string) error {
 		"file_name", cfgFilePath,
 	)
 	return nil
+}
+
+func setLogging() {
+	if config.ECSFormatLogging {
+		encoderConfig := ecszap.NewDefaultEncoderConfig()
+		core := ecszap.NewCore(encoderConfig, os.Stdout, uberzap.InfoLevel)
+		zaplogger := uberzap.New(core)
+		log.SetLogger(zapr.NewLogger(zaplogger))
+	} else {
+		log.SetLogger(zap.New(zap.UseFlagOptions(&config.zapOpts)))
+	}
 }
