@@ -4,8 +4,5 @@ import (
 	internalLvmdCommand "github.com/topolvm/topolvm/internal/lvmd/command"
 )
 
-// Containerized sets whether to run lvm commands in a container.
-var Containerized = internalLvmdCommand.Containerized
-
 // SetLVMPath sets the path to the lvm command.
 var SetLVMPath = internalLvmdCommand.SetLVMPath
