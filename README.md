@@ -13,9 +13,9 @@ It can be considered as a specific implementation of [local persistent volumes](
 
 Our supported platform are:
 
-- Kubernetes: 1.28, 1.27, 1.26
-- Node OS: Linux with LVM2 (\*1)
-- CPU Architecture: x86 (\*2), arm64 (\*3), ppc64le (\*3)
+- Kubernetes: 1.29, 1.28, 1.27
+- Node OS: Linux with LVM2 (\*1), specifically tested on Ubuntu
+- CPU Architecture: x86 (\*2), arm64 (\*3), ppc64le (\*3), s390x (\*4)
 - Filesystems: ext4, xfs, btrfs(experimental)
 - lvm version 2.02.163 or later (adds JSON output support)
 

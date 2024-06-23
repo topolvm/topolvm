@@ -371,6 +371,13 @@ func (s *lvService) ResizeLV(ctx context.Context, req *proto.ResizeLVRequest) (*
 		return nil, status.Error(codes.Internal, fmt.Sprintf("unsupported device class target: %s", dc.Type))
 	}
 
+	logger.Info(
+		"lvservice request - ResizeLV",
+		"requested", requested,
+		"current", current,
+		"free", free,
+	)
+
 	if free < (requested - current) {
 		logger.Error(err, "no enough space left on VG",
 			"requested", requested,

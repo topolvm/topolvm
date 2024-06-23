@@ -59,7 +59,6 @@ spec:
             privileged: true
           command:
             - /lvmd
-            - --container
           {{- with .Values.lvmd.args }}
           args: {{ toYaml . | nindent 12 }}
           {{- end }}

@@ -7,7 +7,7 @@
 
 ## Installation
 
-See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v14.1.2/docs/getting-started.md).
+See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v15.0.0/docs/getting-started.md).
 
 ## Values
 
@@ -127,13 +127,13 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v14.
 | scheduler.options.listen.port | int | `9251` | Listen port. |
 | scheduler.podDisruptionBudget.enabled | bool | `true` | Specify podDisruptionBudget enabled. |
 | scheduler.podLabels | object | `{}` | Additional labels to be set on the scheduler pods. |
-| scheduler.priorityClassName | string | `nil` | Specify priorityClassName on the Deployment or DaemonSet. |
+| scheduler.priorityClassName | string | `"system-cluster-critical"` | Specify priorityClassName on the Deployment or DaemonSet. |
 | scheduler.schedulerOptions | object | `{}` | Tune the Node scoring. ref: https://github.com/topolvm/topolvm/blob/master/deploy/README.md |
 | scheduler.service.clusterIP | string | `nil` | Specify Service clusterIP. |
 | scheduler.service.nodePort | int | `nil` | Specify nodePort. |
 | scheduler.service.type | string | `"LoadBalancer"` | Specify Service type. |
 | scheduler.terminationGracePeriodSeconds | int | `nil` | Specify terminationGracePeriodSeconds on the Deployment or DaemonSet. |
-| scheduler.tolerations | list | `[{"key":"CriticalAddonsOnly","operator":"Exists"},{"effect":"NoSchedule","key":"node-role.kubernetes.io/control-plane"}]` | Specify tolerations on the Deployment or DaemonSet. # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ |
+| scheduler.tolerations | list | `[{"effect":"NoSchedule","key":"node-role.kubernetes.io/control-plane"}]` | Specify tolerations on the Deployment or DaemonSet. # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ |
 | scheduler.type | string | `"daemonset"` | If you run with a managed control plane (such as GKE, AKS, etc), topolvm-scheduler should be deployed as Deployment and Service. topolvm-scheduler should otherwise be deployed as DaemonSet in unmanaged (i.e. bare metal) deployments. possible values:  daemonset/deployment |
 | scheduler.updateStrategy | object | `{}` | Specify updateStrategy on the Deployment or DaemonSet. |
 | securityContext.runAsGroup | int | `10000` | Specify runAsGroup. |

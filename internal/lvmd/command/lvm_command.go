@@ -14,7 +14,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-var Containerized = false
+const (
+	nsenter = "/usr/bin/nsenter"
+)
+
+var (
+	lvm = "/sbin/lvm"
+)
+
+// SetLVMPath sets the path to the lvm command.
+func SetLVMPath(path string) {
+	if path != "" {
+		lvm = path
+	}
+}
 
 // callLVM calls lvm sub-commands and prints the output to the log.
 func callLVM(ctx context.Context, args ...string) error {
@@ -49,19 +62,16 @@ func callLVMInto(ctx context.Context, into any, args ...string) error {
 // Not calling close on this method will result in a resource leak.
 func callLVMStreamed(ctx context.Context, args ...string) (io.ReadCloser, error) {
 	ctx = log.IntoContext(ctx, log.FromContext(ctx).WithCallDepth(1))
-	cmd := wrapExecCommand(lvm, args...)
+	cmd := commandOnRootNS(lvm, args...)
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "LC_ALL=C")
 	return runCommand(ctx, cmd)
 }
 
-// wrapExecCommand calls cmd with args but wrapped to run on the host with nsenter if Containerized is true.
-func wrapExecCommand(cmd string, args ...string) *exec.Cmd {
-	if Containerized {
-		args = append([]string{"-m", "-u", "-i", "-n", "-p", "-t", "1", cmd}, args...)
-		cmd = nsenter
-	}
-	c := exec.Command(cmd, args...)
+// commandOnRootNS calls cmd with args on root NS.
+func commandOnRootNS(cmd string, args ...string) *exec.Cmd {
+	args = append([]string{"-m", "-u", "-i", "-n", "-p", "-t", "1", cmd}, args...)
+	c := exec.Command(nsenter, args...)
 	return c
 }
 

@@ -2,6 +2,7 @@ package driver
 
 import (
 	"context"
+	"errors"
 	"io"
 	"os"
 	"path"
@@ -455,13 +456,12 @@ func (s *nodeServerNoLocked) NodeGetVolumeStats(ctx context.Context, req *csi.No
 func (s *nodeServerNoLocked) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
 	volumeID := req.GetVolumeId()
 	volumePath := req.GetVolumePath()
-
-	nodeLogger.Info("NodeExpandVolume is called",
-		"volume_id", volumeID,
+	logger := nodeLogger.WithValues("volume_id", volumeID,
 		"volume_path", volumePath,
 		"required", req.GetCapacityRange().GetRequiredBytes(),
-		"limit", req.GetCapacityRange().GetLimitBytes(),
-	)
+		"limit", req.GetCapacityRange().GetLimitBytes())
+
+	logger.Info("NodeExpandVolume is called")
 
 	if len(volumeID) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "no volume_id is provided")
@@ -481,10 +481,7 @@ func (s *nodeServerNoLocked) NodeExpandVolume(ctx context.Context, req *csi.Node
 	}
 
 	if isBlock := req.GetVolumeCapability().GetBlock() != nil; isBlock {
-		nodeLogger.Info("NodeExpandVolume(block) is skipped",
-			"volume_id", volumeID,
-			"target_path", volumePath,
-		)
+		logger.Info("NodeExpandVolume(block) is skipped")
 		return &csi.NodeExpandVolumeResponse{}, nil
 	}
 
@@ -493,7 +490,7 @@ func (s *nodeServerNoLocked) NodeExpandVolume(ctx context.Context, req *csi.Node
 	deviceClass := topolvm.DefaultDeviceClassName
 	if err == nil {
 		deviceClass = lvr.Spec.DeviceClass
-	} else if err != k8s.ErrVolumeNotFound {
+	} else if !errors.Is(err, k8s.ErrVolumeNotFound) {
 		return nil, err
 	}
 	lv, err := s.getLvFromContext(ctx, deviceClass, volumeID)
@@ -518,16 +515,15 @@ func (s *nodeServerNoLocked) NodeExpandVolume(ctx context.Context, req *csi.Node
 	if len(devicePath) == 0 {
 		return nil, status.Errorf(codes.Internal, "filesystem %s is not mounted at %s", volumeID, volumePath)
 	}
+	logger = logger.WithValues("device", devicePath)
 
+	logger.Info("triggering filesystem resize")
 	r := mountutil.NewResizeFs(s.mounter.Exec)
 	if _, err := r.Resize(device, volumePath); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to resize filesystem %s (mounted at: %s): %v", volumeID, volumePath, err)
 	}
 
-	nodeLogger.Info("NodeExpandVolume(fs) is succeeded",
-		"volume_id", volumeID,
-		"target_path", volumePath,
-	)
+	logger.Info("NodeExpandVolume(fs) is succeeded")
 
 	// `capacity_bytes` in NodeExpandVolumeResponse is defined as OPTIONAL.
 	// If this field needs to be filled, the value should be equal to `.status.currentSize` of the corresponding

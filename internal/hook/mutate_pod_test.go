@@ -9,7 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -267,8 +267,8 @@ var _ = Describe("pod mutation webhook", func() {
 						VolumeClaimTemplate: &corev1.PersistentVolumeClaimTemplate{
 							Spec: corev1.PersistentVolumeClaimSpec{
 								AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-								StorageClassName: pointer.String(topolvmProvisionerStorageClassName),
-								Resources: corev1.ResourceRequirements{
+								StorageClassName: ptr.To(topolvmProvisionerStorageClassName),
+								Resources: corev1.VolumeResourceRequirements{
 									Requests: corev1.ResourceList{
 										"storage": *resource.NewQuantity(100<<30, resource.BinarySI),
 									},

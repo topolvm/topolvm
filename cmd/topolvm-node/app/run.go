@@ -88,7 +88,6 @@ func subMain(ctx context.Context) error {
 	var health grpc_health_v1.HealthClient
 
 	if config.embedLvmd {
-		lvmd.Containerized(true)
 		if err := loadConfFile(ctx, cfgFilePath); err != nil {
 			return err
 		}
@@ -115,6 +114,8 @@ func subMain(ctx context.Context) error {
 		lvService, vgService = proto.NewLVServiceClient(conn), proto.NewVGServiceClient(conn)
 		health = grpc_health_v1.NewHealthClient(conn)
 	}
+
+	lvmd.SetLVMPath(config.lvmPath)
 
 	if err := controller.SetupLogicalVolumeReconcilerWithServices(
 		mgr, client, nodename, vgService, lvService); err != nil {
