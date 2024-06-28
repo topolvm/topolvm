@@ -19,11 +19,11 @@ import (
 
 type persistentVolumeClaimMutator struct {
 	getter  *getter.RetryMissingGetter
-	decoder *admission.Decoder
+	decoder admission.Decoder
 }
 
 // PVCMutator creates a mutating webhook for PVCs.
-func PVCMutator(r client.Reader, apiReader client.Reader, dec *admission.Decoder) http.Handler {
+func PVCMutator(r client.Reader, apiReader client.Reader, dec admission.Decoder) http.Handler {
 	return &webhook.Admission{
 		Handler: &persistentVolumeClaimMutator{
 			getter:  getter.NewRetryMissingGetter(r, apiReader),

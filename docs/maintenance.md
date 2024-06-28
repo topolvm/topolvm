@@ -112,9 +112,6 @@ The following tools depend on kubernetes, use appropriate version associating to
 - [kind](https://github.com/kubernetes-sigs/kind/releases)
 - [minikube](https://github.com/kubernetes/minikube/releases)
 
-In `.github/workflows/e2e-k8s-incluster-lvmd.yaml`, minikube depends on some other tools,
-so please check if these tools are also needed to be upgraded.
-
 #### Depending Modules
 
 Read [kubernetes go.mod](https://github.com/kubernetes/kubernetes/blob/master/go.mod), and update the `prometheus/*` and `grpc` modules.

@@ -9,11 +9,11 @@ on:
 jobs:
   e2e-k8s:
     name: "e2e-k8s"
-    runs-on: "ubuntu-20.04"
+    runs-on: "ubuntu-22.04"
     strategy:
       fail-fast: false
       matrix:
-        kubernetes_versions: ["1.29.2", "1.28.7", "1.27.11"]
+        kubernetes_versions: ["1.30.0", "1.29.4", "1.28.9"]
     env:
       KUBERNETES_VERSION: ${{ matrix.kubernetes_versions }}
       TEST_SCHEDULER_EXTENDER_TYPE: ${{ inputs.test_scheduler_extender_type }}
