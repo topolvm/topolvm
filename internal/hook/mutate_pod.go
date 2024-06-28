@@ -28,11 +28,11 @@ var pmLogger = ctrl.Log.WithName("pod-mutator")
 // podMutator mutates pods using PVC for TopoLVM.
 type podMutator struct {
 	getter  *getter.RetryMissingGetter
-	decoder *admission.Decoder
+	decoder admission.Decoder
 }
 
 // PodMutator creates a mutating webhook for Pods.
-func PodMutator(r client.Reader, apiReader client.Reader, dec *admission.Decoder) http.Handler {
+func PodMutator(r client.Reader, apiReader client.Reader, dec admission.Decoder) http.Handler {
 	return &webhook.Admission{
 		Handler: &podMutator{
 			getter:  getter.NewRetryMissingGetter(r, apiReader),

@@ -13,11 +13,11 @@ on:
 jobs:
   e2e-k8s-incluster-lvmd:
     name: "e2e-k8s-incluster-lvmd"
-    runs-on: "ubuntu-20.04"
+    runs-on: "ubuntu-22.04"
     strategy:
       fail-fast: false
       matrix:
-        kubernetes_versions: ["1.29.2", "1.28.7", "1.27.11"]
+        kubernetes_versions: ["1.30.0", "1.29.4", "1.28.9"]
         test_lvmd_type: ["daemonset", "embedded"]
     env:
       KUBERNETES_VERSION: ${{ matrix.kubernetes_versions }}

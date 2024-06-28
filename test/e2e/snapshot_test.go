@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	snapapi "github.com/kubernetes-csi/external-snapshotter/client/v7/apis/volumesnapshot/v1"
+	snapapi "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"

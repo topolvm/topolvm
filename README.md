@@ -13,7 +13,7 @@ It can be considered as a specific implementation of [local persistent volumes](
 
 Our supported platform are:
 
-- Kubernetes: 1.29, 1.28, 1.27
+- Kubernetes: 1.30, 1.29, 1.28
 - Node OS: Linux with LVM2 (\*1), specifically tested on Ubuntu
 - CPU Architecture: x86 (\*2), arm64 (\*3), ppc64le (\*3), s390x (\*4)
 - Filesystems: ext4, xfs, btrfs(experimental)
