@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -13,6 +14,8 @@ import (
 	"github.com/go-logr/logr/testr"
 	"github.com/topolvm/topolvm"
 	"github.com/topolvm/topolvm/internal/lvmd/testutils"
+	mountutil "k8s.io/mount-utils"
+	utilexec "k8s.io/utils/exec"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -194,4 +197,119 @@ func Test_lvm_command(t *testing.T) {
 			}
 		})
 	})
+}
+
+func Test_Resize(t *testing.T) {
+	if os.Getuid() != 0 {
+		t.Skip("run as root")
+	}
+	ctx := ctrl.LoggerInto(context.Background(), testr.New(t))
+
+	vgName := "lsblk_on_host_test"
+	loop, err := testutils.MakeLoopbackDevice(ctx, vgName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = testutils.MakeLoopbackVG(ctx, vgName, loop)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := testutils.CleanLoopbackVG(vgName, []string{loop}, nil); err != nil {
+			t.Error(err)
+		}
+	})
+
+	lvNameUnformatted := "test_lsblk_on_host_unformatted"
+	err = testutils.MakeLoopbackLV(ctx, lvNameUnformatted, vgName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lvNameFormatted := "test_lsblk_on_host_formatted"
+	err = testutils.MakeLoopbackLV(ctx, lvNameFormatted, vgName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	vg, err := FindVolumeGroup(ctx, vgName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lvUnformatted, err := vg.FindVolume(ctx, lvNameUnformatted)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lvFormatted, err := vg.FindVolume(ctx, lvNameFormatted)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mounter := mountutil.SafeFormatAndMount{
+		Interface: mountutil.New(""),
+		Exec:      utilexec.New(),
+	}
+
+	mountPath := filepath.Join(t.TempDir(), "mount")
+	if err = os.MkdirAll(mountPath, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := mounter.FormatAndMount(lvFormatted.Path(), mountPath, "ext4", []string{"rw"}); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := mounter.Unmount(mountPath); err != nil {
+			t.Error(err)
+		}
+	})
+	if err := os.Chmod(lvFormatted.Path(), 0777|os.ModeSetgid); err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		Name                    string
+		LogicalVolume           *LogicalVolume
+		ExpectedValidFilesystem bool
+		ExpectedErrorContains   string
+	}{
+		{
+			Name:                    "Valid formatted path",
+			LogicalVolume:           lvFormatted,
+			ExpectedValidFilesystem: true,
+		},
+		{
+			Name:                    "Valid unformatted path",
+			LogicalVolume:           lvUnformatted,
+			ExpectedValidFilesystem: false,
+		},
+		{
+			Name:                  "Invalid path",
+			LogicalVolume:         &LogicalVolume{path: "/dev/bla"},
+			ExpectedErrorContains: "No such file or directory",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			ctx := ctrl.LoggerInto(context.Background(), testr.New(t))
+
+			newSize := tt.LogicalVolume.Size() + uint64(4096)
+
+			err := tt.LogicalVolume.Resize(ctx, newSize)
+			if len(tt.ExpectedErrorContains) > 0 {
+				if err == nil {
+					t.Errorf("Expected error: %s, got none", tt.ExpectedErrorContains)
+				}
+				if !strings.Contains(err.Error(), tt.ExpectedErrorContains) {
+					t.Errorf("Expected error: %s, got: %v", tt.ExpectedErrorContains, err)
+				}
+			} else if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+		})
+	}
 }

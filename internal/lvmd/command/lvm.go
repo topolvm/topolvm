@@ -4,9 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"path"
 
 	"github.com/topolvm/topolvm"
+	"github.com/topolvm/topolvm/internal/filesystem"
+	mountutil "k8s.io/mount-utils"
+	utilexec "k8s.io/utils/exec"
 )
 
 // ErrNotFound is returned when a VG or LV is not found.
@@ -546,6 +550,12 @@ func (l *LogicalVolume) Activate(ctx context.Context, access string) error {
 	return callLVM(ctx, lvchangeArgs...)
 }
 
+var mounter = mountutil.SafeFormatAndMount{
+	Interface: mountutil.New(""),
+	Exec:      utilexec.New(),
+}
+var resizer = mountutil.NewResizeFs(utilexec.New())
+
 // Resize this volume.
 // newSize is a new size of this volume in bytes.
 func (l *LogicalVolume) Resize(ctx context.Context, newSize uint64) error {
@@ -555,8 +565,75 @@ func (l *LogicalVolume) Resize(ctx context.Context, newSize uint64) error {
 	if l.size == newSize {
 		return nil
 	}
-	if err := callLVM(ctx, "lvresize", "-L", fmt.Sprintf("%vb", newSize), l.fullname); err != nil {
+
+	args := []string{"lvresize", "-L", fmt.Sprintf("%vb", newSize), l.fullname}
+
+	fs, err := filesystem.DetectFilesystem(l.Path())
+	if err != nil {
+		return fmt.Errorf("cannot determine if LogicalVolume %s has a filesystem: %v", l.fullname, err)
+	}
+
+	if err := callLVM(ctx, args...); err != nil {
 		return err
+	}
+
+	// if we have a filesystem first search for a read-write mount directory that
+	// can be used for the resize operation. This is needed because some FS such as btrfs and xfs
+	// need to be mounted to be resized.
+	if len(fs) > 0 {
+		mountPoints, err := mounter.List()
+		if err != nil {
+			return fmt.Errorf("cannot list mounted filesystems: %v", err)
+		}
+		found := false
+		for _, point := range mountPoints {
+			ro := false
+			for _, opt := range point.Opts {
+				if opt == "ro" {
+					ro = true
+					break
+				}
+			}
+			if ro {
+				continue
+			}
+			if point.Device == l.Path() {
+				needsResize, err := resizer.NeedResize(l.Path(), point.Path)
+				if err != nil {
+					return fmt.Errorf("cannot determine if filesystem needs resize: %v", err)
+				}
+				if needsResize {
+					if _, err := resizer.Resize(l.Path(), point.Path); err != nil {
+						return fmt.Errorf("cannot resize filesystem: %v", err)
+					}
+				}
+				found = true
+				break
+			}
+		}
+		// If we do not find an active mountpoint, create our own temporary mount for resizing
+		if !found {
+			mountDir, err := os.MkdirTemp("", "topolvm-tmp-mount-*")
+			defer func() {
+				err = errors.Join(err, os.RemoveAll(mountDir))
+			}()
+			if err != nil {
+				return fmt.Errorf("cannot create temporary directory for temporary mount: %v", err)
+			}
+			mountoptions := []string{"rw"}
+			if fs == "xfs" {
+				mountoptions = append(mountoptions, "nouuid")
+			}
+			if err = mounter.Mount(l.Path(), mountDir, fs, mountoptions); err != nil {
+				return fmt.Errorf("cannot mount filesystem for resize operation: %v", err)
+			}
+			defer func() {
+				err = errors.Join(err, mountutil.CleanupMountPoint(mountDir, mounter, false))
+			}()
+			if _, err = resizer.Resize(l.Path(), mountDir); err != nil {
+				return fmt.Errorf("cannot resize filesystem: %v", err)
+			}
+		}
 	}
 
 	// now we need to update the size of this volume, as it might slightly differ from the creation argument due to rounding

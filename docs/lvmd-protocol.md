@@ -193,6 +193,7 @@ Represents a logical volume.
 | dev_minor | [uint32](#uint32) |  | Device minor number. |
 | tags | [string](#string) | repeated | Tags to add to the volume during creation |
 | size_bytes | [int64](#int64) |  | Volume size in canonical CSI bytes. |
+| path | [string](#string) |  | Path to the lv as per lvm. |
 
 
 

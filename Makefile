@@ -176,11 +176,11 @@ image: image-normal image-with-sidecar ## Build topolvm images.
 
 .PHONY: image-normal
 image-normal:
-	docker buildx build --no-cache --load -t $(IMAGE_PREFIX)topolvm:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) --target topolvm .
+	docker buildx build --load -t $(IMAGE_PREFIX)topolvm:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) --target topolvm .
 
 .PHONY: image-with-sidecar
 image-with-sidecar:
-	docker buildx build --no-cache --load -t $(IMAGE_PREFIX)topolvm-with-sidecar:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) --target topolvm-with-sidecar .
+	docker buildx build --load -t $(IMAGE_PREFIX)topolvm-with-sidecar:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) --target topolvm-with-sidecar .
 
 .PHONY: container-structure-test
 container-structure-test: ## Run container-structure-test.
