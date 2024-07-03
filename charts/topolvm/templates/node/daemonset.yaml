@@ -119,6 +119,8 @@ spec:
             - name: csi-plugin-dir
               mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/kubernetes.io/csi
               mountPropagation: "Bidirectional"
+            - name: devices-dir
+              mountPath: /dev
             {{- end }}
 
         - name: csi-registrar
@@ -200,6 +202,10 @@ spec:
         {{- if .Values.node.volumes }}
         {{- toYaml .Values.node.volumes | nindent 8 }}
         {{- else }}
+        - name: devices-dir
+          hostPath:
+            path: /dev
+            type: Directory
         - name: registration-dir
           hostPath:
             path: {{ .Values.node.kubeletWorkDirectory }}/plugins_registry/
