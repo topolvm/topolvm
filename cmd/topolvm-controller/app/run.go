@@ -86,6 +86,7 @@ func subMain() error {
 			Port:    hookPort,
 			CertDir: config.certDir,
 		}),
+		PprofBindAddress: config.profilingBindAddress,
 	})
 	if err != nil {
 		return err
