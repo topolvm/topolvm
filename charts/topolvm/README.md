@@ -7,7 +7,7 @@
 
 ## Installation
 
-See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v15.1.0/docs/getting-started.md).
+See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v15.1.1/docs/getting-started.md).
 
 ## Values
 
