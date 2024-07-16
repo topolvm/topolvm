@@ -87,6 +87,8 @@ spec:
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
+            - name: devices-dir
+              mountPath: /dev
             - name: config
               mountPath: /etc/topolvm
             {{- if .Values.lvmd.volumeMounts }}
@@ -96,6 +98,10 @@ spec:
               mountPath: {{ dir .Values.lvmd.socketName }}
             {{- end }}
       volumes:
+        - name: devices-dir
+          hostPath:
+            path: /dev
+            type: Directory
         - name: config
           configMap:
             name: {{ template "topolvm.fullname" . }}-lvmd-{{ $lvmdidx }}

@@ -84,6 +84,7 @@ func (s *vgService) GetLVList(ctx context.Context, req *proto.GetLVListRequest) 
 			DevMajor:  lv.MajorNumber(),
 			DevMinor:  lv.MinorNumber(),
 			Tags:      lv.Tags(),
+			Path:      lv.Path(),
 		})
 	}
 	return &proto.GetLVListResponse{Volumes: vols}, nil
