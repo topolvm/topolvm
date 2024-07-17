@@ -25,6 +25,7 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v15.
 | controller.podDisruptionBudget.enabled | bool | `true` | Specify podDisruptionBudget enabled. |
 | controller.podLabels | object | `{}` | Additional labels to be set on the controller pod. |
 | controller.priorityClassName | string | `nil` | Specify priorityClassName. |
+| controller.profiling.bindAddress | string | `""` | Enables pprof profiling server. If empty, profiling is disabled. |
 | controller.prometheus.podMonitor.additionalLabels | object | `{}` | Additional labels that can be used so PodMonitor will be discovered by Prometheus. |
 | controller.prometheus.podMonitor.enabled | bool | `false` | Set this to `true` to create PodMonitor for Prometheus operator. |
 | controller.prometheus.podMonitor.interval | string | `""` | Scrape interval. If not set, the Prometheus default scrape interval is used. |
@@ -74,6 +75,7 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v15.
 | lvmd.nodeSelector | object | `{}` | Specify nodeSelector. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/ |
 | lvmd.podLabels | object | `{}` | Additional labels to be set on the lvmd service pods. |
 | lvmd.priorityClassName | string | `nil` | Specify priorityClassName. |
+| lvmd.profiling.bindAddress | string | `""` | Enables pprof profiling server. If empty, profiling is disabled. |
 | lvmd.socketName | string | `"/run/topolvm/lvmd.sock"` | Specify socketName. |
 | lvmd.tolerations | list | `[]` | Specify tolerations. # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ |
 | lvmd.updateStrategy | object | `{}` | Specify updateStrategy. |
@@ -92,6 +94,7 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v15.
 | node.nodeSelector | object | `{}` | Specify nodeSelector. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/ |
 | node.podLabels | object | `{}` | Additional labels to be set on the node pods. |
 | node.priorityClassName | string | `nil` | Specify priorityClassName. |
+| node.profiling.bindAddress | string | `""` | Enables pprof profiling server. if empty profiling is disabled. |
 | node.prometheus.podMonitor.additionalLabels | object | `{}` | Additional labels that can be used so PodMonitor will be discovered by Prometheus. |
 | node.prometheus.podMonitor.enabled | bool | `false` | Set this to `true` to create PodMonitor for Prometheus operator. |
 | node.prometheus.podMonitor.interval | string | `""` | Scrape interval. If not set, the Prometheus default scrape interval is used. |
@@ -128,6 +131,7 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v15.
 | scheduler.podDisruptionBudget.enabled | bool | `true` | Specify podDisruptionBudget enabled. |
 | scheduler.podLabels | object | `{}` | Additional labels to be set on the scheduler pods. |
 | scheduler.priorityClassName | string | `"system-cluster-critical"` | Specify priorityClassName on the Deployment or DaemonSet. |
+| scheduler.profiling.bindAddress | string | `""` | Enables pprof profiling server. If empty, profiling is disabled. |
 | scheduler.schedulerOptions | object | `{}` | Tune the Node scoring. ref: https://github.com/topolvm/topolvm/blob/master/deploy/README.md |
 | scheduler.service.clusterIP | string | `nil` | Specify Service clusterIP. |
 | scheduler.service.nodePort | int | `nil` | Specify nodePort. |

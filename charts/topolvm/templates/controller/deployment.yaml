@@ -64,6 +64,9 @@ spec:
             {{- if .Values.controller.nodeFinalize.skipped }}
             - --skip-node-finalize
             {{- end }}
+            {{- if .Values.controller.profiling.bindAddress }}
+            - --profiling-bind-address={{ .Values.controller.profiling.bindAddress }}
+            {{- end }}
           {{- if or .Values.useLegacy .Values.env.topolvm_controller }}
           env:
             {{- if .Values.useLegacy }}

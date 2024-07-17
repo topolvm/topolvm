@@ -13,6 +13,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/topolvm/topolvm"
+	"github.com/topolvm/topolvm/internal/profiling"
 	"github.com/topolvm/topolvm/internal/scheduler"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -34,6 +35,8 @@ type Config struct {
 	Divisors map[string]float64 `json:"divisors"`
 	// DefaultDivisor is the default divisor value.
 	DefaultDivisor float64 `json:"default-divisor"`
+	// ProfilingBindAddress is the bind address to expose pprof profiling. If empty, profiling is disabled.
+	ProfilingBindAddress string `json:"profiling-bind-address"`
 }
 
 var config = &Config{
@@ -99,10 +102,25 @@ func subMain(parentCtx context.Context) error {
 	ctx, stop := signal.NotifyContext(parentCtx, os.Interrupt, syscall.SIGTERM)
 	defer stop() // stop() should be called before wg.Wait() to stop the goroutine correctly.
 
+	var pprofServer *http.Server
+	if config.ProfilingBindAddress != "" {
+		pprofServer = profiling.NewProfilingServer(config.ProfilingBindAddress)
+		go func() {
+			if err := pprofServer.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+				logger.Error(err, "pprof server error")
+			}
+		}()
+	}
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		<-ctx.Done()
+		if pprofServer != nil {
+			if err := pprofServer.Shutdown(parentCtx); err != nil {
+				logger.Error(err, "failed to shutdown pprof server")
+			}
+		}
 		if err := serv.Shutdown(parentCtx); err != nil {
 			logger.Error(err, "failed to shutdown gracefully")
 		}

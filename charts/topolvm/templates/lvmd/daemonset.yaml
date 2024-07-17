@@ -62,6 +62,9 @@ spec:
           {{- with .Values.lvmd.args }}
           args: {{ toYaml . | nindent 12 }}
           {{- end }}
+          {{- if .Values.lvmd.profiling.bindAddress }}
+          - --profiling-bind-address={{ .Values.lvmd.profiling.bindAddress }}
+          {{- end }}
           {{- if .Values.lvmd.env }}
           env:
           {{- toYaml .Values.lvmd.env | nindent 10 }}

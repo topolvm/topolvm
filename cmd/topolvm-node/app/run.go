@@ -72,9 +72,10 @@ func subMain(ctx context.Context) error {
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:         scheme,
-		Metrics:        metricsServerOptions,
-		LeaderElection: false,
+		Scheme:           scheme,
+		Metrics:          metricsServerOptions,
+		LeaderElection:   false,
+		PprofBindAddress: config.profilingBindAddress,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")

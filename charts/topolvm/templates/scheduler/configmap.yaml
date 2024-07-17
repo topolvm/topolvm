@@ -15,5 +15,8 @@ data:
     {{- else }}
     default-divisor: 1
     {{- end }}
+    {{- if .Values.scheduler.profiling.bindAddress }}
+    profiling-bind-address: {{ .Values.scheduler.profiling.bindAddress }}
+    {{- end }}
 ---
 {{ end }}

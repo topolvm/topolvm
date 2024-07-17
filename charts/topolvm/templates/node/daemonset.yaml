@@ -59,6 +59,9 @@ spec:
             {{- else }}
             - --lvmd-socket={{ .Values.node.lvmdSocket }}
             {{- end }}
+            {{- if .Values.node.profiling.bindAddress }}
+            - --profiling-bind-address={{ .Values.node.profiling.bindAddress }}
+            {{- end }}
           {{- with .Values.node.args }}
           args: {{ toYaml . | nindent 12 }}
           {{- end }}
