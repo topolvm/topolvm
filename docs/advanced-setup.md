@@ -20,7 +20,7 @@ This document describes how to install TopoLVM with advanced configurations.
 
 You can configure the StorageClass created by the Helm Chart by editing the Helm Chart values.
 
-`fsType` specifies the filesystem type of the volume. Supported filesystems are `ext4`, `xfs` and `btrfs`(experimental).
+`fsType` specifies the filesystem type of the volume. Supported filesystems are `ext4`, `xfs` and `btrfs`(beta).
 
 `volumeBindingMode` can be either `WaitForFirstConsumer` or `Immediate`.
 `WaitForFirstConsumer` is recommended because TopoLVM cannot schedule pods

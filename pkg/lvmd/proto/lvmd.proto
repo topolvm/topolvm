@@ -20,6 +20,7 @@ message LogicalVolume {
     uint32 dev_minor = 4;                   // Device minor number.
     repeated string tags = 5;               // Tags to add to the volume during creation
     int64 size_bytes = 6;                   // Volume size in canonical CSI bytes.
+    string path = 7;                        // Path to the lv as per lvm.
 }
 
 // Represents the input for CreateLV.

@@ -48,6 +48,7 @@ var config struct {
 	skipNodeFinalize            bool
 	zapOpts                     zap.Options
 	controllerServerSettings    driver.ControllerServerSettings
+	profilingBindAddress        string
 }
 
 var rootCmd = &cobra.Command{
@@ -89,6 +90,7 @@ func init() {
 	fs.DurationVar(&config.leaderElectionRenewDeadline, "leader-election-renew-deadline", 10*time.Second, "Duration that the acting controlplane will retry refreshing leadership before giving up. This is measured against time of last observed ack.")
 	fs.DurationVar(&config.leaderElectionRetryPeriod, "leader-election-retry-period", 2*time.Second, "Duration the LeaderElector clients should wait between tries of actions.")
 	fs.BoolVar(&config.skipNodeFinalize, "skip-node-finalize", false, "skips automatic cleanup of PhysicalVolumeClaims when a Node is deleted")
+	fs.StringVar(&config.profilingBindAddress, "profiling-bind-address", "", "Bind pprof profiling to the given network address. If empty, profiling is disabled.")
 
 	driver.QuantityVar(fs, &config.controllerServerSettings.MinimumAllocationSettings.Block,
 		"minimum-allocation-block",

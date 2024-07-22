@@ -62,6 +62,9 @@ spec:
           {{- with .Values.lvmd.args }}
           args: {{ toYaml . | nindent 12 }}
           {{- end }}
+          {{- if .Values.lvmd.profiling.bindAddress }}
+            - --profiling-bind-address={{ .Values.lvmd.profiling.bindAddress }}
+          {{- end }}
           {{- if .Values.lvmd.env }}
           env:
           {{- toYaml .Values.lvmd.env | nindent 10 }}
@@ -87,6 +90,8 @@ spec:
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
+            - name: devices-dir
+              mountPath: /dev
             - name: config
               mountPath: /etc/topolvm
             {{- if .Values.lvmd.volumeMounts }}
@@ -96,6 +101,10 @@ spec:
               mountPath: {{ dir .Values.lvmd.socketName }}
             {{- end }}
       volumes:
+        - name: devices-dir
+          hostPath:
+            path: /dev
+            type: Directory
         - name: config
           configMap:
             name: {{ template "topolvm.fullname" . }}-lvmd-{{ $lvmdidx }}

@@ -72,9 +72,10 @@ func subMain(ctx context.Context) error {
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:         scheme,
-		Metrics:        metricsServerOptions,
-		LeaderElection: false,
+		Scheme:           scheme,
+		Metrics:          metricsServerOptions,
+		LeaderElection:   false,
+		PprofBindAddress: config.profilingBindAddress,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -138,9 +139,6 @@ func subMain(ctx context.Context) error {
 	}
 
 	// Add gRPC server to manager.
-	if err := os.MkdirAll(topolvm.DeviceDirectory, 0755); err != nil {
-		return err
-	}
 	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(ErrorLoggingInterceptor))
 	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityServer(checker.Ready))
 	nodeServer, err := driver.NewNodeServer(nodename, vgService, lvService, mgr) // adjusted signature

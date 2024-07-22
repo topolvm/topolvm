@@ -15,14 +15,15 @@ import (
 )
 
 var config struct {
-	csiSocket           string
-	lvmdSocket          string
-	metricsAddr         string
-	secureMetricsServer bool
-	zapOpts             zap.Options
-	embedLvmd           bool
-	lvmPath             string
-	lvmd                lvmd.Config
+	csiSocket            string
+	lvmdSocket           string
+	metricsAddr          string
+	secureMetricsServer  bool
+	zapOpts              zap.Options
+	embedLvmd            bool
+	lvmPath              string
+	lvmd                 lvmd.Config
+	profilingBindAddress string
 }
 
 var rootCmd = &cobra.Command{
@@ -61,6 +62,7 @@ func init() {
 	fs.BoolVar(&config.embedLvmd, "embed-lvmd", false, "Runs LVMD locally by embedding it instead of calling it externally via gRPC")
 	fs.StringVar(&config.lvmPath, "lvm-path", "", "lvm command path on the host OS")
 	fs.StringVar(&cfgFilePath, "config", filepath.Join("/etc", "topolvm", "lvmd.yaml"), "config file")
+	fs.StringVar(&config.profilingBindAddress, "profiling-bind-address", "", "Bind pprof profiling to the given network address. If empty, profiling is disabled.")
 
 	_ = viper.BindEnv("nodename", "NODE_NAME")
 	_ = viper.BindPFlag("nodename", fs.Lookup("nodename"))
