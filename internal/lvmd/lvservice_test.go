@@ -18,6 +18,11 @@ import (
 )
 
 func TestLVService(t *testing.T) {
+	const (
+		testTag1 = "testtag1"
+		testTag2 = "testtag2"
+	)
+
 	uid := os.Getuid()
 	if uid != 0 {
 		t.Skip("run as root")
@@ -83,7 +88,7 @@ func TestLVService(t *testing.T) {
 		Name:        "test1",
 		DeviceClass: thickdev,
 		SizeGb:      1,
-		Tags:        []string{"testtag1", "testtag2"},
+		Tags:        []string{testTag1, testTag2},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -114,10 +119,10 @@ func TestLVService(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if lv.Tags()[0] != "testtag1" {
+	if lv.Tags()[0] != testTag1 {
 		t.Errorf(`testtag1 not present on volume`)
 	}
-	if lv.Tags()[1] != "testtag2" {
+	if lv.Tags()[1] != testTag2 {
 		t.Errorf(`testtag1 not present on volume`)
 	}
 
@@ -196,7 +201,7 @@ func TestLVService(t *testing.T) {
 		Name:        "testp1",
 		DeviceClass: thindev,
 		SizeGb:      1,
-		Tags:        []string{"testtag1", "testtag2"},
+		Tags:        []string{testTag1, testTag2},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -227,10 +232,10 @@ func TestLVService(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if lv.Tags()[0] != "testtag1" {
+	if lv.Tags()[0] != testTag1 {
 		t.Errorf(`testtag1 not present on volume`)
 	}
-	if lv.Tags()[1] != "testtag2" {
+	if lv.Tags()[1] != testTag2 {
 		t.Errorf(`testtag1 not present on volume`)
 	}
 
@@ -299,7 +304,7 @@ func TestLVService(t *testing.T) {
 		Name:        "sourceVol",
 		DeviceClass: thindev,
 		SizeGb:      originalSizeGb,
-		Tags:        []string{"testtag1", "testtag2"},
+		Tags:        []string{testTag1, testTag2},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -330,10 +335,10 @@ func TestLVService(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if lv.Tags()[0] != "testtag1" {
+	if lv.Tags()[0] != testTag1 {
 		t.Errorf(`testtag1 not present on volume`)
 	}
-	if lv.Tags()[1] != "testtag2" {
+	if lv.Tags()[1] != testTag2 {
 		t.Errorf(`testtag1 not present on volume`)
 	}
 

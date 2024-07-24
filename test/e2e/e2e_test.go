@@ -36,8 +36,15 @@ var nodeCapacityPVC2YAML []byte
 //go:embed testdata/e2e/generic-ephemeral-volume.yaml
 var e2eGenericEphemeralVolumeYAML []byte
 
+const (
+	deviceFile           = "/dev/e2etest"
+	controlPlaneNodeName = "topolvm-e2e-control-plane"
+)
+
 func testE2E() {
-	testNamespacePrefix := "e2etest-"
+	const writePath = "/test1/bootstrap.log"
+	const testNamespacePrefix = "e2etest-"
+
 	var ns string
 	var cc CleanupContext
 
@@ -51,7 +58,7 @@ func testE2E() {
 	AfterEach(func() {
 		// When a test fails, I want to investigate the cause. So please don't remove the namespace!
 		if !CurrentSpecReport().State.Is(types.SpecStateFailureStates) {
-			_, err := kubectl("delete", "namespaces/"+ns)
+			_, err := kubectl("delete", "namespaces", ns)
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 
@@ -88,7 +95,6 @@ func testE2E() {
 			}).Should(Succeed())
 
 			By("writing file under /test1")
-			writePath := "/test1/bootstrap.log"
 			_, err = kubectl("exec", "-n", ns, "ubuntu", "--", "cp", "/var/log/bootstrap.log", writePath)
 			Expect(err).ShouldNot(HaveOccurred())
 			_, err = kubectl("exec", "-n", ns, "ubuntu", "--", "sync")
@@ -110,7 +116,7 @@ func testE2E() {
 					return fmt.Errorf("failed to cat. err: %w", err)
 				}
 				if len(strings.TrimSpace(string(stdout))) == 0 {
-					return fmt.Errorf(writePath + " is empty")
+					return fmt.Errorf("%s is empty", writePath)
 				}
 				return nil
 			}).Should(Succeed())
@@ -182,7 +188,6 @@ func testE2E() {
 			}).Should(Succeed())
 
 			By("writing file under /test1")
-			writePath := "/test1/bootstrap.log"
 			_, err = kubectl("exec", "-n", ns, "ubuntu", "--", "cp", "/var/log/bootstrap.log", writePath)
 			Expect(err).ShouldNot(HaveOccurred())
 			_, err = kubectl("exec", "-n", ns, "ubuntu", "--", "sync")
@@ -204,7 +209,7 @@ func testE2E() {
 					return fmt.Errorf("failed to cat. err: %w", err)
 				}
 				if len(strings.TrimSpace(string(stdout))) == 0 {
-					return fmt.Errorf(writePath + " is empty")
+					return fmt.Errorf("%s is empty", writePath)
 				}
 				return nil
 			}).Should(Succeed())
@@ -319,8 +324,6 @@ func testE2E() {
 	})
 
 	It("should create a block device for Pod", func() {
-		deviceFile := "/dev/e2etest"
-
 		By("deploying ubuntu Pod with PVC to mount a block device")
 		podYAML := []byte(fmt.Sprintf(podVolumeDeviceTemplateYAML, deviceFile))
 
@@ -348,7 +351,7 @@ func testE2E() {
 		_, err = kubectl("exec", "-n", ns, "ubuntu", "--", "sync")
 		Expect(err).ShouldNot(HaveOccurred())
 		stdout, err := kubectl("exec", "-n", ns, "ubuntu", "--",
-			"dd", "if="+deviceFile, "of=/dev/stdout", "bs=6", "count=1", "status=none")
+			"dd", fmt.Sprintf("if=%s", deviceFile), "of=/dev/stdout", "bs=6", "count=1", "status=none")
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(string(stdout)).Should(Equal("ubuntu"))
 
@@ -361,7 +364,7 @@ func testE2E() {
 		By("reading data from a block device")
 		Eventually(func() error {
 			stdout, err = kubectl("exec", "-n", ns, "ubuntu", "--",
-				"dd", "if="+deviceFile, "of=/dev/stdout", "bs=6", "count=1", "status=none")
+				"dd", fmt.Sprintf("if=%s", deviceFile), "of=/dev/stdout", "bs=6", "count=1", "status=none")
 			if err != nil {
 				return fmt.Errorf("failed to cat. err: %w", err)
 			}
@@ -406,8 +409,6 @@ func testE2E() {
 	})
 
 	It("should create a block device for Pod but changed by the minimum allocation default for block storage", func() {
-		deviceFile := "/dev/e2etest"
-
 		By("deploying ubuntu Pod with PVC to mount a block device")
 		podYAML := []byte(fmt.Sprintf(podVolumeDeviceTemplateYAML, deviceFile))
 
@@ -435,7 +436,7 @@ func testE2E() {
 		_, err = kubectl("exec", "-n", ns, "ubuntu", "--", "sync")
 		Expect(err).ShouldNot(HaveOccurred())
 		stdout, err := kubectl("exec", "-n", ns, "ubuntu", "--",
-			"dd", "if="+deviceFile, "of=/dev/stdout", "bs=6", "count=1", "status=none")
+			"dd", fmt.Sprintf("if=%s", deviceFile), "of=/dev/stdout", "bs=6", "count=1", "status=none")
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(string(stdout)).Should(Equal("ubuntu"))
 
@@ -448,7 +449,7 @@ func testE2E() {
 		By("reading data from a block device")
 		Eventually(func() error {
 			stdout, err = kubectl("exec", "-n", ns, "ubuntu", "--",
-				"dd", "if="+deviceFile, "of=/dev/stdout", "bs=6", "count=1", "status=none")
+				"dd", fmt.Sprintf("if=%s", deviceFile), "of=/dev/stdout", "bs=6", "count=1", "status=none")
 			if err != nil {
 				return fmt.Errorf("failed to cat. err: %w", err)
 			}
@@ -516,7 +517,7 @@ func testE2E() {
 					return fmt.Errorf("kubectl get nodes error: %w", err)
 				}
 				for _, node := range nodes.Items {
-					if node.Name == "topolvm-e2e-control-plane" {
+					if node.Name == controlPlaneNodeName {
 						continue
 					}
 					strCap, ok := node.Annotations[topolvm.GetCapacityKeyPrefix()+"dc1"]
@@ -706,7 +707,7 @@ func testE2E() {
 		var targetNode string
 		var maxCapacity int
 		for _, node := range nodeList.Items {
-			if node.Name == "topolvm-e2e-control-plane" {
+			if node.Name == controlPlaneNodeName {
 				continue
 			}
 
@@ -936,7 +937,6 @@ func testE2E() {
 
 	It("should resize a block device", func() {
 		By("deploying Pod with PVC")
-		deviceFile := "/dev/e2etest"
 		podYAML := []byte(fmt.Sprintf(podVolumeDeviceTemplateYAML, deviceFile))
 		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Block", 1024, "topolvm-provisioner"))
 

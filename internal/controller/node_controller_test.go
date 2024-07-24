@@ -51,7 +51,7 @@ var _ = Describe("NodeController controller", func() {
 		corev1.Node, corev1.PersistentVolumeClaim, topolvmv1.LogicalVolume) {
 		node := corev1.Node{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "node" + suffix,
+				Name: nodeNameBase + suffix,
 				Finalizers: []string{
 					topolvm.GetNodeFinalizer(),
 				},
@@ -62,7 +62,7 @@ var _ = Describe("NodeController controller", func() {
 
 		sc := storegev1.StorageClass{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "sc" + suffix,
+				Name: storageClassNameBase + suffix,
 			},
 			Provisioner: topolvm.GetPluginName(),
 		}
@@ -72,7 +72,7 @@ var _ = Describe("NodeController controller", func() {
 		ns := createNamespace()
 		pvc := corev1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "pvc" + suffix,
+				Name:      pvcNameBase + suffix,
 				Namespace: ns,
 				Annotations: map[string]string{
 					AnnSelectedNode: node.Name,
@@ -95,7 +95,7 @@ var _ = Describe("NodeController controller", func() {
 
 		lv := topolvmv1.LogicalVolume{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "lv" + suffix,
+				Name: logicalVolumeNameBase + suffix,
 			},
 			Spec: topolvmv1.LogicalVolumeSpec{
 				NodeName: node.Name,

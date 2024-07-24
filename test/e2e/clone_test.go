@@ -25,14 +25,17 @@ const (
 )
 
 func testPVCClone() {
+	const writePath = "/test1/bootstrap.log"
+
 	var nsCloneTest string
+
 	BeforeEach(func() {
 		nsCloneTest = "clone-test-" + randomString()
 		createNamespace(nsCloneTest)
 	})
 	AfterEach(func() {
 		if !CurrentSpecReport().State.Is(types.SpecStateFailureStates) {
-			_, err := kubectl("delete", "namespaces/"+nsCloneTest)
+			_, err := kubectl("delete", "namespaces", nsCloneTest)
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 	})
@@ -61,7 +64,6 @@ func testPVCClone() {
 		}).Should(Succeed())
 
 		By("writing a file on mountpath")
-		writePath := "/test1/bootstrap.log"
 		Eventually(func() error {
 			_, err := kubectl("exec", "-n", nsCloneTest, "thinpod", "--", "cp", "/var/log/bootstrap.log", writePath)
 			return err
@@ -105,11 +107,8 @@ func testPVCClone() {
 			return err
 		}).Should(Succeed())
 
-		vgName := "node1-thin1"
-		Expect(vgName).Should(Equal(lv.vgName))
-
-		poolName := "pool0"
-		Expect(poolName).Should(Equal(lv.poolName))
+		Expect(lv.vgName).Should(Equal("node1-thin1"))
+		Expect(lv.poolName).Should(Equal("pool0"))
 
 		By("confirming that the file exists in the cloned volume")
 		Eventually(func() error {
@@ -118,7 +117,7 @@ func testPVCClone() {
 				return fmt.Errorf("failed to cat. err: %w", err)
 			}
 			if len(strings.TrimSpace(string(stdout))) == 0 {
-				return fmt.Errorf(writePath + " is empty")
+				return fmt.Errorf("%s is empty", writePath)
 			}
 			return nil
 		}).Should(Succeed())
@@ -180,11 +179,8 @@ func testPVCClone() {
 			return err
 		}).Should(Succeed())
 
-		vgName := "node1-thin1"
-		Expect(vgName).Should(Equal(lv.vgName))
-
-		poolName := "pool0"
-		Expect(poolName).Should(Equal(lv.poolName))
+		Expect(lv.vgName).Should(Equal("node1-thin1"))
+		Expect(lv.poolName).Should(Equal("pool0"))
 
 		By("deleting the source volume and application")
 		_, err = kubectlWithInput(thinPodYAML, "delete", "-n", nsCloneTest, "-f", "-")
