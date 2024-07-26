@@ -27,7 +27,7 @@ func testMultipleVolumeGroups() {
 	AfterEach(func() {
 		// When a test fails, I want to investigate the cause. So please don't remove the namespace!
 		if !CurrentSpecReport().State.Is(types.SpecStateFailureStates) {
-			_, err := kubectl("delete", "namespaces/"+ns)
+			_, err := kubectl("delete", "namespaces", ns)
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 	})

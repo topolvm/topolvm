@@ -27,7 +27,7 @@ linters:
     - dupl
     - errcheck
     - exportloopref
-    # - goconst
+    - goconst
     # - gocyclo
     - gofmt
     - goimports

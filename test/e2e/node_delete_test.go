@@ -28,7 +28,7 @@ func testNodeDelete() {
 	})
 
 	AfterEach(func() {
-		_, err := kubectl("delete", "namespaces/"+nsNodeDeleteTest)
+		_, err := kubectl("delete", "namespaces", nsNodeDeleteTest)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -129,7 +129,7 @@ func testNodeDelete() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		for _, lv := range targetLVs {
-			_, err = execAtLocal("sudo", nil, "lvremove", "-y", "--select", "lv_name="+lv.Status.VolumeID)
+			_, err = execAtLocal("sudo", nil, "lvremove", "-y", "--select", fmt.Sprintf("lv_name=%s", lv.Status.VolumeID))
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 	})

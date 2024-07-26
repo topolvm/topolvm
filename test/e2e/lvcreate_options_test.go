@@ -26,7 +26,7 @@ func testLVCreateOptions() {
 	AfterEach(func() {
 		// When a test fails, I want to investigate the cause. So please don't remove the namespace!
 		if !CurrentSpecReport().State.Is(types.SpecStateFailureStates) {
-			_, err := kubectl("delete", "namespaces/"+ns)
+			_, err := kubectl("delete", "namespaces", ns)
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 
@@ -65,7 +65,8 @@ func testLVCreateOptions() {
 			}).Should(Succeed())
 
 			By("checking that the LV is of type raid")
-			stdout, err := execAtLocal("sudo", nil, "lvs", "-o", "lv_attr", "--noheadings", "--select", "lv_name="+lvName)
+			stdout, err := execAtLocal("sudo", nil,
+				"lvs", "-o", "lv_attr", "--noheadings", "--select", fmt.Sprintf("lv_name=%s", lvName))
 			Expect(err).ShouldNot(HaveOccurred())
 			attribute_bit1 := string(strings.TrimSpace(string(stdout))[0])
 			// lv_attr bit 1 represents the volume type, where 'r' is for raid

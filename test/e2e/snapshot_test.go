@@ -41,6 +41,8 @@ var (
 )
 
 func testSnapRestore() {
+	const writePath = "/test1/bootstrap.log"
+
 	var nsSnapTest string
 	var snapshot snapapi.VolumeSnapshot
 
@@ -50,7 +52,7 @@ func testSnapRestore() {
 	})
 	AfterEach(func() {
 		if !CurrentSpecReport().State.Is(types.SpecStateFailureStates) {
-			_, err := kubectl("delete", "namespaces/"+nsSnapTest)
+			_, err := kubectl("delete", "namespaces", nsSnapTest)
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 	})
@@ -80,7 +82,6 @@ func testSnapRestore() {
 		}).Should(Succeed())
 
 		By("writing file under /test1")
-		writePath := "/test1/bootstrap.log"
 		Eventually(func() error {
 			_, err = kubectl("exec", "-n", nsSnapTest, "thinpod", "--", "cp", "/var/log/bootstrap.log", writePath)
 			return err
@@ -145,11 +146,8 @@ func testSnapRestore() {
 			return err
 		}).Should(Succeed())
 
-		vgName := "node1-thin1"
-		Expect(vgName).Should(Equal(lv.vgName))
-
-		poolName := "pool0"
-		Expect(poolName).Should(Equal(lv.poolName))
+		Expect(lv.vgName).Should(Equal("node1-thin1"))
+		Expect(lv.poolName).Should(Equal("pool0"))
 
 		By("confirming that the file exists")
 		Eventually(func() error {
@@ -158,7 +156,7 @@ func testSnapRestore() {
 				return fmt.Errorf("failed to cat. err: %w", err)
 			}
 			if len(strings.TrimSpace(string(stdout))) == 0 {
-				return fmt.Errorf(writePath + " is empty")
+				return fmt.Errorf("%s is empty", writePath)
 			}
 			return nil
 		}).Should(Succeed())
@@ -191,7 +189,6 @@ func testSnapRestore() {
 		}).Should(Succeed())
 
 		By("writing file under /test1")
-		writePath := "/test1/bootstrap.log"
 		Eventually(func() error {
 			_, err = kubectl("exec", "-n", nsSnapTest, "thinpod", "--", "cp", "/var/log/bootstrap.log", writePath)
 			return err
@@ -261,11 +258,8 @@ func testSnapRestore() {
 
 		By(fmt.Sprintf("using lv with size %v", lv.size))
 
-		vgName := "node1-thin1"
-		Expect(vgName).Should(Equal(lv.vgName))
-
-		poolName := "pool0"
-		Expect(poolName).Should(Equal(lv.poolName))
+		Expect(lv.vgName).Should(Equal("node1-thin1"))
+		Expect(lv.poolName).Should(Equal("pool0"))
 
 		By("confirming that the file exists")
 		Eventually(func() error {
@@ -274,7 +268,7 @@ func testSnapRestore() {
 				return fmt.Errorf("failed to cat. err: %w", err)
 			}
 			if len(strings.TrimSpace(string(stdout))) == 0 {
-				return fmt.Errorf(writePath + " is empty")
+				return fmt.Errorf("%s is empty", writePath)
 			}
 			return nil
 		}).Should(Succeed())
@@ -384,11 +378,8 @@ func testSnapRestore() {
 			return err
 		}).Should(Succeed())
 
-		vgName := "node1-thin1"
-		Expect(vgName).Should(Equal(lv.vgName))
-
-		poolName := "pool0"
-		Expect(poolName).Should(Equal(lv.poolName))
+		Expect(lv.vgName).Should(Equal("node1-thin1"))
+		Expect(lv.poolName).Should(Equal("pool0"))
 
 		// delete the source PVC as well as the snapshot
 		By("deleting source volume and snap")

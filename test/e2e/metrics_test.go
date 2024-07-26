@@ -35,7 +35,7 @@ func testMetrics() {
 		cc = commonBeforeEach()
 	})
 	AfterEach(func() {
-		_, err := kubectl("delete", "namespaces/"+nsMetricsTest)
+		_, err := kubectl("delete", "namespaces", nsMetricsTest)
 		Expect(err).ShouldNot(HaveOccurred())
 		commonAfterEach(cc)
 	})

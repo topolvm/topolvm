@@ -4,7 +4,6 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
-	"strconv"
 
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
@@ -31,7 +30,7 @@ func testThinProvisioning() {
 	AfterEach(func() {
 		// When a test fails, I want to investigate the cause. So please don't remove the namespace!
 		if !CurrentSpecReport().State.Is(types.SpecStateFailureStates) {
-			_, err := kubectl("delete", "namespaces/"+ns)
+			_, err := kubectl("delete", "namespaces", ns)
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 		commonAfterEach(cc)
@@ -61,11 +60,8 @@ func testThinProvisioning() {
 			return err
 		}).Should(Succeed())
 
-		vgName := "node1-thin1"
-		Expect(vgName).Should(Equal(lv.vgName))
-
-		poolName := "pool0"
-		Expect(poolName).Should(Equal(lv.poolName))
+		Expect(lv.vgName).Should(Equal("node1-thin1"))
+		Expect(lv.poolName).Should(Equal("pool0"))
 
 		By("deleting the Pod and PVC")
 		_, err = kubectlWithInput(thinPodYAML, "delete", "-n", ns, "-f", "-")
@@ -98,12 +94,11 @@ func testThinProvisioning() {
 		// The actual thinpool size is 4 GB . With an overprovisioning limit of 5, it should allow
 		// PVCs totalling upto 20 GB for each node
 		for i := 0; i < 5; i++ {
-			num := strconv.Itoa(i)
-			thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, "thinvol"+num, "3"))
+			thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, fmt.Sprintf("thinvol%d", i), "3"))
 			_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", ns, "-f", "-")
 			Expect(err).ShouldNot(HaveOccurred())
 
-			thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod"+num, "thinvol"+num))
+			thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, fmt.Sprintf("thinpod%d", i), fmt.Sprintf("thinvol%d", i)))
 			_, err = kubectlWithInput(thinPodYAML, "apply", "-n", ns, "-f", "-")
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -115,9 +110,8 @@ func testThinProvisioning() {
 			var lvName string
 			var err error
 
-			num := strconv.Itoa(i)
 			Eventually(func() error {
-				lvName, err = getLVNameOfPVC("thinvol"+num, ns)
+				lvName, err = getLVNameOfPVC(fmt.Sprintf("thinvol%d", i), ns)
 				return err
 			}).Should(Succeed())
 
@@ -127,26 +121,23 @@ func testThinProvisioning() {
 				return err
 			}).Should(Succeed())
 
-			vgName := "node1-thin1"
-			Expect(vgName).Should(Equal(lv.vgName))
-
-			poolName := "pool0"
-			Expect(poolName).Should(Equal(lv.poolName))
+			Expect(lv.vgName).Should(Equal("node1-thin1"))
+			Expect(lv.poolName).Should(Equal("pool0"))
 		}
 
 		By("deleting the Pods and PVCs")
 
 		for i := 0; i < 5; i++ {
-			num := strconv.Itoa(i)
-			_, err := kubectl("delete", "-n", ns, "pod", "thinpod"+num)
+
+			_, err := kubectl("delete", "-n", ns, "pod", fmt.Sprintf("thinpod%d", i))
 			Expect(err).ShouldNot(HaveOccurred())
-			_, err = kubectl("delete", "-n", ns, "pvc", "thinvol"+num)
+			_, err = kubectl("delete", "-n", ns, "pvc", fmt.Sprintf("thinvol%d", i))
 			Expect(err).ShouldNot(HaveOccurred())
 
 			By("confirming the Pod is deleted")
 			Eventually(func() error {
 				var pod corev1.Pod
-				err := getObjects(&pod, "pod", "-n", ns, "thinpod"+num)
+				err := getObjects(&pod, "pod", "-n", ns, fmt.Sprintf("thinpod%d", i))
 				switch {
 				case err == ErrObjectNotFound:
 					return nil
@@ -160,7 +151,7 @@ func testThinProvisioning() {
 			By("confirming the PVC is deleted")
 			Eventually(func() error {
 				var pvc corev1.PersistentVolumeClaim
-				err := getObjects(&pvc, "pvc", "-n", ns, "thinvol"+num)
+				err := getObjects(&pvc, "pvc", "-n", ns, fmt.Sprintf("thinvol%d", i))
 				switch {
 				case err == ErrObjectNotFound:
 					return nil
@@ -196,11 +187,8 @@ func testThinProvisioning() {
 			return err
 		}).Should(Succeed())
 
-		vgName := "node1-thin1"
-		Expect(vgName).Should(Equal(lv.vgName))
-
-		poolName := "pool0"
-		Expect(poolName).Should(Equal(lv.poolName))
+		Expect(lv.vgName).Should(Equal("node1-thin1"))
+		Expect(lv.poolName).Should(Equal("pool0"))
 
 		By("Failing to deploying a PVC when total size > thinpoolsize * overprovisioning")
 		thinPvcYAML = []byte(fmt.Sprintf(thinPVCTemplateYAML, "thinvol2", "5"))

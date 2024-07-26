@@ -17,6 +17,9 @@ const (
 	mutatePodNamespace = "test-mutate-pod"
 	defaultPodName     = "test-pod"
 	mebibyte           = 1048576
+	deviceClass1       = "dc1"
+	deviceClass2       = "dc2"
+	deviceClass3       = "dc3"
 )
 
 func pvcSource(name string) *corev1.PersistentVolumeClaimVolumeSource {
@@ -203,7 +206,7 @@ var _ = Describe("pod mutation webhook", func() {
 		pod = getPod()
 		request := pod.Spec.Containers[0].Resources.Requests[topolvm.GetCapacityResource()]
 		limit := pod.Spec.Containers[0].Resources.Limits[topolvm.GetCapacityResource()]
-		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+"dc1"]
+		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+deviceClass1]
 		Expect(request.Value()).Should(Equal(int64(1)))
 		Expect(limit.Value()).Should(Equal(int64(1)))
 		Expect(capacity).Should(Equal(strconv.Itoa(100 << 30)))
@@ -237,20 +240,20 @@ var _ = Describe("pod mutation webhook", func() {
 		pod = getPod()
 		request := pod.Spec.Containers[0].Resources.Requests[topolvm.GetCapacityResource()]
 		limit := pod.Spec.Containers[0].Resources.Limits[topolvm.GetCapacityResource()]
-		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+"dc1"]
+		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+deviceClass1]
 		Expect(request.Value()).Should(Equal(int64(1)))
 		Expect(limit.Value()).Should(Equal(int64(1)))
 		Expect(capacity).Should(Equal(strconv.Itoa(100 << 30)))
 
 		request = pod.Spec.Containers[0].Resources.Requests[topolvm.GetCapacityResource()]
 		limit = pod.Spec.Containers[0].Resources.Limits[topolvm.GetCapacityResource()]
-		capacity = pod.Annotations[topolvm.GetCapacityKeyPrefix()+"dc2"]
+		capacity = pod.Annotations[topolvm.GetCapacityKeyPrefix()+deviceClass2]
 		Expect(request.Value()).Should(Equal(int64(1)))
 		Expect(limit.Value()).Should(Equal(int64(1)))
 		Expect(capacity).Should(Equal(strconv.Itoa(3 << 30)))
 
 		request = pod.Spec.Containers[0].Resources.Requests[topolvm.GetCapacityResource()]
-		capacity = pod.Annotations[topolvm.GetCapacityKeyPrefix()+"dc3"]
+		capacity = pod.Annotations[topolvm.GetCapacityKeyPrefix()+deviceClass3]
 		limit = pod.Spec.Containers[0].Resources.Limits[topolvm.GetCapacityResource()]
 		Expect(request.Value()).Should(Equal(int64(1)))
 		Expect(limit.Value()).Should(Equal(int64(1)))
@@ -285,7 +288,7 @@ var _ = Describe("pod mutation webhook", func() {
 		pod = getPod()
 		request := pod.Spec.Containers[0].Resources.Requests[topolvm.GetCapacityResource()]
 		limit := pod.Spec.Containers[0].Resources.Limits[topolvm.GetCapacityResource()]
-		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+"dc1"]
+		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+deviceClass1]
 		Expect(request.Value()).Should(Equal(int64(1)))
 		Expect(limit.Value()).Should(Equal(int64(1)))
 		Expect(capacity).Should(Equal(strconv.Itoa(100 << 30)))
@@ -313,7 +316,7 @@ var _ = Describe("pod mutation webhook", func() {
 		pod = getPod()
 		request := pod.Spec.Containers[0].Resources.Requests[topolvm.GetCapacityResource()]
 		limit := pod.Spec.Containers[0].Resources.Limits[topolvm.GetCapacityResource()]
-		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+"dc1"]
+		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+deviceClass1]
 		Expect(request.Value()).Should(Equal(int64(1)))
 		Expect(limit.Value()).Should(Equal(int64(1)))
 		Expect(capacity).Should(Equal(strconv.Itoa(100 << 30)))
@@ -376,7 +379,7 @@ var _ = Describe("pod mutation webhook", func() {
 
 		pod = getPod()
 		request := pod.Spec.Containers[0].Resources.Requests[topolvm.GetCapacityResource()]
-		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+"dc1"]
+		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+deviceClass1]
 		Expect(request.Value()).Should(Equal(int64(1)))
 		Expect(capacity).Should(Equal(strconv.Itoa((100 << 30) + (2<<30 - 1))))
 	})
@@ -416,7 +419,7 @@ var _ = Describe("pod mutation webhook", func() {
 		pod = getPod()
 		request := pod.Spec.Containers[0].Resources.Requests[topolvm.GetCapacityResource()]
 		limit := pod.Spec.Containers[0].Resources.Limits[topolvm.GetCapacityResource()]
-		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+"dc1"]
+		capacity := pod.Annotations[topolvm.GetCapacityKeyPrefix()+deviceClass1]
 		Expect(request.Value()).Should(Equal(int64(1)))
 		Expect(limit.Value()).Should(Equal(int64(1)))
 		Expect(capacity).Should(Equal(strconv.Itoa(500 * mebibyte)))
