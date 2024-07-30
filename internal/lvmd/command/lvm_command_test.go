@@ -23,7 +23,7 @@ func Test_lvm_command(t *testing.T) {
 	}
 	t.Run("simple lvm version should succeed with stream", func(t *testing.T) {
 		ctx := log.IntoContext(context.Background(), testr.New(t))
-		dataStream, err := callLVMStreamed(ctx, "version")
+		dataStream, err := callLVMStreamed(ctx, verbosityLVMStateNoUpdate, "version")
 		if err != nil {
 			t.Fatal(err, "version should succeed")
 		}
@@ -79,7 +79,7 @@ func Test_lvm_command(t *testing.T) {
 		fakeDeviceName := "/dev/does-not-exist"
 
 		ctx := log.IntoContext(context.Background(), testr.New(t))
-		dataStream, err := callLVMStreamed(ctx, "vgcreate", "test-vg", fakeDeviceName)
+		dataStream, err := callLVMStreamed(ctx, verbosityLVMStateUpdate, "vgcreate", "test-vg", fakeDeviceName)
 		if err != nil {
 			t.Fatal(err, "vgcreate should not fail instantly as read didn't finish")
 		}

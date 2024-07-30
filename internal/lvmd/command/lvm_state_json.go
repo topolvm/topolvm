@@ -46,7 +46,7 @@ func getLVMState(ctx context.Context) ([]vg, []lv, error) {
 		"--configreport", "pvseg", "-o,",
 		"--configreport", "seg", "-o,",
 	}
-	streamed, err := callLVMStreamed(ctx, append([]string{"fullreport"}, args...)...)
+	streamed, err := callLVMStreamed(ctx, verbosityLVMStateNoUpdate, append([]string{"fullreport"}, args...)...)
 	defer func() {
 		// this will wait for the process to be released.
 		if err := streamed.Close(); err != nil {

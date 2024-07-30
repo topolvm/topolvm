@@ -53,7 +53,7 @@ func getVGReport(ctx context.Context, name string) (vg, error) {
 	args := []string{
 		"vgs", name, "-o", "vg_uuid,vg_name,vg_size,vg_free", "--units", "b", "--nosuffix", "--reportformat", "json",
 	}
-	err := callLVMInto(ctx, res, args...)
+	err := callLVMInto(ctx, res, verbosityLVMStateNoUpdate, args...)
 
 	if IsLVMNotFound(err) {
 		return vg{}, errors.Join(ErrNotFound, err)

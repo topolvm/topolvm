@@ -123,7 +123,7 @@ func getLVReport(ctx context.Context, name string) (map[string]lv, error) {
 		"--reportformat",
 		"json",
 	}
-	err := callLVMInto(ctx, res, args...)
+	err := callLVMInto(ctx, res, verbosityLVMStateNoUpdate, args...)
 
 	if IsLVMNotFound(err) {
 		return nil, errors.Join(ErrNotFound, err)
