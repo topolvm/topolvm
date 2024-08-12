@@ -17,6 +17,7 @@ import (
 	lvmdApp "github.com/topolvm/topolvm/cmd/lvmd/app"
 	"github.com/topolvm/topolvm/internal/lvmd"
 	lvmdTypes "github.com/topolvm/topolvm/pkg/lvmd/types"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 )
@@ -143,6 +144,32 @@ func testMetrics() {
 			}
 		})
 	})
+
+	Describe("topolvm-lvmd", func() {
+		It("should open ports for metrics", func() {
+			managed, err := isLVMManaged()
+			Expect(err).ShouldNot(HaveOccurred())
+			if managed {
+				Eventually(func() error {
+					_, err := kubectl("exec", "-n", "topolvm-system", "daemonset/topolvm-lvmd-0", "-c=lvmd", "--",
+						"curl", "http://localhost:8080/metrics")
+					return err
+				}).Should(Succeed())
+			}
+		})
+	})
+}
+
+func isLVMManaged() (bool, error) {
+	var ds appsv1.DaemonSet
+	err := getObjects(&ds, "-n", "topolvm-system", "daemonset/topolvm-lvmd-0")
+	if err == ErrObjectNotFound {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("failed to get DaemonSet: %w", err)
+	}
+	return true, nil
 }
 
 func getMetricsFamily(nodeIP string) (map[string]*dto.MetricFamily, error) {
