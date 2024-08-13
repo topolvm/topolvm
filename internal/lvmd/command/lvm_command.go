@@ -15,7 +15,9 @@ import (
 )
 
 const (
-	nsenter = "/usr/bin/nsenter"
+	nsenter                   = "/usr/bin/nsenter"
+	verbosityLVMStateUpdate   = 1
+	verbosityLVMStateNoUpdate = 4
 )
 
 var (
@@ -31,13 +33,13 @@ func SetLVMPath(path string) {
 
 // callLVM calls lvm sub-commands and prints the output to the log.
 func callLVM(ctx context.Context, args ...string) error {
-	return callLVMInto(ctx, nil, args...)
+	return callLVMInto(ctx, nil, verbosityLVMStateUpdate, args...)
 }
 
 // callLVMInto calls lvm sub-commands and decodes the output via JSON into the provided struct pointer.
 // if the struct pointer is nil, the output will be printed to the log instead.
-func callLVMInto(ctx context.Context, into any, args ...string) error {
-	output, err := callLVMStreamed(ctx, args...)
+func callLVMInto(ctx context.Context, into any, logVerbosity int, args ...string) error {
+	output, err := callLVMStreamed(ctx, logVerbosity, args...)
 	if err != nil {
 		return fmt.Errorf("failed to execute command: %v", err)
 	}
@@ -60,12 +62,12 @@ func callLVMInto(ctx context.Context, into any, args ...string) error {
 // callLVMStreamed calls lvm sub-commands and returns the output as a ReadCloser.
 // The caller is responsible for closing the ReadCloser, which will cause the command to complete.
 // Not calling close on this method will result in a resource leak.
-func callLVMStreamed(ctx context.Context, args ...string) (io.ReadCloser, error) {
+func callLVMStreamed(ctx context.Context, logVerbosity int, args ...string) (io.ReadCloser, error) {
 	ctx = log.IntoContext(ctx, log.FromContext(ctx).WithCallDepth(1))
 	cmd := commandOnRootNS(lvm, args...)
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "LC_ALL=C")
-	return runCommand(ctx, cmd)
+	return runCommand(ctx, logVerbosity, cmd)
 }
 
 // commandOnRootNS calls cmd with args on root NS.
@@ -78,7 +80,7 @@ func commandOnRootNS(cmd string, args ...string) *exec.Cmd {
 // runCommand runs the command and returns the stdout as a ReadCloser that also Waits for the command to finish.
 // After the Close command is called the cmd is closed and the resources are released.
 // Not calling close on this method will result in a resource leak.
-func runCommand(ctx context.Context, cmd *exec.Cmd) (io.ReadCloser, error) {
+func runCommand(ctx context.Context, logVerbosity int, cmd *exec.Cmd) (io.ReadCloser, error) {
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, err
@@ -89,7 +91,7 @@ func runCommand(ctx context.Context, cmd *exec.Cmd) (io.ReadCloser, error) {
 		return nil, err
 	}
 
-	log.FromContext(ctx).Info("invoking command", "args", cmd.Args)
+	log.FromContext(ctx).V(logVerbosity).Info("invoking command", "args", cmd.Args)
 	if err := cmd.Start(); err != nil {
 		_ = stdout.Close()
 		_ = stderr.Close()
