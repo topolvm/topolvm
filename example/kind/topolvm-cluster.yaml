@@ -23,3 +23,5 @@ nodes:
     - containerPath: /var/lib/kubelet
       hostPath: "@TMPDIR@/worker"
       propagation: Bidirectional
+    - containerPath: /dev
+      hostPath: /dev
