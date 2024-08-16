@@ -36,7 +36,8 @@ helm install --namespace=topolvm-system topolvm topolvm/topolvm
 If you want to install cert-manager together, use the following command instead.
 
 ```sh
-kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/${VERSION}/cert-manager.crds.yaml
+CERT_MANAGER_VERSION=v1.15.1
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/${CERT_MANAGER_VERSION}/cert-manager.crds.yaml
 
 helm install --namespace=topolvm-system topolvm topolvm/topolvm --set cert-manager.enabled=true
 ```
