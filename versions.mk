@@ -1,5 +1,6 @@
 # https://github.com/docker/buildx/releases
 BUILDX_VERSION := 0.15.1
+# If you update the version, you also need to update getting-started.md.
 # https://github.com/cert-manager/cert-manager/releases
 CERT_MANAGER_VERSION := v1.15.1
 # https://github.com/helm/chart-testing/releases
