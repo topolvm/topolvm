@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -21,7 +23,7 @@ import (
 )
 
 type CleanupContext struct {
-	LvmCount            int
+	LVs                 []string
 	CapacityAnnotations map[string]map[string]string
 }
 
@@ -55,12 +57,14 @@ func kubectlWithInput(input []byte, args ...string) (stdout []byte, err error) {
 	return execAtLocal(kubectlPath, input, args...)
 }
 
-func countLVMs() (int, error) {
+func getLVs() ([]string, error) {
 	stdout, err := execAtLocal("sudo", nil, "lvs", "-o", "lv_name", "--noheadings")
 	if err != nil {
-		return -1, err
+		return nil, err
 	}
-	return bytes.Count(stdout, []byte("\n")), nil
+	lvs := strings.Fields(string(stdout))
+	slices.Sort(lvs)
+	return lvs, nil
 }
 
 func getNodeAnnotationMapWithPrefix(prefix string) (map[string]map[string]string, error) {
@@ -107,7 +111,7 @@ func commonBeforeEach() CleanupContext {
 	var cc CleanupContext
 	var err error
 
-	cc.LvmCount, err = countLVMs()
+	cc.LVs, err = getLVs()
 	ExpectWithOffset(1, err).ShouldNot(HaveOccurred())
 
 	cc.CapacityAnnotations, err = getNodeAnnotationMapWithPrefix(topolvm.GetCapacityKeyPrefix())
@@ -119,12 +123,12 @@ func commonBeforeEach() CleanupContext {
 func commonAfterEach(cc CleanupContext) {
 	if !CurrentSpecReport().State.Is(types.SpecStateFailureStates) {
 		EventuallyWithOffset(1, func() error {
-			lvmCountAfter, err := countLVMs()
+			lvsAfter, err := getLVs()
 			if err != nil {
 				return err
 			}
-			if cc.LvmCount != lvmCountAfter {
-				return fmt.Errorf("lvm num mismatched. before: %d, after: %d", cc.LvmCount, lvmCountAfter)
+			if !reflect.DeepEqual(cc.LVs, lvsAfter) {
+				return fmt.Errorf("lvs mismatched. before: %v, after: %v", cc.LVs, lvsAfter)
 			}
 
 			capacitiesAfter, err := getNodeAnnotationMapWithPrefix(topolvm.GetCapacityKeyPrefix())

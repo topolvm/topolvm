@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/topolvm/topolvm"
-	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
 func init() {
@@ -31,12 +31,12 @@ func testSanity() {
 		_, err = kubectl("delete", "nodes", "topolvm-e2e-worker3", "--ignore-not-found")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		Eventually(func(g Gomega) {
-			var ds appsv1.DaemonSet
-			err := getObjects(&ds, "ds", "-n", "topolvm-system", "topolvm-node")
+		Eventually(func(g Gomega) int {
+			var nodePods corev1.PodList
+			err := getObjects(&nodePods, "pod", "-n", "topolvm-system", "-l", "app.kubernetes.io/component=node")
 			g.Expect(err).ShouldNot(HaveOccurred())
-			g.Expect(ds.Status.NumberAvailable).To(BeEquivalentTo(1))
-		}).Should(Succeed())
+			return len(nodePods.Items)
+		}).Should(Equal(1))
 
 		baseDir := "/var/lib/kubelet/plugins/" + topolvm.GetPluginName() + "/"
 		if nonControlPlaneNodeCount > 0 {
