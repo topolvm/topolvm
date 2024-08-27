@@ -30,7 +30,7 @@ func NewPersistentVolumeClaimReconciler(client client.Client, apiReader client.R
 }
 
 //+kubebuilder:rbac:groups=core,resources=persistentvolumeclaims,verbs=get;list;watch;update
-//+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;delete
+//+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;delete;update
 
 // Reconcile PVC
 func (r *PersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -63,7 +63,8 @@ func (r *PersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req ctr
 	}
 
 	if pvc.DeletionTimestamp == nil {
-		return ctrl.Result{}, nil
+		err := r.notifyKubeletToResizeFS(ctx, pvc)
+		return ctrl.Result{}, err
 	}
 
 	result, err := r.deletePodsUsingDeletingPVC(ctx, pvc)
@@ -79,6 +80,48 @@ func (r *PersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req ctr
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *PersistentVolumeClaimReconciler) notifyKubeletToResizeFS(ctx context.Context, pvc *corev1.PersistentVolumeClaim) error {
+	// kubelet periodically checks pods to resize fs but it may take a long time.
+	// To speed up the process, mutate pods by adding an annotation.
+	// This process is only done when the PVC has `FileSystemResizePending` condition
+	// and pods are not mutated yet.
+	log := crlog.FromContext(ctx)
+	var condTransitionAt time.Time
+	for _, cond := range pvc.Status.Conditions {
+		if cond.Type == corev1.PersistentVolumeClaimFileSystemResizePending && cond.Status == corev1.ConditionTrue {
+			condTransitionAt = cond.LastTransitionTime.Time
+			goto needResizing
+		}
+	}
+	return nil
+
+needResizing:
+	pods, err := r.getPodsByPVC(ctx, pvc)
+	if err != nil {
+		log.Error(err, "unable to fetch PodList for a PVC")
+		return err
+	}
+	for _, pod := range pods {
+		if pod.Annotations == nil {
+			pod.Annotations = map[string]string{}
+		}
+
+		// If the parsing fails, someone or a bug may set a wrong value. In this case, we set the annotation to fix the value.
+		lastResizeFSRequestedAt, err := time.Parse(time.RFC3339Nano, pod.Annotations[topolvm.LastResizeFSRequestedAtKey])
+		if err == nil && lastResizeFSRequestedAt.After(condTransitionAt) {
+			continue
+		}
+
+		pod.Annotations[topolvm.LastResizeFSRequestedAtKey] = time.Now().Format(time.RFC3339Nano)
+		err = r.client.Update(ctx, &pod)
+		if err != nil {
+			log.Error(err, "unable to annotate Pod", "name", pod.Name, "namespace", pod.Namespace)
+			return err
+		}
+	}
+	return nil
 }
 
 func (r *PersistentVolumeClaimReconciler) deletePodsUsingDeletingPVC(ctx context.Context, pvc *corev1.PersistentVolumeClaim) (ctrl.Result, error) {
