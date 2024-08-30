@@ -221,6 +221,46 @@ lvmd:
     # lvmd.profiling.bindAddress -- Enables pprof profiling server. If empty, profiling is disabled.
     bindAddress: ""
 
+  metrics:
+    # lvmd.metrics.enabled -- If true, enable scraping of metrics by Prometheus.
+    enabled: true
+    # lvmd.metrics.annotations -- Annotations for Scrape used by Prometheus.
+    annotations:
+      prometheus.io/port: metrics
+
+  prometheus:
+    podMonitor:
+      # lvmd.prometheus.podMonitor.enabled -- Set this to `true` to create PodMonitor for Prometheus operator.
+      enabled: false
+
+      # lvmd.prometheus.podMonitor.additionalLabels -- Additional labels that can be used so PodMonitor will be discovered by Prometheus.
+      additionalLabels: {}
+
+      # lvmd.prometheus.podMonitor.namespace -- Optional namespace in which to create PodMonitor.
+      namespace: ""
+
+      # lvmd.prometheus.podMonitor.interval -- Scrape interval. If not set, the Prometheus default scrape interval is used.
+      interval: ""
+
+      # lvmd.prometheus.podMonitor.scrapeTimeout -- Scrape timeout. If not set, the Prometheus default scrape timeout is used.
+      scrapeTimeout: ""
+
+      # lvmd.prometheus.podMonitor.relabelings -- RelabelConfigs to apply to samples before scraping.
+      relabelings: []
+      # - sourceLabels: [__meta_kubernetes_service_label_cluster]
+      #   targetLabel: cluster
+      #   regex: (.*)
+      #   replacement: ${1}
+      #   action: replace
+
+      # lvmd.prometheus.podMonitor.metricRelabelings -- MetricRelabelConfigs to apply to samples before ingestion.
+      metricRelabelings: []
+      # - sourceLabels: [__meta_kubernetes_service_label_cluster]
+      #   targetLabel: cluster
+      #   regex: (.*)
+      #   replacement: ${1}
+      #   action: replace
+
 # CSI node service
 node:
   # node.lvmdEmbedded -- Specify whether to embed lvmd in the node container.

@@ -10,9 +10,12 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"sync"
 	"syscall"
 	"time"
 
+	"github.com/go-logr/logr"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"github.com/topolvm/topolvm"
 	"github.com/topolvm/topolvm/internal/lvmd"
@@ -33,6 +36,7 @@ var (
 	lvmPath              string
 	zapOpts              zap.Options
 	profilingBindAddress string
+	metricsBindAddress   string
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -112,15 +116,7 @@ func subMain(parentCtx context.Context) error {
 	ctx, stop := signal.NotifyContext(parentCtx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	var pprofServer *http.Server
-	if profilingBindAddress != "" {
-		pprofServer = profiling.NewProfilingServer(profilingBindAddress)
-		go func() {
-			if err := pprofServer.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-				logger.Error(err, "pprof server error")
-			}
-		}()
-	}
+	wg, pprofServer, metricsServer := startMetricsAndProfilingServers(logger)
 
 	go func() {
 		ticker := time.NewTicker(10 * time.Minute)
@@ -133,7 +129,13 @@ func subMain(parentCtx context.Context) error {
 						logger.Error(err, "failed to shutdown pprof server")
 					}
 				}
+				if metricsServer != nil {
+					if err := metricsServer.Shutdown(parentCtx); err != nil {
+						logger.Error(err, "failed to shutdown metrics server")
+					}
+				}
 				grpcServer.GracefulStop()
+				wg.Wait()
 				return
 			case <-ticker.C:
 				notifier()
@@ -142,6 +144,42 @@ func subMain(parentCtx context.Context) error {
 	}()
 
 	return grpcServer.Serve(lis)
+}
+
+// startMetricsAndProfilingServers starts metrics and profiling servers if the bind addresses are set
+// and returns a wait group to wait for the servers to stop.
+func startMetricsAndProfilingServers(logger logr.Logger) (*sync.WaitGroup, *http.Server, *http.Server) {
+	var wg sync.WaitGroup
+	var pprofServer *http.Server
+	if profilingBindAddress != "" {
+		wg.Add(1)
+		pprofServer = profiling.NewProfilingServer(profilingBindAddress)
+		go func() {
+			defer wg.Done()
+			if err := pprofServer.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+				logger.Error(err, "pprof server error")
+			}
+		}()
+	}
+
+	var metricsServer *http.Server
+	if metricsBindAddress != "" {
+		wg.Add(1)
+		mux := http.NewServeMux()
+		mux.Handle("/metrics", promhttp.Handler())
+		metricsServer = &http.Server{
+			Addr:    metricsBindAddress,
+			Handler: mux,
+		}
+		go func() {
+			defer wg.Done()
+			if err := metricsServer.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+				logger.Error(err, "metrics server error")
+			}
+		}()
+	}
+
+	return &wg, pprofServer, metricsServer
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -158,6 +196,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFilePath, "config", filepath.Join("/etc", "topolvm", "lvmd.yaml"), "config file")
 	rootCmd.PersistentFlags().StringVar(&lvmPath, "lvm-path", "", "lvm command path on the host OS")
 	rootCmd.PersistentFlags().StringVar(&profilingBindAddress, "profiling-bind-address", "", "bind address to expose pprof profiling. If empty, profiling is disabled")
+	rootCmd.PersistentFlags().StringVar(&metricsBindAddress, "metrics-bind-address", ":8080", "bind address to expose prometheus metrics. If empty, metrics are disabled")
 
 	goflags := flag.NewFlagSet("klog", flag.ExitOnError)
 	klog.InitFlags(goflags)
