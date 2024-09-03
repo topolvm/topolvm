@@ -697,9 +697,15 @@ webhook:
   podMutatingWebhook:
     # webhook.podMutatingWebhook.enabled -- Enable Pod MutatingWebhook.
     enabled: false
+    # webhook.podMutatingWebhook.objectSelector -- Labels required on Pods for webhook action.
+    objectSelector: {}
+      # webhook: topolvm
   pvcMutatingWebhook:
     # webhook.pvcMutatingWebhook.enabled -- Enable PVC MutatingWebhook.
     enabled: true
+    # webhook.pvcMutatingWebhook.objectSelector -- Labels required on PVCs for webhook action.
+    objectSelector: {}
+      # webhook: topolvm
 
 # Container Security Context
 # ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
