@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 
 	"github.com/topolvm/topolvm/internal/lvmd/command"
 	"github.com/topolvm/topolvm/pkg/lvmd/proto"
@@ -79,7 +78,8 @@ func (s *lvService) CreateLV(ctx context.Context, req *proto.CreateLVRequest) (*
 			logger.Error(err, "failed to get free bytes")
 			return nil, status.Error(codes.Internal, err.Error())
 		}
-		free = uint64(math.Floor(dc.ThinPoolConfig.OverprovisionRatio*float64(tpu.SizeBytes))) - tpu.VirtualBytes
+		free = calcThinPoolFreeBytes(
+			dc.ThinPoolConfig.OverprovisionRatio, tpu.SizeBytes, tpu.VirtualBytes)
 	default:
 		// technically this block will not be hit however make sure we return error
 		// in such cases where deviceclass target is neither thick or thinpool
@@ -364,7 +364,8 @@ func (s *lvService) ResizeLV(ctx context.Context, req *proto.ResizeLVRequest) (*
 			logger.Error(err, "failed to get free bytes")
 			return nil, status.Error(codes.Internal, err.Error())
 		}
-		free = uint64(math.Floor(dc.ThinPoolConfig.OverprovisionRatio*float64(tpu.SizeBytes))) - tpu.VirtualBytes
+		free = calcThinPoolFreeBytes(
+			dc.ThinPoolConfig.OverprovisionRatio, tpu.SizeBytes, tpu.VirtualBytes)
 	default:
 		// technically this block will not be hit however make sure we return error
 		// in such cases where deviceclass target is neither thick or thinpool
