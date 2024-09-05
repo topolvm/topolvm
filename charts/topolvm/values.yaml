@@ -698,12 +698,14 @@ webhook:
     # webhook.podMutatingWebhook.enabled -- Enable Pod MutatingWebhook.
     enabled: false
     # webhook.podMutatingWebhook.objectSelector -- Labels required on Pods for webhook action.
+    # WARNING: Modifying objectSelector can affect TopoLVM Pod scheduling. Proceed with caution.
     objectSelector: {}
       # webhook: topolvm
   pvcMutatingWebhook:
     # webhook.pvcMutatingWebhook.enabled -- Enable PVC MutatingWebhook.
     enabled: true
     # webhook.pvcMutatingWebhook.objectSelector -- Labels required on PVCs for webhook action.
+    # WARNING: Modifying objectSelector can affect TopoLVM PVC management. Proceed with caution.
     objectSelector: {}
       # webhook: topolvm
 

@@ -157,7 +157,9 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v15.
 | webhook.caBundle | string | `nil` | Specify the certificate to be used for AdmissionWebhook. |
 | webhook.existingCertManagerIssuer | object | `{}` | Specify the cert-manager issuer to be used for AdmissionWebhook. |
 | webhook.podMutatingWebhook.enabled | bool | `false` | Enable Pod MutatingWebhook. |
+| webhook.podMutatingWebhook.objectSelector | object | `{}` | Labels required on Pods for webhook action. **Warning**: Modifying this can affect TopoLVM Pod scheduling. Do at your own risk. # ref: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#matching-requests-objectselector |
 | webhook.pvcMutatingWebhook.enabled | bool | `true` | Enable PVC MutatingWebhook. |
+| webhook.pvcMutatingWebhook.objectSelector | object | `{}` | Labels required on PVCs for webhook action. **Warning**: Modifying this can affect TopoLVM PVC management. Do at your own risk. # ref: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#matching-requests-objectselector |
 
 ## Generate Manifests
 
