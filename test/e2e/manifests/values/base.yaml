@@ -40,6 +40,9 @@ lvmd:
       thin-pool:
         name: "pool0"
         overprovision-ratio: 5.0
+    - name: "volume-health"
+      volume-group: "node1-volume-health"
+      spare-gb: 1
   lvcreateOptionClasses:
     - name: "raid1"
       options:
@@ -125,6 +128,12 @@ storageClasses:
       additionalParameters:
         '{{ include "topolvm.pluginName" . }}/device-class': "option-class-raid1"
         '{{ include "topolvm.pluginName" . }}/lvcreate-option-class': "raid1"
+  - name: topolvm-provisioner-volumehealth
+    storageClass:
+      isDefaultClass: false
+      volumeBindingMode: WaitForFirstConsumer
+      additionalParameters:
+        '{{ include "topolvm.pluginName" . }}/device-class': "volume-health"
 
 cert-manager:
   enabled: true

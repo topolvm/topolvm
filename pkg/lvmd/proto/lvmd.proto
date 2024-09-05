@@ -21,6 +21,7 @@ message LogicalVolume {
     repeated string tags = 5;               // Tags to add to the volume during creation
     int64 size_bytes = 6;                   // Volume size in canonical CSI bytes.
     string path = 7;                        // Path to the lv as per lvm.
+    string attr = 8;                        // Attributes of the lv.
 }
 
 // Represents the input for CreateLV.

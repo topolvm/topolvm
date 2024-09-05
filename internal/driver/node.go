@@ -3,6 +3,7 @@ package driver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 	"github.com/topolvm/topolvm"
 	"github.com/topolvm/topolvm/internal/driver/internal/k8s"
 	"github.com/topolvm/topolvm/internal/filesystem"
+	"github.com/topolvm/topolvm/internal/lvmd/command"
 	"github.com/topolvm/topolvm/pkg/lvmd/proto"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc/codes"
@@ -368,10 +370,10 @@ func (s *nodeServerNoLocked) NodeGetVolumeStats(ctx context.Context, req *csi.No
 	}
 
 	var st unix.Stat_t
-	switch err := filesystem.Stat(volumePath, &st); err {
-	case unix.ENOENT:
+	switch err := filesystem.Stat(volumePath, &st); {
+	case errors.Is(err, unix.ENOENT):
 		return nil, status.Error(codes.NotFound, "Volume is not found at "+volumePath)
-	case nil:
+	case err == nil:
 	default:
 		return nil, status.Errorf(codes.Internal, "stat on %s was failed: %v", volumePath, err)
 	}
@@ -418,7 +420,26 @@ func (s *nodeServerNoLocked) NodeGetVolumeStats(ctx context.Context, req *csi.No
 			Available: int64(sfs.Ffree),
 		})
 	}
-	return &csi.NodeGetVolumeStatsResponse{Usage: usage}, nil
+
+	var lv *proto.LogicalVolume
+	lvr, err := s.k8sLVService.GetVolume(ctx, volumeID)
+	if err != nil {
+		return nil, err
+	}
+	lv, err = s.getLvFromContext(ctx, lvr.Spec.DeviceClass, volumeID)
+	if err != nil {
+		return nil, err
+	}
+	if lv == nil {
+		return nil, status.Errorf(codes.NotFound, "failed to find LV: %s", volumeID)
+	}
+
+	volumeCondition, err := getVolumeCondition(lv)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, err.Error())
+	}
+
+	return &csi.NodeGetVolumeStatsResponse{Usage: usage, VolumeCondition: volumeCondition}, nil
 }
 
 func (s *nodeServerNoLocked) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
@@ -499,6 +520,7 @@ func (s *nodeServerNoLocked) NodeGetCapabilities(context.Context, *csi.NodeGetCa
 	capabilities := []csi.NodeServiceCapability_RPC_Type{
 		csi.NodeServiceCapability_RPC_GET_VOLUME_STATS,
 		csi.NodeServiceCapability_RPC_EXPAND_VOLUME,
+		csi.NodeServiceCapability_RPC_VOLUME_CONDITION,
 	}
 
 	csiCaps := make([]*csi.NodeServiceCapability, len(capabilities))
@@ -526,4 +548,24 @@ func (s *nodeServerNoLocked) NodeGetInfo(ctx context.Context, req *csi.NodeGetIn
 			},
 		},
 	}, nil
+}
+
+func getVolumeCondition(lv *proto.LogicalVolume) (*csi.VolumeCondition, error) {
+	attr, err := command.ParsedLVAttr(lv.GetAttr())
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse attributes returned from logical volume service: %w", err)
+	}
+	var volumeCondition csi.VolumeCondition
+	if err := attr.VerifyHealth(); err != nil {
+		volumeCondition = csi.VolumeCondition{
+			Abnormal: true,
+			Message:  err.Error(),
+		}
+	} else {
+		volumeCondition = csi.VolumeCondition{
+			Abnormal: false,
+			Message:  "volume is healthy and operating normally",
+		}
+	}
+	return &volumeCondition, nil
 }

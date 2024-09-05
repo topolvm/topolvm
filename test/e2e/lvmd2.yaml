@@ -20,6 +20,9 @@ device-classes:
     thin-pool:
       name: "pool0"
       overprovision-ratio: 5.0
+  - name: "volume-health"
+    volume-group: "node2-volume-health"
+    spare-gb: 1
 lvcreate-option-classes:
   - name: "raid1"
     options:
