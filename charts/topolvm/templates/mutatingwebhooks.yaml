@@ -21,6 +21,13 @@ webhooks:
       - key: {{ include "topolvm.pluginName" . }}/webhook
         operator: NotIn
         values: ["ignore"]
+    {{- if .Values.webhook.podMutatingWebhook.objectSelector }}
+    objectSelector:
+      matchLabels:
+        {{- range $key, $value := .Values.webhook.podMutatingWebhook.objectSelector }}
+        {{ $key }}: {{ $value }}
+        {{- end }}
+    {{- end }}
     failurePolicy: Fail
     matchPolicy: Equivalent
     clientConfig:
@@ -52,6 +59,13 @@ webhooks:
       - key: {{ include "topolvm.pluginName" . }}/webhook
         operator: NotIn
         values: ["ignore"]
+    {{- if .Values.webhook.pvcMutatingWebhook.objectSelector }}
+    objectSelector:
+      matchLabels:
+        {{- range $key, $value := .Values.webhook.pvcMutatingWebhook.objectSelector }}
+        {{ $key }}: {{ $value }}
+        {{- end }}
+    {{- end }}
     failurePolicy: Fail
     matchPolicy: Equivalent
     clientConfig:
