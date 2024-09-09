@@ -32,16 +32,7 @@ func NewPersistentVolumeClaimReconciler(client client.Client, apiReader client.R
 //+kubebuilder:rbac:groups=core,resources=persistentvolumeclaims,verbs=get;list;watch;update
 //+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;delete
 
-// Reconcile finalize PVC
-//
-// This was originally created as a workaround for the following issue.
-// https://github.com/kubernetes/kubernetes/pull/93457
-//
-// Because the issue was fixed, the PVC reconciler was once removed by PR #536.
-// However, it turned out that the PVC finalizer was also useful to
-// resolve the issue that a pod created from StatefulSet persists in the PENDING state
-// when PVC is deleted for some reasons like node deletion.
-// Thus, the reconciler was revived by PR #620.
+// Reconcile PVC
 func (r *PersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := crlog.FromContext(ctx)
 	// your logic here
@@ -66,16 +57,42 @@ func (r *PersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req ctr
 		}, nil
 	}
 
-	// Skip if the PVC is not deleted or PVC does not have TopoLVM's finalizer.
-	if pvc.DeletionTimestamp == nil {
-		return ctrl.Result{}, nil
-	}
-
+	// Skip if PVC does not have TopoLVM's finalizer which added by the Pod mutating webhook.
 	if !controllerutil.ContainsFinalizer(pvc, topolvm.PVCFinalizer) {
 		return ctrl.Result{}, nil
 	}
 
+	if pvc.DeletionTimestamp == nil {
+		return ctrl.Result{}, nil
+	}
+
+	result, err := r.deletePodsUsingDeletingPVC(ctx, pvc)
+	if result.Requeue || err != nil {
+		return result, err
+	}
+
+	controllerutil.RemoveFinalizer(pvc, topolvm.PVCFinalizer)
+
+	if err := r.client.Update(ctx, pvc); err != nil {
+		log.Error(err, "failed to remove finalizer")
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *PersistentVolumeClaimReconciler) deletePodsUsingDeletingPVC(ctx context.Context, pvc *corev1.PersistentVolumeClaim) (ctrl.Result, error) {
 	// Delete the pods that are using the PV/PVC.
+	//
+	// This was originally created as a workaround for the following issue.
+	// https://github.com/kubernetes/kubernetes/pull/93457
+	//
+	// Because the issue was fixed, the PVC reconciler was once removed by PR #536.
+	// However, it turned out that the PVC finalizer was also useful to
+	// resolve the issue that a pod created from StatefulSet persists in the PENDING state
+	// when PVC is deleted for some reasons like node deletion.
+	// Thus, the reconciler was revived by PR #620.
+	log := crlog.FromContext(ctx)
 	pods, err := r.getPodsByPVC(ctx, pvc)
 	if err != nil {
 		log.Error(err, "unable to fetch PodList for a PVC")
@@ -96,13 +113,6 @@ func (r *PersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req ctr
 			Requeue:      true,
 			RequeueAfter: 10 * time.Second,
 		}, nil
-	}
-
-	controllerutil.RemoveFinalizer(pvc, topolvm.PVCFinalizer)
-
-	if err := r.client.Update(ctx, pvc); err != nil {
-		log.Error(err, "failed to remove finalizer")
-		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil
