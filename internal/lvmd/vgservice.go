@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 	"sync"
 
 	"github.com/topolvm/topolvm/internal/lvmd/command"
@@ -124,7 +123,8 @@ func (s *vgService) GetFreeBytes(ctx context.Context, req *proto.GetFreeBytesReq
 		}
 
 		// freebytes available in thinpool considering the overprovisionratio
-		vgFree = uint64(math.Floor(dc.ThinPoolConfig.OverprovisionRatio*float64(tpu.SizeBytes))) - tpu.VirtualBytes
+		vgFree = calcThinPoolFreeBytes(
+			dc.ThinPoolConfig.OverprovisionRatio, tpu.SizeBytes, tpu.VirtualBytes)
 
 	default:
 		return nil, status.Error(codes.Internal, fmt.Sprintf("unsupported device class target: %s", dc.Type))
@@ -187,7 +187,8 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 			tpi.MetadataPercent = tpu.MetadataPercent
 
 			// used for annotating the node for capacity aware scheduling
-			opb := uint64(math.Floor(dc.ThinPoolConfig.OverprovisionRatio*float64(tpu.SizeBytes))) - tpu.VirtualBytes
+			opb := calcThinPoolFreeBytes(
+				dc.ThinPoolConfig.OverprovisionRatio, tpu.SizeBytes, tpu.VirtualBytes)
 			tpi.OverprovisionBytes = opb
 			if dc.Default {
 				res.FreeBytes = opb
