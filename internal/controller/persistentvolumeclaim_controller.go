@@ -78,7 +78,7 @@ func (r *PersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req ctr
 	// Delete the pods that are using the PV/PVC.
 	pods, err := r.getPodsByPVC(ctx, pvc)
 	if err != nil {
-		log.Error(err, "unable to fetch PodList for a PVC", "pvc", pvc.Name, "namespace", pvc.Namespace)
+		log.Error(err, "unable to fetch PodList for a PVC")
 		return ctrl.Result{}, err
 	}
 	for _, pod := range pods {
@@ -101,7 +101,7 @@ func (r *PersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req ctr
 	controllerutil.RemoveFinalizer(pvc, topolvm.PVCFinalizer)
 
 	if err := r.client.Update(ctx, pvc); err != nil {
-		log.Error(err, "failed to remove finalizer", "name", pvc.Name)
+		log.Error(err, "failed to remove finalizer")
 		return ctrl.Result{}, err
 	}
 
