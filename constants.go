@@ -76,6 +76,9 @@ const PVCFinalizer = pluginName + "/pvc"
 // LegacyPVCFinalizer is a legacy finalizer of PVC.
 const LegacyPVCFinalizer = legacyPluginName + "/pvc"
 
+// LastResizeFSRequestedAtKey is the annotation key that represents the timestamp of the resizefs request to kubelet.
+const LastResizeFSRequestedAtKey = pluginName + "/last-resizefs-requested-at"
+
 // DefaultCSISocket is the default path of the CSI socket file.
 const DefaultCSISocket = "/run/topolvm/csi-topolvm.sock"
 

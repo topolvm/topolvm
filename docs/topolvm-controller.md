@@ -1,10 +1,7 @@
 # topolvm-controller
 
-`topolvm-controller` provides a CSI controller service.  It also works as
-a custom Kubernetes controller to cleanup stale resources.
-
-Specifically, `topolvm-controller` watches `Node` resource deletion to
-cleanup `PersistentVolumeClaim` on the deleting Nodes.
+`topolvm-controller` provides a CSI controller service.
+It also works as a custom Kubernetes controller for additional tasks.
 
 ## CSI Controller Features
 
@@ -164,10 +161,9 @@ At step 4, the StatefulSet pod is not deleted if the PVC finalizer does not exis
 
 ### The Controller for Nodes
 
-The controller adds `topolvm.io/node` finalizer.
+The controller is to cleanup all PVCs and LogicalVolumes associating to the deleting Node.
 
-When a Node is being deleted, the controller deletes all PVCs and LogicalVolumes for TopoLVM
-on the deleting node. 
+It adds the `topolvm.io/node` finalizer to run the cleanup task.
 
 This node finalize procedure may be skipped with the `--skip-node-finalize` flag. 
 When this is true, the PVCs and the LogicalVolume CRs from a deleted node must be
@@ -175,20 +171,28 @@ deleted manually by a cluster administrator.
 
 ### The Controller for PersistentVolumeClams
 
-When a PVC for TopoLVM is being deleted, the controller waits for other
-finalizers to be completed.  Once it becomes the last finalizer, it removes
-the finalizer to immediately delete PVC then deletes pending pods referencing
-the deleted PVC, if any.
+The controller accomplishes two tasks.
+
+1. Delete Pods using PVCs under deletion.
+When a PVC for TopoLVM is being deleted, the controller deletes pods referencing
+the PVC, if any. This is repeated until other finalizers to be completed.
+Once it becomes the last finalizer, it removes the finalizer to immediately delete the PVC.
+
+2. Speed up resizing a PVC filesystem by nudging the kubelet.
+kubelet watches Pods rather than PVCs periodically to resize the filesystem,
+therefore the filesystem resizing may be delayed.
+To avoid this, the controller will notify kubelet by setting
+the `topolvm.io/last-resizefs-requested-at` annotation with the current time to the Pod.
 
 Command-line flags
 ------------------
 
-| Name                   | Type   | Default                                 | Description                                                                  |
-| ---------------------- |--------|-----------------------------------------|------------------------------------------------------------------------------|
-| `cert-dir`             | string | `/tmp/k8s-webhook-server/serving-certs` | Directory for `tls.crt` and `tls.key` files.                                 |
-| `csi-socket`           | string | `/run/topolvm/csi-topolvm.sock`         | UNIX domain socket of `topolvm-controller`.                                  |
-| `metrics-bind-address` | string | `:8080`                                 | Listen address for Prometheus metrics.                                       |
-| `secure-metrics-server`| bool   | `false`                                 | Secures the metrics server.                                                  |
-| `leader-election-id`   | string | `topolvm`                               | ID for leader election by controller-runtime.                                |
-| `webhook-addr`         | string | `:9443`                                 | Listen address for the webhook endpoint.                                     |
-| `skip-node-finalize`   | bool   | `false`                                 | When true, skips automatic cleanup of PhysicalVolumeClaims on Node deletion. |
+| Name                    | Type   | Default                                 | Description                                                                  |
+| ----------------------- | ------ | --------------------------------------- | ---------------------------------------------------------------------------- |
+| `cert-dir`              | string | `/tmp/k8s-webhook-server/serving-certs` | Directory for `tls.crt` and `tls.key` files.                                 |
+| `csi-socket`            | string | `/run/topolvm/csi-topolvm.sock`         | UNIX domain socket of `topolvm-controller`.                                  |
+| `metrics-bind-address`  | string | `:8080`                                 | Listen address for Prometheus metrics.                                       |
+| `secure-metrics-server` | bool   | `false`                                 | Secures the metrics server.                                                  |
+| `leader-election-id`    | string | `topolvm`                               | ID for leader election by controller-runtime.                                |
+| `webhook-addr`          | string | `:9443`                                 | Listen address for the webhook endpoint.                                     |
+| `skip-node-finalize`    | bool   | `false`                                 | When true, skips automatic cleanup of PhysicalVolumeClaims on Node deletion. |

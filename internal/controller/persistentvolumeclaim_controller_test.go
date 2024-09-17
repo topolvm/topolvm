@@ -555,4 +555,97 @@ var _ = Describe("PersistentVolumeClaimController controller", func() {
 			}), "when delete "+pvcMeta.Namespace+"/"+pvcMeta.Name)
 		}
 	})
+
+	It("should annotate the Pod to notify kubelet to resize the filesystem when the PVC has FileSystemResizePending condition", func(ctx SpecContext) {
+		ns := createNamespace()
+		pod := corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "pod0",
+				Namespace: ns,
+			},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					{
+						Name:  "container",
+						Image: "registry.k8s.io/pause",
+						VolumeMounts: []corev1.VolumeMount{
+							{
+								Name:      "vol0",
+								MountPath: "/vol0",
+							},
+						},
+					},
+				},
+				Volumes: []corev1.Volume{
+					{
+						Name: "vol0",
+						VolumeSource: corev1.VolumeSource{
+							PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+								ClaimName: "pvc0",
+							},
+						},
+					},
+				},
+			},
+		}
+		pvc := corev1.PersistentVolumeClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "pvc0",
+				Namespace: ns,
+				Finalizers: []string{
+					"topolvm.io/pvc",
+				},
+			},
+			Spec: corev1.PersistentVolumeClaimSpec{
+				AccessModes: []corev1.PersistentVolumeAccessMode{
+					corev1.ReadWriteOnce,
+				},
+				Resources: corev1.VolumeResourceRequirements{
+					Requests: corev1.ResourceList{
+						"storage": resource.MustParse("1Gi"),
+					},
+				},
+			},
+		}
+
+		err := k8sClient.Create(ctx, &pod)
+		Expect(err).NotTo(HaveOccurred())
+		err = k8sClient.Create(ctx, &pvc)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Checking a precondition that the Pod doesn't have annotation")
+		Eventually(func(g Gomega) {
+			var got corev1.Pod
+			err := k8sClient.Get(ctx, client.ObjectKey{Namespace: pod.Namespace, Name: pod.Name}, &got)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got.Annotations).ShouldNot(HaveKey("topolvm.io/last-resizefs-requested-at"))
+		}).WithContext(ctx).Should(Succeed())
+
+		By("Setting FileSystemResizePending condition")
+		var got corev1.PersistentVolumeClaim
+		err = k8sClient.Get(ctx, client.ObjectKey{Namespace: pvc.Namespace, Name: pvc.Name}, &got)
+		Expect(err).NotTo(HaveOccurred())
+		got.Status.Conditions = append(got.Status.Conditions, corev1.PersistentVolumeClaimCondition{
+			Type:               corev1.PersistentVolumeClaimFileSystemResizePending,
+			Status:             corev1.ConditionTrue,
+			LastTransitionTime: metav1.Time{Time: time.Now()},
+		})
+		err = k8sClient.Status().Update(ctx, &got)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Checking if the Pod has annotation")
+		Eventually(func(g Gomega) {
+			var got corev1.Pod
+			err := k8sClient.Get(ctx, client.ObjectKey{Namespace: pod.Namespace, Name: pod.Name}, &got)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got.Annotations).Should(HaveKeyWithValue(
+				"topolvm.io/last-resizefs-requested-at",
+				WithTransform(
+					func(v string) error {
+						_, err := time.Parse(time.RFC3339Nano, v)
+						return err
+					},
+					Succeed())))
+		}).WithContext(ctx).Should(Succeed())
+	})
 })
