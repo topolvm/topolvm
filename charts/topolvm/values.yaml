@@ -196,7 +196,7 @@ lvmd:
   additionalConfigs: []
   #  - tolerations: []
   #      nodeSelector: {}
-  #      device-classes:
+  #      deviceClasses:
   #        - name: ssd
   #          volume-group: myvg2
   #          default: true
