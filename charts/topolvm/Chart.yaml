@@ -4,8 +4,8 @@ type: application
 home: https://github.com/topolvm/topolvm
 name: topolvm
 description: Topolvm
-version: 15.3.0
-appVersion: 0.34.0
+version: 15.4.0
+appVersion: 0.35.0
 sources:
   - https://github.com/topolvm/topolvm
 
@@ -18,7 +18,7 @@ dependencies:
 annotations:
   artifacthub.io/images: |
     - name: topolvm-with-sidecar
-      image: ghcr.io/topolvm/topolvm-with-sidecar:0.34.0
+      image: ghcr.io/topolvm/topolvm-with-sidecar:0.35.0
     - name: topolvm-with
-      image: ghcr.io/topolvm/topolvm:0.34.0
+      image: ghcr.io/topolvm/topolvm:0.35.0
   artifacthub.io/license: Apache-2.0
