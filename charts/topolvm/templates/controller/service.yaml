@@ -8,7 +8,7 @@ metadata:
 spec:
   selector:
     app.kubernetes.io/component: controller
-    {{ include "topolvm.selectorLabels" . | nindent 4 }}
+    {{- include "topolvm.selectorLabels" . | nindent 4 }}
   ports:
     - name: webhook
       port: 443
