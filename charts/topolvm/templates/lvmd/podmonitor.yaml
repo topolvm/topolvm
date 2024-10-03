@@ -13,7 +13,7 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/component: lvmd
-      {{ include "topolvm.selectorLabels" . | nindent 6 }}
+      {{- include "topolvm.selectorLabels" . | nindent 6 }}
   namespaceSelector:
     matchNames:
       - {{ .Release.Namespace }}
