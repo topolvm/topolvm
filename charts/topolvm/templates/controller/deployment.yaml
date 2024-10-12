@@ -19,12 +19,12 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/component: controller
-      {{ include "topolvm.selectorLabels" . | nindent 6 }}
+      {{- include "topolvm.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
         app.kubernetes.io/component: controller
-        {{ include "topolvm.selectorLabels" . | nindent 8 }}
+        {{- include "topolvm.selectorLabels" . | nindent 8 }}
         {{- with .Values.controller.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -51,11 +51,11 @@ spec:
           image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
           command:
             - /topolvm-controller
-            {{ if not .Values.controller.leaderElection.enabled }}
+            {{- if not .Values.controller.leaderElection.enabled }}
             - --leader-election=false
-            {{ else }}
+            {{- else }}
             - --leader-election-namespace={{ .Release.Namespace }}
-            {{ end }}
+            {{- end }}
             {{- if or .Values.webhook.podMutatingWebhook.enabled .Values.webhook.pvcMutatingWebhook.enabled }}
             - --cert-dir=/certs
             {{- else }}
@@ -147,10 +147,10 @@ spec:
             - /csi-provisioner
             - --csi-address=/run/topolvm/csi-topolvm.sock
             - --feature-gates=Topology=true
-            {{ if .Values.controller.leaderElection.enabled }}
+            {{- if .Values.controller.leaderElection.enabled }}
             - --leader-election
             - --leader-election-namespace={{ .Release.Namespace }}
-            {{ end }}
+            {{- end }}
             - --http-endpoint=:9809
             {{- with .Values.controller.storageCapacityTracking.enabled }}
             - --enable-capacity
@@ -192,10 +192,10 @@ spec:
           command:
             - /csi-resizer
             - --csi-address=/run/topolvm/csi-topolvm.sock
-            {{ if .Values.controller.leaderElection.enabled }}
+            {{- if .Values.controller.leaderElection.enabled }}
             - --leader-election
             - --leader-election-namespace={{ .Release.Namespace }}
-            {{ end }}
+            {{- end }}
             - --http-endpoint=:9810
           ports:
             - containerPort: 9810
@@ -223,10 +223,10 @@ spec:
           command:
             - /csi-snapshotter
             - --csi-address=/run/topolvm/csi-topolvm.sock
-            {{ if .Values.controller.leaderElection.enabled }}
+            {{- if .Values.controller.leaderElection.enabled }}
             - --leader-election
             - --leader-election-namespace={{ .Release.Namespace }}
-            {{ end }}
+            {{- end }}
             - --http-endpoint=:9811
           ports:
             - containerPort: 9811

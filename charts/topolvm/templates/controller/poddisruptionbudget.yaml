@@ -10,6 +10,6 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/component: controller
-      {{ include "topolvm.selectorLabels" . | nindent 6 }}
+      {{- include "topolvm.selectorLabels" . | nindent 6 }}
 ---
 {{- end }}
