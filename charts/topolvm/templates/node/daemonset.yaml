@@ -15,12 +15,12 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/component: node
-      {{ include "topolvm.selectorLabels" . | nindent 6 }}
+      {{- include "topolvm.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
         app.kubernetes.io/component: node
-        {{ include "topolvm.selectorLabels" . | nindent 8 }}
+        {{- include "topolvm.selectorLabels" . | nindent 8 }}
         {{- with .Values.node.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -96,10 +96,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            {{ if .Values.useLegacy }}
+            {{- if .Values.useLegacy }}
             - name: USE_LEGACY
               value: "true"
-            {{ end }}
+            {{- end }}
             {{- with .Values.env.topolvm_node }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -109,13 +109,13 @@ spec:
             {{- else }}
             - name: node-plugin-dir
               mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/
-            {{ if .Values.node.lvmdEmbedded }}
+            {{- if .Values.node.lvmdEmbedded }}
             - name: config
               mountPath: /etc/topolvm
-            {{ else }}
+            {{- else }}
             - name: lvmd-socket-dir
               mountPath: {{ dir .Values.node.lvmdSocket }}
-            {{ end }}
+            {{- end }}
             - name: pod-volumes-dir
               mountPath: {{ .Values.node.kubeletWorkDirectory }}/pods
               mountPropagation: "Bidirectional"
