@@ -36,7 +36,7 @@ spec:
         {{- end }}
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/lvmd/configmap.yaml") . | sha256sum }}
-        {{- if .Values.lvmd.metrics.enabed }}
+        {{- if .Values.lvmd.metrics.enabled }}
         {{- with .Values.lvmd.metrics.annotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
