@@ -11,6 +11,7 @@ This document describes how to install TopoLVM with advanced configurations.
   - [Run LVMd as a Embed Function in topolvm-node](#run-lvmd-as-a-embed-function-in-topolvm-node)
   - [Run LVMd as a Systemd Service](#run-lvmd-as-a-systemd-service)
   - [Migrate LVMd, which is running as a systemd service, to DaemonSet](#migrate-lvmd-which-is-running-as-a-systemd-service-to-daemonset)
+  - [Use different LVMd configurations on different nodes](#use-different-lvmd-configurations-on-different-nodes)
 - [Certificates](#certificates)
 - [Scheduling](#scheduling)
   - [Using Storage Capacity Tracking](#using-storage-capacity-tracking)
@@ -168,6 +169,14 @@ This section describes how to switch to DaemonSet LVMd from LVMd running as a sy
     lvmdSocket: /run/lvmd/lvmd.sock # Change this value to something like `/run/lvmd/lvmd.sock`.
    <snip>
    ```
+
+### Use different LVMd configurations on different nodes
+
+Depending on your setup, you might want to deploy different LVMd configurations on different nodes. You can do this by using [`lvmd.additionalConfigs` in `values.yaml` file](https://github.com/topolvm/topolvm/blob/3ddfec27480ca0381c6b0ec4b9e536afdff1aad6/charts/topolvm/values.yaml#L194-L203). Check the comments there for more details.
+
+Please note that `lvmd.additionalConfigs` will only work as expected if you use the managed (i.e., `DaemonSet`) version of LVMd. This feature won't work if you use embedded or unmanaged version of LVMd.
+
+See also [#555](https://github.com/topolvm/topolvm/issues/555) and [#973](https://github.com/topolvm/topolvm/issues/973).
 
 ## Certificates
 
