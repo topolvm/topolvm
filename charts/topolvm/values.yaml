@@ -735,3 +735,11 @@ priorityClass:
 snapshot:
   # snapshot.enabled -- Turn on the snapshot feature.
   enabled: true
+
+crds:
+  # This option makes it so that the "helm.sh/resource-policy": keep
+  # annotation is added to the CRD. This will prevent Helm from uninstalling
+  # the CRD when the Helm release is uninstalled.
+  # WARNING: when the CRDs are removed, all topolvm custom resources (logicalvolumes)
+  # will be removed too by the garbage collector.
+  keep: true
