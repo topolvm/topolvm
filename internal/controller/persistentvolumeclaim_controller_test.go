@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/config"
 )
 
 var _ = Describe("PersistentVolumeClaimController controller", func() {
@@ -21,8 +22,12 @@ var _ = Describe("PersistentVolumeClaimController controller", func() {
 	var reconciler *PersistentVolumeClaimReconciler
 
 	BeforeEach(func() {
+		skipNameValidation := true
 		mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 			Scheme: scheme,
+			Controller: config.Controller{
+				SkipNameValidation: &skipNameValidation,
+			},
 		})
 		Expect(err).ToNot(HaveOccurred())
 
