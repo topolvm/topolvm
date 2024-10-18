@@ -19,7 +19,7 @@ HELM := ../../bin/helm
 KIND := ../../bin/kind
 KIND_CONFIG := topolvm-cluster.yaml
 KUBECTL := $(BINDIR)/kubectl-$(KUBERNETES_VERSION)
-MINIKUBE_FEATURE_GATES="ReadWriteOncePod=true,CSIVolumeHealth=true"
+MINIKUBE_FEATURE_GATES="CSIVolumeHealth=true"
 MINIKUBE_HOME = $(BINDIR)
 SUDO := sudo
 
