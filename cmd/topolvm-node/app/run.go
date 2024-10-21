@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -99,14 +98,9 @@ func subMain(ctx context.Context) error {
 			config.lvmd.LvcreateOptionClasses,
 		)
 	} else {
-		dialer := &net.Dialer{}
-		dialFunc := func(ctx context.Context, a string) (net.Conn, error) {
-			return dialer.DialContext(ctx, "unix", a)
-		}
-		conn, err := grpc.Dial(
-			config.lvmdSocket,
+		conn, err := grpc.NewClient(
+			"unix:"+config.lvmdSocket,
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
-			grpc.WithContextDialer(dialFunc),
 		)
 		if err != nil {
 			return err

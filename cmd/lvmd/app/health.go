@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"net"
 
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
@@ -25,14 +24,9 @@ func healthSubMain(ctx context.Context, config *Config) error {
 	if err != nil {
 		return err
 	}
-	dialer := &net.Dialer{}
-	dialFunc := func(ctx context.Context, a string) (net.Conn, error) {
-		return dialer.DialContext(ctx, "unix", a)
-	}
-	conn, err := grpc.Dial(
-		config.SocketName,
+	conn, err := grpc.NewClient(
+		"unix:"+config.SocketName,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithContextDialer(dialFunc),
 	)
 	if err != nil {
 		return err

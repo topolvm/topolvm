@@ -1,3 +1,4 @@
+# Copied from config/rbac/role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -5,21 +6,56 @@ metadata:
   labels:
   {{- include "topolvm.labels" . | nindent 4 }}
 rules:
-  - apiGroups: [""]
-    resources: ["nodes"]
-    verbs: ["get", "list", "watch", "patch", "update"]
-  - apiGroups: [""]
-    resources: ["pods"]
-    verbs: ["get", "list", "watch", "delete", "update"]
-  - apiGroups: [""]
-    resources: ["persistentvolumeclaims"]
-    verbs: ["get", "list", "watch", "update", "delete"]
-  - apiGroups: ["storage.k8s.io"]
-    resources: ["storageclasses","csidrivers"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: ["{{ include "topolvm.pluginName" . }}"]
-    resources: ["logicalvolumes", "logicalvolumes/status"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  - pods
+  verbs:
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - csidrivers
+  - storageclasses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - "{{ include "topolvm.pluginName" . }}"
+  resources:
+  - logicalvolumes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - topolvm.io
+  resources:
+  - logicalvolumes/status
+  verbs:
+  - get
+  - patch
+  - update
 ---
 # Copied from https://github.com/kubernetes-csi/external-provisioner/blob/master/deploy/kubernetes/rbac.yaml
 kind: ClusterRole

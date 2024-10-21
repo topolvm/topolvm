@@ -436,7 +436,7 @@ func (s *nodeServerNoLocked) NodeGetVolumeStats(ctx context.Context, req *csi.No
 
 	volumeCondition, err := getVolumeCondition(lv)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, err.Error())
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return &csi.NodeGetVolumeStatsResponse{Usage: usage, VolumeCondition: volumeCondition}, nil

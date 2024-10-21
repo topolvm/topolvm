@@ -4,7 +4,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.4
   name: logicalvolumes.topolvm.io
 spec:
   group: topolvm.io
@@ -74,8 +74,14 @@ spec:
             description: LogicalVolumeStatus defines the observed state of LogicalVolume
             properties:
               code:
-                description: A Code is an unsigned 32-bit error code as defined in
-                  the gRPC spec.
+                description: |-
+                  A Code is a status code defined according to the [gRPC documentation].
+
+                  Only the codes defined as consts in this package are valid codes. Do not use
+                  other code values.  Behavior of other codes is implementation-specific and
+                  interoperability between implementations is not guaranteed.
+
+                  [gRPC documentation]: https://github.com/grpc/grpc/blob/master/doc/statuscodes.md
                 format: int32
                 type: integer
               currentSize:
