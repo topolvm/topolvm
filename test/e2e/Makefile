@@ -182,7 +182,9 @@ incluster-lvmd/setup-minikube:
 
 .PHONY: incluster-lvmd/launch-minikube
 incluster-lvmd/launch-minikube:
-	$(SUDO) -E $(BINDIR)/minikube start \
+	$(SUDO) -E \
+		CHANGE_MINIKUBE_NONE_USER=true \
+		$(BINDIR)/minikube start \
 		--vm-driver=none \
 		--kubernetes-version=v$(KUBERNETES_VERSION) \
 		--extra-config=kubelet.read-only-port=10255 \
@@ -190,9 +192,6 @@ incluster-lvmd/launch-minikube:
 		--extra-config=kubelet.hostname-override=$(CLUSTER_NAME)-worker \
 		--feature-gates=$(MINIKUBE_FEATURE_GATES) \
 		--cni=calico
-	$(SUDO) chown -R $$USER $$HOME/.kube $(MINIKUBE_HOME)/.minikube
-	$(SUDO) chmod -R a+r $$HOME/.kube $(MINIKUBE_HOME)/.minikube
-	$(SUDO) find $(MINIKUBE_HOME)/.minikube -name id_rsa -exec chmod 600 {} ';'
 
 .PHONY: incluster-lvmd/delete-minikube
 incluster-lvmd/delete-minikube:
