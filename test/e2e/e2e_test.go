@@ -83,7 +83,7 @@ func testE2E() {
 					return fmt.Errorf("failed to check mount point. err: %w", err)
 				}
 
-				stdout, err := kubectl("exec", "-n", ns, "ubuntu", "grep", "/test1", "/proc/mounts")
+				stdout, err := kubectl("exec", "-n", ns, "ubuntu", "--", "grep", "/test1", "/proc/mounts")
 				if err != nil {
 					return err
 				}
@@ -176,7 +176,7 @@ func testE2E() {
 					return fmt.Errorf("failed to check mount point. err: %w", err)
 				}
 
-				stdout, err := kubectl("exec", "-n", ns, "ubuntu", "grep", "/test1", "/proc/mounts")
+				stdout, err := kubectl("exec", "-n", ns, "ubuntu", "--", "grep", "/test1", "/proc/mounts")
 				if err != nil {
 					return err
 				}

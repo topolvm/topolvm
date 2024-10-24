@@ -56,7 +56,7 @@ rules:
   resources: ["leases"]
   verbs: ["get", "watch", "list", "delete", "update", "create"]
 ---
-# Copied from https://github.com/kubernetes-csi/external-snapshotter/blob/master/deploy/kubernetes/csi-snapshotter/rbac-external-provisioner.yaml
+# Copied from https://github.com/kubernetes-csi/external-snapshotter/blob/master/deploy/kubernetes/csi-snapshotter/rbac-csi-snapshotter.yaml
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:

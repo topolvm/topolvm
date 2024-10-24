@@ -19,11 +19,12 @@ HELM := ../../bin/helm
 KIND := ../../bin/kind
 KIND_CONFIG := topolvm-cluster.yaml
 KUBECTL := $(BINDIR)/kubectl-$(KUBERNETES_VERSION)
-MINIKUBE_FEATURE_GATES="ReadWriteOncePod=true,CSIVolumeHealth=true"
-MINIKUBE_HOME = $(BINDIR)
+MINIKUBE_FEATURE_GATES="CSIVolumeHealth=true"
+MINIKUBE_HOME := $(shell pwd)/minikube
+# MINIKUBE_HOME is set not to use /root because minikube uses $HOME and $HOME is /root when sudo is used.
+# TMPDIR is set to avoid permission errors if fs.protected_regular=1.
+MINIKUBE := env MINIKUBE_HOME=$(MINIKUBE_HOME) TMPDIR=$(MINIKUBE_HOME) $(BINDIR)/minikube
 SUDO := sudo
-
-export MINIKUBE_HOME
 
 DOMAIN_NAME := topolvm.io
 HELM_VALUES_FILES := manifests/values/base.yaml
@@ -135,6 +136,9 @@ setup:
 $(BINDIR):
 	mkdir -p $@
 
+$(MINIKUBE_HOME):
+	mkdir -p $@
+
 $(GINKGO): | $(BINDIR)
 	GOBIN=$(BINDIR) go install github.com/onsi/ginkgo/v2/ginkgo@$(GINKGO_VERSION)
 	mv $(BINDIR)/ginkgo $@
@@ -160,8 +164,7 @@ incluster-lvmd/remove-vg:
 	$(MAKE) common/remove-vg ID=1
 
 .PHONY: incluster-lvmd/setup-minikube
-incluster-lvmd/setup-minikube:
-	mkdir -p $(BINDIR)
+incluster-lvmd/setup-minikube: | $(BINDIR)
 	$(SUDO) apt-get update
 	DEBIAN_FRONTEND=noninteractive $(SUDO) apt-get install -y --no-install-recommends conntrack
 	$(CURL) -o $(BINDIR)/minikube https://github.com/kubernetes/minikube/releases/download/$(MINIKUBE_VERSION)/minikube-linux-amd64
@@ -181,8 +184,10 @@ incluster-lvmd/setup-minikube:
 	$(SUDO) tar -C /usr/local/bin -xf crictl.tar.gz
 
 .PHONY: incluster-lvmd/launch-minikube
-incluster-lvmd/launch-minikube:
-	$(SUDO) -E $(BINDIR)/minikube start \
+incluster-lvmd/launch-minikube: | $(MINIKUBE_HOME)
+	$(SUDO) -E \
+		CHANGE_MINIKUBE_NONE_USER=true \
+		$(MINIKUBE) start \
 		--vm-driver=none \
 		--kubernetes-version=v$(KUBERNETES_VERSION) \
 		--extra-config=kubelet.read-only-port=10255 \
@@ -190,13 +195,10 @@ incluster-lvmd/launch-minikube:
 		--extra-config=kubelet.hostname-override=$(CLUSTER_NAME)-worker \
 		--feature-gates=$(MINIKUBE_FEATURE_GATES) \
 		--cni=calico
-	$(SUDO) chown -R $$USER $$HOME/.kube $(MINIKUBE_HOME)/.minikube
-	$(SUDO) chmod -R a+r $$HOME/.kube $(MINIKUBE_HOME)/.minikube
-	$(SUDO) find $(MINIKUBE_HOME)/.minikube -name id_rsa -exec chmod 600 {} ';'
 
 .PHONY: incluster-lvmd/delete-minikube
-incluster-lvmd/delete-minikube:
-	$(SUDO) -E $(BINDIR)/minikube delete || true
+incluster-lvmd/delete-minikube: $(MINIKUBE_HOME)
+	$(SUDO) -E $(MINIKUBE) delete || true
 
 .PHONY: incluster-lvmd/test
 # topolvm.img is to trigger the build of docker image
