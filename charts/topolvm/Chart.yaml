@@ -12,7 +12,7 @@ sources:
 dependencies:
   - name: cert-manager
     repository: https://charts.jetstack.io
-    version: 1.7.0
+    version: 1.16.1
     condition: cert-manager.enabled
 
 annotations:
