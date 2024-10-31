@@ -150,7 +150,7 @@ $(KIND):
 	$(MAKE) -C ../.. install-kind
 
 $(KUBECTL): | $(BINDIR)
-	$(CURL) -o $@ https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl
+	$(CURL) -o $@ https://dl.k8s.io/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl
 	chmod a+x $@
 
 .PHONY: incluster-lvmd/create-vg

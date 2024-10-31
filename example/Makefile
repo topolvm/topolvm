@@ -26,7 +26,7 @@ endif
 
 $(KUBECTL):
 	mkdir -p $(BINDIR)
-	$(CURL) https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl -o $(KUBECTL)
+	$(CURL) https://dl.k8s.io/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl -o $(KUBECTL)
 	chmod 755 $(KUBECTL)
 
 build/topolvm.img: $(GO_FILES)
