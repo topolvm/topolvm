@@ -8,6 +8,7 @@
 - [Use lvcreate-options at Your Own Risk](#use-lvcreate-options-at-your-own-risk)
 - [Error when using TopoLVM on old Linux kernel hosts with official docker image](#error-when-using-topolvm-on-old-linux-kernel-hosts-with-official-docker-image)
 - [Restoring Snapshots or creating Clones with differing StorageClass from their source can fail](#restoring-snapshots-or-creating-clones-with-differing-storageclass-from-their-source-can-fail)
+- [LVMD seems to be leaking memory](#lvmd-seems-to-be-leaking-memory)
 
 ## Pod without PVC
 
@@ -99,3 +100,16 @@ TopoLVM assumes that PersistentVolumes created via Snapshotting or Cloning have 
 This was originally introduced to support changes for cloud-providers where storage-class attributes might change ([see the PR for implementation details](https://github.com/kubernetes-csi/external-provisioner/pull/699)) during the restore process, however this doesn't apply for TopoLVM.
 
 Thus, if a pod consumes a restored/cloned PV having a different storage class from the original PV, this pod will not get scheduled if the StorageClass contents differ from the source StorageClass (e.g. by using a different device class).
+
+## LVMD seems to be leaking memory
+
+The memory usage of LVMD continues to increase, and it may appear that a memory leak is occurring. According to our investigations, we haven't found any heap memory leaks, it seems that the page cache is growing. 
+
+You can check this using the following metric expression. As you can see, the growth is offset by subtracting the cache size from the total usage.
+
+```
+container_memory_usage_bytes{namespace="topolvm-system", container="lvmd"} - container_memory_cache{namespace="topolvm-system", container="lvmd"}
+```
+
+We are dealing with this issue by reporting this issue to LVM mailing list.
+https://lore.kernel.org/linux-lvm/ZjO_tW3_5ZNhnHFm@redhat.com/T/
