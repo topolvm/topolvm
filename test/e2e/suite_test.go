@@ -31,6 +31,7 @@ func TestMtest(t *testing.T) {
 
 	SetDefaultEventuallyPollingInterval(time.Second)
 	SetDefaultEventuallyTimeout(time.Minute)
+	EnforceDefaultTimeoutsWhenUsingContexts()
 
 	suiteConfig, _ := GinkgoConfiguration()
 	suiteConfig.SkipStrings = append(suiteConfig.SkipStrings, skipSpecs...)

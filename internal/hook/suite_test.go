@@ -119,6 +119,8 @@ func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
 
 	SetDefaultEventuallyTimeout(time.Minute)
+	EnforceDefaultTimeoutsWhenUsingContexts()
+
 	RunSpecs(t, "Controller Suite")
 }
 
