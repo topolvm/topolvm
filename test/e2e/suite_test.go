@@ -30,7 +30,7 @@ func TestMtest(t *testing.T) {
 	RegisterFailHandler(Fail)
 
 	SetDefaultEventuallyPollingInterval(time.Second)
-	SetDefaultEventuallyTimeout(time.Minute)
+	SetDefaultEventuallyTimeout(5 * time.Minute)
 	EnforceDefaultTimeoutsWhenUsingContexts()
 
 	suiteConfig, _ := GinkgoConfiguration()
@@ -110,8 +110,6 @@ var _ = BeforeSuite(func() {
 	Eventually(waitKindnet).Should(Succeed())
 	time.Sleep(5 * time.Second)
 	Eventually(waitKindnet).Should(Succeed())
-
-	SetDefaultEventuallyTimeout(5 * time.Minute)
 
 	By("Waiting for mutating webhook to get ready")
 	Eventually(func() error {
