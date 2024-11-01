@@ -109,7 +109,10 @@ generate-helm-docs:
 	./bin/helm-docs -c charts/topolvm/
 
 .PHONY: generate
-generate: $(PROTOBUF_GEN) manifests generate-api generate-helm-docs
+generate: manifests generate-api generate-helm-docs
+# The generated files depend not only on the proto file but also on the protoc command.
+# So we need to force the generation of the files every time.
+	$(MAKE) -B $(PROTOBUF_GEN)
 
 .PHONY: check-uncommitted
 check-uncommitted: generate ## Check if latest generated artifacts are committed.
