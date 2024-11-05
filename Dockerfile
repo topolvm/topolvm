@@ -12,7 +12,7 @@ RUN touch pkg/lvmd/proto/*.go
 RUN make build-topolvm TOPOLVM_VERSION=${TOPOLVM_VERSION} GOARCH=${TARGETARCH}
 
 # TopoLVM container
-FROM --platform=$TARGETPLATFORM ubuntu:22.04 as topolvm
+FROM ubuntu:22.04 AS topolvm
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
@@ -34,7 +34,7 @@ COPY --from=build-topolvm /workdir/LICENSE /LICENSE
 ENTRYPOINT ["/hypertopolvm"]
 
 # Build sidecars
-FROM --platform=$BUILDPLATFORM build-topolvm as build-sidecars
+FROM --platform=$BUILDPLATFORM build-topolvm AS build-sidecars
 
 # Get argument
 ARG TARGETARCH
@@ -47,7 +47,7 @@ RUN  apt-get update \
 RUN make csi-sidecars GOARCH=${TARGETARCH}
 
 # TopoLVM container with sidecar
-FROM --platform=$TARGETPLATFORM topolvm as topolvm-with-sidecar
+FROM topolvm AS topolvm-with-sidecar
 
 COPY --from=build-sidecars /workdir/build/csi-provisioner /csi-provisioner
 COPY --from=build-sidecars /workdir/build/csi-node-driver-registrar /csi-node-driver-registrar
