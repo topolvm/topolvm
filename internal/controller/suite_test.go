@@ -46,10 +46,14 @@ func createNamespace() string {
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
+
 	SetDefaultEventuallyTimeout(time.Minute)
+	EnforceDefaultTimeoutsWhenUsingContexts()
+
 	suiteConfig, _ := GinkgoConfiguration()
 	suiteConfig.Timeout = 10 * time.Minute
 	suiteConfig.FailFast = true
+
 	RunSpecs(t, "Controller Suite", suiteConfig)
 }
 

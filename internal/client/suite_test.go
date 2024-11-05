@@ -48,6 +48,7 @@ func TestAPIs(t *testing.T) {
 
 	SetDefaultEventuallyPollingInterval(time.Second)
 	SetDefaultEventuallyTimeout(time.Minute)
+	EnforceDefaultTimeoutsWhenUsingContexts()
 
 	RunSpecs(t, "Controller Suite")
 }
