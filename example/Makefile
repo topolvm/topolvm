@@ -66,9 +66,13 @@ setup: $(KUBECTL)
 	$(CURL) https://get.helm.sh/helm-v$(HELM_VERSION)-linux-amd64.tar.gz \
 	  | tar xvz -C $(BINDIR) --strip-components 1 linux-amd64/helm
 
-.PHONY: stop-lvmd
+.PHONY: clean
 clean: stop-lvmd
-	rm -rf bin/ build/ $(TMPDIR)
+	rm -rf build/ $(TMPDIR)
+
+.PHONY: distclean
+distclean: clean
+	rm -rf bin/
 
 $(TMPDIR)/lvmd/lvmd.yaml: ../deploy/lvmd-config/lvmd.yaml
 	mkdir -p $(TMPDIR)/lvmd

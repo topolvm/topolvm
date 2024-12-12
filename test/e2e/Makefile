@@ -126,6 +126,10 @@ clean: stop-lvmd
 		tmpbin/ \
 		/tmp/topolvm/scheduler/scheduler-config.yaml
 
+.PHONY: distclean
+distclean: clean
+	rm -rf bin/
+
 .PHONY: setup
 setup:
 	$(MAKE) $(GINKGO)
