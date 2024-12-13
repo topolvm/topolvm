@@ -145,8 +145,11 @@ groupname-test: ## Run unit tests that depends on the groupname.
 	TEST_LEGACY=true go test -count=1 -race -v --timeout=60s ./constants*.go
 
 .PHONY: clean
-clean: ## Clean working directory.
+clean: ## Clean built files on the working directory.
 	rm -rf build/
+
+.PHONY: distclean
+distclean: clean ## Clean all on the working directory.
 	rm -rf bin/
 	rm -rf include/
 	rm -rf testbin/
