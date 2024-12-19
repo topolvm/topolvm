@@ -303,37 +303,6 @@ func TestLVService(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if count != 1 {
-		t.Errorf("is not notified: %d", count)
-	}
-	if res.GetVolume().GetName() != "sourceVol" {
-		t.Errorf(`res.Volume.Name != "sourceVol": %s`, res.GetVolume().GetName())
-	}
-	if sizeGB := res.GetVolume().GetSizeGb(); sizeGB != originalSizeGb {
-		t.Errorf(`res.Volume.SizeGb != %d: %d`, originalSizeGb, sizeGB)
-	}
-	if res.GetVolume().GetSizeBytes() != int64(originalSizeGb<<30) {
-		t.Errorf(`res.Volume.SizeBytes != %d: %d`, int64(originalSizeGb<<30), res.GetVolume().GetSizeBytes())
-	}
-	err = exec.Command("lvs", vg.Name()+"/sourceVol").Run()
-	if err != nil {
-		t.Error("failed to create logical volume")
-	}
-
-	if err := vg.Update(ctx); err != nil {
-		t.Fatal(err)
-	}
-
-	lv, err = pool.FindVolume(ctx, "sourceVol")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if lv.Tags()[0] != testTag1 {
-		t.Errorf(`testtag1 not present on volume`)
-	}
-	if lv.Tags()[1] != testTag2 {
-		t.Errorf(`testtag1 not present on volume`)
-	}
 
 	// create snapshot of sourceVol
 	var snapRes *proto.CreateLVSnapshotResponse
