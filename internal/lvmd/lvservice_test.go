@@ -99,7 +99,6 @@ func TestLVService(t *testing.T) {
 	if res.GetVolume().GetName() != "test1" {
 		t.Errorf(`res.Volume.Name != "test1": %s`, res.GetVolume().GetName())
 	}
-	//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid
 	if sizeGB := res.GetVolume().GetSizeGb(); sizeGB != 1 {
 		t.Errorf(`res.Volume.SizeGb != 1: %d`, sizeGB)
 	}
@@ -212,7 +211,6 @@ func TestLVService(t *testing.T) {
 	if res.GetVolume().GetName() != "testp1" {
 		t.Errorf(`res.Volume.Name != "testp1": %s`, res.GetVolume().GetName())
 	}
-	//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid
 	if sizeGB := res.GetVolume().GetSizeGb(); sizeGB != 1 {
 		t.Errorf(`res.Volume.SizeGb != 1: %d`, sizeGB)
 	}
@@ -315,7 +313,6 @@ func TestLVService(t *testing.T) {
 	if res.GetVolume().GetName() != "sourceVol" {
 		t.Errorf(`res.Volume.Name != "sourceVol": %s`, res.GetVolume().GetName())
 	}
-	//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid
 	if sizeGB := res.GetVolume().GetSizeGb(); sizeGB != originalSizeGb {
 		t.Errorf(`res.Volume.SizeGb != %d: %d`, originalSizeGb, sizeGB)
 	}
@@ -364,14 +361,12 @@ func TestLVService(t *testing.T) {
 	if snapRes.GetSnapshot().GetName() != "snap1" {
 		t.Errorf(`res.Volume.Name != "snap1": %s`, res.GetVolume().GetName())
 	}
-	//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid
 	if sizeGB := res.GetVolume().GetSizeGb(); sizeGB != originalSizeGb {
 		t.Errorf(`res.Volume.SizeGb != %d: %d`, originalSizeGb, sizeGB)
 	}
 	if res.GetVolume().GetSizeBytes() != int64(originalSizeGb<<30) {
 		t.Errorf(`res.Volume.SizeBytes != %d: %d`, int64(originalSizeGb<<30), res.GetVolume().GetSizeBytes())
 	}
-	//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid
 	if sizeGB := snapRes.GetSnapshot().GetSizeGb(); sizeGB != snapshotDesiredSizeGb {
 		t.Errorf(`res.Volume.SizeGb != %d: %d`, snapshotDesiredSizeGb, sizeGB)
 	}
@@ -416,14 +411,12 @@ func TestLVService(t *testing.T) {
 	if snapRes.GetSnapshot().GetName() != "restoredsnap1" {
 		t.Errorf(`res.Volume.Name != "restoredsnap1": %s`, res.GetVolume().GetName())
 	}
-	//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid
 	if sizeGB := res.GetVolume().GetSizeGb(); sizeGB != originalSizeGb {
 		t.Errorf(`res.Volume.SizeGb != %d: %d`, originalSizeGb, sizeGB)
 	}
 	if res.GetVolume().GetSizeBytes() != int64(originalSizeGb<<30) {
 		t.Errorf(`res.Volume.SizeBytes != %d: %d`, int64(originalSizeGb<<30), res.GetVolume().GetSizeBytes())
 	}
-	//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid
 	if sizeGB := snapRes.GetSnapshot().GetSizeGb(); sizeGB != snapshotDesiredSizeGb {
 		t.Errorf(`res.Volume.SizeGb != %d: %d`, snapshotDesiredSizeGb, sizeGB)
 	}

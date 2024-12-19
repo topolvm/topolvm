@@ -55,8 +55,7 @@ type MockLVServiceClient struct {
 // CreateLV implements proto.LVServiceClient.
 func (c MockLVServiceClient) CreateLV(ctx context.Context, in *proto.CreateLVRequest, opts ...grpc.CallOption) (*proto.CreateLVResponse, error) {
 	lv := proto.LogicalVolume{
-		Name: in.Name,
-		//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid
+		Name:      in.Name,
 		SizeGb:    in.SizeGb,
 		SizeBytes: in.SizeBytes,
 	}

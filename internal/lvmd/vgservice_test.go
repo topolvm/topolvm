@@ -258,7 +258,6 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	if vol.GetName() != "testp1" {
 		t.Errorf(`Volume.Name != "test1": %s`, vol.GetName())
 	}
-	//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid
 	if sizeGB := vol.GetSizeGb(); sizeGB != 1 {
 		t.Errorf(`Volume.SizeGb != 1: %d`, sizeGB)
 	}

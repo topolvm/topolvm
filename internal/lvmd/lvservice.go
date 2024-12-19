@@ -54,7 +54,6 @@ func (s *lvService) CreateLV(ctx context.Context, req *proto.CreateLVRequest) (*
 		requested = uint64(req.GetSizeBytes())
 	} else {
 		// legacy conversion from SizeGb to SizeBytes
-		//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid until next minor
 		requested = req.GetSizeGb() << 30
 	}
 
@@ -229,7 +228,6 @@ func (s *lvService) CreateLVSnapshot(ctx context.Context, req *proto.CreateLVSna
 		desiredSize = uint64(req.GetSizeBytes())
 	} else {
 		// legacy conversion from SizeGb to SizeBytes
-		//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid until next minor
 		desiredSize = req.GetSizeGb() << 30
 	}
 
@@ -343,7 +341,6 @@ func (s *lvService) ResizeLV(ctx context.Context, req *proto.ResizeLVRequest) (*
 		requested = uint64(req.GetSizeBytes())
 	} else {
 		// legacy conversion from SizeGb to SizeBytes
-		//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid until next minor
 		requested = req.GetSizeGb() << 30
 	}
 	current := lv.Size()
