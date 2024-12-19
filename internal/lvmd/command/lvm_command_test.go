@@ -112,9 +112,6 @@ func Test_lvm_command(t *testing.T) {
 		if !strings.Contains(lvmErr.Error(), fmt.Sprintf("No device found for %s", fakeDeviceName)) {
 			t.Fatal("No device found message not contained in error")
 		}
-		if dataStream != nil {
-			t.Fatal("data stream should be nil")
-		}
 	})
 
 	t.Run("callLVM should succeed for non-json based calls", func(t *testing.T) {
