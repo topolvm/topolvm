@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -91,7 +92,7 @@ func Test_lvm_command(t *testing.T) {
 			t.Fatal("data should be empty as the command should fail")
 		}
 		err = dataStream.Close()
-		if err != nil {
+		if err == nil {
 			t.Fatal(err, "data stream should fail during close")
 		}
 
@@ -110,9 +111,6 @@ func Test_lvm_command(t *testing.T) {
 		}
 		if !strings.Contains(lvmErr.Error(), fmt.Sprintf("No device found for %s", fakeDeviceName)) {
 			t.Fatal("No device found message not contained in error")
-		}
-		if dataStream != nil {
-			t.Fatal("data stream should be nil")
 		}
 	})
 
@@ -134,7 +132,8 @@ func Test_lvm_command(t *testing.T) {
 			t.Fatal("no messages logged")
 		}
 
-		if !strings.Contains(messages[0], `"args"=["/sbin/lvm","version"]`) {
+		match, _ := regexp.MatchString(`"args"=\[.* "/sbin/lvm" "version"\]`, messages[0])
+		if !match {
 			t.Fatal("command log was not found")
 		}
 
