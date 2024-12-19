@@ -16,12 +16,12 @@ issues:
       linters:
         - dupl
         - lll
+
+    # exclude staticcheck SA1019 because it can not be disabled via comments
+    - linters:
+        - staticcheck
+      text: "SA1019: (.*)\\.(Get)?SizeGb is deprecated: Marked as deprecated in pkg/lvmd/proto/lvmd.proto."
 linters:
-  disable:
-    # The staticcheck built into golangci-lint does not allow to exclude single lines and specific rules,
-    # so we disable it and run it independently.
-    # https://github.com/golangci/golangci-lint/issues/741
-    - staticcheck
   enable:
     # The rules violated to make lint work are commented out. We will fix it eventually.
     - dupl
@@ -38,6 +38,7 @@ linters:
     - misspell
     - nakedret
     - prealloc
+    - staticcheck
     - typecheck
     - unconvert
     - unparam
