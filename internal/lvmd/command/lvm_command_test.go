@@ -92,7 +92,7 @@ func Test_lvm_command(t *testing.T) {
 			t.Fatal("data should be empty as the command should fail")
 		}
 		err = dataStream.Close()
-		if err != nil {
+		if err == nil {
 			t.Fatal(err, "data stream should fail during close")
 		}
 
