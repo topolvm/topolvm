@@ -53,4 +53,24 @@ func TestVG_CreateVolume(t *testing.T) {
 			t.Fatalf("expected error to be %v, got %v", ErrNoMultipleOfSectorSize, err)
 		}
 	})
+
+	t.Run("create volume with stripe is fine", func(t *testing.T) {
+		err := vg.CreateVolume(ctx, "test2", 1<<30, nil, 2, "4k", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = vg.FindVolume(ctx, "test2")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = vg.CreateVolume(ctx, "test3", 1<<30, nil, 2, "4M", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = vg.FindVolume(ctx, "test3")
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
 }
