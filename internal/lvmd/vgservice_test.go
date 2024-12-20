@@ -128,7 +128,7 @@ func TestVGService_Watch(t *testing.T) {
 	}
 }
 
-func TestVGService(t *testing.T) {
+func TestVGService_GetLVList(t *testing.T) {
 	ctx := ctrl.LoggerInto(context.Background(), testr.New(t))
 	vgService, _, vg, pool := setupVGService(ctx, t)
 
@@ -251,9 +251,14 @@ func TestVGService(t *testing.T) {
 	if numVols3 != 2 {
 		t.Fatalf("numVolumes must be 2: %d on thinpool %s", numVols3, pool.Name())
 	}
+}
+
+func TestVGService_GetFreeBytes(t *testing.T) {
+	ctx := ctrl.LoggerInto(context.Background(), testr.New(t))
+	vgService, _, vg, pool := setupVGService(ctx, t)
 
 	// thick lv size validations
-	res2, err := vgService.GetFreeBytes(ctx, &proto.GetFreeBytesRequest{DeviceClass: vgServiceTestThickDC})
+	res, err := vgService.GetFreeBytes(ctx, &proto.GetFreeBytesRequest{DeviceClass: vgServiceTestThickDC})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -267,12 +272,12 @@ func TestVGService(t *testing.T) {
 		t.Fatal(err)
 	}
 	expected := freeBytes - (1 << 30)
-	if res2.GetFreeBytes() != expected {
-		t.Errorf("Free bytes mismatch: %d, expected: %d, freeBytes: %d", res2.GetFreeBytes(), expected, freeBytes)
+	if res.GetFreeBytes() != expected {
+		t.Errorf("Free bytes mismatch: %d, expected: %d, freeBytes: %d", res.GetFreeBytes(), expected, freeBytes)
 	}
 
 	// thin lv size validations
-	res2, err = vgService.GetFreeBytes(ctx, &proto.GetFreeBytesRequest{DeviceClass: vgServiceTestThinDC})
+	res, err = vgService.GetFreeBytes(ctx, &proto.GetFreeBytesRequest{DeviceClass: vgServiceTestThinDC})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -283,8 +288,8 @@ func TestVGService(t *testing.T) {
 	opb := uint64(math.Floor(vgServiceTestOverprovisionRatio*float64(tpu.SizeBytes))) - tpu.VirtualBytes
 	expected = opb - (1 << 30)
 	// there'll be round off in free bytes of thin pool
-	if res2.GetFreeBytes() > expected {
-		t.Errorf("Free bytes mismatch: %d, expected: %d, freeBytes: %d", res2.GetFreeBytes(), expected, opb)
+	if res.GetFreeBytes() > expected {
+		t.Errorf("Free bytes mismatch: %d, expected: %d, freeBytes: %d", res.GetFreeBytes(), expected, opb)
 	}
 }
 
