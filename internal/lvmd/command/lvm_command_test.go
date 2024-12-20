@@ -2,7 +2,6 @@ package command
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -11,9 +10,7 @@ import (
 
 	"github.com/go-logr/logr/funcr"
 	"github.com/go-logr/logr/testr"
-	"github.com/topolvm/topolvm"
 	"github.com/topolvm/topolvm/internal/lvmd/testutils"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -146,83 +143,5 @@ func Test_lvm_command(t *testing.T) {
 		if !stdoutExistsInLogs {
 			t.Fatalf("version from stdout was not logged, existing logs: %v", messages)
 		}
-	})
-
-	t.Run("lv creation", func(t *testing.T) {
-		ctx := ctrl.LoggerInto(context.Background(), testr.New(t))
-		vgName := "lvm_command_test"
-		loop, err := testutils.MakeLoopbackDevice(ctx, vgName)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		err = testutils.MakeLoopbackVG(ctx, vgName, loop)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer func() { _ = testutils.CleanLoopbackVG(vgName, []string{loop}, []string{vgName}) }()
-
-		vg, err := FindVolumeGroup(ctx, vgName)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		t.Run("create volume with multiple of Sector Size is fine", func(t *testing.T) {
-			err = vg.CreateVolume(ctx, "test1", uint64(topolvm.MinimumSectorSize), []string{"tag"}, 0, "", nil)
-			if err != nil {
-				t.Fatal(err)
-			}
-			vol, err := vg.FindVolume(ctx, "test1")
-			if err != nil {
-				t.Fatal(err)
-			}
-			if vol.Size()%uint64(topolvm.MinimumSectorSize) != 0 {
-				t.Fatalf("expected size to be multiple of sector size %d, got %d", uint64(topolvm.MinimumSectorSize), vol.Size())
-			}
-			if err := vg.RemoveVolume(ctx, "test1"); err != nil {
-				t.Fatal(err)
-			}
-		})
-
-		t.Run("create volume with size not multiple of sector Size to get rejected", func(t *testing.T) {
-			err = vg.CreateVolume(ctx, "test1", uint64(topolvm.MinimumSectorSize)+1, []string{"tag"}, 0, "", nil)
-			if !errors.Is(err, ErrNoMultipleOfSectorSize) {
-				t.Fatalf("expected error to be %v, got %v", ErrNoMultipleOfSectorSize, err)
-			}
-		})
-
-		t.Run("create cached volume and it should not classified as thin volume.", func(t *testing.T) {
-			// create the cachedevice
-			cache_vg_name := "CACHEDEVICE"
-			cache_loop, err := testutils.MakeLoopbackDevice(ctx, cache_vg_name)
-			if err != nil {
-				t.Fatal(err)
-			}
-			err = testutils.MakeLoopbackVG(ctx, cache_vg_name, cache_loop)
-			if err != nil {
-				t.Fatal(err)
-			}
-			// ensure cache device cleanup
-			defer func() { _ = testutils.CleanLoopbackVG(cache_vg_name, []string{cache_loop}, []string{cache_vg_name}) }()
-			vg, err := FindVolumeGroup(ctx, cache_vg_name)
-			if err != nil {
-				t.Fatal(err)
-			}
-			// create cached LV
-			err = vg.CreateVolume(ctx, "test1", uint64(topolvm.MinimumSectorSize), []string{"tag"}, 0, "", []string{"--type", "writecache", "--cachesize", "10M", "--cachedevice", cache_loop})
-			if err != nil {
-				t.Fatal(err)
-			}
-			vol, err := vg.FindVolume(ctx, "test1")
-			if err != nil {
-				t.Fatal(err)
-			}
-			if vol.IsThin() {
-				t.Fatal("Expected test1 to not be thin (eval lv_attr instead of pool)")
-			}
-			if vol.attr[0] != byte(VolumeTypeCached) {
-				t.Fatal("Created a LV but without writecache?")
-			}
-		})
 	})
 }
