@@ -4,6 +4,8 @@ import (
 	"context"
 	"math"
 	"os/exec"
+	"path"
+	"strconv"
 	"testing"
 	"time"
 
@@ -14,6 +16,14 @@ import (
 	lvmdTypes "github.com/topolvm/topolvm/pkg/lvmd/types"
 	"google.golang.org/grpc/metadata"
 	ctrl "sigs.k8s.io/controller-runtime"
+)
+
+const (
+	vgServiceTestOverprovisionRatio = float64(10.0)
+	vgServiceTestVGName             = "test_vgservice"
+	vgServiceTestPoolName           = "test_vgservice_pool"
+	vgServiceTestThickDC            = vgServiceTestVGName
+	vgServiceTestThinDC             = vgServiceTestPoolName
 )
 
 type mockWatchServer struct {
@@ -52,143 +62,78 @@ func (s *mockWatchServer) RecvMsg(m interface{}) error {
 	panic("implement me")
 }
 
-func testWatch(t *testing.T) {
-	overprovisionRatio := float64(2.0)
-	tests := []struct {
-		name          string
-		deviceClasses []*lvmdTypes.DeviceClass
-	}{
+func TestVGService_Watch(t *testing.T) {
+	ctx, cancel := context.WithCancel(ctrl.LoggerInto(context.Background(), testr.New(t)))
+	vgService, notifier, _, _ := setupVGService(ctx, t)
 
-		{"volumegroup", []*lvmdTypes.DeviceClass{
-			{
-				Name:        "dc",
-				VolumeGroup: "test_vgservice",
-			}},
-		},
-		{"thinpool", []*lvmdTypes.DeviceClass{
-			{
-				Name:        "dc",
-				VolumeGroup: "test_vgservice",
-				Type:        lvmdTypes.TypeThin,
-				ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
-					Name:               "test_pool",
-					OverprovisionRatio: overprovisionRatio,
-				},
-			}},
-		},
+	ch1 := make(chan struct{})
+	server1 := &mockWatchServer{
+		ctx: ctx,
+		ch:  ch1,
+	}
+	done := make(chan struct{})
+	go func() {
+		_ = vgService.Watch(&proto.Empty{}, server1)
+		done <- struct{}{}
+	}()
+
+	select {
+	case <-ch1:
+	case <-time.After(waitDuration * time.Second):
+		t.Fatal("not received the first event")
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctx, cancel := context.WithCancel(context.Background())
-			vgService, notifier := NewVGService(NewDeviceClassManager(tt.deviceClasses))
+	notifier()
 
-			ch1 := make(chan struct{})
-			server1 := &mockWatchServer{
-				ctx: ctx,
-				ch:  ch1,
-			}
-			done := make(chan struct{})
-			go func() {
-				_ = vgService.Watch(&proto.Empty{}, server1)
-				done <- struct{}{}
-			}()
+	select {
+	case <-ch1:
+	case <-time.After(waitDuration * time.Second):
+		t.Fatal("not received")
+	}
 
-			select {
-			case <-ch1:
-			case <-time.After(waitDuration * time.Second):
-				t.Fatal("not received the first event")
-			}
+	select {
+	case <-ch1:
+		t.Fatal("unexpected event")
+	default:
+	}
 
-			notifier()
+	ch2 := make(chan struct{})
+	server2 := &mockWatchServer{
+		ctx: ctx,
+		ch:  ch2,
+	}
+	go func() {
+		_ = vgService.Watch(&proto.Empty{}, server2)
+	}()
 
-			select {
-			case <-ch1:
-			case <-time.After(waitDuration * time.Second):
-				t.Fatal("not received")
-			}
+	notifier()
 
-			select {
-			case <-ch1:
-				t.Fatal("unexpected event")
-			default:
-			}
+	select {
+	case <-ch1:
+	case <-time.After(waitDuration * time.Second):
+		t.Fatal("not received")
+	}
+	select {
+	case <-ch2:
+	case <-time.After(waitDuration * time.Second):
+		t.Fatal("not received")
+	}
 
-			ch2 := make(chan struct{})
-			server2 := &mockWatchServer{
-				ctx: ctx,
-				ch:  ch2,
-			}
-			go func() {
-				_ = vgService.Watch(&proto.Empty{}, server2)
-			}()
+	cancel()
 
-			notifier()
-
-			select {
-			case <-ch1:
-			case <-time.After(waitDuration * time.Second):
-				t.Fatal("not received")
-			}
-			select {
-			case <-ch2:
-			case <-time.After(waitDuration * time.Second):
-				t.Fatal("not received")
-			}
-
-			cancel()
-
-			select {
-			case <-done:
-			case <-time.After(waitDuration * time.Second):
-				t.Fatal("not done")
-			}
-
-		})
+	select {
+	case <-done:
+	case <-time.After(waitDuration * time.Second):
+		t.Fatal("not done")
 	}
 }
 
-func testVGService(t *testing.T, vg *command.VolumeGroup) {
+func TestVGService(t *testing.T) {
 	ctx := ctrl.LoggerInto(context.Background(), testr.New(t))
-
-	// thinpool details
-	overprovisionRatio := float64(10.0)
-	poolName := "test_pool"
-	poolSize := uint64(1 << 30)
-	pool, err := vg.CreatePool(ctx, poolName, poolSize)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	spareGB := uint64(1)
-	thickdev := vg.Name()
-	thindev := poolName
-	vgService, _ := NewVGService(
-		NewDeviceClassManager(
-			[]*lvmdTypes.DeviceClass{
-				{
-					// volumegroup target
-					Name:        thickdev,
-					VolumeGroup: vg.Name(),
-					SpareGB:     &spareGB,
-				},
-				{
-					// thinpool target
-					Name:        thindev,
-					VolumeGroup: vg.Name(),
-					SpareGB:     &spareGB,
-					Type:        lvmdTypes.TypeThin,
-					ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
-						Name:               poolName,
-						OverprovisionRatio: overprovisionRatio,
-					},
-				},
-			},
-		),
-	)
+	vgService, _, vg, pool := setupVGService(ctx, t)
 
 	// thick lvs
-	res, err := vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: thickdev})
+	res, err := vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: vgServiceTestThickDC})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -198,14 +143,14 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	}
 
 	// thin lvs
-	res, err = vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: thindev})
+	res, err = vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: vgServiceTestThinDC})
 	if err != nil {
 		t.Fatal(err)
 	}
 	numVols1 = len(res.GetVolumes())
 
 	if numVols1 != 0 {
-		t.Errorf("numVolumes must be 0: %d in pool %s", numVols1, poolName)
+		t.Errorf("numVolumes must be 0: %d in pool %s", numVols1, pool.Name())
 	}
 
 	// create thick volume
@@ -215,7 +160,7 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	}
 
 	// thick lv validation
-	res, err = vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: thickdev})
+	res, err = vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: vgServiceTestThickDC})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -244,13 +189,13 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	}
 
 	// thin lv validation
-	res, err = vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: thindev})
+	res, err = vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: vgServiceTestThinDC})
 	if err != nil {
 		t.Fatal(err)
 	}
 	numVols2 = len(res.GetVolumes())
 	if numVols2 != 1 {
-		t.Fatalf("numVolumes must be 1: %d in pool %s", numVols2, poolName)
+		t.Fatalf("numVolumes must be 1: %d in pool %s", numVols2, pool.Name())
 	}
 
 	vol = res.GetVolumes()[0]
@@ -300,7 +245,7 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	}
 
 	// thick lv validation
-	res, err = vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: thickdev})
+	res, err = vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: vgServiceTestThickDC})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -310,17 +255,17 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	}
 
 	// thick lv validation
-	res, err = vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: thickdev})
+	res, err = vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: vgServiceTestThickDC})
 	if err != nil {
 		t.Fatal(err)
 	}
 	numVols3 = len(res.GetVolumes())
 	if numVols3 != 2 {
-		t.Fatalf("numVolumes must be 2: %d on thinpool %s", numVols3, poolName)
+		t.Fatalf("numVolumes must be 2: %d on thinpool %s", numVols3, pool.Name())
 	}
 
 	// thick lv size validations
-	res2, err := vgService.GetFreeBytes(ctx, &proto.GetFreeBytesRequest{DeviceClass: thickdev})
+	res2, err := vgService.GetFreeBytes(ctx, &proto.GetFreeBytesRequest{DeviceClass: vgServiceTestThickDC})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -339,7 +284,7 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	}
 
 	// thin lv size validations
-	res2, err = vgService.GetFreeBytes(ctx, &proto.GetFreeBytesRequest{DeviceClass: thindev})
+	res2, err = vgService.GetFreeBytes(ctx, &proto.GetFreeBytesRequest{DeviceClass: vgServiceTestThinDC})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -347,7 +292,7 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	opb := uint64(math.Floor(overprovisionRatio*float64(tpu.SizeBytes))) - tpu.VirtualBytes
+	opb := uint64(math.Floor(vgServiceTestOverprovisionRatio*float64(tpu.SizeBytes))) - tpu.VirtualBytes
 	expected = opb - (1 << 30)
 	// there'll be round off in free bytes of thin pool
 	if res2.GetFreeBytes() > expected {
@@ -418,41 +363,71 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 	})
 }
 
-func TestVGService(t *testing.T) {
-	ctx := ctrl.LoggerInto(context.Background(), testr.New(t))
+func setupVGService(ctx context.Context, t *testing.T) (
+	proto.VGServiceServer,
+	func(),
+	*command.VolumeGroup,
+	*command.ThinPool,
+) {
 	testutils.RequireRoot(t)
 
-	vgName := "test_vgservice"
-	loop1, err := testutils.MakeLoopbackDevice(ctx, vgName+"1")
-	if err != nil {
-		t.Fatal(err)
+	var loops []string
+	var files []string
+	for i := 0; i < 3; i++ {
+		file := path.Join(t.TempDir(), t.Name()+strconv.Itoa(i))
+		loop, err := testutils.MakeLoopbackDevice(ctx, file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		loops = append(loops, loop)
+		files = append(files, file)
 	}
-	loop2, err := testutils.MakeLoopbackDevice(ctx, vgName+"2")
-	if err != nil {
-		t.Fatal(err)
-	}
-	loop3, err := testutils.MakeLoopbackDevice(ctx, vgName+"3")
+
+	err := testutils.MakeLoopbackVG(ctx, vgServiceTestVGName, loops...)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = testutils.MakeLoopbackVG(ctx, vgName, loop1, loop2, loop3)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		_ = testutils.CleanLoopbackVG(vgName, []string{loop1, loop2, loop3}, []string{vgName + "1", vgName + "2", vgName + "3"})
-	}()
-
-	vg, err := command.FindVolumeGroup(ctx, vgName)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Run("VGService", func(t *testing.T) {
-		testVGService(t, vg)
+	t.Cleanup(func() {
+		_ = testutils.CleanLoopbackVG(vgServiceTestVGName, loops, files)
 	})
-	t.Run("Watch", func(t *testing.T) {
-		testWatch(t)
-	})
+
+	vg, err := command.FindVolumeGroup(ctx, vgServiceTestVGName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// thinpool details
+	poolSize := uint64(1 << 30)
+	pool, err := vg.CreatePool(ctx, vgServiceTestPoolName, poolSize)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	spareGB := uint64(1)
+	vgService, notifier := NewVGService(
+		NewDeviceClassManager(
+			[]*lvmdTypes.DeviceClass{
+				{
+					// volumegroup target
+					Name:        vgServiceTestThickDC,
+					VolumeGroup: vg.Name(),
+					SpareGB:     &spareGB,
+				},
+				{
+					// thinpool target
+					Name:        vgServiceTestThinDC,
+					VolumeGroup: vg.Name(),
+					SpareGB:     &spareGB,
+					Type:        lvmdTypes.TypeThin,
+					ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
+						Name:               vgServiceTestPoolName,
+						OverprovisionRatio: vgServiceTestOverprovisionRatio,
+					},
+				},
+			},
+		),
+	)
+
+	return vgService, notifier, vg, pool
 }
