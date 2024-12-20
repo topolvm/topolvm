@@ -227,7 +227,7 @@ func TestVGService(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	testp2, err := pool.FindVolume(ctx, "testp2")
+	_, err = pool.FindVolume(ctx, "testp2")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -304,7 +304,7 @@ func TestVGService(t *testing.T) {
 	if err := vg.CreateVolume(ctx, "test3", 1<<30, nil, 2, "4k", nil); err != nil {
 		t.Fatal(err)
 	}
-	test3Vol, err := vg.FindVolume(ctx, "test3")
+	_, err = vg.FindVolume(ctx, "test3")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -312,55 +312,10 @@ func TestVGService(t *testing.T) {
 	if err := vg.CreateVolume(ctx, "test4", 1<<30, nil, 2, "4M", nil); err != nil {
 		t.Fatal(err)
 	}
-	test4Vol, err := vg.FindVolume(ctx, "test4")
+	_, err = vg.FindVolume(ctx, "test4")
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	// Remove volumes to make room for a raid volume
-	_ = vg.RemoveVolume(ctx, test3Vol.Name())
-	_ = vg.RemoveVolume(ctx, test4Vol.Name())
-
-	// Remove one of the thin lvs
-	_ = vg.RemoveVolume(ctx, testp2.Name())
-
-	t.Run("thinpool-stripe-raid", func(t *testing.T) {
-		t.Skip("investigate support of striped and raid for thinlvs")
-		// TODO (leelavg):
-		// 1. confirm that stripe, stripesize and raid isn't possible on thin lv
-		// 2. if above is true, enforce some sensible defaults during validation of deviceclass
-		// thick lv with raid
-		if err := vg.CreateVolume(ctx, "test5", 1<<30, nil, 0, "", []string{"--type=raid1"}); err != nil {
-			t.Fatal(err)
-		}
-
-		// thin lv with stripe, stripesize and raid options
-		if err := pool.CreateVolume(ctx, "test3", 1<<30, nil, 2, "4k", nil); err != nil {
-			t.Fatal(err)
-		}
-		testp3Vol, err := vg.FindVolume(ctx, "test3")
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if err := pool.CreateVolume(ctx, "test4", 1<<30, nil, 2, "4M", nil); err != nil {
-			t.Fatal(err)
-		}
-		testp4Vol, err := vg.FindVolume(ctx, "test4")
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		// thin lv with raid
-		if err = pool.CreateVolume(ctx, "test5", 1<<30, nil, 0, "", []string{"--type=raid1"}); err != nil {
-			t.Fatal(err)
-		}
-
-		// Remove thin volumes
-		_ = vg.RemoveVolume(ctx, testp3Vol.Name())
-		_ = vg.RemoveVolume(ctx, testp4Vol.Name())
-
-	})
 }
 
 func setupVGService(ctx context.Context, t *testing.T) (
