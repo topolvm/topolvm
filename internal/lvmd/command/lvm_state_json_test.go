@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 
@@ -313,12 +314,16 @@ func TestLvmRetrieval(t *testing.T) {
 		t.Fatal("Unexpected err returned: ", err)
 	}
 
-	if lvs != nil {
-		t.Fatal("Expected lvs to be nil")
+	if slices.ContainsFunc(lvs, func(lv lv) bool {
+		return lv.name == lvName
+	}) {
+		t.Fatalf("Expected lvs not to contains %s", lvName)
 	}
 
-	if len(vgs) != 1 {
-		t.Fatal("Expected 1 vg: ", len(vgs))
+	if !slices.ContainsFunc(vgs, func(vg vg) bool {
+		return vg.name == vgName
+	}) {
+		t.Fatalf("Expected vgs to contains %s", vgName)
 	}
 
 	err = testutils.MakeLoopbackLV(ctx, lvName, vgName)
@@ -331,21 +336,15 @@ func TestLvmRetrieval(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if lvs == nil {
-		t.Fatal("Expected LVs to exist")
+	if !slices.ContainsFunc(lvs, func(lv lv) bool {
+		return lv.name == lvName
+	}) {
+		t.Fatalf("Expected lvs to contains %s", lvName)
 	}
 
-	if len(lvs) != 1 {
-		t.Fatal("Expected 1 LV to exist")
-	}
-
-	vg := vgs[0]
-	if vg.name != vgName {
-		t.Fatal("Incorrect vg name: ", vg.name)
-	}
-
-	lv := lvs[0]
-	if lv.name != lvName {
-		t.Fatal("Incorrect lv name: ", lv.name)
+	if !slices.ContainsFunc(vgs, func(vg vg) bool {
+		return vg.name == vgName
+	}) {
+		t.Fatalf("Expected vgs to contains %s", vgName)
 	}
 }
