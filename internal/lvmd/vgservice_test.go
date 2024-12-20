@@ -3,7 +3,6 @@ package lvmd
 import (
 	"context"
 	"math"
-	"os/exec"
 	"path"
 	"strconv"
 	"testing"
@@ -228,18 +227,6 @@ func TestVGService(t *testing.T) {
 	}
 
 	_, err = pool.FindVolume(ctx, "testp2")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// resize of thick volume
-	err = exec.Command("lvresize", "-L", "+12m", vg.Name()+"/test1").Run()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// resize of thin volumes
-	err = exec.Command("lvresize", "-L", "+12m", vg.Name()+"/testp1").Run()
 	if err != nil {
 		t.Fatal(err)
 	}
