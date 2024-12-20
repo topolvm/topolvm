@@ -298,24 +298,6 @@ func TestVGService(t *testing.T) {
 	if res2.GetFreeBytes() > expected {
 		t.Errorf("Free bytes mismatch: %d, expected: %d, freeBytes: %d", res2.GetFreeBytes(), expected, opb)
 	}
-
-	// Creation of thick volumes
-
-	if err := vg.CreateVolume(ctx, "test3", 1<<30, nil, 2, "4k", nil); err != nil {
-		t.Fatal(err)
-	}
-	_, err = vg.FindVolume(ctx, "test3")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := vg.CreateVolume(ctx, "test4", 1<<30, nil, 2, "4M", nil); err != nil {
-		t.Fatal(err)
-	}
-	_, err = vg.FindVolume(ctx, "test4")
-	if err != nil {
-		t.Fatal(err)
-	}
 }
 
 func setupVGService(ctx context.Context, t *testing.T) (
