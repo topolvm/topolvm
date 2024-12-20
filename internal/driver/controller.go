@@ -114,6 +114,28 @@ func (s *controllerServer) ControllerExpandVolume(ctx context.Context, req *csi.
 	return s.server.ControllerExpandVolume(ctx, req)
 }
 
+func isRequirementsContaining(requirements *csi.TopologyRequirement, node string) bool {
+	for _, topo := range append(requirements.Preferred, requirements.Requisite...) {
+		if v, ok := topo.GetSegments()[topolvm.GetTopologyNodeKey()]; ok {
+			if v == node {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func findNodeHavingTopologyNodeKey(requirements *csi.TopologyRequirement) string {
+	for _, topo := range append(requirements.Preferred, requirements.Requisite...) {
+		if v, ok := topo.GetSegments()[topolvm.GetTopologyNodeKey()]; ok {
+			return v
+		}
+	}
+
+	return ""
+}
+
 // controllerServerNoLocked implements csi.ControllerServer.
 // It does not take any lock, gRPC calls may be interleaved.
 // Therefore, must not use it directly.
@@ -217,37 +239,10 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 	requirements := req.GetAccessibilityRequirements()
 
 	if source != nil {
-		if requirements == nil {
-			// In CSI spec, controllers are required that they response OK even if accessibility_requirements field is nil.
-			// So we must create volume, and must not return error response in this case.
-			// - https://github.com/container-storage-interface/spec/blob/release-1.1/spec.md#createvolume
-			// - https://github.com/kubernetes-csi/csi-test/blob/6738ab2206eac88874f0a3ede59b40f680f59f43/pkg/sanity/controller.go#L404-L428
-			ctrlLogger.Info("decide node because accessibility_requirements not found")
-			// the snapshot must be created on the same node as the source
-			node = sourceVol.Spec.NodeName
-		} else {
-			sourceNode := sourceVol.Spec.NodeName
-			for _, topo := range requirements.Preferred {
-				if v, ok := topo.GetSegments()[topolvm.GetTopologyNodeKey()]; ok {
-					if v == sourceNode {
-						node = v
-						break
-					}
-				}
-			}
-			if node == "" {
-				for _, topo := range requirements.Requisite {
-					if v, ok := topo.GetSegments()[topolvm.GetTopologyNodeKey()]; ok {
-						if v == sourceNode {
-							node = v
-							break
-						}
-					}
-				}
-			}
-			if node == "" {
-				return nil, status.Errorf(codes.InvalidArgument, "cannot find source volume's node '%s' in accessibility_requirements", sourceNode)
-			}
+		// the snapshot must be created on the same node as the source
+		node = sourceVol.Spec.NodeName
+		if requirements != nil && !isRequirementsContaining(requirements, node) {
+			return nil, status.Errorf(codes.InvalidArgument, "cannot find source volume's node '%s' in accessibility_requirements", node)
 		}
 	} else {
 		if requirements == nil {
@@ -269,20 +264,7 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 			}
 			node = nodeName
 		} else {
-			for _, topo := range requirements.Preferred {
-				if v, ok := topo.GetSegments()[topolvm.GetTopologyNodeKey()]; ok {
-					node = v
-					break
-				}
-			}
-			if node == "" {
-				for _, topo := range requirements.Requisite {
-					if v, ok := topo.GetSegments()[topolvm.GetTopologyNodeKey()]; ok {
-						node = v
-						break
-					}
-				}
-			}
+			node = findNodeHavingTopologyNodeKey(requirements)
 			if node == "" {
 				return nil, status.Errorf(codes.InvalidArgument, "cannot find key '%s' in accessibility_requirements", topolvm.GetTopologyNodeKey())
 			}

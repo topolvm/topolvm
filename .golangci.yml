@@ -16,6 +16,14 @@ issues:
       linters:
         - dupl
         - lll
+
+    # FIXME: remove this once we have fixed the issues
+    - path: "internal/lvmd/*"
+      linters:
+        - gocyclo
+    - path: "test/e2e/*"
+      linters:
+        - gocyclo
 linters:
   disable:
     # The staticcheck built into golangci-lint does not allow to exclude single lines and specific rules,
@@ -23,12 +31,11 @@ linters:
     # https://github.com/golangci/golangci-lint/issues/741
     - staticcheck
   enable:
-    # The rules violated to make lint work are commented out. We will fix it eventually.
     - dupl
     - errcheck
     - copyloopvar
     - goconst
-    # - gocyclo
+    - gocyclo
     - gofmt
     - goimports
     - gosimple
