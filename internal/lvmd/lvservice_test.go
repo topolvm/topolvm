@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"os/exec"
+	"path"
 	"testing"
 
 	"github.com/go-logr/logr/testr"
@@ -17,36 +18,48 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-func TestLVService(t *testing.T) {
-	const (
-		testTag1 = "testtag1"
-		testTag2 = "testtag2"
-	)
+const (
+	lvServiceTestVGName   = "test_lvservice"
+	lvServiceTestPoolName = "test_lvservice_pool"
+	lvServiceTestThickDC  = lvServiceTestVGName
+	lvServiceTestThinDC   = lvServiceTestPoolName
+	lvServiceTestTag1     = "testtag1"
+	lvServiceTestTag2     = "testtag2"
+)
 
+func setupLVService(ctx context.Context, t *testing.T) (
+	proto.LVServiceServer,
+	*int,
+	*command.VolumeGroup,
+	*command.ThinPool,
+) {
 	uid := os.Getuid()
 	if uid != 0 {
 		t.Skip("run as root")
 	}
-	ctx := ctrl.LoggerInto(context.Background(), testr.New(t))
 
-	vgName := "test_lvservice"
-	loop, err := testutils.MakeLoopbackDevice(ctx, vgName)
+	backingStore := path.Join(t.TempDir(), t.Name())
+
+	loop, err := testutils.MakeLoopbackDevice(ctx, backingStore)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = testutils.MakeLoopbackVG(ctx, vgName, loop)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = testutils.CleanLoopbackVG(vgName, []string{loop}, []string{vgName}) }()
-
-	vg, err := command.FindVolumeGroup(ctx, vgName)
+	err = testutils.MakeLoopbackVG(ctx, lvServiceTestVGName, loop)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	var count int
+	t.Cleanup(func() {
+		_ = testutils.CleanLoopbackVG(lvServiceTestVGName, []string{loop}, []string{backingStore})
+	})
+
+	vg, err := command.FindVolumeGroup(ctx, lvServiceTestVGName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	count := 0
 	notifier := func() {
 		count++
 	}
@@ -60,19 +73,17 @@ func TestLVService(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	thickdev := vgName
-	thindev := poolName
 	lvService := NewLVService(
 		NewDeviceClassManager(
 			[]*lvmdTypes.DeviceClass{
 				{
 					// volumegroup target
-					Name:        thickdev,
+					Name:        lvServiceTestThickDC,
 					VolumeGroup: vg.Name(),
 				},
 				{
 					// thinpool target
-					Name:        thindev,
+					Name:        lvServiceTestThinDC,
 					VolumeGroup: vg.Name(),
 					Type:        lvmdTypes.TypeThin,
 					ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
@@ -81,25 +92,33 @@ func TestLVService(t *testing.T) {
 					},
 				},
 			},
-		), NewLvcreateOptionClassManager([]*lvmdTypes.LvcreateOptionClass{}), notifier)
+		),
+		NewLvcreateOptionClassManager([]*lvmdTypes.LvcreateOptionClass{}),
+		notifier,
+	)
 
-	// thick logical volume validations
+	return lvService, &count, vg, pool
+}
+
+func TestLVService_TickLV(t *testing.T) {
+	ctx := ctrl.LoggerInto(context.Background(), testr.New(t))
+	lvService, count, vg, _ := setupLVService(ctx, t)
+
 	res, err := lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
 		Name:        "test1",
-		DeviceClass: thickdev,
+		DeviceClass: lvServiceTestThickDC,
 		SizeGb:      1,
-		Tags:        []string{testTag1, testTag2},
+		Tags:        []string{lvServiceTestTag1, lvServiceTestTag2},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if count != 1 {
+	if *count != 1 {
 		t.Errorf("is not notified: %d", count)
 	}
 	if res.GetVolume().GetName() != "test1" {
 		t.Errorf(`res.Volume.Name != "test1": %s`, res.GetVolume().GetName())
 	}
-	//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid
 	if sizeGB := res.GetVolume().GetSizeGb(); sizeGB != 1 {
 		t.Errorf(`res.Volume.SizeGb != 1: %d`, sizeGB)
 	}
@@ -119,35 +138,35 @@ func TestLVService(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if lv.Tags()[0] != testTag1 {
+	if lv.Tags()[0] != lvServiceTestTag1 {
 		t.Errorf(`testtag1 not present on volume`)
 	}
-	if lv.Tags()[1] != testTag2 {
+	if lv.Tags()[1] != lvServiceTestTag2 {
 		t.Errorf(`testtag1 not present on volume`)
 	}
 
 	_, err = lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
 		Name:        "test2",
-		DeviceClass: thickdev,
+		DeviceClass: lvServiceTestThickDC,
 		SizeGb:      3,
 	})
 	code := status.Code(err)
 	if code != codes.ResourceExhausted {
 		t.Errorf(`code is not codes.ResouceExhausted: %s`, code)
 	}
-	if count != 1 {
+	if *count != 1 {
 		t.Errorf("unexpected count: %d", count)
 	}
 
 	_, err = lvService.ResizeLV(context.Background(), &proto.ResizeLVRequest{
 		Name:        "test1",
-		DeviceClass: thickdev,
+		DeviceClass: lvServiceTestThickDC,
 		SizeGb:      2,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if count != 2 {
+	if *count != 2 {
 		t.Errorf("unexpected count: %d", count)
 	}
 
@@ -165,25 +184,25 @@ func TestLVService(t *testing.T) {
 
 	_, err = lvService.ResizeLV(context.Background(), &proto.ResizeLVRequest{
 		Name:        "test1",
-		DeviceClass: thickdev,
+		DeviceClass: lvServiceTestThickDC,
 		SizeGb:      5,
 	})
 	code = status.Code(err)
 	if code != codes.ResourceExhausted {
 		t.Errorf(`code is not codes.ResouceExhausted: %s`, code)
 	}
-	if count != 2 {
+	if *count != 2 {
 		t.Errorf("unexpected count: %d", count)
 	}
 
 	_, err = lvService.RemoveLV(context.Background(), &proto.RemoveLVRequest{
 		Name:        "test1",
-		DeviceClass: thickdev,
+		DeviceClass: lvServiceTestThickDC,
 	})
 	if err != nil {
 		t.Error(err)
 	}
-	if count != 3 {
+	if *count != 3 {
 		t.Errorf("unexpected count: %d", count)
 	}
 
@@ -194,25 +213,27 @@ func TestLVService(t *testing.T) {
 	if !errors.Is(err, command.ErrNotFound) {
 		t.Error("unexpected error: ", err)
 	}
+}
 
-	// thin logical volume validations
-	count = 0
-	res, err = lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
+func TestLVService_ThinLV(t *testing.T) {
+	ctx := ctrl.LoggerInto(context.Background(), testr.New(t))
+	lvService, count, vg, pool := setupLVService(ctx, t)
+
+	res, err := lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
 		Name:        "testp1",
-		DeviceClass: thindev,
+		DeviceClass: lvServiceTestThinDC,
 		SizeGb:      1,
-		Tags:        []string{testTag1, testTag2},
+		Tags:        []string{lvServiceTestTag1, lvServiceTestTag2},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if count != 1 {
+	if *count != 1 {
 		t.Errorf("is not notified: %d", count)
 	}
 	if res.GetVolume().GetName() != "testp1" {
 		t.Errorf(`res.Volume.Name != "testp1": %s`, res.GetVolume().GetName())
 	}
-	//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid
 	if sizeGB := res.GetVolume().GetSizeGb(); sizeGB != 1 {
 		t.Errorf(`res.Volume.SizeGb != 1: %d`, sizeGB)
 	}
@@ -228,39 +249,39 @@ func TestLVService(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	lv, err = pool.FindVolume(ctx, "testp1")
+	lv, err := pool.FindVolume(ctx, "testp1")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if lv.Tags()[0] != testTag1 {
+	if lv.Tags()[0] != lvServiceTestTag1 {
 		t.Errorf(`testtag1 not present on volume`)
 	}
-	if lv.Tags()[1] != testTag2 {
+	if lv.Tags()[1] != lvServiceTestTag2 {
 		t.Errorf(`testtag1 not present on volume`)
 	}
 
 	// overprovision should work
 	_, err = lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
 		Name:        "testp2",
-		DeviceClass: thindev,
+		DeviceClass: lvServiceTestThinDC,
 		SizeGb:      3,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if count != 2 {
+	if *count != 2 {
 		t.Errorf("unexpected count: %d", count)
 	}
 
 	_, err = lvService.ResizeLV(context.Background(), &proto.ResizeLVRequest{
 		Name:        "testp1",
-		DeviceClass: thindev,
+		DeviceClass: lvServiceTestThinDC,
 		SizeGb:      2,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if count != 3 {
+	if *count != 3 {
 		t.Errorf("unexpected count: %d", count)
 	}
 
@@ -278,12 +299,12 @@ func TestLVService(t *testing.T) {
 
 	_, err = lvService.RemoveLV(context.Background(), &proto.RemoveLVRequest{
 		Name:        "testp1",
-		DeviceClass: thindev,
+		DeviceClass: lvServiceTestThinDC,
 	})
 	if err != nil {
 		t.Error(err)
 	}
-	if count != 4 {
+	if *count != 4 {
 		t.Errorf("unexpected count: %d", count)
 	}
 
@@ -295,51 +316,22 @@ func TestLVService(t *testing.T) {
 		t.Error("unexpected error: ", err)
 	}
 
-	// thin snapshots validation
+}
+
+func TestLVService_ThinSnapshots(t *testing.T) {
+	ctx := ctrl.LoggerInto(context.Background(), testr.New(t))
+	lvService, count, vg, pool := setupLVService(ctx, t)
 
 	// create sourceVolume
-	count = 0
 	var originalSizeGb uint64 = 1
-	res, err = lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
+	res, err := lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
 		Name:        "sourceVol",
-		DeviceClass: thindev,
+		DeviceClass: lvServiceTestThinDC,
 		SizeGb:      originalSizeGb,
-		Tags:        []string{testTag1, testTag2},
+		Tags:        []string{lvServiceTestTag1, lvServiceTestTag2},
 	})
 	if err != nil {
 		t.Fatal(err)
-	}
-	if count != 1 {
-		t.Errorf("is not notified: %d", count)
-	}
-	if res.GetVolume().GetName() != "sourceVol" {
-		t.Errorf(`res.Volume.Name != "sourceVol": %s`, res.GetVolume().GetName())
-	}
-	//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid
-	if sizeGB := res.GetVolume().GetSizeGb(); sizeGB != originalSizeGb {
-		t.Errorf(`res.Volume.SizeGb != %d: %d`, originalSizeGb, sizeGB)
-	}
-	if res.GetVolume().GetSizeBytes() != int64(originalSizeGb<<30) {
-		t.Errorf(`res.Volume.SizeBytes != %d: %d`, int64(originalSizeGb<<30), res.GetVolume().GetSizeBytes())
-	}
-	err = exec.Command("lvs", vg.Name()+"/sourceVol").Run()
-	if err != nil {
-		t.Error("failed to create logical volume")
-	}
-
-	if err := vg.Update(ctx); err != nil {
-		t.Fatal(err)
-	}
-
-	lv, err = pool.FindVolume(ctx, "sourceVol")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if lv.Tags()[0] != testTag1 {
-		t.Errorf(`testtag1 not present on volume`)
-	}
-	if lv.Tags()[1] != testTag2 {
-		t.Errorf(`testtag1 not present on volume`)
 	}
 
 	// create snapshot of sourceVol
@@ -347,7 +339,7 @@ func TestLVService(t *testing.T) {
 	var snapshotDesiredSizeGb uint64 = 2
 	snapRes, err = lvService.CreateLVSnapshot(context.Background(), &proto.CreateLVSnapshotRequest{
 		Name:         "snap1",
-		DeviceClass:  thindev,
+		DeviceClass:  lvServiceTestThinDC,
 		SourceVolume: "sourceVol",
 		// use a bigger size here to also simulate resizing to a bigger target than source
 		SizeGb:     snapshotDesiredSizeGb,
@@ -358,20 +350,18 @@ func TestLVService(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if count != 2 {
+	if *count != 2 {
 		t.Errorf("is not notified: %d", count)
 	}
 	if snapRes.GetSnapshot().GetName() != "snap1" {
 		t.Errorf(`res.Volume.Name != "snap1": %s`, res.GetVolume().GetName())
 	}
-	//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid
 	if sizeGB := res.GetVolume().GetSizeGb(); sizeGB != originalSizeGb {
 		t.Errorf(`res.Volume.SizeGb != %d: %d`, originalSizeGb, sizeGB)
 	}
 	if res.GetVolume().GetSizeBytes() != int64(originalSizeGb<<30) {
 		t.Errorf(`res.Volume.SizeBytes != %d: %d`, int64(originalSizeGb<<30), res.GetVolume().GetSizeBytes())
 	}
-	//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid
 	if sizeGB := snapRes.GetSnapshot().GetSizeGb(); sizeGB != snapshotDesiredSizeGb {
 		t.Errorf(`res.Volume.SizeGb != %d: %d`, snapshotDesiredSizeGb, sizeGB)
 	}
@@ -387,7 +377,7 @@ func TestLVService(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	lv, err = pool.FindVolume(ctx, "snap1")
+	lv, err := pool.FindVolume(ctx, "snap1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -402,7 +392,7 @@ func TestLVService(t *testing.T) {
 
 	snapRes, err = lvService.CreateLVSnapshot(context.Background(), &proto.CreateLVSnapshotRequest{
 		Name:         "restoredsnap1",
-		DeviceClass:  thindev,
+		DeviceClass:  lvServiceTestThinDC,
 		SourceVolume: snapRes.GetSnapshot().GetName(),
 		AccessType:   "rw",
 		Tags:         []string{"testrestoretag1", "testrestoretag2"},
@@ -410,20 +400,18 @@ func TestLVService(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if count != 3 {
+	if *count != 3 {
 		t.Errorf("is not notified: %d", count)
 	}
 	if snapRes.GetSnapshot().GetName() != "restoredsnap1" {
 		t.Errorf(`res.Volume.Name != "restoredsnap1": %s`, res.GetVolume().GetName())
 	}
-	//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid
 	if sizeGB := res.GetVolume().GetSizeGb(); sizeGB != originalSizeGb {
 		t.Errorf(`res.Volume.SizeGb != %d: %d`, originalSizeGb, sizeGB)
 	}
 	if res.GetVolume().GetSizeBytes() != int64(originalSizeGb<<30) {
 		t.Errorf(`res.Volume.SizeBytes != %d: %d`, int64(originalSizeGb<<30), res.GetVolume().GetSizeBytes())
 	}
-	//lint:ignore SA1019 gRPC API has two fields for Gb and Bytes, both are valid
 	if sizeGB := snapRes.GetSnapshot().GetSizeGb(); sizeGB != snapshotDesiredSizeGb {
 		t.Errorf(`res.Volume.SizeGb != %d: %d`, snapshotDesiredSizeGb, sizeGB)
 	}
