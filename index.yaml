@@ -4,6 +4,31 @@ entries:
   - annotations:
       artifacthub.io/images: |
         - name: topolvm-with-sidecar
+          image: ghcr.io/topolvm/topolvm-with-sidecar:0.36.1
+        - name: topolvm-with
+          image: ghcr.io/topolvm/topolvm:0.36.1
+      artifacthub.io/license: Apache-2.0
+    apiVersion: v2
+    appVersion: 0.36.1
+    created: "2025-01-07T06:51:21.168679043Z"
+    dependencies:
+    - condition: cert-manager.enabled
+      name: cert-manager
+      repository: https://charts.jetstack.io
+      version: ~1.12.x
+    description: Topolvm
+    digest: b10228c6d8b7fb36b4ce3960b8addb1d70d275cdd8e95453759e4b4ffa500cec
+    home: https://github.com/topolvm/topolvm
+    name: topolvm
+    sources:
+    - https://github.com/topolvm/topolvm
+    type: application
+    urls:
+    - https://github.com/topolvm/topolvm/releases/download/topolvm-chart-v15.5.1/topolvm-15.5.1.tgz
+    version: 15.5.1
+  - annotations:
+      artifacthub.io/images: |
+        - name: topolvm-with-sidecar
           image: ghcr.io/topolvm/topolvm-with-sidecar:0.36.0
         - name: topolvm-with
           image: ghcr.io/topolvm/topolvm:0.36.0
@@ -1010,4 +1035,4 @@ entries:
     urls:
     - https://github.com/topolvm/topolvm/releases/download/topolvm-chart-v2.0.1/topolvm-2.0.1.tgz
     version: 2.0.1
-generated: "2024-11-11T06:39:00.146189477Z"
+generated: "2025-01-07T06:51:21.169254748Z"
