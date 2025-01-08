@@ -5,6 +5,8 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
+
+	"github.com/topolvm/topolvm/internal/testutils"
 )
 
 func createDevice() (string, error) {
@@ -36,9 +38,7 @@ func createDevice() (string, error) {
 }
 
 func TestDetectFilesystem(t *testing.T) {
-	if os.Getuid() != 0 {
-		t.Skip("run as root")
-	}
+	testutils.RequireRoot(t)
 
 	dev, err := createDevice()
 	if err != nil {

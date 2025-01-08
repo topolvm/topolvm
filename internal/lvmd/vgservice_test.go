@@ -3,7 +3,6 @@ package lvmd
 import (
 	"context"
 	"math"
-	"os"
 	"os/exec"
 	"testing"
 	"time"
@@ -421,10 +420,7 @@ func testVGService(t *testing.T, vg *command.VolumeGroup) {
 
 func TestVGService(t *testing.T) {
 	ctx := ctrl.LoggerInto(context.Background(), testr.New(t))
-	uid := os.Getuid()
-	if uid != 0 {
-		t.Skip("run as root")
-	}
+	testutils.RequireRoot(t)
 
 	vgName := "test_vgservice"
 	loop1, err := testutils.MakeLoopbackDevice(ctx, vgName+"1")
