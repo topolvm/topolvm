@@ -4,6 +4,13 @@ device-classes:
     volume-group: myvg1
     default: true
     spare-gb: 10
+    lvcreate-options:
+      - --type
+      - writecache
+      - --cachesize
+      - 10M
+      - --cachedevice
+      - CACHEDEVICE
   - name: ssd-thin
     volume-group: myvg1
     type: thin

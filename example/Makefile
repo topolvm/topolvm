@@ -97,22 +97,29 @@ shutdown-kind:
 .PHONY: start-lvmd
 start-lvmd: $(TMPDIR)/lvmd/lvmd.yaml
 	go build -o build/lvmd ../cmd/lvmd
-	if [ -f $(BACKING_STORE)/backing_store ]; then $(MAKE) stop-lvmd; fi; \
+	if [ -f $(BACKING_STORE)/backing_store1 ]; then $(MAKE) stop-lvmd; fi; \
 	mkdir -p $(TMPDIR)/worker; \
 	mkdir -p $(TMPDIR)/lvmd; \
-	truncate --size=20G $(BACKING_STORE)/backing_store; \
-	$(SUDO) losetup -f $(BACKING_STORE)/backing_store; \
-	$(SUDO) vgcreate -f -y myvg1 $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store | cut -d: -f1); \
+	truncate --size=20G $(BACKING_STORE)/backing_store1; \
+	truncate --size=20G $(BACKING_STORE)/backing_store2; \
+	$(SUDO) losetup -f $(BACKING_STORE)/backing_store1; \
+	$(SUDO) losetup -f $(BACKING_STORE)/backing_store2; \
+	$(SUDO) vgcreate -f -y myvg1 \
+		$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store1 | cut -d: -f1) \
+		$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store2 | cut -d: -f1); \
 	$(SUDO) lvcreate -T myvg1/thinpool -L 12G; \
+	sed -i $(TMPDIR)/lvmd/lvmd.yaml -e "s=CACHEDEVICE=$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store2 | cut -d: -f1)="; \
 	$(SUDO) systemd-run --unit=lvmd.service $(shell pwd)/build/lvmd --config=$(TMPDIR)/lvmd/lvmd.yaml; \
 
 .PHONY: stop-lvmd
 stop-lvmd:
 	$(MAKE) shutdown-kind
 	if systemctl is-active -q lvmd.service; then $(SUDO) systemctl stop lvmd.service; fi; \
-	if [ -f $(BACKING_STORE)/backing_store ]; then \
+	if [ -f $(BACKING_STORE)/backing_store1 ]; then \
 		$(SUDO) vgremove -ffy myvg1; \
-		$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store | cut -d: -f1); \
-		$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store | cut -d: -f1); \
-		rm -f $(BACKING_STORE)/backing_store; \
+		$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store1 | cut -d: -f1); \
+		$(SUDO) pvremove -ffy $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store2 | cut -d: -f1); \
+		$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store1 | cut -d: -f1); \
+		$(SUDO) losetup -d $$($(SUDO) losetup -j $(BACKING_STORE)/backing_store2 | cut -d: -f1); \
+		rm -f $(BACKING_STORE)/backing_store1 $(BACKING_STORE)/backing_store2; \
 	fi
