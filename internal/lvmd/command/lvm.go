@@ -474,7 +474,7 @@ func (l *LogicalVolume) Origin(ctx context.Context) (*LogicalVolume, error) {
 
 // IsThin checks if the volume is thin volume or not.
 func (l *LogicalVolume) IsThin() bool {
-	return l.pool != nil
+	return l.attr[0] == byte(VolumeTypeThinVolume)
 }
 
 // Pool returns thin pool if this is a thin pool, or nil if not.
