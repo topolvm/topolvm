@@ -32,6 +32,7 @@ var (
 type VolumeType rune
 
 const (
+	VolumeTypeCached                     VolumeType = 'C'
 	VolumeTypeMirrored                   VolumeType = 'm'
 	VolumeTypeMirroredNoInitialSync      VolumeType = 'M'
 	VolumeTypeOrigin                     VolumeType = 'o'
@@ -114,6 +115,7 @@ const (
 type OpenTarget rune
 
 const (
+	OpenTargetCache    OpenTarget = 'C'
 	OpenTargetMirror   OpenTarget = 'm'
 	OpenTargetRaid     OpenTarget = 'r'
 	OpenTargetSnapshot OpenTarget = 's'

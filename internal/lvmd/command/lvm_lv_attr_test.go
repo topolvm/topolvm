@@ -81,6 +81,23 @@ func TestParsedLVAttr(t *testing.T) {
 			},
 			noError,
 		},
+		{
+			"Cache",
+			args{raw: "Cwi-aoC---"},
+			LVAttr{
+				VolumeType:       VolumeTypeCached,
+				Permissions:      PermissionsWriteable,
+				AllocationPolicy: AllocationPolicyInherited,
+				Minor:            MinorFalse,
+				State:            StateActive,
+				Open:             OpenTrue,
+				OpenTarget:       OpenTargetCache,
+				Zero:             ZeroFalse,
+				VolumeHealth:     VolumeHealthOK,
+				SkipActivation:   SkipActivationFalse,
+			},
+			noError,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
