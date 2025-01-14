@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -19,9 +18,8 @@ import (
 )
 
 func Test_lvm_command(t *testing.T) {
-	if os.Getuid() != 0 {
-		t.Skip("run as root")
-	}
+	testutils.RequireRoot(t)
+
 	t.Run("simple lvm version should succeed with stream", func(t *testing.T) {
 		ctx := log.IntoContext(context.Background(), testr.New(t))
 		dataStream, err := callLVMStreamed(ctx, verbosityLVMStateNoUpdate, "version")

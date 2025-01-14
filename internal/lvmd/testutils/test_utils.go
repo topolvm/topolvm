@@ -6,7 +6,9 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"testing"
 
+	"github.com/topolvm/topolvm/internal/testutils"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -76,4 +78,8 @@ func CleanLoopbackVG(name string, loops []string, files []string) error {
 	}
 
 	return nil
+}
+
+func RequireRoot(t *testing.T) {
+	testutils.RequireRoot(t)
 }

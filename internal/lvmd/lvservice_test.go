@@ -3,7 +3,6 @@ package lvmd
 import (
 	"context"
 	"errors"
-	"os"
 	"os/exec"
 	"testing"
 
@@ -23,10 +22,7 @@ func TestLVService(t *testing.T) {
 		testTag2 = "testtag2"
 	)
 
-	uid := os.Getuid()
-	if uid != 0 {
-		t.Skip("run as root")
-	}
+	testutils.RequireRoot(t)
 	ctx := ctrl.LoggerInto(context.Background(), testr.New(t))
 
 	vgName := "test_lvservice"

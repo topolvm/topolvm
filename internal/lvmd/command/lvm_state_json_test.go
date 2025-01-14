@@ -3,7 +3,6 @@ package command
 import (
 	"context"
 	"io"
-	"os"
 	"slices"
 	"strings"
 	"testing"
@@ -289,10 +288,7 @@ func TestLvmJSONBad(t *testing.T) {
 
 func TestLvmRetrieval(t *testing.T) {
 	ctx := ctrl.LoggerInto(context.Background(), testr.New(t))
-	uid := os.Getuid()
-	if uid != 0 {
-		t.Skip("run as root")
-	}
+	testutils.RequireRoot(t)
 
 	vgName := "test_lvm_json"
 	lvName := "test_lvm_json_lv"
