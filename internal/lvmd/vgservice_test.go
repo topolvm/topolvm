@@ -131,124 +131,91 @@ func TestVGService_GetLVList(t *testing.T) {
 	ctx := ctrl.LoggerInto(context.Background(), testr.New(t))
 	vgService, _, vg, pool := setupVGService(ctx, t)
 
-	// thick lvs
-	res, err := vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: vgServiceTestThickDC})
-	if err != nil {
-		t.Fatal(err)
-	}
-	numVols1 := len(res.GetVolumes())
-	if numVols1 != 0 {
-		t.Errorf("numVolumes must be 0: %d", numVols1)
-	}
-
-	// thin lvs
-	res, err = vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: vgServiceTestThinDC})
-	if err != nil {
-		t.Fatal(err)
-	}
-	numVols1 = len(res.GetVolumes())
-
-	if numVols1 != 0 {
-		t.Errorf("numVolumes must be 0: %d in pool %s", numVols1, pool.Name())
-	}
-
-	// create thick volume
 	testtag := "testtag"
-	if err := vg.CreateVolume(ctx, "test1", 1<<30, []string{testtag}, 0, "", nil); err != nil {
-		t.Fatal(err)
+	testCases := []struct {
+		name         string
+		deviceClass  string
+		volumePrefix string
+		createVolume func(string) error
+	}{
+		{
+			name:         "thick lv",
+			deviceClass:  vgServiceTestThickDC,
+			volumePrefix: "thick",
+			createVolume: func(volumeName string) error {
+				return vg.CreateVolume(ctx, volumeName, 1<<30, []string{testtag}, 0, "", nil)
+			},
+		},
+		{
+			name:         "thin lv",
+			deviceClass:  vgServiceTestThinDC,
+			volumePrefix: "thin",
+			createVolume: func(volumeName string) error {
+				return pool.CreateVolume(ctx, volumeName, 1<<30, []string{testtag}, 0, "", nil)
+			},
+		},
 	}
 
-	// thick lv validation
-	res, err = vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: vgServiceTestThickDC})
-	if err != nil {
-		t.Fatal(err)
-	}
-	numVols2 := len(res.GetVolumes())
-	if numVols2 != 1 {
-		t.Fatalf("numVolumes must be 1: %d", numVols2)
-	}
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: tt.deviceClass})
+			if err != nil {
+				t.Fatal(err)
+			}
+			numVols1 := len(res.GetVolumes())
+			if numVols1 != 0 {
+				t.Errorf("numVolumes must be 0: %d", numVols1)
+			}
 
-	vol := res.GetVolumes()[0]
-	if vol.GetName() != "test1" {
-		t.Errorf(`Volume.Name != "test1": %s`, vol.GetName())
-	}
-	if vol.GetSizeBytes() != 1<<30 {
-		t.Errorf(`Volume.SizeBytes != %d: %d`, 1<<30, vol.GetSizeBytes())
-	}
-	if len(vol.GetTags()) != 1 {
-		t.Fatalf("number of tags must be 1")
-	}
-	if vol.GetTags()[0] != testtag {
-		t.Errorf(`Volume.Tags[0] != %s: %v`, testtag, vol.GetTags())
-	}
+			// create 1st volume
+			volumeName := tt.volumePrefix + "1"
+			if err := tt.createVolume(volumeName); err != nil {
+				t.Fatal(err)
+			}
 
-	// create thin volume
-	if err = pool.CreateVolume(ctx, "testp1", 1<<30, []string{testtag}, 0, "", nil); err != nil {
-		t.Fatal(err)
-	}
+			// validation
+			res, err = vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: tt.deviceClass})
+			if err != nil {
+				t.Fatal(err)
+			}
+			numVols2 := len(res.GetVolumes())
+			if numVols2 != 1 {
+				t.Fatalf("numVolumes must be 1: %d", numVols2)
+			}
 
-	// thin lv validation
-	res, err = vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: vgServiceTestThinDC})
-	if err != nil {
-		t.Fatal(err)
-	}
-	numVols2 = len(res.GetVolumes())
-	if numVols2 != 1 {
-		t.Fatalf("numVolumes must be 1: %d in pool %s", numVols2, pool.Name())
-	}
+			vol := res.GetVolumes()[0]
+			if vol.GetName() != volumeName {
+				t.Errorf(`Volume.Name != "%s": %s`, volumeName, vol.GetName())
+			}
+			if sizeGB := vol.GetSizeGb(); sizeGB != 1 {
+				t.Errorf(`Volume.SizeGb != 1: %d`, sizeGB)
+			}
+			if vol.GetSizeBytes() != 1<<30 {
+				t.Errorf(`Volume.SizeBytes != %d: %d`, 1<<30, vol.GetSizeBytes())
+			}
+			if len(vol.GetTags()) != 1 {
+				t.Fatalf("number of tags must be 1")
+			}
+			if vol.GetTags()[0] != testtag {
+				t.Errorf(`Volume.Tags[0] != %s: %v`, testtag, vol.GetTags())
+			}
 
-	vol = res.GetVolumes()[0]
-	if vol.GetName() != "testp1" {
-		t.Errorf(`Volume.Name != "test1": %s`, vol.GetName())
-	}
-	if sizeGB := vol.GetSizeGb(); sizeGB != 1 {
-		t.Errorf(`Volume.SizeGb != 1: %d`, sizeGB)
-	}
-	if vol.GetSizeBytes() != 1<<30 {
-		t.Errorf(`Volume.SizeBytes != %d: %d`, 1<<30, vol.GetSizeBytes())
-	}
-	if len(vol.GetTags()) != 1 {
-		t.Fatalf("number of tags must be 1")
-	}
-	if vol.GetTags()[0] != testtag {
-		t.Errorf(`Volume.Tags[0] != %s: %v`, testtag, vol.GetTags())
-	}
+			// create 2nd volume
+			volumeName = tt.volumePrefix + "2"
+			if err = tt.createVolume(volumeName); err != nil {
+				t.Fatal(err)
+			}
 
-	// thick lv creation
-
-	if err = vg.CreateVolume(ctx, "test2", 1<<30, nil, 0, "", nil); err != nil {
-		t.Fatal(err)
-	}
-
-	// thin lv creation, within overprovision limit (10G)
-
-	if err := pool.CreateVolume(ctx, "testp2", 1<<30, nil, 0, "", nil); err != nil {
-		t.Fatal(err)
-	}
-
-	_, err = pool.FindVolume(ctx, "testp2")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// thick lv validation
-	res, err = vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: vgServiceTestThickDC})
-	if err != nil {
-		t.Fatal(err)
-	}
-	numVols3 := len(res.GetVolumes())
-	if numVols3 != 2 {
-		t.Fatalf("numVolumes must be 2: %d", numVols3)
-	}
-
-	// thick lv validation
-	res, err = vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: vgServiceTestThickDC})
-	if err != nil {
-		t.Fatal(err)
-	}
-	numVols3 = len(res.GetVolumes())
-	if numVols3 != 2 {
-		t.Fatalf("numVolumes must be 2: %d on thinpool %s", numVols3, pool.Name())
+			// validation
+			res, err = vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: tt.deviceClass})
+			if err != nil {
+				t.Fatal(err)
+			}
+			numVols3 := len(res.GetVolumes())
+			if numVols3 != 2 {
+				t.Fatalf("numVolumes must be 2: %d", numVols3)
+			}
+		})
 	}
 }
 
