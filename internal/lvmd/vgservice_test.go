@@ -256,40 +256,42 @@ func TestVGService_GetFreeBytes(t *testing.T) {
 	ctx := ctrl.LoggerInto(context.Background(), testr.New(t))
 	vgService, _, vg, pool := setupVGService(ctx, t)
 
-	// thick lv size validations
-	res, err := vgService.GetFreeBytes(ctx, &proto.GetFreeBytesRequest{DeviceClass: vgServiceTestThickDC})
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	// update internal state to get accurate free bytes
 	if err := vg.Update(ctx); err != nil {
 		t.Fatal(err)
 	}
 
-	freeBytes, err := vg.Free()
-	if err != nil {
-		t.Fatal(err)
-	}
-	expected := freeBytes - (1 << 30)
-	if res.GetFreeBytes() != expected {
-		t.Errorf("Free bytes mismatch: %d, expected: %d, freeBytes: %d", res.GetFreeBytes(), expected, freeBytes)
-	}
+	t.Run("thick lv", func(t *testing.T) {
+		res, err := vgService.GetFreeBytes(ctx, &proto.GetFreeBytesRequest{DeviceClass: vgServiceTestThickDC})
+		if err != nil {
+			t.Fatal(err)
+		}
+		freeBytes, err := vg.Free()
+		if err != nil {
+			t.Fatal(err)
+		}
+		expected := freeBytes - (1 << 30)
+		if res.GetFreeBytes() != expected {
+			t.Errorf("Free bytes mismatch: %d, expected: %d, freeBytes: %d", res.GetFreeBytes(), expected, freeBytes)
+		}
+	})
 
-	// thin lv size validations
-	res, err = vgService.GetFreeBytes(ctx, &proto.GetFreeBytesRequest{DeviceClass: vgServiceTestThinDC})
-	if err != nil {
-		t.Fatal(err)
-	}
-	tpu, err := pool.Free(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	opb := uint64(math.Floor(vgServiceTestOverprovisionRatio*float64(tpu.SizeBytes))) - tpu.VirtualBytes
-	expected = opb - (1 << 30)
-	// there'll be round off in free bytes of thin pool
-	if res.GetFreeBytes() > expected {
-		t.Errorf("Free bytes mismatch: %d, expected: %d, freeBytes: %d", res.GetFreeBytes(), expected, opb)
-	}
+	t.Run("thin lv", func(t *testing.T) {
+		res, err := vgService.GetFreeBytes(ctx, &proto.GetFreeBytesRequest{DeviceClass: vgServiceTestThinDC})
+		if err != nil {
+			t.Fatal(err)
+		}
+		tpu, err := pool.Free(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		opb := uint64(math.Floor(vgServiceTestOverprovisionRatio*float64(tpu.SizeBytes))) - tpu.VirtualBytes
+		expected := opb - (1 << 30)
+		// there'll be round off in free bytes of thin pool
+		if res.GetFreeBytes() > expected {
+			t.Errorf("Free bytes mismatch: %d, expected: %d, freeBytes: %d", res.GetFreeBytes(), expected, opb)
+		}
+	})
 }
 
 func setupVGService(ctx context.Context, t *testing.T) (
