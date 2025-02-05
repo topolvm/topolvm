@@ -56,7 +56,6 @@ make stop-lvmd
 
 Before launching the test, install the following tools.
 - [crictl](https://github.com/kubernetes-sigs/cri-tools)
-- [cri-dockerd](https://github.com/Mirantis/cri-dockerd)
 
 Make lvm and launch Kubernetes using minikube with the following commands:
 

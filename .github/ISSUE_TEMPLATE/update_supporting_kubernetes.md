@@ -56,8 +56,6 @@ These are not released on the occasion of a Kubernetes version upgrade, so if th
   - https://github.com/kubernetes-csi/node-driver-registrar/tree/master/CHANGELOG
 - [ ] liveness probe
   - https://github.com/kubernetes-csi/livenessprobe/tree/master/CHANGELOG
-- [ ] cri-docker
-  - https://github.com/Mirantis/cri-dockerd/releases
 
 ### Release notes check
 

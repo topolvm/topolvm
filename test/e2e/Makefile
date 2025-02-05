@@ -174,15 +174,11 @@ incluster-lvmd/setup-minikube: | $(BINDIR)
 	$(CURL) -o $(BINDIR)/minikube https://github.com/kubernetes/minikube/releases/download/$(MINIKUBE_VERSION)/minikube-linux-amd64
 	chmod a+x $(BINDIR)/minikube
 
-	# These tools are required to use minikube for Kubernetes v1.24+
-	# For CNI plugins, see https://github.com/Mirantis/cri-dockerd/blob/v0.2.6/README.md#important
+	# Minikube's "none" driver require CNI plugins.
+	# ref. https://minikube.sigs.k8s.io/docs/faq/#how-do-i-install-containernetworking-plugins-for-none-driver
 	$(CURL) -o cni-plugins.tgz https://github.com/containernetworking/plugins/releases/download/$(CNI_PLUGINS_VERSION)/cni-plugins-linux-amd64-$(CNI_PLUGINS_VERSION).tgz
 	$(SUDO) mkdir -p /opt/cni/bin
 	$(SUDO) tar -C /opt/cni/bin -xf cni-plugins.tgz
-
-	# Install cri-docker
-	$(CURL) -o cri-dockerd.deb https://github.com/Mirantis/cri-dockerd/releases/download/$(CRI_DOCKERD_VERSION)/cri-dockerd_$(CRI_DOCKERD_VERSION:v%=%).3-0.ubuntu-focal_amd64.deb
-	$(SUDO) dpkg -i cri-dockerd.deb
 
 	$(CURL) -o crictl.tar.gz https://github.com/kubernetes-sigs/cri-tools/releases/download/$(CRICTL_VERSION)/crictl-$(CRICTL_VERSION)-linux-amd64.tar.gz
 	$(SUDO) tar -C /usr/local/bin -xf crictl.tar.gz
@@ -198,7 +194,7 @@ incluster-lvmd/launch-minikube: | $(MINIKUBE_HOME)
 		--extra-config=kubeadm.node-name=$(CLUSTER_NAME)-worker \
 		--extra-config=kubelet.hostname-override=$(CLUSTER_NAME)-worker \
 		--feature-gates=$(MINIKUBE_FEATURE_GATES) \
-		--cni=calico
+		--container-runtime=containerd
 
 .PHONY: incluster-lvmd/delete-minikube
 incluster-lvmd/delete-minikube: $(MINIKUBE_HOME)
