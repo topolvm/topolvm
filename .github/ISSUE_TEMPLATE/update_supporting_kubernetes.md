@@ -19,15 +19,6 @@ There is a check list to confirm depending libraries or tools are released. The 
 
 Must update Kubernetes with each new version of Kubernetes.
 
-- [ ] k8s.io/api
-  - https://github.com/kubernetes/api/tags
-    - The supported Kubernetes version is written in the description of each tag.
-- [ ] k8s.io/apimachinery
-  - https://github.com/kubernetes/apimachinery/tags
-    - The supported Kubernetes version is written in the description of each tag.
-- [ ] k8s.io/client-go
-  - https://github.com/kubernetes/client-go/tags
-    - The supported Kubernetes version is written in the description of each tag.
 - [ ] k8s.io/mount-utils
   - https://github.com/kubernetes/mount-utils/tags
     - The supported Kubernetes version is written in the description of each tag.
