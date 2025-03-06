@@ -60,8 +60,9 @@ spec:
           {{- with .Values.image.pullPolicy }}
           imagePullPolicy: {{ . }}
           {{- end }}
-          securityContext:
-            privileged: true
+          {{- with .Values.lvmd.securityContext }}
+          securityContext: {{ toYaml . | nindent 12 }}
+          {{- end }}
           command:
             - /lvmd
           {{- with .Values.lvmd.args }}

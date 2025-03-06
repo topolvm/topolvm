@@ -150,6 +150,11 @@ lvmd:
   # lvmd.args -- Arguments to be passed to the command.
   args: []
 
+  # lvmd.securityContext -- Container securityContext.
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+  securityContext:
+    privileged: true
+
   # lvmd.priorityClassName -- Specify priorityClassName.
   priorityClassName:
 
@@ -274,6 +279,10 @@ node:
 
   # node.args -- Arguments to be passed to the command.
   args: []
+
+  # node.podSecurityContext -- Pod securityContext.
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+  podSecurityContext: {}
 
   # node.securityContext. -- Container securityContext.
   ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
