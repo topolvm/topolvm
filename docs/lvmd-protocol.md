@@ -3,31 +3,31 @@
 
 ## Table of Contents
 
-- [pkg/lvmd/proto/lvmd.proto](#pkg/lvmd/proto/lvmd.proto)
-    - [CreateLVRequest](#proto.CreateLVRequest)
-    - [CreateLVResponse](#proto.CreateLVResponse)
-    - [CreateLVSnapshotRequest](#proto.CreateLVSnapshotRequest)
-    - [CreateLVSnapshotResponse](#proto.CreateLVSnapshotResponse)
-    - [Empty](#proto.Empty)
-    - [GetFreeBytesRequest](#proto.GetFreeBytesRequest)
-    - [GetFreeBytesResponse](#proto.GetFreeBytesResponse)
-    - [GetLVListRequest](#proto.GetLVListRequest)
-    - [GetLVListResponse](#proto.GetLVListResponse)
-    - [LogicalVolume](#proto.LogicalVolume)
-    - [RemoveLVRequest](#proto.RemoveLVRequest)
-    - [ResizeLVRequest](#proto.ResizeLVRequest)
-    - [ThinPoolItem](#proto.ThinPoolItem)
-    - [WatchItem](#proto.WatchItem)
-    - [WatchResponse](#proto.WatchResponse)
+- [pkg/lvmd/proto/lvmd.proto](#pkg_lvmd_proto_lvmd-proto)
+    - [CreateLVRequest](#proto-CreateLVRequest)
+    - [CreateLVResponse](#proto-CreateLVResponse)
+    - [CreateLVSnapshotRequest](#proto-CreateLVSnapshotRequest)
+    - [CreateLVSnapshotResponse](#proto-CreateLVSnapshotResponse)
+    - [Empty](#proto-Empty)
+    - [GetFreeBytesRequest](#proto-GetFreeBytesRequest)
+    - [GetFreeBytesResponse](#proto-GetFreeBytesResponse)
+    - [GetLVListRequest](#proto-GetLVListRequest)
+    - [GetLVListResponse](#proto-GetLVListResponse)
+    - [LogicalVolume](#proto-LogicalVolume)
+    - [RemoveLVRequest](#proto-RemoveLVRequest)
+    - [ResizeLVRequest](#proto-ResizeLVRequest)
+    - [ThinPoolItem](#proto-ThinPoolItem)
+    - [WatchItem](#proto-WatchItem)
+    - [WatchResponse](#proto-WatchResponse)
   
-    - [LVService](#proto.LVService)
-    - [VGService](#proto.VGService)
+    - [LVService](#proto-LVService)
+    - [VGService](#proto-VGService)
   
 - [Scalar Value Types](#scalar-value-types)
 
 
 
-<a name="pkg/lvmd/proto/lvmd.proto"></a>
+<a name="pkg_lvmd_proto_lvmd-proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
 ## pkg/lvmd/proto/lvmd.proto
@@ -38,7 +38,7 @@ The protocol consists of two services:
 - LVService provides management functions for logical volumes on the volume group.
 
 
-<a name="proto.CreateLVRequest"></a>
+<a name="proto-CreateLVRequest"></a>
 
 ### CreateLVRequest
 Represents the input for CreateLV.
@@ -58,7 +58,7 @@ Represents the input for CreateLV.
 
 
 
-<a name="proto.CreateLVResponse"></a>
+<a name="proto-CreateLVResponse"></a>
 
 ### CreateLVResponse
 Represents the response of CreateLV.
@@ -66,14 +66,14 @@ Represents the response of CreateLV.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| volume | [LogicalVolume](#proto.LogicalVolume) |  | Information of the created volume. |
+| volume | [LogicalVolume](#proto-LogicalVolume) |  | Information of the created volume. |
 
 
 
 
 
 
-<a name="proto.CreateLVSnapshotRequest"></a>
+<a name="proto-CreateLVSnapshotRequest"></a>
 
 ### CreateLVSnapshotRequest
 
@@ -94,7 +94,7 @@ Represents the response of CreateLV.
 
 
 
-<a name="proto.CreateLVSnapshotResponse"></a>
+<a name="proto-CreateLVSnapshotResponse"></a>
 
 ### CreateLVSnapshotResponse
 
@@ -102,14 +102,14 @@ Represents the response of CreateLV.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| snapshot | [LogicalVolume](#proto.LogicalVolume) |  | Information of the created snapshot lv. |
+| snapshot | [LogicalVolume](#proto-LogicalVolume) |  | Information of the created snapshot lv. |
 
 
 
 
 
 
-<a name="proto.Empty"></a>
+<a name="proto-Empty"></a>
 
 ### Empty
 
@@ -119,7 +119,7 @@ Represents the response of CreateLV.
 
 
 
-<a name="proto.GetFreeBytesRequest"></a>
+<a name="proto-GetFreeBytesRequest"></a>
 
 ### GetFreeBytesRequest
 
@@ -134,7 +134,7 @@ Represents the response of CreateLV.
 
 
 
-<a name="proto.GetFreeBytesResponse"></a>
+<a name="proto-GetFreeBytesResponse"></a>
 
 ### GetFreeBytesResponse
 Represents the response of GetFreeBytes.
@@ -149,7 +149,7 @@ Represents the response of GetFreeBytes.
 
 
 
-<a name="proto.GetLVListRequest"></a>
+<a name="proto-GetLVListRequest"></a>
 
 ### GetLVListRequest
 
@@ -164,7 +164,7 @@ Represents the response of GetFreeBytes.
 
 
 
-<a name="proto.GetLVListResponse"></a>
+<a name="proto-GetLVListResponse"></a>
 
 ### GetLVListResponse
 Represents the response of GetLVList.
@@ -172,14 +172,14 @@ Represents the response of GetLVList.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| volumes | [LogicalVolume](#proto.LogicalVolume) | repeated | Information of volumes. |
+| volumes | [LogicalVolume](#proto-LogicalVolume) | repeated | Information of volumes. |
 
 
 
 
 
 
-<a name="proto.LogicalVolume"></a>
+<a name="proto-LogicalVolume"></a>
 
 ### LogicalVolume
 Represents a logical volume.
@@ -201,7 +201,7 @@ Represents a logical volume.
 
 
 
-<a name="proto.RemoveLVRequest"></a>
+<a name="proto-RemoveLVRequest"></a>
 
 ### RemoveLVRequest
 Represents the input for RemoveLV.
@@ -217,7 +217,7 @@ Represents the input for RemoveLV.
 
 
 
-<a name="proto.ResizeLVRequest"></a>
+<a name="proto-ResizeLVRequest"></a>
 
 ### ResizeLVRequest
 Represents the input for ResizeLV.
@@ -238,7 +238,7 @@ The volume size will be set to exactly &#34;size_gb&#34;.
 
 
 
-<a name="proto.ThinPoolItem"></a>
+<a name="proto-ThinPoolItem"></a>
 
 ### ThinPoolItem
 Represents the details of thinpool.
@@ -256,7 +256,7 @@ Represents the details of thinpool.
 
 
 
-<a name="proto.WatchItem"></a>
+<a name="proto-WatchItem"></a>
 
 ### WatchItem
 Represents the response corresponding to device class targets.
@@ -267,14 +267,14 @@ Represents the response corresponding to device class targets.
 | free_bytes | [uint64](#uint64) |  | Free space in the volume group in bytes. |
 | device_class | [string](#string) |  |  |
 | size_bytes | [uint64](#uint64) |  | Size of volume group in bytes. |
-| thin_pool | [ThinPoolItem](#proto.ThinPoolItem) |  |  |
+| thin_pool | [ThinPoolItem](#proto-ThinPoolItem) |  |  |
 
 
 
 
 
 
-<a name="proto.WatchResponse"></a>
+<a name="proto-WatchResponse"></a>
 
 ### WatchResponse
 Represents the stream output from Watch.
@@ -283,7 +283,7 @@ Represents the stream output from Watch.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | free_bytes | [uint64](#uint64) |  | Free space of the default volume group in bytes. In the case of thin pools, free space on the thinpool with overprovision in bytes. |
-| items | [WatchItem](#proto.WatchItem) | repeated |  |
+| items | [WatchItem](#proto-WatchItem) | repeated |  |
 
 
 
@@ -296,29 +296,29 @@ Represents the stream output from Watch.
  
 
 
-<a name="proto.LVService"></a>
+<a name="proto-LVService"></a>
 
 ### LVService
 Service to manage logical volumes of the volume group.
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| CreateLV | [CreateLVRequest](#proto.CreateLVRequest) | [CreateLVResponse](#proto.CreateLVResponse) | Create a logical volume. |
-| RemoveLV | [RemoveLVRequest](#proto.RemoveLVRequest) | [Empty](#proto.Empty) | Remove a logical volume. |
-| ResizeLV | [ResizeLVRequest](#proto.ResizeLVRequest) | [Empty](#proto.Empty) | Resize a logical volume. |
-| CreateLVSnapshot | [CreateLVSnapshotRequest](#proto.CreateLVSnapshotRequest) | [CreateLVSnapshotResponse](#proto.CreateLVSnapshotResponse) |  |
+| CreateLV | [CreateLVRequest](#proto-CreateLVRequest) | [CreateLVResponse](#proto-CreateLVResponse) | Create a logical volume. |
+| RemoveLV | [RemoveLVRequest](#proto-RemoveLVRequest) | [Empty](#proto-Empty) | Remove a logical volume. |
+| ResizeLV | [ResizeLVRequest](#proto-ResizeLVRequest) | [Empty](#proto-Empty) | Resize a logical volume. |
+| CreateLVSnapshot | [CreateLVSnapshotRequest](#proto-CreateLVSnapshotRequest) | [CreateLVSnapshotResponse](#proto-CreateLVSnapshotResponse) |  |
 
 
-<a name="proto.VGService"></a>
+<a name="proto-VGService"></a>
 
 ### VGService
 Service to retrieve information of the volume group.
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| GetLVList | [GetLVListRequest](#proto.GetLVListRequest) | [GetLVListResponse](#proto.GetLVListResponse) | Get the list of logical volumes in the volume group. |
-| GetFreeBytes | [GetFreeBytesRequest](#proto.GetFreeBytesRequest) | [GetFreeBytesResponse](#proto.GetFreeBytesResponse) | Get the free space of the volume group in bytes. |
-| Watch | [Empty](#proto.Empty) | [WatchResponse](#proto.WatchResponse) stream | Stream the volume group metrics. |
+| GetLVList | [GetLVListRequest](#proto-GetLVListRequest) | [GetLVListResponse](#proto-GetLVListResponse) | Get the list of logical volumes in the volume group. |
+| GetFreeBytes | [GetFreeBytesRequest](#proto-GetFreeBytesRequest) | [GetFreeBytesResponse](#proto-GetFreeBytesResponse) | Get the free space of the volume group in bytes. |
+| Watch | [Empty](#proto-Empty) | [WatchResponse](#proto-WatchResponse) stream | Stream the volume group metrics. |
 
  
 
