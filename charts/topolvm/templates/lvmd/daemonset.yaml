@@ -110,6 +110,10 @@ spec:
             - name: lvmd-socket-dir
               mountPath: {{ dir .Values.lvmd.socketName }}
             {{- end }}
+
+        {{- with .Values.lvmd.additionalContainers }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       volumes:
         - name: devices-dir
           hostPath:

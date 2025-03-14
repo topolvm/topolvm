@@ -201,6 +201,9 @@ spec:
             - name: node-plugin-dir
               mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/
 
+        {{- with .Values.node.additionalContainers }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       volumes:
         {{- if .Values.node.volumes }}
         {{- toYaml .Values.node.volumes | nindent 8 }}

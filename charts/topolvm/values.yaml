@@ -110,6 +110,10 @@ scheduler:
   #    ssd: 1
   #    hdd: 10
 
+  # scheduler.additionalContainers -- Define extra containers to add to the Daemonset.
+  # Please ensure not to use any existing container names.
+  additionalContainers: []
+
   profiling:
     # scheduler.profiling.bindAddress -- Enables pprof profiling server. If empty, profiling is disabled.
     bindAddress: ""
@@ -221,6 +225,10 @@ lvmd:
 
   # lvmd.initContainers -- Additional initContainers for the lvmd service.
   initContainers: []
+
+  # lvmd.additionalContainers -- Define extra containers to add to the Daemonset.
+  # Please ensure not to use any existing container names.
+  additionalContainers: []
 
   profiling:
     # lvmd.profiling.bindAddress -- Enables pprof profiling server. If empty, profiling is disabled.
@@ -409,6 +417,10 @@ node:
   # node.initContainers -- Additional initContainers for the node service.
   initContainers: []
 
+  # node.additionalContainers -- Define extra containers to add to the Daemonset.
+  # Please ensure not to use any existing container names.
+  additionalContainers: []
+
 # CSI controller service
 controller:
   # controller.replicaCount -- Number of replicas for CSI controller service.
@@ -531,6 +543,10 @@ controller:
 
   # controller.initContainers -- Additional initContainers for the controller service.
   initContainers: []
+
+  # controller.additionalContainers -- Define extra containers to add to the Deployment.
+  # Please ensure not to use any existing container names.
+  additionalContainers: []
 
 resources:
   # resources.topolvm_node -- Specify resources.
