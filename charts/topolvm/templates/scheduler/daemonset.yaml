@@ -96,6 +96,10 @@ spec:
           {{- with .Values.resources.topolvm_scheduler }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
+
+        {{- with .Values.scheduler.additionalContainers }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       hostNetwork: true
       volumes:
         - name: {{ template "topolvm.fullname" . }}-scheduler-options

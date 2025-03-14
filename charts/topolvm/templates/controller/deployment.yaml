@@ -258,6 +258,10 @@ spec:
           {{- with .Values.env.liveness_probe }}
           env: {{ toYaml . | nindent 12 }}
           {{- end }}
+
+        {{- with .Values.controller.additionalContainers }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       volumes:
         {{- if or .Values.webhook.podMutatingWebhook.enabled .Values.webhook.pvcMutatingWebhook.enabled }}
         - name: certs
