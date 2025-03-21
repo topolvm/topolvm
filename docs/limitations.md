@@ -8,6 +8,7 @@
 - [Use lvcreate-options at Your Own Risk](#use-lvcreate-options-at-your-own-risk)
 - [Error when using TopoLVM on old Linux kernel hosts with official docker image](#error-when-using-topolvm-on-old-linux-kernel-hosts-with-official-docker-image)
 - [Restoring Snapshots or creating Clones with differing StorageClass from their source can fail](#restoring-snapshots-or-creating-clones-with-differing-storageclass-from-their-source-can-fail)
+- [The Pod does not start when nodeName is specified  in the Pod spec](#the-pod-does-not-start-when-nodename-is-specified--in-the-pod-spec)
 
 ## Pod without PVC
 
@@ -99,3 +100,30 @@ TopoLVM assumes that PersistentVolumes created via Snapshotting or Cloning have 
 This was originally introduced to support changes for cloud-providers where storage-class attributes might change ([see the PR for implementation details](https://github.com/kubernetes-csi/external-provisioner/pull/699)) during the restore process, however this doesn't apply for TopoLVM.
 
 Thus, if a pod consumes a restored/cloned PV having a different storage class from the original PV, this pod will not get scheduled if the StorageClass contents differ from the source StorageClass (e.g. by using a different device class).
+
+## The Pod does not start when nodeName is specified  in the Pod spec
+
+When you specify `nodeName` in the Pod spec, the Pod may not start. If this happens, the following events are recorded in the Pod and PVC.
+
+Pod:
+```
+$ kubectl describe pod <pod-name>
+...
+Events:
+  Type    Reason                Age                   From                         Message
+  ----    ------                ----                  ----                         -------
+  Normal  WaitForFirstConsumer  2m40s (x82 over 22m)  persistentvolume-controller  waiting for first consumer to be created before binding
+```
+
+PVC:
+```
+$ kubectl describe pvc <pvc-name>
+...
+Events:
+  Type     Reason       Age                 From     Message
+  ----     ------       ----                ----     -------
+  Warning  FailedMount  76s (x47 over 11m)  kubelet  Unable to attach or mount volumes: unmounted volumes=[my-volume], unattached volumes=[], failed to process volumes=[my-volume]: error processing PVC default/pvc-1: PVC is not bound
+```
+
+To avoid this, use node affinity instead of nodeName. You can get more information about this issue in the below link:
+- [Support the pod used nodeName schedule, volume controller can binding pvc to pod. #93145 comment](https://github.com/kubernetes/kubernetes/issues/93145#issuecomment-661582540)
