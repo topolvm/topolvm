@@ -7,6 +7,11 @@ assignees: ''
 
 ---
 
+<!-- Please check the limitations and FAQ before posting a bug report.
+  https://github.com/topolvm/topolvm/blob/main/docs/limitations.md
+  https://github.com/topolvm/topolvm/blob/main/docs/faq.md
+  -->
+
 **Describe the bug**
 A clear and concise description of what the bug is.
 
