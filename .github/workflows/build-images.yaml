@@ -29,6 +29,17 @@ jobs:
           - "normal"
           - "with-sidecar"
     steps:
+      - name: Disk cleanup
+        run: |
+          # These code are copied from the following code:
+          # https://github.com/shiguredo-webrtc-build/webrtc-build/blob/5a821e430b496bbff74cf45bab058ab4ac340c2c/.github/workflows/build.yml#L138-L147
+          #    LICENSE: http://www.apache.org/licenses/LICENSE-2.0
+          #    Copyright 2019-2025, Shiguredo Inc.
+          df -h
+          sudo rm -rf /usr/share/swift
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          df -h
       - uses: actions/checkout@v4
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
