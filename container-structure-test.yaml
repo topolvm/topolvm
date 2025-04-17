@@ -49,10 +49,6 @@ fileExistenceTests:
   path: '/usr/bin/nsenter'
   shouldExist: true
   isExecutableBy: 'owner'
-- name: '/usr/bin/nsenter'
-  path: '/usr/bin/nsenter'
-  shouldExist: true
-  isExecutableBy: 'owner'
 - name: '/sbin/blockdev'
   path: '/sbin/blockdev'
   shouldExist: true
@@ -71,10 +67,6 @@ fileExistenceTests:
   isExecutableBy: 'owner'
 - name: '/bin/btrfs'
   path: '/bin/btrfs'
-  shouldExist: true
-  isExecutableBy: 'owner'
-- name: '/sbin/blockdev'
-  path: '/sbin/blockdev'
   shouldExist: true
   isExecutableBy: 'owner'
 - name: '/sbin/dumpe2fs'
