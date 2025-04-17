@@ -230,7 +230,11 @@ func (s *nodeServerNoLocked) nodePublishFilesystemVolume(req *csi.NodePublishVol
 	}
 
 	if !mounted {
-		if err := s.mounter.FormatAndMount(lv.GetPath(), req.GetTargetPath(), mountOption.FsType, mountOptions); err != nil {
+		mountFunc := s.mounter.FormatAndMount
+		if len(fsType) > 0 {
+			mountFunc = s.mounter.Mount
+		}
+		if err := mountFunc(lv.GetPath(), req.GetTargetPath(), mountOption.FsType, mountOptions); err != nil {
 			return status.Errorf(codes.Internal, "mount failed: volume=%s, error=%v", req.GetVolumeId(), err)
 		}
 		if err := os.Chmod(req.GetTargetPath(), 0777|os.ModeSetgid); err != nil {
