@@ -31,7 +31,7 @@ func DetectFilesystem(device string) (string, error) {
 		return "", err
 	}
 
-	out, err := exec.Command(blkidCmd, "-c", "/dev/null", "-o", "export", device).CombinedOutput()
+	out, err := exec.Command(blkidCmd, "-p", "-u", "filesystem", "-o", "export", device).CombinedOutput()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			// blkid exists with status 2 when anything can be found
