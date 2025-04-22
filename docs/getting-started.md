@@ -74,7 +74,7 @@ metadata:
 spec:
   containers:
   - name: pause
-    image: registry.k8s.io/pause
+    image: registry.k8s.io/pause:3.9
     volumeMounts:
     - mountPath: /data
       name: volume
