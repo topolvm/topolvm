@@ -41,7 +41,7 @@ jobs:
           sed -r -i "s/ghcr.io\/topolvm\/topolvm:[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/ghcr.io\/topolvm\/topolvm:${{ inputs.app-version }}/g" charts/topolvm/Chart.yaml
           make install-helm-docs && make generate-helm-docs
       - name: Issue an access token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@v2
         id: app-token
         with:
           app-id: ${{ secrets.PROJECT_APP_ID }}
