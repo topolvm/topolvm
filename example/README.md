@@ -7,7 +7,7 @@ and loopback block devices to run `lvmd`.
 You can try to use TopoLVM with a specific tag as follows. The demonstration is not guaranteed to work correctly with the main branch.
 
 ```console
-$ git checkout topolvm-chart-v15.5.4
+$ git checkout topolvm-chart-v15.5.5
 ```
 
 To start the demonstration environment, run the following commands:
