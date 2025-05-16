@@ -111,6 +111,7 @@ func subMain(ctx context.Context) error {
 	}
 
 	lvmd.SetLVMPath(config.lvmPath)
+	lvmd.SetRunLVMCommandsInContainer(config.runLVMCommandsInContainer)
 
 	if err := controller.SetupLogicalVolumeReconcilerWithServices(
 		mgr, client, nodename, vgService, lvService); err != nil {

@@ -32,11 +32,12 @@ import (
 )
 
 var (
-	cfgFilePath          string
-	lvmPath              string
-	zapOpts              zap.Options
-	profilingBindAddress string
-	metricsBindAddress   string
+	cfgFilePath               string
+	lvmPath                   string
+	runLVMCommandsInContainer bool
+	zapOpts                   zap.Options
+	profilingBindAddress      string
+	metricsBindAddress        string
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -64,6 +65,7 @@ func subMain(parentCtx context.Context) error {
 	logger := log.FromContext(parentCtx)
 
 	command.SetLVMPath(lvmPath)
+	command.SetRunLVMCommandsInContainer(runLVMCommandsInContainer)
 
 	if err := loadConfFile(parentCtx, cfgFilePath); err != nil {
 		return err
@@ -196,6 +198,8 @@ func init() {
 	fs := rootCmd.Flags()
 	fs.StringVar(&cfgFilePath, "config", filepath.Join("/etc", "topolvm", "lvmd.yaml"), "config file")
 	fs.StringVar(&lvmPath, "lvm-path", "", "lvm command path on the host OS")
+	fs.BoolVar(&runLVMCommandsInContainer, "experimental-run-lvm-commands-in-container", false,
+		"When true, LVM commands are executed inside the container. This option is experimental. Enabling this option may corrupt LVM metadata, so please use it only if you fully understand what you are doing.")
 	fs.StringVar(&profilingBindAddress, "profiling-bind-address", "", "bind address to expose pprof profiling. If empty, profiling is disabled")
 	fs.StringVar(&metricsBindAddress, "metrics-bind-address", ":8080", "bind address to expose prometheus metrics. If empty, metrics are disabled")
 

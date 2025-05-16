@@ -15,15 +15,16 @@ import (
 )
 
 var config struct {
-	csiSocket            string
-	lvmdSocket           string
-	metricsAddr          string
-	secureMetricsServer  bool
-	zapOpts              zap.Options
-	embedLvmd            bool
-	lvmPath              string
-	lvmd                 lvmd.Config
-	profilingBindAddress string
+	csiSocket                 string
+	lvmdSocket                string
+	metricsAddr               string
+	secureMetricsServer       bool
+	zapOpts                   zap.Options
+	embedLvmd                 bool
+	lvmPath                   string
+	runLVMCommandsInContainer bool
+	lvmd                      lvmd.Config
+	profilingBindAddress      string
 }
 
 var rootCmd = &cobra.Command{
@@ -61,6 +62,8 @@ func init() {
 	fs.String("nodename", "", "The resource name of the running node")
 	fs.BoolVar(&config.embedLvmd, "embed-lvmd", false, "Runs LVMD locally by embedding it instead of calling it externally via gRPC")
 	fs.StringVar(&config.lvmPath, "lvm-path", "", "lvm command path on the host OS")
+	fs.BoolVar(&config.runLVMCommandsInContainer, "experimental-run-lvm-commands-in-container", false,
+		"When true, LVM commands are executed inside the container. This option is experimental. Enabling this option may corrupt LVM metadata, so please use it only if you fully understand what you are doing.")
 	fs.StringVar(&cfgFilePath, "config", filepath.Join("/etc", "topolvm", "lvmd.yaml"), "config file")
 	fs.StringVar(&config.profilingBindAddress, "profiling-bind-address", "", "Bind pprof profiling to the given network address. If empty, profiling is disabled.")
 
