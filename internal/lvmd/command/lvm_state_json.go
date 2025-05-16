@@ -47,14 +47,14 @@ func getLVMState(ctx context.Context) ([]vg, []lv, error) {
 		"--configreport", "seg", "-o,",
 	}
 	streamed, err := callLVMStreamed(ctx, verbosityLVMStateNoUpdate, append([]string{"fullreport"}, args...)...)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to execute command: %v", err)
+	}
 	defer func() {
 		// this will wait for the process to be released.
 		if err := streamed.Close(); err != nil {
 			log.FromContext(ctx).Error(err, "failed to run command")
 		}
 	}()
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to execute command: %v", err)
-	}
 	return parseFullReportResult(streamed)
 }

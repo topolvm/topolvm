@@ -22,6 +22,7 @@ var config struct {
 	zapOpts              zap.Options
 	embedLvmd            bool
 	lvmPath              string
+	useLVMInContainer    bool
 	lvmd                 lvmd.Config
 	profilingBindAddress string
 }
@@ -61,6 +62,8 @@ func init() {
 	fs.String("nodename", "", "The resource name of the running node")
 	fs.BoolVar(&config.embedLvmd, "embed-lvmd", false, "Runs LVMD locally by embedding it instead of calling it externally via gRPC")
 	fs.StringVar(&config.lvmPath, "lvm-path", "", "lvm command path on the host OS")
+	fs.BoolVar(&config.useLVMInContainer, "use-lvm-in-container", false,
+		"Use LVM commands in the container if true. Note that LVM metadata may be corrupted if this option is set to true. Use this option only if you know what you are doing.")
 	fs.StringVar(&cfgFilePath, "config", filepath.Join("/etc", "topolvm", "lvmd.yaml"), "config file")
 	fs.StringVar(&config.profilingBindAddress, "profiling-bind-address", "", "Bind pprof profiling to the given network address. If empty, profiling is disabled.")
 
