@@ -21,7 +21,8 @@ const (
 )
 
 var (
-	lvm = "/sbin/lvm"
+	lvm        = "/sbin/lvm"
+	useNsenter = true
 )
 
 // SetLVMPath sets the path to the lvm command.
@@ -29,6 +30,11 @@ func SetLVMPath(path string) {
 	if path != "" {
 		lvm = path
 	}
+}
+
+// SetUseNsenter sets whether to use nsenter to call lvm commands.
+func SetUseNsenter(use bool) {
+	useNsenter = use
 }
 
 // callLVM calls lvm sub-commands and prints the output to the log.
@@ -64,7 +70,12 @@ func callLVMInto(ctx context.Context, into any, logVerbosity int, args ...string
 // Not calling close on this method will result in a resource leak.
 func callLVMStreamed(ctx context.Context, logVerbosity int, args ...string) (io.ReadCloser, error) {
 	ctx = log.IntoContext(ctx, log.FromContext(ctx).WithCallDepth(1))
-	cmd := commandOnRootNS(lvm, args...)
+	var cmd *exec.Cmd
+	if useNsenter {
+		cmd = commandOnRootNS(lvm, args...)
+	} else {
+		cmd = exec.Command(lvm, args...)
+	}
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "LC_ALL=C")
 	return runCommand(ctx, logVerbosity, cmd)
