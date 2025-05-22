@@ -71,6 +71,9 @@ spec:
           {{- if .Values.lvmd.profiling.bindAddress }}
             - --profiling-bind-address={{ .Values.lvmd.profiling.bindAddress }}
           {{- end }}
+          {{- if .Values.lvmd.useLVMInContainer }}
+            - --use-lvm-in-container
+          {{- end }}
           {{- if .Values.lvmd.env }}
           env:
           {{- toYaml .Values.lvmd.env | nindent 10 }}
