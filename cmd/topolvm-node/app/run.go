@@ -111,6 +111,9 @@ func subMain(ctx context.Context) error {
 	}
 
 	lvmd.SetLVMPath(config.lvmPath)
+	if config.useLVMInContainer {
+		lvmd.SetUseNsenter(false)
+	}
 
 	if err := controller.SetupLogicalVolumeReconcilerWithServices(
 		mgr, client, nodename, vgService, lvService); err != nil {

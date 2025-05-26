@@ -274,6 +274,9 @@ lvmd:
       #   replacement: ${1}
       #   action: replace
 
+  # lvmd.useLVMInContainer -- Use LVM commands in the container if true. Note that LVM metadata may be corrupted if this option is set to true. Use this option only if you know what you are doing.
+  useLVMInContainer: false
+
 # CSI node service
 node:
   # node.lvmdEmbedded -- Specify whether to embed lvmd in the node container.
