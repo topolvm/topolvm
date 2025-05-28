@@ -77,7 +77,7 @@ func (MockLVServiceClient) RemoveLV(ctx context.Context, in *proto.RemoveLVReque
 }
 
 // ResizeLV implements proto.LVServiceClient.
-func (MockLVServiceClient) ResizeLV(ctx context.Context, in *proto.ResizeLVRequest, opts ...grpc.CallOption) (*proto.Empty, error) {
+func (MockLVServiceClient) ResizeLV(ctx context.Context, in *proto.ResizeLVRequest, opts ...grpc.CallOption) (*proto.ResizeLVResponse, error) {
 	panic("unimplemented")
 }
 

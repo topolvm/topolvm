@@ -16,6 +16,7 @@
     - [LogicalVolume](#proto.LogicalVolume)
     - [RemoveLVRequest](#proto.RemoveLVRequest)
     - [ResizeLVRequest](#proto.ResizeLVRequest)
+    - [ResizeLVResponse](#proto.ResizeLVResponse)
     - [ThinPoolItem](#proto.ThinPoolItem)
     - [WatchItem](#proto.WatchItem)
     - [WatchResponse](#proto.WatchResponse)
@@ -238,6 +239,21 @@ The volume size will be set to exactly &#34;size_gb&#34;.
 
 
 
+<a name="proto.ResizeLVResponse"></a>
+
+### ResizeLVResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| size_bytes | [int64](#int64) |  | Volume size in canonical CSI bytes. |
+
+
+
+
+
+
 <a name="proto.ThinPoolItem"></a>
 
 ### ThinPoolItem
@@ -305,7 +321,7 @@ Service to manage logical volumes of the volume group.
 | ----------- | ------------ | ------------- | ------------|
 | CreateLV | [CreateLVRequest](#proto.CreateLVRequest) | [CreateLVResponse](#proto.CreateLVResponse) | Create a logical volume. |
 | RemoveLV | [RemoveLVRequest](#proto.RemoveLVRequest) | [Empty](#proto.Empty) | Remove a logical volume. |
-| ResizeLV | [ResizeLVRequest](#proto.ResizeLVRequest) | [Empty](#proto.Empty) | Resize a logical volume. |
+| ResizeLV | [ResizeLVRequest](#proto.ResizeLVRequest) | [ResizeLVResponse](#proto.ResizeLVResponse) | Resize a logical volume. |
 | CreateLVSnapshot | [CreateLVSnapshotRequest](#proto.CreateLVSnapshotRequest) | [CreateLVSnapshotResponse](#proto.CreateLVSnapshotResponse) |  |
 
 
