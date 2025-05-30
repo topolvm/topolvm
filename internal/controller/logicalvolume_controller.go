@@ -183,8 +183,6 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 		return nil
 	}
 
-	reqBytes := lv.Spec.Size.Value()
-
 	err := func() error {
 		// In case the controller crashed just after LVM LV creation, LV may already exist.
 		found, err := r.volumeExists(ctx, log, lv)
@@ -216,7 +214,7 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 				return err
 			}
 			sourceVolID := sourcelv.Status.VolumeID
-
+			currentSize := sourcelv.Status.CurrentSize.Value()
 			// Create a snapshot lv
 			resp, err := r.lvService.CreateLVSnapshot(ctx, &proto.CreateLVSnapshotRequest{
 				Name:         string(lv.UID),
@@ -224,8 +222,8 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 				SourceVolume: sourceVolID,
 				// convert to uint64 because lvmd internals and lvm use uint64 but CSI uses int64.
 				// still set sizeGB for legacy purposes, can (but not has to) be removed in next minor release.
-				SizeGb:     uint64(reqBytes >> 30),
-				SizeBytes:  reqBytes,
+				SizeGb:     uint64(currentSize >> 30),
+				SizeBytes:  currentSize,
 				AccessType: lv.Spec.AccessType,
 			})
 			if err != nil {
@@ -237,6 +235,7 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 			}
 			volume = resp.Snapshot
 		} else {
+			reqBytes := lv.Spec.Size.Value()
 			// Create a regular lv
 			resp, err := r.lvService.CreateLV(ctx, &proto.CreateLVRequest{
 				Name:                string(lv.UID),
