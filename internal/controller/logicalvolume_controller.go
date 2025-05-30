@@ -216,6 +216,10 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 				return err
 			}
 			sourceVolID := sourcelv.Status.VolumeID
+			currentSize := sourcelv.Status.CurrentSize.Value()
+			if reqBytes < currentSize {
+				return fmt.Errorf("cannot create new LV, requested size %d is smaller than source LV size %d", reqBytes, currentSize)
+			}
 
 			// Create a snapshot lv
 			resp, err := r.lvService.CreateLVSnapshot(ctx, &proto.CreateLVSnapshotRequest{

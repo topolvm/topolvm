@@ -383,9 +383,9 @@ func (s controllerServerNoLocked) CreateSnapshot(ctx context.Context, req *csi.C
 	// the snapshots are required to be created in the same node and device class as the source volume.
 	node := sourceVol.Spec.NodeName
 	deviceClass := sourceVol.Spec.DeviceClass
-	size := sourceVol.Spec.Size
 	sourceVolName := sourceVol.Spec.Name
-	snapshotID, err := s.lvService.CreateSnapshot(ctx, node, deviceClass, sourceVolName, name, accessType, size)
+	currentSize := sourceVol.Status.CurrentSize
+	snapshotID, err := s.lvService.CreateSnapshot(ctx, node, deviceClass, sourceVolName, name, accessType, *currentSize)
 	if err != nil {
 		_, ok := status.FromError(err)
 		if !ok {
@@ -398,7 +398,7 @@ func (s controllerServerNoLocked) CreateSnapshot(ctx context.Context, req *csi.C
 		Snapshot: &csi.Snapshot{
 			SnapshotId:     snapshotID,
 			SourceVolumeId: sourceVolID,
-			SizeBytes:      sourceVol.Spec.Size.Value(),
+			SizeBytes:      currentSize.Value(),
 			CreationTime:   snapTimeStamp,
 			ReadyToUse:     true,
 		},
