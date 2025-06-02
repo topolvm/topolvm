@@ -287,9 +287,18 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 		return nil, err
 	}
 
+	volume, err := s.lvService.GetVolume(ctx, volumeID)
+	if err != nil {
+		_, ok := status.FromError(err)
+		if !ok {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+		return nil, err
+	}
+
 	return &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
-			CapacityBytes: requestCapacityBytes,
+			CapacityBytes: volume.Status.CurrentSize.Value(),
 			VolumeId:      volumeID,
 			ContentSource: source,
 			AccessibleTopology: []*csi.Topology{
