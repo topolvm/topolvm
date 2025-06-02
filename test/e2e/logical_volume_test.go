@@ -13,6 +13,7 @@ import (
 	clientwrapper "github.com/topolvm/topolvm/internal/client"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -43,23 +44,43 @@ func testLogicalVolume() {
 
 	k8sClient := createK8sClient()
 
-	It("should set Status.CurrentSize", func() {
+	It("should be set to actual volume size in status field", func() {
 		pvcName := "check-current-size"
-		pvcYaml := fmt.Sprintf(pvcTemplateYAMLForLV, pvcName)
+		unroundedSize := 1023
+		pvcYaml := fmt.Sprintf(pvcTemplateYAMLForLV, pvcName, unroundedSize)
 		_, err := kubectlWithInput([]byte(pvcYaml), "apply", "-n", nsLogicalVolumeTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		By("checking that Status.CurrentSize exists")
+		By("getting created PVC")
 		var pvc corev1.PersistentVolumeClaim
 		Eventually(func(g Gomega) {
 			g.Expect(getObjects(&pvc, "pvc", "-n", nsLogicalVolumeTest, pvcName)).Should(Succeed())
 			g.Expect(pvc.Spec.VolumeName).NotTo(BeEmpty())
+			g.Expect(pvc.Status.Capacity).NotTo(BeEmpty())
 		}).Should(Succeed())
+
+		By("checking that Status.Capacity is greater than unrounded size")
+		pvcReqSize := pvc.Spec.Resources.Requests.Storage().Value()
+		pvcRespSize := pvc.Status.Capacity.Storage().Value()
+		Expect(pvcRespSize).To(BeNumerically(">", pvcReqSize))
+
+		By("checking that Status.CurrentSize exists")
 		lv, err := getLogicalVolume(pvc.Spec.VolumeName)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(lv.Status.CurrentSize).NotTo(BeNil())
-		oldCurrentSize := lv.Status.CurrentSize.Value()
 
+		By("checking that Status.CurrentSize is greater than unrounded size")
+		lvCurrentSize := lv.Status.CurrentSize.Value()
+		Expect(lvCurrentSize).To(BeNumerically(">", lv.Spec.Size.Value()))
+		Expect(lvCurrentSize).To(Equal(pvcRespSize))
+
+		By("checking that actual volume size is stored in status field")
+		lvInfo, err := getLVInfo(lv.Status.VolumeID)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(lvInfo.size).To(BeNumerically("==", lvCurrentSize))
+		Expect(lvInfo.size).To(BeNumerically("==", pvcRespSize))
+
+		oldCurrentSize := lvCurrentSize
 		var ds appsv1.DaemonSet
 		err = getObjects(&ds, "daemonset", "-n", "topolvm-system", "topolvm-node")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -73,10 +94,19 @@ func testLogicalVolume() {
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(lv.Status.CurrentSize).To(BeNil())
 
-		By("checking that Status.CurrentSize is set to previous value if it is missing and spec.Size is not modified")
+		By("retrieving the actual volume size and setting it in Status.CurrentSize when it is missing")
 		startTopoLVMNode(desiredTopoLVMNodeCount)
 		currentSize := waitForSettingCurrentSize(lv.Name)
 		Expect(currentSize).To(BeEquivalentTo(oldCurrentSize))
+
+		By("checking that Status.CurrentSize is rounded after changing spec.Size to unrounded size")
+		reqUnroundedSize := int64(1084419 * 1024) // 1084419 KiB
+		changeSpecSize(k8sClient, lv.Name, reqUnroundedSize)
+		Eventually(func(g Gomega) {
+			newLV, err := getLogicalVolume(lv.Name)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(newLV.Status.CurrentSize.Value()).To(BeNumerically(">", reqUnroundedSize))
+		}).Should(Succeed())
 
 		By("clearing Status.CurrentSize and changing Spec.Size to 2Gi")
 		stopTopoLVMNode(lv.Spec.NodeName, desiredTopoLVMNodeCount-1)
@@ -95,7 +125,7 @@ func testLogicalVolume() {
 		Expect(currentSize).To(BeEquivalentTo(int64(2 * 1024 * 1024 * 1024)))
 
 		By("checking actual volume size is changed to 2Gi")
-		lvInfo, err := getLVInfo(lv.Status.VolumeID)
+		lvInfo, err = getLVInfo(lv.Status.VolumeID)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(lvInfo.size).To(BeEquivalentTo(2 * 1024 * 1024 * 1024))
 	})
@@ -124,6 +154,21 @@ func clearCurrentSize(c client.Client, lvName string) {
 	lv.Status.CurrentSize = nil
 
 	Expect(c.Status().Update(ctx, &lv)).Should(Succeed())
+}
+
+func changeSpecSize(c client.Client, lvName string, size int64) {
+	ctx := context.Background()
+	var lv topolvmv1.LogicalVolume
+	Expect(c.Get(ctx, client.ObjectKey{Name: lvName}, &lv)).Should(Succeed())
+
+	lv.Spec.Size = *resource.NewQuantity(size, resource.BinarySI)
+	Expect(c.Update(ctx, &lv)).Should(Succeed())
+
+	Eventually(func(g Gomega) {
+		lv, err := getLogicalVolume(lv.Name)
+		g.Expect(err).ShouldNot(HaveOccurred())
+		g.Expect(lv.Status.CurrentSize.Value()).To(BeNumerically(">", size))
+	}).Should(Succeed())
 }
 
 func waitForSettingCurrentSize(lvName string) int64 {

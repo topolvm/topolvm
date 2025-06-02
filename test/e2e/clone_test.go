@@ -43,7 +43,7 @@ func testPVCClone() {
 	It("should create a PVC Clone", func() {
 		By("deploying Pod with PVC")
 
-		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSize))
+		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSizeBytes))
 		_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsCloneTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -51,8 +51,8 @@ func testPVCClone() {
 		_, err = kubectlWithInput(thinPodYAML, "apply", "-n", nsCloneTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		By("confirming if the source PVC is created")
+		var pvc corev1.PersistentVolumeClaim
 		Eventually(func() error {
-			var pvc corev1.PersistentVolumeClaim
 			err = getObjects(&pvc, "pvc", "-n", nsCloneTest, volName)
 			if err != nil {
 				return fmt.Errorf("failed to get PVC. err: %w", err)
@@ -75,7 +75,8 @@ func testPVCClone() {
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(strings.TrimSpace(string(stdout))).ShouldNot(BeEmpty())
 
-		thinPVCCloneYAML := []byte(fmt.Sprintf(thinPvcCloneTemplateYAML, thinClonePVCName, volName, pvcSize))
+		pvcStatusSize := pvc.Status.Capacity.Storage().Value()
+		thinPVCCloneYAML := []byte(fmt.Sprintf(thinPvcCloneTemplateYAML, thinClonePVCName, volName, pvcStatusSize))
 		_, err = kubectlWithInput(thinPVCCloneYAML, "apply", "-n", nsCloneTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -126,15 +127,15 @@ func testPVCClone() {
 
 	It("validate if the cloned PVC is standalone", func() {
 		By("creating a PVC")
-		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSize))
+		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSizeBytes))
 		_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsCloneTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		thinPodYAML := []byte(fmt.Sprintf(thinPodTemplateYAML, "thinpod", volName))
 		_, err = kubectlWithInput(thinPodYAML, "apply", "-n", nsCloneTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
+		var pvc corev1.PersistentVolumeClaim
 		Eventually(func() error {
-			var pvc corev1.PersistentVolumeClaim
 			err := getObjects(&pvc, "pvc", "-n", nsCloneTest, volName)
 			if err != nil {
 				return fmt.Errorf("failed to get PVC. err: %w", err)
@@ -146,7 +147,8 @@ func testPVCClone() {
 		}).Should(Succeed())
 
 		By("creating clone of the PVC")
-		thinPVCCloneYAML := []byte(fmt.Sprintf(thinPvcCloneTemplateYAML, thinClonePVCName, volName, pvcSize))
+		pvcStatusSize := pvc.Status.Capacity.Storage().Value()
+		thinPVCCloneYAML := []byte(fmt.Sprintf(thinPvcCloneTemplateYAML, thinClonePVCName, volName, pvcStatusSize))
 		_, err = kubectlWithInput(thinPVCCloneYAML, "apply", "-n", nsCloneTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 

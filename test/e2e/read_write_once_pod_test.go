@@ -35,7 +35,7 @@ func testReadWriteOncePod() {
 	It("should not schedule pods if the pods will use the PVC that is already used from another pod", func() {
 		podName := "testpod-1"
 		pvcName := "testpod"
-		size := "5Gi"
+		size := "5119Mi"
 
 		By("Create a pod and a PVC with a ReadWriteOncePod access mode")
 		pvcYaml := buildPVCTemplateYAML(pvcName, ns, size)
