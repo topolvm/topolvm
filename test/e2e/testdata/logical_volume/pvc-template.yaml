@@ -8,5 +8,5 @@ spec:
   - ReadWriteOnce
   resources:
     requests:
-      storage: 1Gi
+      storage: %dMi
   storageClassName: topolvm-provisioner-immediate
