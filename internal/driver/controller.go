@@ -275,19 +275,9 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 	if name == "" {
 		return nil, status.Error(codes.InvalidArgument, "invalid name")
 	}
-
 	name = strings.ToLower(name)
 
-	volumeID, err := s.lvService.CreateVolume(ctx, node, deviceClass, lvcreateOptionClass, name, sourceName, requestCapacityBytes)
-	if err != nil {
-		_, ok := status.FromError(err)
-		if !ok {
-			return nil, status.Error(codes.Internal, err.Error())
-		}
-		return nil, err
-	}
-
-	volume, err := s.lvService.GetVolume(ctx, volumeID)
+	volume, err := s.lvService.CreateVolume(ctx, node, deviceClass, lvcreateOptionClass, name, sourceName, requestCapacityBytes)
 	if err != nil {
 		_, ok := status.FromError(err)
 		if !ok {
@@ -299,7 +289,7 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 	return &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
 			CapacityBytes: volume.Status.CurrentSize.Value(),
-			VolumeId:      volumeID,
+			VolumeId:      volume.Status.VolumeID,
 			ContentSource: source,
 			AccessibleTopology: []*csi.Topology{
 				{
@@ -385,7 +375,7 @@ func (s controllerServerNoLocked) CreateSnapshot(ctx context.Context, req *csi.C
 	deviceClass := sourceVol.Spec.DeviceClass
 	sourceVolName := sourceVol.Spec.Name
 	currentSize := sourceVol.Status.CurrentSize
-	snapshotID, err := s.lvService.CreateSnapshot(ctx, node, deviceClass, sourceVolName, name, accessType, *currentSize)
+	snapshot, err := s.lvService.CreateSnapshot(ctx, node, deviceClass, sourceVolName, name, accessType, *currentSize)
 	if err != nil {
 		_, ok := status.FromError(err)
 		if !ok {
@@ -396,9 +386,9 @@ func (s controllerServerNoLocked) CreateSnapshot(ctx context.Context, req *csi.C
 
 	return &csi.CreateSnapshotResponse{
 		Snapshot: &csi.Snapshot{
-			SnapshotId:     snapshotID,
+			SizeBytes:      snapshot.Status.CurrentSize.Value(),
+			SnapshotId:     snapshot.Status.VolumeID,
 			SourceVolumeId: sourceVolID,
-			SizeBytes:      currentSize.Value(),
 			CreationTime:   snapTimeStamp,
 			ReadyToUse:     true,
 		},

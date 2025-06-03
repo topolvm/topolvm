@@ -154,7 +154,7 @@ func NewLogicalVolumeService(mgr manager.Manager) (*LogicalVolumeService, error)
 }
 
 // CreateVolume creates volume
-func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, dc, oc, name, sourceName string, requestBytes int64) (string, error) {
+func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, dc, oc, name, sourceName string, requestBytes int64) (*topolvmv1.LogicalVolume, error) {
 	logger.Info("k8s.CreateVolume called", "name", name, "node", node, "size", requestBytes, "sourceName", sourceName)
 	var lv *topolvmv1.LogicalVolume
 	// if the create volume request has no source, proceed with regular lv creation.
@@ -173,7 +173,7 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, dc, oc, n
 		}
 
 	} else {
-		// On the other hand, if a volume has a datasource, create a thin snapshot of the source volume with READ-WRITE access.
+		// On the other hand, if a volume has a datasource, create a thin snapshot of the source volume with READ-WRITE access for volume cloning.
 		lv = &topolvmv1.LogicalVolume{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
@@ -190,33 +190,7 @@ func (s *LogicalVolumeService) CreateVolume(ctx context.Context, node, dc, oc, n
 		}
 	}
 
-	existingLV := new(topolvmv1.LogicalVolume)
-	err := s.getter.Get(ctx, client.ObjectKey{Name: name}, existingLV)
-	if err != nil {
-		if !apierrors.IsNotFound(err) {
-			return "", err
-		}
-
-		err := s.writer.Create(ctx, lv)
-		if err != nil {
-			return "", err
-		}
-		logger.Info("created LogicalVolume CR", "name", name, "sourceID", lv.Spec.Source)
-	} else {
-		// LV with same name was found; check compatibility
-		// skip check of capabilities because (1) we allow both of two access types, and (2) we allow only one access mode
-		// for ease of comparison, sizes are compared strictly, not by compatibility of ranges
-		if !existingLV.IsCompatibleWith(lv) {
-			return "", status.Error(codes.AlreadyExists, "Incompatible LogicalVolume already exists")
-		}
-		// compatible LV was found
-	}
-	volumeID, err := s.waitForStatusUpdate(ctx, name)
-	if err != nil {
-		return "", err
-	}
-
-	return volumeID, nil
+	return s.createAndWait(ctx, lv)
 }
 
 // DeleteVolume deletes volume
@@ -261,7 +235,7 @@ func (s *LogicalVolumeService) DeleteVolume(ctx context.Context, volumeID string
 }
 
 // CreateSnapshot creates a snapshot of existing volume.
-func (s *LogicalVolumeService) CreateSnapshot(ctx context.Context, node, dc, sourceVol, sname, accessType string, snapSize resource.Quantity) (string, error) {
+func (s *LogicalVolumeService) CreateSnapshot(ctx context.Context, node, dc, sourceVol, sname, accessType string, snapSize resource.Quantity) (*topolvmv1.LogicalVolume, error) {
 	logger.Info("CreateSnapshot called", "name", sname)
 	snapshotLV := &topolvmv1.LogicalVolume{
 		ObjectMeta: metav1.ObjectMeta{
@@ -277,29 +251,7 @@ func (s *LogicalVolumeService) CreateSnapshot(ctx context.Context, node, dc, sou
 		},
 	}
 
-	existingSnapshot := new(topolvmv1.LogicalVolume)
-	err := s.getter.Get(ctx, client.ObjectKey{Name: sname}, existingSnapshot)
-	if err != nil {
-		if !apierrors.IsNotFound(err) {
-			return "", err
-		}
-		err := s.writer.Create(ctx, snapshotLV)
-		if err != nil {
-			return "", err
-		}
-		logger.Info("created LogicalVolume CR", "name", sname, "source", snapshotLV.Spec.Source, "accessType", snapshotLV.Spec.AccessType)
-	} else {
-		if !existingSnapshot.IsCompatibleWith(snapshotLV) {
-			return "", status.Error(codes.AlreadyExists, "Incompatible LogicalVolume already exists")
-		}
-	}
-
-	volumeID, err := s.waitForStatusUpdate(ctx, sname)
-	if err != nil {
-		return "", err
-	}
-
-	return volumeID, nil
+	return s.createAndWait(ctx, snapshotLV)
 }
 
 // ExpandVolume expands volume
@@ -391,34 +343,66 @@ func (s *LogicalVolumeService) updateSpecSize(ctx context.Context, volumeID stri
 		})
 }
 
-// waitForStatusUpdate waits for logical volume creation/failure/timeout, whichever comes first.
-func (s *LogicalVolumeService) waitForStatusUpdate(ctx context.Context, name string) (string, error) {
-	var volumeID string
-	return volumeID, wait.Backoff{
-		Duration: 1 * time.Second, // initial backoff
-		Factor:   2,               // factor for duration increase
+// createAndWait creates a new LogicalVolume resource and wait until it is fully provisioned
+func (s *LogicalVolumeService) createAndWait(ctx context.Context, lv *topolvmv1.LogicalVolume) (*topolvmv1.LogicalVolume, error) {
+	if err := s.create(ctx, lv); err != nil {
+		return nil, err
+	}
+
+	return s.waitForVolumeProvisioning(ctx, lv.Name)
+}
+
+// create creates a new LogicalVolume or verifies compatibility with existing one
+func (s *LogicalVolumeService) create(ctx context.Context, lv *topolvmv1.LogicalVolume) error {
+	existingLV := new(topolvmv1.LogicalVolume)
+	err := s.getter.Get(ctx, client.ObjectKey{Name: lv.Name}, existingLV)
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
+
+		if err := s.writer.Create(ctx, lv); err != nil {
+			return err
+		}
+		logger.Info("created LogicalVolume CR", "name", lv.Name, "source", lv.Spec.Source, "accessType", lv.Spec.AccessType)
+		return nil
+	}
+
+	if !existingLV.IsCompatibleWith(lv) {
+		return status.Error(codes.AlreadyExists, "Incompatible LogicalVolume already exists")
+	}
+
+	return nil
+}
+
+// waitForVolumeProvisioning waits until the volume is fully provisioned or fails
+func (s *LogicalVolumeService) waitForVolumeProvisioning(ctx context.Context, lvName string) (*topolvmv1.LogicalVolume, error) {
+	var newLV topolvmv1.LogicalVolume
+	return &newLV, wait.Backoff{
+		Duration: 1 * time.Second,
+		Factor:   2,
 		Jitter:   0.1,
-		Steps:    math.MaxInt, // run for infinity; we assume context gets canceled
+		Steps:    math.MaxInt,
 		Cap:      10 * time.Second,
 	}.DelayFunc().Until(ctx, true, false, func(ctx context.Context) (bool, error) {
-		var newLV topolvmv1.LogicalVolume
-		if err := s.getter.Get(ctx, client.ObjectKey{Name: name}, &newLV); err != nil {
-			logger.Error(err, "failed to get LogicalVolume", "name", name)
+		if err := s.getter.Get(ctx, client.ObjectKey{Name: lvName}, &newLV); err != nil {
+			logger.Error(err, "failed to get LogicalVolume", "name", lvName)
 			return false, err
 		}
+
 		if newLV.Status.VolumeID != "" {
 			logger.Info("LogicalVolume successfully provisioned", "volume_id", newLV.Status.VolumeID)
-			volumeID = newLV.Status.VolumeID
 			return true, nil
 		}
+
 		if newLV.Status.Code != codes.OK {
-			err := s.writer.Delete(ctx, &newLV)
-			if err != nil {
+			if err := s.writer.Delete(ctx, &newLV); err != nil {
 				// log this error but do not return this error, because newLV.Status.Message is more important
 				logger.Error(err, "failed to delete LogicalVolume")
 			}
 			return false, status.Error(newLV.Status.Code, newLV.Status.Message)
 		}
+
 		return false, nil
 	})
 }
