@@ -17,6 +17,9 @@ controller:
         type: DirectoryOrCreate
 
 lvmd:
+  useLVMInContainer: true
+  args:
+    - --zap-devel
   socketName: /tmp/topolvm/lvmd.sock
   deviceClasses:
     - name: "dc1"
