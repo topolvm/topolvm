@@ -43,23 +43,43 @@ func testLogicalVolume() {
 
 	k8sClient := createK8sClient()
 
-	It("should set Status.CurrentSize", func() {
+	It("should be set to actual volume size in status field", func() {
 		pvcName := "check-current-size"
-		pvcYaml := fmt.Sprintf(pvcTemplateYAMLForLV, pvcName)
+		unroundedSize := 1023
+		pvcYaml := fmt.Sprintf(pvcTemplateYAMLForLV, pvcName, unroundedSize)
 		_, err := kubectlWithInput([]byte(pvcYaml), "apply", "-n", nsLogicalVolumeTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		By("checking that Status.CurrentSize exists")
+		By("getting created PVC")
 		var pvc corev1.PersistentVolumeClaim
 		Eventually(func(g Gomega) {
 			g.Expect(getObjects(&pvc, "pvc", "-n", nsLogicalVolumeTest, pvcName)).Should(Succeed())
 			g.Expect(pvc.Spec.VolumeName).NotTo(BeEmpty())
+			g.Expect(pvc.Status.Capacity).NotTo(BeEmpty())
 		}).Should(Succeed())
+
+		By("checking that Status.Capacity is greater than unrounded size")
+		pvcReqSize := pvc.Spec.Resources.Requests.Storage().Value()
+		pvcRespSize := pvc.Status.Capacity.Storage().Value()
+		Expect(pvcRespSize).To(BeNumerically(">", pvcReqSize))
+
+		By("checking that Status.CurrentSize exists")
 		lv, err := getLogicalVolume(pvc.Spec.VolumeName)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(lv.Status.CurrentSize).NotTo(BeNil())
-		oldCurrentSize := lv.Status.CurrentSize.Value()
 
+		By("checking that Status.CurrentSize is greater than unrounded size")
+		lvCurrentSize := lv.Status.CurrentSize.Value()
+		Expect(lvCurrentSize).To(BeNumerically(">", lv.Spec.Size.Value()))
+		Expect(lvCurrentSize).To(Equal(pvcRespSize))
+
+		By("checking that actual volume size is stored in status field")
+		lvInfo, err := getLVInfo(lv.Status.VolumeID)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(lvInfo.size).To(BeNumerically("==", lvCurrentSize))
+		Expect(lvInfo.size).To(BeNumerically("==", pvcRespSize))
+
+		oldCurrentSize := lvCurrentSize
 		var ds appsv1.DaemonSet
 		err = getObjects(&ds, "daemonset", "-n", "topolvm-system", "topolvm-node")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -95,7 +115,7 @@ func testLogicalVolume() {
 		Expect(currentSize).To(BeEquivalentTo(int64(2 * 1024 * 1024 * 1024)))
 
 		By("checking actual volume size is changed to 2Gi")
-		lvInfo, err := getLVInfo(lv.Status.VolumeID)
+		lvInfo, err = getLVInfo(lv.Status.VolumeID)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(lvInfo.size).To(BeEquivalentTo(2 * 1024 * 1024 * 1024))
 	})
