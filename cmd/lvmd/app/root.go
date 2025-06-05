@@ -34,6 +34,7 @@ import (
 var (
 	cfgFilePath          string
 	lvmPath              string
+	useLVMInContainer    bool
 	zapOpts              zap.Options
 	profilingBindAddress string
 	metricsBindAddress   string
@@ -64,6 +65,9 @@ func subMain(parentCtx context.Context) error {
 	logger := log.FromContext(parentCtx)
 
 	command.SetLVMPath(lvmPath)
+	if useLVMInContainer {
+		command.SetUseNsenter(false)
+	}
 
 	if err := loadConfFile(parentCtx, cfgFilePath); err != nil {
 		return err
@@ -193,12 +197,17 @@ func Execute() {
 
 //nolint:lll
 func init() {
-	rootCmd.PersistentFlags().StringVar(&cfgFilePath, "config", filepath.Join("/etc", "topolvm", "lvmd.yaml"), "config file")
-	rootCmd.PersistentFlags().StringVar(&lvmPath, "lvm-path", "", "lvm command path on the host OS")
-	rootCmd.PersistentFlags().StringVar(&profilingBindAddress, "profiling-bind-address", "", "bind address to expose pprof profiling. If empty, profiling is disabled")
-	rootCmd.PersistentFlags().StringVar(&metricsBindAddress, "metrics-bind-address", ":8080", "bind address to expose prometheus metrics. If empty, metrics are disabled")
+	fs := rootCmd.Flags()
+	fs.StringVar(&cfgFilePath, "config", filepath.Join("/etc", "topolvm", "lvmd.yaml"), "config file")
+	fs.StringVar(&lvmPath, "lvm-path", "", "lvm command path on the host OS")
+	fs.BoolVar(&useLVMInContainer, "use-lvm-in-container", false,
+		"Use LVM commands in the container if true. Note that LVM metadata may be corrupted if this option is set to true. Use this option only if you know what you are doing.")
+	fs.StringVar(&profilingBindAddress, "profiling-bind-address", "", "bind address to expose pprof profiling. If empty, profiling is disabled")
+	fs.StringVar(&metricsBindAddress, "metrics-bind-address", ":8080", "bind address to expose prometheus metrics. If empty, metrics are disabled")
 
 	goflags := flag.NewFlagSet("klog", flag.ExitOnError)
 	klog.InitFlags(goflags)
 	zapOpts.BindFlags(goflags)
+
+	fs.AddGoFlagSet(goflags)
 }
