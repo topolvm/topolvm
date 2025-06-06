@@ -67,9 +67,11 @@ func init() {
 	_ = viper.BindEnv("nodename", "NODE_NAME")
 	_ = viper.BindPFlag("nodename", fs.Lookup("nodename"))
 
-	goflags := flag.NewFlagSet("klog", flag.ExitOnError)
-	klog.InitFlags(goflags)
-	config.zapOpts.BindFlags(goflags)
+	klogFlags := flag.NewFlagSet("klog", flag.ExitOnError)
+	klog.InitFlags(klogFlags)
+	fs.AddGoFlagSet(klogFlags)
 
-	fs.AddGoFlagSet(goflags)
+	zapFlags := flag.NewFlagSet("zap", flag.ExitOnError)
+	config.zapOpts.BindFlags(zapFlags)
+	fs.AddGoFlagSet(zapFlags)
 }
