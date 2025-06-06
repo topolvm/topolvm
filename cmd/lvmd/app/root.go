@@ -199,9 +199,11 @@ func init() {
 	fs.StringVar(&profilingBindAddress, "profiling-bind-address", "", "bind address to expose pprof profiling. If empty, profiling is disabled")
 	fs.StringVar(&metricsBindAddress, "metrics-bind-address", ":8080", "bind address to expose prometheus metrics. If empty, metrics are disabled")
 
-	goflags := flag.NewFlagSet("klog", flag.ExitOnError)
-	klog.InitFlags(goflags)
-	zapOpts.BindFlags(goflags)
+	klogFlags := flag.NewFlagSet("klog", flag.ExitOnError)
+	klog.InitFlags(klogFlags)
+	fs.AddGoFlagSet(klogFlags)
 
-	fs.AddGoFlagSet(goflags)
+	zapFlags := flag.NewFlagSet("zap", flag.ExitOnError)
+	zapOpts.BindFlags(zapFlags)
+	fs.AddGoFlagSet(zapFlags)
 }
