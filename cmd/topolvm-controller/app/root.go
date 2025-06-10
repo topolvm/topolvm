@@ -108,9 +108,11 @@ func init() {
 			fmt.Sprintf("Minimum Allocation Sizing for volumes with the %s filesystem. Logical Volumes will always be at least this big.", filesystem))
 	}
 
-	goflags := flag.NewFlagSet("klog", flag.ExitOnError)
-	klog.InitFlags(goflags)
-	config.zapOpts.BindFlags(goflags)
+	klogFlags := flag.NewFlagSet("klog", flag.ExitOnError)
+	klog.InitFlags(klogFlags)
+	fs.AddGoFlagSet(klogFlags)
 
-	fs.AddGoFlagSet(goflags)
+	zapFlags := flag.NewFlagSet("zap", flag.ExitOnError)
+	config.zapOpts.BindFlags(zapFlags)
+	fs.AddGoFlagSet(zapFlags)
 }
