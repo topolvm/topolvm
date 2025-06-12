@@ -15,23 +15,25 @@ message Empty {}
 // Represents a logical volume.
 message LogicalVolume {
     string name = 1;                        // The logical volume name.
-    uint64 size_gb = 2 [deprecated = true]; // Volume size in GiB.
     uint32 dev_major = 3;                   // Device major number.
     uint32 dev_minor = 4;                   // Device minor number.
     repeated string tags = 5;               // Tags to add to the volume during creation
     int64 size_bytes = 6;                   // Volume size in canonical CSI bytes.
     string path = 7;                        // Path to the lv as per lvm.
     string attr = 8;                        // Attributes of the lv.
+
+    reserved 2;
 }
 
 // Represents the input for CreateLV.
 message CreateLVRequest {
     string name = 1;                        // The logical volume name.
-    uint64 size_gb = 2 [deprecated = true]; // Volume size in GiB.
     repeated string tags = 3;               // Tags to add to the volume during creation
     string device_class = 4;
     string lvcreate_option_class = 5;
     int64 size_bytes = 6;                   // Volume size in canonical CSI bytes.
+
+    reserved 2;
 }
 
 // Represents the response of CreateLV.
@@ -50,9 +52,10 @@ message CreateLVSnapshotRequest {
     repeated string tags = 2;               // Tags to add to the volume during creation
     string device_class = 3;
     string source_volume = 4;               // Source lv of snapshot.
-    uint64 size_gb = 5 [deprecated = true]; // Volume size in GiB.
     string access_type = 6;                 // Access type of snapshot
     int64 size_bytes = 7;                   // Volume size in canonical CSI bytes.
+
+    reserved 5;
 }
 
 message CreateLVSnapshotResponse {
@@ -62,12 +65,13 @@ message CreateLVSnapshotResponse {
 // Represents the input for ResizeLV.
 //
 // The volume must already exist.
-// The volume size will be set to exactly "size_gb".
+// The volume size will be expanded to at least "size_bytes".
 message ResizeLVRequest {
     string name = 1;                        // The logical volume name.
-    uint64 size_gb = 2 [deprecated = true]; // Volume size in GiB.
     int64 size_bytes = 7;                   // Volume size in canonical CSI bytes.
     string device_class = 3;
+
+    reserved 2;
 }
 
 message ResizeLVResponse {

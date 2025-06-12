@@ -187,9 +187,6 @@ func TestVGService_GetLVList(t *testing.T) {
 			if vol.GetName() != volumeName {
 				t.Errorf(`Volume.Name != "%s": %s`, volumeName, vol.GetName())
 			}
-			if sizeGB := vol.GetSizeGb(); sizeGB != 1 {
-				t.Errorf(`Volume.SizeGb != 1: %d`, sizeGB)
-			}
 			if vol.GetSizeBytes() != 1<<30 {
 				t.Errorf(`Volume.SizeBytes != %d: %d`, 1<<30, vol.GetSizeBytes())
 			}

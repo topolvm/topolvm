@@ -48,14 +48,7 @@ func (s *lvService) CreateLV(ctx context.Context, req *proto.CreateLVRequest) (*
 	}
 	oc := s.ocmapper.LvcreateOptionClass(req.LvcreateOptionClass)
 
-	var requested uint64
-	if req.SizeBytes > 0 {
-		// convert to uint64 because CSI uses int64 but lvmd internals and lvm use uint64
-		requested = uint64(req.GetSizeBytes())
-	} else {
-		// legacy conversion from SizeGb to SizeBytes
-		requested = req.GetSizeGb() << 30
-	}
+	requested := uint64(req.GetSizeBytes())
 	free, err := pool.Free(ctx)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get free bytes: %v", err)
@@ -105,8 +98,6 @@ func (s *lvService) CreateLV(ctx context.Context, req *proto.CreateLVRequest) (*
 	return &proto.CreateLVResponse{
 		Volume: &proto.LogicalVolume{
 			Name: lv.Name(),
-			// still set sizeGB for legacy purposes, can (but not has to) be removed in next minor release.
-			SizeGb: lv.Size() >> 30,
 			// convert to int64 because lvmd internals and lvm use uint64 but CSI uses int64.
 			// For most conventional lvm use cases overflow here will never occur (9223372 TB or above cause overflow)
 			SizeBytes: int64(lv.Size()),
@@ -187,14 +178,7 @@ func (s *lvService) CreateLVSnapshot(ctx context.Context, req *proto.CreateLVSna
 	// gets resized after extension into the correct size
 	sizeOnCreation := sourceLV.Size()
 
-	var desiredSize uint64
-	if req.SizeBytes > 0 {
-		// convert to uint64 because CSI uses int64 but lvmd internals and lvm use uint64
-		desiredSize = uint64(req.GetSizeBytes())
-	} else {
-		// legacy conversion from SizeGb to SizeBytes
-		desiredSize = req.GetSizeGb() << 30
-	}
+	desiredSize := uint64(req.GetSizeBytes())
 
 	// in case there is no desired size in the request, we can still attempt to create the Snapshot with Source size.
 	if desiredSize == 0 {
@@ -272,8 +256,6 @@ func (s *lvService) CreateLVSnapshot(ctx context.Context, req *proto.CreateLVSna
 	return &proto.CreateLVSnapshotResponse{
 		Snapshot: &proto.LogicalVolume{
 			Name: snapLV.Name(),
-			// still set sizeGB for legacy purposes, can (but not has to) be removed in next minor release.
-			SizeGb: snapLV.Size() >> 30,
 			// convert to int64 because lvmd internals and lvm use uint64 but CSI uses int64.
 			// For most conventional lvm use cases overflow here will never occur (9223372 TB or above cause overflow)
 			SizeBytes: int64(snapLV.Size()),
@@ -306,14 +288,7 @@ func (s *lvService) ResizeLV(ctx context.Context, req *proto.ResizeLVRequest) (*
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	var requested uint64
-	if req.SizeBytes > 0 {
-		// convert to uint64 because CSI uses int64 but lvmd internals and lvm use uint64
-		requested = uint64(req.GetSizeBytes())
-	} else {
-		// legacy conversion from SizeGb to SizeBytes
-		requested = req.GetSizeGb() << 30
-	}
+	requested := uint64(req.GetSizeBytes())
 	current := lv.Size()
 	if requested <= current {
 		logger.Info("skipping resize: requested size is smaller than current size", "requested", requested, "current", current)
