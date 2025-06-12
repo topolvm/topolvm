@@ -248,7 +248,7 @@ func TestVGService_GetFreeBytes(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		tpu, err := pool.Free(ctx)
+		tpu, err := pool.Usage(ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
