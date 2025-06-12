@@ -56,7 +56,6 @@ type MockLVServiceClient struct {
 func (c MockLVServiceClient) CreateLV(ctx context.Context, in *proto.CreateLVRequest, opts ...grpc.CallOption) (*proto.CreateLVResponse, error) {
 	lv := proto.LogicalVolume{
 		Name:      in.Name,
-		SizeGb:    in.SizeGb,
 		SizeBytes: in.SizeBytes,
 	}
 	*volumes = append(*volumes, &lv)
