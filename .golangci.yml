@@ -17,11 +17,6 @@ issues:
         - dupl
         - lll
 
-    # exclude staticcheck SA1019 because it can not be disabled via comments
-    - linters:
-        - staticcheck
-      text: "SA1019: (.*)\\.(Get)?SizeGb is deprecated: Marked as deprecated in pkg/lvmd/proto/lvmd.proto."
-
     # FIXME: remove this once we have fixed the issues
     - path: "test/e2e/*"
       linters:

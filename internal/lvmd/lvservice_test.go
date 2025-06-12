@@ -103,7 +103,7 @@ func TestLVService_ThickLV(t *testing.T) {
 	res, err := lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
 		Name:        "test1",
 		DeviceClass: lvServiceTestThickDC,
-		SizeGb:      1,
+		SizeBytes:   1 << 30, // 1 GiB
 		Tags:        []string{lvServiceTestTag1, lvServiceTestTag2},
 	})
 	if err != nil {
@@ -114,9 +114,6 @@ func TestLVService_ThickLV(t *testing.T) {
 	}
 	if res.GetVolume().GetName() != "test1" {
 		t.Errorf(`res.Volume.Name != "test1": %s`, res.GetVolume().GetName())
-	}
-	if sizeGB := res.GetVolume().GetSizeGb(); sizeGB != 1 {
-		t.Errorf(`res.Volume.SizeGb != 1: %d`, sizeGB)
 	}
 	if res.GetVolume().GetSizeBytes() != 1<<30 {
 		t.Errorf(`res.Volume.SizeBytes != %d: %d`, 1<<30, res.GetVolume().GetSizeBytes())
@@ -144,7 +141,7 @@ func TestLVService_ThickLV(t *testing.T) {
 	_, err = lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
 		Name:        "test2",
 		DeviceClass: lvServiceTestThickDC,
-		SizeGb:      3,
+		SizeBytes:   3 << 30, // 3 GiB
 	})
 	code := status.Code(err)
 	if code != codes.ResourceExhausted {
@@ -157,7 +154,7 @@ func TestLVService_ThickLV(t *testing.T) {
 	_, err = lvService.ResizeLV(context.Background(), &proto.ResizeLVRequest{
 		Name:        "test1",
 		DeviceClass: lvServiceTestThickDC,
-		SizeGb:      2,
+		SizeBytes:   2 << 30, // 2 GiB
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -181,7 +178,7 @@ func TestLVService_ThickLV(t *testing.T) {
 	_, err = lvService.ResizeLV(context.Background(), &proto.ResizeLVRequest{
 		Name:        "test1",
 		DeviceClass: lvServiceTestThickDC,
-		SizeGb:      5,
+		SizeBytes:   5 << 30, // 5 GiB
 	})
 	code = status.Code(err)
 	if code != codes.ResourceExhausted {
@@ -218,7 +215,7 @@ func TestLVService_ThinLV(t *testing.T) {
 	res, err := lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
 		Name:        "testp1",
 		DeviceClass: lvServiceTestThinDC,
-		SizeGb:      1,
+		SizeBytes:   1 << 30, // 1 GiB
 		Tags:        []string{lvServiceTestTag1, lvServiceTestTag2},
 	})
 	if err != nil {
@@ -229,9 +226,6 @@ func TestLVService_ThinLV(t *testing.T) {
 	}
 	if res.GetVolume().GetName() != "testp1" {
 		t.Errorf(`res.Volume.Name != "testp1": %s`, res.GetVolume().GetName())
-	}
-	if sizeGB := res.GetVolume().GetSizeGb(); sizeGB != 1 {
-		t.Errorf(`res.Volume.SizeGb != 1: %d`, sizeGB)
 	}
 	if res.GetVolume().GetSizeBytes() != 1<<30 {
 		t.Errorf(`res.Volume.SizeBytes != %d: %d`, 1<<30, res.GetVolume().GetSizeBytes())
@@ -260,7 +254,7 @@ func TestLVService_ThinLV(t *testing.T) {
 	_, err = lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
 		Name:        "testp2",
 		DeviceClass: lvServiceTestThinDC,
-		SizeGb:      3,
+		SizeBytes:   3 << 30, // 3 GiB
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -272,7 +266,7 @@ func TestLVService_ThinLV(t *testing.T) {
 	_, err = lvService.ResizeLV(context.Background(), &proto.ResizeLVRequest{
 		Name:        "testp1",
 		DeviceClass: lvServiceTestThinDC,
-		SizeGb:      2,
+		SizeBytes:   2 << 30, // 2 GiB
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -319,11 +313,11 @@ func TestLVService_ThinSnapshots(t *testing.T) {
 	lvService, count, vg, pool := setupLVService(ctx, t)
 
 	// create sourceVolume
-	var originalSizeGb uint64 = 1
+	var originalSizeBytes int64 = 1 << 30 // 1 GiB
 	res, err := lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
 		Name:        "sourceVol",
 		DeviceClass: lvServiceTestThinDC,
-		SizeGb:      originalSizeGb,
+		SizeBytes:   originalSizeBytes,
 		Tags:        []string{lvServiceTestTag1, lvServiceTestTag2},
 	})
 	if err != nil {
@@ -332,14 +326,13 @@ func TestLVService_ThinSnapshots(t *testing.T) {
 
 	// create snapshot of sourceVol
 	var snapRes *proto.CreateLVSnapshotResponse
-	var snapshotDesiredSizeGb uint64 = 2
+	var snapshotDesiredSizeBytes int64 = 2 << 30 // 2 GiB
 	snapRes, err = lvService.CreateLVSnapshot(context.Background(), &proto.CreateLVSnapshotRequest{
 		Name:         "snap1",
 		DeviceClass:  lvServiceTestThinDC,
 		SourceVolume: "sourceVol",
 		// use a bigger size here to also simulate resizing to a bigger target than source
-		SizeGb:     snapshotDesiredSizeGb,
-		SizeBytes:  int64(snapshotDesiredSizeGb << 30),
+		SizeBytes:  snapshotDesiredSizeBytes,
 		AccessType: "ro",
 		Tags:       []string{"testsnaptag1", "testsnaptag2"},
 	})
@@ -352,17 +345,11 @@ func TestLVService_ThinSnapshots(t *testing.T) {
 	if snapRes.GetSnapshot().GetName() != "snap1" {
 		t.Errorf(`res.Volume.Name != "snap1": %s`, res.GetVolume().GetName())
 	}
-	if sizeGB := res.GetVolume().GetSizeGb(); sizeGB != originalSizeGb {
-		t.Errorf(`res.Volume.SizeGb != %d: %d`, originalSizeGb, sizeGB)
+	if res.GetVolume().GetSizeBytes() != originalSizeBytes {
+		t.Errorf(`res.Volume.SizeBytes != %d: %d`, originalSizeBytes, res.GetVolume().GetSizeBytes())
 	}
-	if res.GetVolume().GetSizeBytes() != int64(originalSizeGb<<30) {
-		t.Errorf(`res.Volume.SizeBytes != %d: %d`, int64(originalSizeGb<<30), res.GetVolume().GetSizeBytes())
-	}
-	if sizeGB := snapRes.GetSnapshot().GetSizeGb(); sizeGB != snapshotDesiredSizeGb {
-		t.Errorf(`res.Volume.SizeGb != %d: %d`, snapshotDesiredSizeGb, sizeGB)
-	}
-	if snapRes.GetSnapshot().GetSizeBytes() != int64(snapshotDesiredSizeGb<<30) {
-		t.Errorf(`snapRes.ThinSnapshot.SizeBytes != %d: %d`, int64(snapshotDesiredSizeGb<<30), snapRes.GetSnapshot().GetSizeBytes())
+	if snapRes.GetSnapshot().GetSizeBytes() != snapshotDesiredSizeBytes {
+		t.Errorf(`snapRes.ThinSnapshot.SizeBytes != %d: %d`, snapshotDesiredSizeBytes, snapRes.GetSnapshot().GetSizeBytes())
 	}
 	err = exec.Command("lvs", vg.Name()+"/snap1").Run()
 	if err != nil {
@@ -402,17 +389,11 @@ func TestLVService_ThinSnapshots(t *testing.T) {
 	if snapRes.GetSnapshot().GetName() != "restoredsnap1" {
 		t.Errorf(`res.Volume.Name != "restoredsnap1": %s`, res.GetVolume().GetName())
 	}
-	if sizeGB := res.GetVolume().GetSizeGb(); sizeGB != originalSizeGb {
-		t.Errorf(`res.Volume.SizeGb != %d: %d`, originalSizeGb, sizeGB)
+	if res.GetVolume().GetSizeBytes() != originalSizeBytes {
+		t.Errorf(`res.Volume.SizeBytes != %d: %d`, originalSizeBytes, res.GetVolume().GetSizeBytes())
 	}
-	if res.GetVolume().GetSizeBytes() != int64(originalSizeGb<<30) {
-		t.Errorf(`res.Volume.SizeBytes != %d: %d`, int64(originalSizeGb<<30), res.GetVolume().GetSizeBytes())
-	}
-	if sizeGB := snapRes.GetSnapshot().GetSizeGb(); sizeGB != snapshotDesiredSizeGb {
-		t.Errorf(`res.Volume.SizeGb != %d: %d`, snapshotDesiredSizeGb, sizeGB)
-	}
-	if snapRes.GetSnapshot().GetSizeBytes() != int64(snapshotDesiredSizeGb<<30) {
-		t.Errorf(`snapRes.ThinSnapshot.SizeBytes != %d: %d`, int64(snapshotDesiredSizeGb<<30), snapRes.GetSnapshot().GetSizeBytes())
+	if snapRes.GetSnapshot().GetSizeBytes() != snapshotDesiredSizeBytes {
+		t.Errorf(`snapRes.ThinSnapshot.SizeBytes != %d: %d`, snapshotDesiredSizeBytes, snapRes.GetSnapshot().GetSizeBytes())
 	}
 	err = exec.Command("lvs", vg.Name()+"/restoredsnap1").Run()
 	if err != nil {
