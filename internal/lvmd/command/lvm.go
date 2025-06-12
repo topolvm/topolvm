@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"path"
 
 	"github.com/topolvm/topolvm"
@@ -287,6 +288,17 @@ type ThinPoolUsage struct {
 	SizeBytes       uint64
 }
 
+func (t ThinPoolUsage) FreeBytes(overprovisionRatio float64) (uint64, error) {
+	if overprovisionRatio < 1.0 {
+		return 0, errors.New("overprovision ratio must be >= 1.0")
+	}
+	virtualPoolSize := uint64(math.Floor(overprovisionRatio * float64(t.SizeBytes)))
+	if virtualPoolSize <= t.VirtualBytes {
+		return 0, nil
+	}
+	return virtualPoolSize - t.VirtualBytes, nil
+}
+
 func fullName(name string, vg *VolumeGroup) string {
 	return fmt.Sprintf("%v/%v", vg.Name(), name)
 }
@@ -400,18 +412,17 @@ func (t *ThinPool) CreateVolume(ctx context.Context, name string, size uint64, t
 	return callLVM(ctx, lvcreateArgs...)
 }
 
-// Free on a thinpool returns used data, metadata percentages,
+// Usage on a thinpool returns used data, metadata percentages,
 // sum of virtualsizes of all thinlvs and size of thinpool
-func (t *ThinPool) Free(ctx context.Context) (*ThinPoolUsage, error) {
-	tpu := &ThinPoolUsage{}
-	tpu.DataPercent = t.state.dataPercent
-	tpu.MetadataPercent = t.state.metaDataPercent
-	tpu.SizeBytes = t.state.size
+func (t *ThinPool) Usage(ctx context.Context) (*ThinPoolUsage, error) {
 	lvs, err := t.ListVolumes(ctx)
 	if err != nil {
 		return nil, err
 	}
-
+	tpu := &ThinPoolUsage{}
+	tpu.DataPercent = t.state.dataPercent
+	tpu.MetadataPercent = t.state.metaDataPercent
+	tpu.SizeBytes = t.state.size
 	for _, l := range lvs {
 		tpu.VirtualBytes += l.size
 	}
