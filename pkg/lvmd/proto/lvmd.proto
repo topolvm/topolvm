@@ -70,6 +70,10 @@ message ResizeLVRequest {
     string device_class = 3;
 }
 
+message ResizeLVResponse {
+    int64 size_bytes = 1;                   // Volume size in canonical CSI bytes.
+}
+
 // Represents the response of GetLVList.
 message GetLVListResponse {
     repeated LogicalVolume volumes = 1;  // Information of volumes.
@@ -117,7 +121,7 @@ service LVService {
     // Remove a logical volume.
     rpc RemoveLV(RemoveLVRequest) returns (Empty);
     // Resize a logical volume.
-    rpc ResizeLV(ResizeLVRequest) returns (Empty);
+    rpc ResizeLV(ResizeLVRequest) returns (ResizeLVResponse);
     rpc CreateLVSnapshot(CreateLVSnapshotRequest) returns (CreateLVSnapshotResponse);
 }
 

@@ -216,6 +216,10 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 				return err
 			}
 			sourceVolID := sourcelv.Status.VolumeID
+			currentSize := sourcelv.Status.CurrentSize.Value()
+			if reqBytes < currentSize {
+				return fmt.Errorf("cannot create new LV, requested size %d is smaller than source LV size %d", reqBytes, currentSize)
+			}
 
 			// Create a snapshot lv
 			resp, err := r.lvService.CreateLVSnapshot(ctx, &proto.CreateLVSnapshotRequest{
@@ -258,7 +262,7 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 		}
 
 		lv.Status.VolumeID = volume.Name
-		lv.Status.CurrentSize = resource.NewQuantity(reqBytes, resource.BinarySI)
+		lv.Status.CurrentSize = resource.NewQuantity(volume.SizeBytes, resource.BinarySI)
 		lv.Status.Code = codes.OK
 		lv.Status.Message = ""
 		return nil
@@ -298,7 +302,7 @@ func (r *LogicalVolumeReconciler) expandLV(ctx context.Context, log logr.Logger,
 	reqBytes := lv.Spec.Size.Value()
 
 	err := func() error {
-		_, err := r.lvService.ResizeLV(ctx, &proto.ResizeLVRequest{
+		resp, err := r.lvService.ResizeLV(ctx, &proto.ResizeLVRequest{
 			Name: string(lv.UID),
 			// convert to uint64 because lvmd internals and lvm use uint64 but CSI uses int64.
 			// still set sizeGB for legacy purposes, can (but not has to) be removed in next minor release.
@@ -314,7 +318,7 @@ func (r *LogicalVolumeReconciler) expandLV(ctx context.Context, log logr.Logger,
 			return err
 		}
 
-		lv.Status.CurrentSize = resource.NewQuantity(reqBytes, resource.BinarySI)
+		lv.Status.CurrentSize = resource.NewQuantity(resp.SizeBytes, resource.BinarySI)
 		lv.Status.Code = codes.OK
 		lv.Status.Message = ""
 		return nil
@@ -334,7 +338,7 @@ func (r *LogicalVolumeReconciler) expandLV(ctx context.Context, log logr.Logger,
 	}
 
 	log.Info("expanded LV", "name", lv.Name, "uid", lv.UID, "status.volumeID", lv.Status.VolumeID,
-		"original status.currentSize", origBytes, "status.currentSize", reqBytes)
+		"original status.currentSize", origBytes, "status.currentSize", lv.Status.CurrentSize, "spec.size", reqBytes)
 	return nil
 }
 

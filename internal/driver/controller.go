@@ -221,7 +221,7 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 		}
 
 		// check if the volume is equal or bigger than the source volume.
-		sourceSizeBytes := sourceVol.Spec.Size.Value()
+		sourceSizeBytes := sourceVol.Status.CurrentSize.Value()
 		if requestCapacityBytes < sourceSizeBytes {
 			return nil, status.Error(codes.OutOfRange, "requested size is smaller than the size of the source")
 		}
@@ -275,10 +275,9 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 	if name == "" {
 		return nil, status.Error(codes.InvalidArgument, "invalid name")
 	}
-
 	name = strings.ToLower(name)
 
-	volumeID, err := s.lvService.CreateVolume(ctx, node, deviceClass, lvcreateOptionClass, name, sourceName, requestCapacityBytes)
+	volume, err := s.lvService.CreateVolume(ctx, node, deviceClass, lvcreateOptionClass, name, sourceName, requestCapacityBytes)
 	if err != nil {
 		_, ok := status.FromError(err)
 		if !ok {
@@ -289,8 +288,8 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 
 	return &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
-			CapacityBytes: requestCapacityBytes,
-			VolumeId:      volumeID,
+			CapacityBytes: volume.Status.CurrentSize.Value(),
+			VolumeId:      volume.Status.VolumeID,
 			ContentSource: source,
 			AccessibleTopology: []*csi.Topology{
 				{
@@ -374,9 +373,9 @@ func (s controllerServerNoLocked) CreateSnapshot(ctx context.Context, req *csi.C
 	// the snapshots are required to be created in the same node and device class as the source volume.
 	node := sourceVol.Spec.NodeName
 	deviceClass := sourceVol.Spec.DeviceClass
-	size := sourceVol.Spec.Size
 	sourceVolName := sourceVol.Spec.Name
-	snapshotID, err := s.lvService.CreateSnapshot(ctx, node, deviceClass, sourceVolName, name, accessType, size)
+	currentSize := sourceVol.Status.CurrentSize
+	snapshot, err := s.lvService.CreateSnapshot(ctx, node, deviceClass, sourceVolName, name, accessType, *currentSize)
 	if err != nil {
 		_, ok := status.FromError(err)
 		if !ok {
@@ -387,9 +386,9 @@ func (s controllerServerNoLocked) CreateSnapshot(ctx context.Context, req *csi.C
 
 	return &csi.CreateSnapshotResponse{
 		Snapshot: &csi.Snapshot{
-			SnapshotId:     snapshotID,
+			SizeBytes:      snapshot.Status.CurrentSize.Value(),
+			SnapshotId:     snapshot.Status.VolumeID,
 			SourceVolumeId: sourceVolID,
-			SizeBytes:      sourceVol.Spec.Size.Value(),
 			CreationTime:   snapTimeStamp,
 			ReadyToUse:     true,
 		},
