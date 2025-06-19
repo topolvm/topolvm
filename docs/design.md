@@ -23,9 +23,9 @@ TopoLVM provides a storage driver for such software running on Kubernetes.
 
 ### Diagram
 
-- ![#FFFF00](https://via.placeholder.com/15/FFFF00/000000?text=+) TopoLVM components
-- ![#ADD8E6](https://via.placeholder.com/15/ADD8E6/000000?text=+) Kubernetes components
-- ![#FFC0CB](https://via.placeholder.com/15/FFC0CB/000000?text=+) Kubernetes CSI Sidecar containers
+- ![#FFFF00](./img/FFFF00.png) TopoLVM components
+- ![#ADD8E6](./img/ADD8E6.png) Kubernetes components
+- ![#FFC0CB](./img/FFC0CB.png) Kubernetes CSI Sidecar containers
 
 ![component diagram](http://www.plantuml.com/plantuml/svg/bPJFZjem4CRlUOfHzh8Sq0eVzr1j6tgZLGGgLRNbOE9Hi73io7RO_j6-Uvt4CIR0qhsiDZC_ZxzlFCEJiLJRfX99JOizBH7IETP2_QvGsXJ-9W3FcP9MAo5Gvw8fkTm0DP1QLIjngAP5oAPmzmE5K2_j8MCCPrXGRNgyC7nQQtNWXYk9-gTi0zHQMko6Bus6_-dAv5pkazSaaOeXV7L_PbsDxhzML08mo9sl-joSOgNa2hrefw2bUy6pKyLjrQ2rPrbGwzbUJycDrJGe0d2Q7BrljYZGUjH_EMZ1ovtz91higCNw2_E8kvM56q-CaM2Cd1aZDusHTnWZ_s-Ct3P6tZBc1oONL69_QH-0ketugJB53baZK6_Y-W2CMhgb1Y6bDJUe3wXZ1KCJikMybx1G9I-eM2lHL7ZlmfDH2_9rrfCvQkDyexGzd0dAgzH3YYtHg4ONw67bZ1txFIHdcsWIpzFac2Pj-jNr96oMGTQjbaFYBODxfI6yycHeZzUn6je4dtyvwQnTbllXmKCF9oUF44q-J9jw-W5EBC0ZV9HIMMhn57s-sue6DqozI7Uccr_7biiyIuQH3z1GDfn-V8EBrijpKIIWSRrmSQIGN313BfiXbyoGaHbopSmDCDgfCpT7z6B1PFnR2bClq0skWpADpiZ3TsgBtNLs_9hlm4d0eudtVJqhu53SxfJQZoVAw_Mb7hxLRDp-gr0IPjOpfes5_WNHRck3r3WTkdkcrhVu2ILhAl4F)
 
