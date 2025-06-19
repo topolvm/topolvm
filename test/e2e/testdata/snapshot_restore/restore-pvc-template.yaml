@@ -8,7 +8,7 @@ spec:
   volumeMode: Filesystem
   resources:
     requests:
-      storage: %sGi
+      storage: %d
   storageClassName: topolvm-provisioner-thin
   dataSource:
     name: %s

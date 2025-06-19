@@ -37,7 +37,7 @@ func testLVCreateOptions() {
 		"LVM option should be used",
 		func(deviceClass string, storageClassName string) {
 			By(fmt.Sprintf("creating Pod with PVC using %s device-class", deviceClass))
-			claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1024, storageClassName))
+			claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1024<<20, storageClassName))
 			podYaml := []byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu", "topo-pvc"))
 
 			_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")

@@ -68,7 +68,7 @@ func testE2E() {
 	DescribeTable("should be mounted in specified path",
 		func(fs string, storageClass string) {
 			By(fmt.Sprintf("deploying Pod with PVC based on StorageClass: %s", storageClass))
-			claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1024, storageClass))
+			claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1023<<20, storageClass))
 			podYaml := []byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu", "topo-pvc"))
 
 			_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
@@ -161,7 +161,7 @@ func testE2E() {
 	DescribeTable("should be mounted in specified path but changed by the minimum allocation default",
 		func(fs string, storageClass string, minimumAllocationDefault string) {
 			By(fmt.Sprintf("deploying Pod with PVC based on StorageClass: %s", storageClass))
-			claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 100, storageClass))
+			claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 100<<20, storageClass))
 			podYaml := []byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu", "topo-pvc"))
 
 			_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
@@ -326,7 +326,7 @@ func testE2E() {
 	It("should react to failing devices with VolumeConditionAbnormal", func(ctx SpecContext) {
 		storageClass := "topolvm-provisioner-volumehealth"
 		By(fmt.Sprintf("deploying Pod with PVC based on StorageClass: %s", storageClass))
-		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 200, storageClass))
+		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 199<<20, storageClass))
 		podYaml := []byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu", "topo-pvc"))
 
 		_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
@@ -432,7 +432,7 @@ func testE2E() {
 		By("deploying ubuntu Pod with PVC to mount a block device")
 		podYAML := []byte(fmt.Sprintf(podVolumeDeviceTemplateYAML, deviceFile))
 
-		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Block", 1024, "topolvm-provisioner"))
+		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Block", 1023<<20, "topolvm-provisioner"))
 
 		_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -517,7 +517,7 @@ func testE2E() {
 		By("deploying ubuntu Pod with PVC to mount a block device")
 		podYAML := []byte(fmt.Sprintf(podVolumeDeviceTemplateYAML, deviceFile))
 
-		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Block", 1, "topolvm-provisioner"))
+		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Block", 1<<20, "topolvm-provisioner"))
 
 		_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -651,7 +651,7 @@ func testE2E() {
 
 			By("creating pvc")
 			claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML,
-				fmt.Sprintf("topo-pvc-%d", i), "Filesystem", 1024, "topolvm-provisioner-immediate"))
+				fmt.Sprintf("topo-pvc-%d", i), "Filesystem", 1023<<20, "topolvm-provisioner-immediate"))
 			_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -683,7 +683,7 @@ func testE2E() {
 
 	It("should scheduled onto the correct node where PV exists (volumeBindingMode == Immediate)", func() {
 		By("creating pvc")
-		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1024, "topolvm-provisioner-immediate"))
+		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1023<<20, "topolvm-provisioner-immediate"))
 		_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -871,7 +871,7 @@ func testE2E() {
 		// thus the expected sizes should be 3 elements.
 		func(storageClass string, expectedSizes []int) {
 			By(fmt.Sprintf("deploying Pod with PVC based on StorageClass: %s", storageClass))
-			claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1024, storageClass))
+			claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1024<<20, storageClass))
 			podYaml := []byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu", "topo-pvc"))
 
 			_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
@@ -885,7 +885,7 @@ func testE2E() {
 			}).Should(Succeed())
 
 			By("resizing PVC online")
-			claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 2*1024, storageClass))
+			claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 2*1024<<20, storageClass))
 			_, err = kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -912,7 +912,7 @@ func testE2E() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			By("resizing PVC offline")
-			claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 3*1024, storageClass))
+			claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 3*1024<<20, storageClass))
 			_, err = kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -942,7 +942,7 @@ func testE2E() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			By("resizing PVC")
-			claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 4*1024, storageClass))
+			claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 4*1024<<20, storageClass))
 			_, err = kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -994,7 +994,7 @@ func testE2E() {
 			}
 
 			By("resizing PVC over vg capacity")
-			claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 100*1024, storageClass))
+			claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 100*1024<<20, storageClass))
 			_, err = kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -1043,7 +1043,7 @@ func testE2E() {
 	It("should resize a block device", func() {
 		By("deploying Pod with PVC")
 		podYAML := []byte(fmt.Sprintf(podVolumeDeviceTemplateYAML, deviceFile))
-		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Block", 1024, "topolvm-provisioner"))
+		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Block", 1023<<20, "topolvm-provisioner"))
 
 		_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -1060,7 +1060,7 @@ func testE2E() {
 		}).Should(Succeed())
 
 		By("resizing PVC")
-		claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Block", 2048, "topolvm-provisioner"))
+		claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Block", 2047<<20, "topolvm-provisioner"))
 		_, err = kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -1075,8 +1075,8 @@ func testE2E() {
 			if err != nil {
 				return fmt.Errorf("failed to convert volume size string. data: %s, err: %w", stdout, err)
 			}
-			if volSize != 2147483648 {
-				return fmt.Errorf("failed to match volume size. actual: %d, expected: %d", volSize, 2147483648)
+			if volSize != 2048<<20 {
+				return fmt.Errorf("failed to match volume size. actual: %d, expected: %d", volSize, 2048<<20)
 			}
 			return nil
 		}, timeout).Should(Succeed())
@@ -1090,7 +1090,7 @@ func testE2E() {
 
 	It("should delete a pod when the pvc is deleted", func() {
 		By("deploying a pod and PVC")
-		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1024, "topolvm-provisioner"))
+		claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1023<<20, "topolvm-provisioner"))
 		podYaml := []byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu", "topo-pvc"))
 
 		_, err := kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")

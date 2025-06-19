@@ -3,7 +3,6 @@ package e2e
 import (
 	_ "embed"
 	"fmt"
-	"strconv"
 	"strings"
 
 	snapapi "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
@@ -11,6 +10,7 @@ import (
 	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 var (
@@ -29,15 +29,10 @@ const (
 	snapName       = "thinsnap"
 	restorePVCName = "thinrestore"
 	restorePodName = "thin-restore-pod"
-	// size of PVC in GBs from the source volume
-	pvcSizeGB = 1
-	// size of PVC in GBs from the restored PVCs
-	restorePVCSizeGB = 2
-)
-
-var (
-	pvcSize        = strconv.Itoa(pvcSizeGB)
-	restorePVCSize = strconv.Itoa(restorePVCSizeGB)
+	// size of PVC in MBs from the source volume
+	pvcSizeBytes int64 = 1023 * 1024 * 1024 // 1023 MiB
+	// size of PVC in MBs from the restored PVCs
+	restorePVCBytes int64 = 2047 * 1024 * 1024 // 2047 MiB
 )
 
 func testSnapRestore() {
@@ -60,7 +55,7 @@ func testSnapRestore() {
 	DescribeTable("should create a thin-snap with size equal to source", func(provisioner string) {
 		By("deploying Pod with PVC")
 
-		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSize))
+		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSizeBytes))
 		_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -113,7 +108,8 @@ func testSnapRestore() {
 		}).Should(Succeed())
 
 		By("restoring the snap")
-		thinPVCRestoreYAML := []byte(fmt.Sprintf(thinRestorePVCTemplateYAML, restorePVCName, pvcSize, snapName))
+		snapRestoreSize := snapshot.Status.RestoreSize.Value()
+		thinPVCRestoreYAML := []byte(fmt.Sprintf(thinRestorePVCTemplateYAML, restorePVCName, snapRestoreSize, snapName))
 		_, err = kubectlWithInput(thinPVCRestoreYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -167,7 +163,7 @@ func testSnapRestore() {
 
 	DescribeTable("should create a thin-snap with size greater than source", func(provisioner string) {
 		By("deploying Pod with PVC")
-		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSize))
+		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSizeBytes))
 		_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -220,7 +216,7 @@ func testSnapRestore() {
 		}).Should(Succeed())
 
 		By("restoring the snap")
-		thinPVCRestoreYAML := []byte(fmt.Sprintf(thinRestorePVCTemplateYAML, restorePVCName, restorePVCSize, snapName))
+		thinPVCRestoreYAML := []byte(fmt.Sprintf(thinRestorePVCTemplateYAML, restorePVCName, restorePVCBytes, snapName))
 		_, err = kubectlWithInput(thinPVCRestoreYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -229,6 +225,7 @@ func testSnapRestore() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("verifying if the restored PVC is created with correct size")
+		var restoredSize *resource.Quantity
 		Eventually(func() error {
 			var pvc corev1.PersistentVolumeClaim
 			err := getObjects(&pvc, "pvc", "-n", nsSnapTest, restorePVCName)
@@ -238,8 +235,14 @@ func testSnapRestore() {
 			if pvc.Status.Phase != corev1.ClaimBound {
 				return fmt.Errorf("PVC %s is not bound", restorePVCName)
 			}
-			if pvc.Spec.Resources.Requests.Storage().String() != fmt.Sprintf("%sGi", restorePVCSize) {
-				return fmt.Errorf("PVC %s has wrong quantity: %s", restorePVCName, pvc.Spec.Resources.Requests.Storage())
+
+			restoredSize = pvc.Status.Capacity.Storage()
+			if restoredSize.Cmp(*snapshot.Status.RestoreSize) < 0 {
+				return fmt.Errorf("PVC is smaller than snapshot size: %v < %v", restoredSize, snapshot.Status.RestoreSize)
+			}
+			if restoredSize.CmpInt64(restorePVCBytes) <= 0 {
+				return fmt.Errorf("PVC is smaller than unrounded restore size: %v < %v",
+					restoredSize, resource.NewQuantity(restorePVCBytes, resource.BinarySI))
 			}
 			return nil
 		}).Should(Succeed())
@@ -275,26 +278,15 @@ func testSnapRestore() {
 
 		By("confirming that the specified device is resized in the Pod")
 		Eventually(func() error {
-			sizeSuffixGB := "G"
-			stdout, err := kubectl("exec", "-n", nsSnapTest, restorePodName, "--", "df", "-h", "--output=size", "/test1")
+			// The sizes reported by `df` exclude filesystem overhead (e.g. reserved blocks), so they don't exactly match
+			// LVM’s sizes. In this test, we'll round them to gigabytes using the `-BG` option for simplicity.
+			stdout, err := kubectl("exec", "-n", nsSnapTest, restorePodName, "--", "df", "-BG", "--output=size", "/test1")
 			if err != nil {
 				return fmt.Errorf("failed to get volume size. err: %w", err)
 			}
-			dfFields := strings.Fields(string(stdout))
-			size := dfFields[1]
-			sizeSuffix := string(size[len(size)-1])
-			sizeInG := size[:len(size)-1]
-			if sizeSuffix != sizeSuffixGB {
-				return fmt.Errorf("unexpected size suffix: %s, expected %s", sizeSuffix, sizeSuffixGB)
-			}
-
-			volSize, err := strconv.ParseFloat(sizeInG, 32)
-			if err != nil {
-				return fmt.Errorf("failed to convert volume size string. data: %s, err: %w", stdout, err)
-			}
-			if int(volSize) != restorePVCSizeGB {
-				return fmt.Errorf("failed to match volume size. actual: %v%s, expected: %d%s",
-					volSize, sizeSuffix, restorePVCSizeGB, sizeSuffix)
+			volSize := resource.MustParse(strings.Fields(string(stdout))[1] + "i")
+			if restoredSize.Cmp(volSize) != 0 {
+				return fmt.Errorf("restored PVC size is wrong: %d, expected: %d", volSize.Value(), restoredSize.Value())
 			}
 			return nil
 		}).Should(Succeed())
@@ -305,7 +297,7 @@ func testSnapRestore() {
 
 	DescribeTable("validating if the restored PVCs are standalone", func(provisioner string) {
 		By("creating a PVC and application")
-		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSize))
+		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, volName, pvcSizeBytes))
 		_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -344,7 +336,8 @@ func testSnapRestore() {
 		}).Should(Succeed())
 
 		By("restoring the snap")
-		thinPVCRestoreYAML := []byte(fmt.Sprintf(thinRestorePVCTemplateYAML, restorePVCName, pvcSize, snapName))
+		snapRestoreSize := snapshot.Status.RestoreSize.Value()
+		thinPVCRestoreYAML := []byte(fmt.Sprintf(thinRestorePVCTemplateYAML, restorePVCName, snapRestoreSize, snapName))
 		_, err = kubectlWithInput(thinPVCRestoreYAML, "apply", "-n", nsSnapTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 

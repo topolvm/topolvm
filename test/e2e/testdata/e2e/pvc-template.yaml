@@ -8,5 +8,5 @@ spec:
   - ReadWriteOnce
   resources:
     requests:
-      storage: %dMi
+      storage: %d
   storageClassName: %s

@@ -39,7 +39,7 @@ func testThinProvisioning() {
 	It("should thin provision a PV", func() {
 		By("deploying Pod with PVC")
 
-		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, "thinvol", "1"))
+		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, "thinvol", pvcSizeBytes))
 		_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -94,7 +94,7 @@ func testThinProvisioning() {
 		// The actual thinpool size is 4 GB . With an overprovisioning limit of 5, it should allow
 		// PVCs totalling upto 20 GB for each node
 		for i := 0; i < 5; i++ {
-			thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, fmt.Sprintf("thinvol%d", i), "3"))
+			thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, fmt.Sprintf("thinvol%d", i), pvcSizeBytes*3))
 			_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", ns, "-f", "-")
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -167,7 +167,7 @@ func testThinProvisioning() {
 	It("should check overprovision limits", func() {
 		By("Deploying a PVC to use up the available thinpoolsize * overprovisioning")
 
-		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, "thinvol", "18"))
+		thinPvcYAML := []byte(fmt.Sprintf(thinPVCTemplateYAML, "thinvol", pvcSizeBytes*18))
 		_, err := kubectlWithInput(thinPvcYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -191,7 +191,7 @@ func testThinProvisioning() {
 		Expect(lv.poolName).Should(Equal("pool0"))
 
 		By("Failing to deploying a PVC when total size > thinpoolsize * overprovisioning")
-		thinPvcYAML = []byte(fmt.Sprintf(thinPVCTemplateYAML, "thinvol2", "5"))
+		thinPvcYAML = []byte(fmt.Sprintf(thinPVCTemplateYAML, "thinvol2", pvcSizeBytes*5))
 		_, err = kubectlWithInput(thinPvcYAML, "apply", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 

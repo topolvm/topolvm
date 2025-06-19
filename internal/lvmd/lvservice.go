@@ -312,7 +312,7 @@ func (s *lvService) CreateLVSnapshot(ctx context.Context, req *proto.CreateLVSna
 	}, nil
 }
 
-func (s *lvService) ResizeLV(ctx context.Context, req *proto.ResizeLVRequest) (*proto.Empty, error) {
+func (s *lvService) ResizeLV(ctx context.Context, req *proto.ResizeLVRequest) (*proto.ResizeLVResponse, error) {
 	logger := log.FromContext(ctx).WithValues("name", req.GetName())
 
 	dc, err := s.dcmapper.DeviceClass(req.DeviceClass)
@@ -344,13 +344,9 @@ func (s *lvService) ResizeLV(ctx context.Context, req *proto.ResizeLVRequest) (*
 		requested = req.GetSizeGb() << 30
 	}
 	current := lv.Size()
-
-	if requested < current {
-		logger.Error(err, "shrinking volume size is not allowed",
-			"requested", requested,
-			"current", current,
-		)
-		return nil, status.Error(codes.OutOfRange, "shrinking volume size is not allowed")
+	if requested <= current {
+		logger.Info("skipping resize: requested size is smaller than current size", "requested", requested, "current", current)
+		return &proto.ResizeLVResponse{SizeBytes: int64(current)}, nil
 	}
 
 	free := uint64(0)
@@ -408,7 +404,7 @@ func (s *lvService) ResizeLV(ctx context.Context, req *proto.ResizeLVRequest) (*
 	}
 	s.notify()
 
-	logger.Info("resized a LV", "size", requested)
+	logger.Info("resized a LV", "requested", requested, "size", lv.Size())
 
-	return &proto.Empty{}, nil
+	return &proto.ResizeLVResponse{SizeBytes: int64(lv.Size())}, nil
 }

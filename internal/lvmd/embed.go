@@ -143,7 +143,7 @@ func (l *embeddedServiceClients) RemoveLV(ctx context.Context, in *proto.RemoveL
 	return l.lvServiceServer.RemoveLV(ctx, in)
 }
 
-func (l *embeddedServiceClients) ResizeLV(ctx context.Context, in *proto.ResizeLVRequest, _ ...grpc.CallOption) (*proto.Empty, error) {
+func (l *embeddedServiceClients) ResizeLV(ctx context.Context, in *proto.ResizeLVRequest, _ ...grpc.CallOption) (*proto.ResizeLVResponse, error) {
 	return l.lvServiceServer.ResizeLV(ctx, in)
 }
 

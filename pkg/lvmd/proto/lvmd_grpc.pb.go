@@ -41,7 +41,7 @@ type LVServiceClient interface {
 	// Remove a logical volume.
 	RemoveLV(ctx context.Context, in *RemoveLVRequest, opts ...grpc.CallOption) (*Empty, error)
 	// Resize a logical volume.
-	ResizeLV(ctx context.Context, in *ResizeLVRequest, opts ...grpc.CallOption) (*Empty, error)
+	ResizeLV(ctx context.Context, in *ResizeLVRequest, opts ...grpc.CallOption) (*ResizeLVResponse, error)
 	CreateLVSnapshot(ctx context.Context, in *CreateLVSnapshotRequest, opts ...grpc.CallOption) (*CreateLVSnapshotResponse, error)
 }
 
@@ -71,8 +71,8 @@ func (c *lVServiceClient) RemoveLV(ctx context.Context, in *RemoveLVRequest, opt
 	return out, nil
 }
 
-func (c *lVServiceClient) ResizeLV(ctx context.Context, in *ResizeLVRequest, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
+func (c *lVServiceClient) ResizeLV(ctx context.Context, in *ResizeLVRequest, opts ...grpc.CallOption) (*ResizeLVResponse, error) {
+	out := new(ResizeLVResponse)
 	err := c.cc.Invoke(ctx, LVService_ResizeLV_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -98,7 +98,7 @@ type LVServiceServer interface {
 	// Remove a logical volume.
 	RemoveLV(context.Context, *RemoveLVRequest) (*Empty, error)
 	// Resize a logical volume.
-	ResizeLV(context.Context, *ResizeLVRequest) (*Empty, error)
+	ResizeLV(context.Context, *ResizeLVRequest) (*ResizeLVResponse, error)
 	CreateLVSnapshot(context.Context, *CreateLVSnapshotRequest) (*CreateLVSnapshotResponse, error)
 	mustEmbedUnimplementedLVServiceServer()
 }
@@ -113,7 +113,7 @@ func (UnimplementedLVServiceServer) CreateLV(context.Context, *CreateLVRequest) 
 func (UnimplementedLVServiceServer) RemoveLV(context.Context, *RemoveLVRequest) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveLV not implemented")
 }
-func (UnimplementedLVServiceServer) ResizeLV(context.Context, *ResizeLVRequest) (*Empty, error) {
+func (UnimplementedLVServiceServer) ResizeLV(context.Context, *ResizeLVRequest) (*ResizeLVResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ResizeLV not implemented")
 }
 func (UnimplementedLVServiceServer) CreateLVSnapshot(context.Context, *CreateLVSnapshotRequest) (*CreateLVSnapshotResponse, error) {
