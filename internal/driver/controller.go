@@ -638,13 +638,14 @@ func (s controllerServerNoLocked) ControllerExpandVolume(ctx context.Context, re
 		currentSize = &lv.Spec.Size
 	}
 
+	_, nodeExpansionRequired := req.VolumeCapability.GetAccessType().(*csi.VolumeCapability_Mount)
 	if requestCapacityBytes <= currentSize.Value() {
 		logger.Info("ControllerExpandVolume is waiting for node expansion to complete")
 		// "NodeExpansionRequired" is still true because it is unknown
 		// whether node expansion is completed or not.
 		return &csi.ControllerExpandVolumeResponse{
 			CapacityBytes:         currentSize.Value(),
-			NodeExpansionRequired: true,
+			NodeExpansionRequired: nodeExpansionRequired,
 		}, nil
 	}
 	capacity, err := s.nodeService.GetCapacityByName(ctx, lv.Spec.NodeName, lv.Spec.DeviceClass)
@@ -670,6 +671,6 @@ func (s controllerServerNoLocked) ControllerExpandVolume(ctx context.Context, re
 
 	return &csi.ControllerExpandVolumeResponse{
 		CapacityBytes:         requestCapacityBytes,
-		NodeExpansionRequired: true,
+		NodeExpansionRequired: nodeExpansionRequired,
 	}, nil
 }
