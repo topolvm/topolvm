@@ -1081,6 +1081,18 @@ func testE2E() {
 			return nil
 		}, timeout).Should(Succeed())
 
+		By("confirming that the PVC Status.Capacity is updated to actual size")
+		Eventually(func() error {
+			var pvc corev1.PersistentVolumeClaim
+			if err := getObjects(&pvc, "pvc", "-n", ns, "topo-pvc"); err != nil {
+				return fmt.Errorf("failed to get PVC. err: %w", err)
+			}
+			if v := pvc.Status.Capacity.Storage().Value(); v != 2048<<20 {
+				return fmt.Errorf("invalid status.capacity: %d, expected: %d", v, 2048<<20)
+			}
+			return nil
+		}, timeout).Should(Succeed())
+
 		By("deleting the Pod and PVC")
 		_, err = kubectlWithInput(podYAML, "delete", "-n", ns, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())

@@ -255,29 +255,29 @@ func (s *LogicalVolumeService) CreateSnapshot(ctx context.Context, node, dc, sou
 }
 
 // ExpandVolume expands volume
-func (s *LogicalVolumeService) ExpandVolume(ctx context.Context, volumeID string, requestBytes int64) error {
+func (s *LogicalVolumeService) ExpandVolume(ctx context.Context, volumeID string, requestBytes int64) (*topolvmv1.LogicalVolume, error) {
 	logger := logger.WithValues("volume_id", volumeID, "size", requestBytes)
 	logger.Info("k8s.ExpandVolume called")
 	request := resource.NewQuantity(requestBytes, resource.BinarySI)
 
 	lv, err := s.GetVolume(ctx, volumeID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = s.updateSpecSize(ctx, volumeID, request)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return wait.Backoff{
+	var changedLV topolvmv1.LogicalVolume
+	return &changedLV, wait.Backoff{
 		Duration: 1 * time.Second, // initial backoff
 		Factor:   2,               // factor for duration increase
 		Jitter:   0.1,
 		Steps:    math.MaxInt, // run for infinity; we assume context gets canceled
 		Cap:      10 * time.Second,
 	}.DelayFunc().Until(ctx, true, false, func(ctx context.Context) (bool, error) {
-		var changedLV topolvmv1.LogicalVolume
 		if err := s.getter.Get(ctx, client.ObjectKey{Name: lv.Name}, &changedLV); err != nil {
 			logger.Error(err, "failed to get LogicalVolume", "name", lv.Name)
 			return false, err

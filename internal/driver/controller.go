@@ -658,7 +658,7 @@ func (s controllerServerNoLocked) ControllerExpandVolume(ctx context.Context, re
 	}
 
 	logger.Info("ControllerExpandVolume triggering lvService.ExpandVolume")
-	err = s.lvService.ExpandVolume(ctx, volumeID, requestCapacityBytes)
+	changedLV, err := s.lvService.ExpandVolume(ctx, volumeID, requestCapacityBytes)
 	if err != nil {
 		_, ok := status.FromError(err)
 		if !ok {
@@ -670,7 +670,7 @@ func (s controllerServerNoLocked) ControllerExpandVolume(ctx context.Context, re
 	logger.Info("ControllerExpandVolume has succeeded")
 
 	return &csi.ControllerExpandVolumeResponse{
-		CapacityBytes:         requestCapacityBytes,
+		CapacityBytes:         changedLV.Status.CurrentSize.Value(),
 		NodeExpansionRequired: nodeExpansionRequired,
 	}, nil
 }
