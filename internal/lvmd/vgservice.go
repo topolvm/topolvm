@@ -3,7 +3,6 @@ package lvmd
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 
 	"github.com/topolvm/topolvm/internal/lvmd/command"
@@ -11,7 +10,6 @@ import (
 	lvmdTypes "github.com/topolvm/topolvm/pkg/lvmd/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // NewVGService creates a VGServiceServer
@@ -39,35 +37,14 @@ func (s *vgService) GetLVList(ctx context.Context, req *proto.GetLVListRequest) 
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
 	}
-	vg, err := command.FindVolumeGroup(ctx, dc.VolumeGroup)
+	pool, err := storagePoolForDeviceClass(ctx, dc)
 	if err != nil {
-		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), dc.VolumeGroup)
+		return nil, status.Errorf(codes.Internal, "failed to get pool from device class: %v", err)
 	}
 
-	var lvs map[string]*command.LogicalVolume
-
-	switch dc.Type {
-	case lvmdTypes.TypeThick:
-		// thick logicalvolumes
-		lvs, err = vg.ListVolumes(ctx)
-		if err != nil {
-			return nil, err
-		}
-	case lvmdTypes.TypeThin:
-		var pool *command.ThinPool
-		pool, err = vg.FindPool(ctx, dc.ThinPoolConfig.Name)
-		if err != nil {
-			return nil, err
-		}
-		// thin logicalvolumes
-		lvs, err = pool.ListVolumes(ctx)
-		if err != nil {
-			return nil, err
-		}
-	default:
-		// technically this block will not be hit however make sure we return error
-		// in such cases where deviceclass target is neither thick or thinpool
-		return nil, status.Error(codes.Internal, fmt.Sprintf("unsupported device class target: %s", dc.Type))
+	lvs, err := pool.ListVolumes(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	vols := make([]*proto.LogicalVolume, 0, len(lvs))
@@ -92,53 +69,28 @@ func (s *vgService) GetLVList(ctx context.Context, req *proto.GetLVListRequest) 
 }
 
 func (s *vgService) GetFreeBytes(ctx context.Context, req *proto.GetFreeBytesRequest) (*proto.GetFreeBytesResponse, error) {
-	logger := log.FromContext(ctx).WithValues("deviceClass", req.DeviceClass)
 	dc, err := s.dcManager.DeviceClass(req.DeviceClass)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
 	}
-	vg, err := command.FindVolumeGroup(ctx, dc.VolumeGroup)
+	pool, err := storagePoolForDeviceClass(ctx, dc)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "failed to get pool from device class: %v", err)
 	}
-
-	var vgFree uint64
-	switch dc.Type {
-	case lvmdTypes.TypeThick:
-		vgFree, err = vg.Free()
-		if err != nil {
-			logger.Error(err, "failed to get free bytes")
-			return nil, status.Error(codes.Internal, err.Error())
-		}
-	case lvmdTypes.TypeThin:
-		pool, err := vg.FindPool(ctx, dc.ThinPoolConfig.Name)
-		if err != nil {
-			logger.Error(err, "failed to get thinpool")
-			return nil, status.Error(codes.Internal, err.Error())
-		}
-		tpu, err := pool.Free(ctx)
-		if err != nil {
-			logger.Error(err, "failed to get free bytes")
-			return nil, status.Error(codes.Internal, err.Error())
-		}
-
-		// freebytes available in thinpool considering the overprovisionratio
-		vgFree = calcThinPoolFreeBytes(
-			dc.ThinPoolConfig.OverprovisionRatio, tpu.SizeBytes, tpu.VirtualBytes)
-
-	default:
-		return nil, status.Error(codes.Internal, fmt.Sprintf("unsupported device class target: %s", dc.Type))
+	free, err := pool.Free(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get free bytes: %v", err)
 	}
 
 	spare := GetSpare(dc)
-	if vgFree < spare {
-		vgFree = 0
+	if free < spare {
+		free = 0
 	} else {
-		vgFree -= spare
+		free -= spare
 	}
 
 	return &proto.GetFreeBytesResponse{
-		FreeBytes: vgFree,
+		FreeBytes: free,
 	}, nil
 }
 
@@ -149,7 +101,6 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 	}
 	res := &proto.WatchResponse{}
 	for _, vg := range vgs {
-
 		vgFree, err := vg.Free()
 		if err != nil {
 			return status.Error(codes.Internal, err.Error())
@@ -177,7 +128,7 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 			if err != nil {
 				return status.Error(codes.Internal, err.Error())
 			}
-			tpu, err := pool.Free(server.Context())
+			tpu, err := pool.Usage(server.Context())
 			if err != nil {
 				return status.Error(codes.Internal, err.Error())
 			}
@@ -187,8 +138,10 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 			tpi.MetadataPercent = tpu.MetadataPercent
 
 			// used for annotating the node for capacity aware scheduling
-			opb := calcThinPoolFreeBytes(
-				dc.ThinPoolConfig.OverprovisionRatio, tpu.SizeBytes, tpu.VirtualBytes)
+			opb, err := tpu.FreeBytes(dc.ThinPoolConfig.OverprovisionRatio)
+			if err != nil {
+				return status.Errorf(codes.Internal, "failed to get pool usage: %v", err)
+			}
 			tpi.OverprovisionBytes = opb
 			if dc.Default {
 				res.FreeBytes = opb
