@@ -46,7 +46,7 @@ func testLogicalVolume() {
 
 	It("should be set to actual volume size in status field", func() {
 		pvcName := "check-current-size"
-		unroundedSize := 1023
+		unroundedSize := 1023 << 20 // 1023 MiB
 		pvcYaml := fmt.Sprintf(pvcTemplateYAMLForLV, pvcName, unroundedSize)
 		_, err := kubectlWithInput([]byte(pvcYaml), "apply", "-n", nsLogicalVolumeTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -108,11 +108,11 @@ func testLogicalVolume() {
 			Expect(newLV.Status.CurrentSize.Value()).To(BeNumerically(">", reqUnroundedSize))
 		}).Should(Succeed())
 
-		By("clearing Status.CurrentSize and changing Spec.Size to 2Gi")
+		By("clearing Status.CurrentSize and changing Spec.Size to 2047Mi")
 		stopTopoLVMNode(lv.Spec.NodeName, desiredTopoLVMNodeCount-1)
 		clearCurrentSize(k8sClient, lv.Name)
 		_, err = kubectl("patch", "logicalvolumes", lv.Name, "--type=json", "-p",
-			`[{"op": "replace", "path": "/spec/size", "value": "2Gi"}]`)
+			`[{"op": "replace", "path": "/spec/size", "value": "2047Mi"}]`)
 		Expect(err).ShouldNot(HaveOccurred())
 		// sanity check for clearing CurrentSize
 		lv, err = getLogicalVolume(lv.Name)
