@@ -80,7 +80,7 @@ func ValidateDeviceClasses(deviceClasses []*lvmdTypes.DeviceClass) error {
 			}
 
 			if dc.ThinPoolConfig.OverprovisionRatio < 1.0 {
-				return fmt.Errorf("overprovision ratio for thin pool %s in device class %s should be greater than 1.0", dc.ThinPoolConfig.Name, dc.Name)
+				return fmt.Errorf("overprovision ratio for thin pool %s in device class %s should be 1.0 or more", dc.ThinPoolConfig.Name, dc.Name)
 			}
 			// combination of volumegroup and thinpool should be unique across device classes
 			// so the key 'name' shouldn't appear twice to verify it's uniqueness
