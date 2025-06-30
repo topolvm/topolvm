@@ -56,7 +56,6 @@ func (s *vgService) GetLVList(ctx context.Context, req *proto.GetLVListRequest) 
 
 		vols = append(vols, &proto.LogicalVolume{
 			Name:      lv.Name(),
-			SizeGb:    (lv.Size() + (1 << 30) - 1) >> 30,
 			SizeBytes: int64(lv.Size()),
 			DevMajor:  lv.MajorNumber(),
 			DevMinor:  lv.MinorNumber(),
