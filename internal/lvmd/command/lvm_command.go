@@ -21,7 +21,8 @@ const (
 )
 
 var (
-	lvm = "/sbin/lvm"
+	lvm                       = "/sbin/lvm"
+	runLVMCommandsInContainer = false
 )
 
 // SetLVMPath sets the path to the lvm command.
@@ -29,6 +30,14 @@ func SetLVMPath(path string) {
 	if path != "" {
 		lvm = path
 	}
+}
+
+// SetRunLVMCommandsInContainer sets whether to run LVM commands like lvcreate
+// in the container or on the host (i.e., in the root namespace). If set to
+// true, the commands will be run directly in the container. If set to false,
+// the commands will be run in the root namespace through nsenter.
+func SetRunLVMCommandsInContainer(use bool) {
+	runLVMCommandsInContainer = use
 }
 
 // callLVM calls lvm sub-commands and prints the output to the log.
@@ -64,9 +73,20 @@ func callLVMInto(ctx context.Context, into any, logVerbosity int, args ...string
 // Not calling close on this method will result in a resource leak.
 func callLVMStreamed(ctx context.Context, logVerbosity int, args ...string) (io.ReadCloser, error) {
 	ctx = log.IntoContext(ctx, log.FromContext(ctx).WithCallDepth(1))
-	cmd := commandOnRootNS(lvm, args...)
+	var cmd *exec.Cmd
+	if runLVMCommandsInContainer {
+		cmd = exec.Command(lvm, args...)
+	} else {
+		cmd = commandOnRootNS(lvm, args...)
+	}
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "LC_ALL=C")
+	if runLVMCommandsInContainer {
+		// DM_DISABLE_UDEV=1 makes LVM avoid interaction with udev. This is
+		// necessary to run the commands like lvcreate successfully in the
+		// container.
+		cmd.Env = append(cmd.Env, "DM_DISABLE_UDEV=1")
+	}
 	return runCommand(ctx, logVerbosity, cmd)
 }
 

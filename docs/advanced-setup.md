@@ -12,6 +12,7 @@ This document describes how to install TopoLVM with advanced configurations.
   - [Run LVMd as a Systemd Service](#run-lvmd-as-a-systemd-service)
   - [Migrate LVMd, which is running as a systemd service, to DaemonSet](#migrate-lvmd-which-is-running-as-a-systemd-service-to-daemonset)
   - [Use different LVMd configurations on different nodes](#use-different-lvmd-configurations-on-different-nodes)
+  - [(Experimental) Execute LVM commands inside the container](#experimental-execute-lvm-commands-inside-the-container)
 - [Certificates](#certificates)
 - [Scheduling](#scheduling)
   - [Using Storage Capacity Tracking](#using-storage-capacity-tracking)
@@ -177,6 +178,27 @@ Depending on your setup, you might want to deploy different LVMd configurations 
 Please note that `lvmd.additionalConfigs` will only work as expected if you use the managed (i.e., `DaemonSet`) version of LVMd. This feature won't work if you use embedded or unmanaged version of LVMd.
 
 See also [#555](https://github.com/topolvm/topolvm/issues/555) and [#973](https://github.com/topolvm/topolvm/issues/973).
+
+### (Experimental) Execute LVM commands inside the container
+
+**WARNING: This feature is EXPERIMENTAL and is unlikely to become stable anytime soon.**
+If you choose to use it, read the following notes carefully and be sure you understand the risks.
+
+When LVMd runs as a DaemonSet, it normally invokes LVM commands (e.g., `lvcreate`) in the host's root namespace via `nsenter(2)`.
+Consequently, the host must have the LVM utilities installed, but this requirement is not always feasible.
+
+To support such environments, LVMd offers the flag `--experimental-run-lvm-commands-in-container`.
+When this flag enabled, all LVM commands are executed inside the LVMd container itself, without `nsenter(2)`.
+Therefore, the utilities must be installed in the container image, but they no longer need to exist on the host.
+
+However, using LVM commands inside a container is risky. If the host and the container access LVM concurrently,
+metadata corruption can occur. Do not enable this flag unless you fully understand how to keep your data safe.
+For additional background, see [Rook's documentation](https://rook.io/docs/rook/latest-release/Troubleshooting/ceph-common-issues/#symptoms_9).
+
+If you'd like to try the flag:
+
+1. Build a custom Docker image that includes LVM utilities matching the version installed on the host.
+1. Update the Helm chart values accordingly. [The pull request that introduced this option](https://github.com/topolvm/topolvm/pull/1045) can serve as a reference.
 
 ## Certificates
 
