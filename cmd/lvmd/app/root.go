@@ -95,6 +95,10 @@ func subMain(parentCtx context.Context) error {
 		}
 	}
 
+	if config.LVMCommandPrefix != nil {
+		command.SetLVMCommandPrefix(config.LVMCommandPrefix)
+	}
+
 	// UNIX domain socket file should be removed before listening.
 	err = os.Remove(config.SocketName)
 	if err != nil && !os.IsNotExist(err) {

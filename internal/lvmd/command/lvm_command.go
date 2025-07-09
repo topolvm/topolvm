@@ -9,19 +9,20 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"slices"
 	"strings"
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const (
-	nsenter                   = "/usr/bin/nsenter"
 	verbosityLVMStateUpdate   = 1
 	verbosityLVMStateNoUpdate = 4
 )
 
 var (
-	lvm = "/sbin/lvm"
+	lvm              = "/sbin/lvm"
+	lvmCommandPrefix = []string{"/usr/bin/nsenter", "-m", "-u", "-i", "-n", "-p", "-t", "1"}
 )
 
 // SetLVMPath sets the path to the lvm command.
@@ -29,6 +30,12 @@ func SetLVMPath(path string) {
 	if path != "" {
 		lvm = path
 	}
+}
+
+// SetLVMCommandPrefix sets a list of strings necessary to run a LVM command.
+// For example, if it's X, `/sbin/lvm lvcreate ...` will be run as `X /sbin/lvm lvcreate ...`.
+func SetLVMCommandPrefix(prefix []string) {
+	lvmCommandPrefix = prefix
 }
 
 // callLVM calls lvm sub-commands and prints the output to the log.
@@ -64,17 +71,16 @@ func callLVMInto(ctx context.Context, into any, logVerbosity int, args ...string
 // Not calling close on this method will result in a resource leak.
 func callLVMStreamed(ctx context.Context, logVerbosity int, args ...string) (io.ReadCloser, error) {
 	ctx = log.IntoContext(ctx, log.FromContext(ctx).WithCallDepth(1))
-	cmd := commandOnRootNS(lvm, args...)
+
+	wholeCommand := slices.Concat(lvmCommandPrefix, []string{lvm}, args)
+	if len(wholeCommand) < 2 {
+		return nil, fmt.Errorf("invalid invocation of LVM command: %v", wholeCommand)
+	}
+
+	cmd := exec.Command(wholeCommand[0], wholeCommand[1:]...)
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "LC_ALL=C")
 	return runCommand(ctx, logVerbosity, cmd)
-}
-
-// commandOnRootNS calls cmd with args on root NS.
-func commandOnRootNS(cmd string, args ...string) *exec.Cmd {
-	args = append([]string{"-m", "-u", "-i", "-n", "-p", "-t", "1", cmd}, args...)
-	c := exec.Command(nsenter, args...)
-	return c
 }
 
 // runCommand runs the command and returns the stdout as a ReadCloser that also Waits for the command to finish.

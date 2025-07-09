@@ -97,6 +97,10 @@ func subMain(ctx context.Context) error {
 			config.lvmd.DeviceClasses,
 			config.lvmd.LvcreateOptionClasses,
 		)
+
+		if config.lvmd.LVMCommandPrefix != nil {
+			lvmd.SetLVMCommandPrefix(config.lvmd.LVMCommandPrefix)
+		}
 	} else {
 		conn, err := grpc.NewClient(
 			"unix:"+config.lvmdSocket,
