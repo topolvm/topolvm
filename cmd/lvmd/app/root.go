@@ -95,6 +95,13 @@ func subMain(parentCtx context.Context) error {
 		}
 	}
 
+	if config.LVMCommandPrefix != nil {
+		if lvmPath != "" {
+			return fmt.Errorf("cannot set both --lvm-path and lvm-command-prefix")
+		}
+		command.SetLVMCommandPrefix(config.LVMCommandPrefix)
+	}
+
 	// UNIX domain socket file should be removed before listening.
 	err = os.Remove(config.SocketName)
 	if err != nil && !os.IsNotExist(err) {
