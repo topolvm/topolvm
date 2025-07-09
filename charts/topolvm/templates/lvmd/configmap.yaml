@@ -24,6 +24,9 @@ data:
     {{- if $lvmd.lvcreateOptionClasses }}
     lvcreate-option-classes: {{ toYaml $lvmd.lvcreateOptionClasses | nindent 6 }}
     {{- end }}
+    {{- with $lvmd.additionalLVMDYamlContent }}
+    {{ toYaml . }}
+    {{- end }}
 ---
     {{- end }}
   {{- end }}

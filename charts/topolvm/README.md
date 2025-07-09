@@ -65,6 +65,7 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v15.
 | livenessProbe.topolvm_scheduler | object | `{"failureThreshold":null,"initialDelaySeconds":10,"periodSeconds":60,"timeoutSeconds":3}` | Specify livenessProbe. # ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/ |
 | lvmd.additionalConfigs | list | `[]` | Define additional LVM Daemon configs if you have additional types of nodes. Please ensure nodeSelectors are non overlapping. |
 | lvmd.additionalContainers | list | `[]` | Define extra containers to add to the Daemonset. Please ensure not to use any existing container names. |
+| lvmd.additionalLVMDYamlContent | object | `{}` | Specify additional content to be added to the lvmd.yaml file. |
 | lvmd.additionalVolumes | list | `[]` | Specify additional volumes without conflicting with default volumes most useful for initContainers but available to all containers in the pod. |
 | lvmd.affinity | object | `{}` | Specify affinity. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity |
 | lvmd.args | list | `[]` | Arguments to be passed to the command. |

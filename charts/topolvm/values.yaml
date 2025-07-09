@@ -151,6 +151,9 @@ lvmd:
   #   options:
   #     - --type=raid1
 
+  # lvmd.additionalLVMDYamlContent -- Specify additional content to be added to the lvmd.yaml file.
+  additionalLVMDYamlContent: {}
+
   # lvmd.args -- Arguments to be passed to the command.
   args: []
 
