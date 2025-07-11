@@ -97,6 +97,13 @@ func subMain(ctx context.Context) error {
 			config.lvmd.DeviceClasses,
 			config.lvmd.LvcreateOptionClasses,
 		)
+
+		if config.lvmd.LVMCommandPrefix != nil {
+			if config.lvmPath != "" {
+				return fmt.Errorf("cannot set both --lvm-path and lvm-command-prefix")
+			}
+			lvmd.SetLVMCommandPrefix(config.lvmd.LVMCommandPrefix)
+		}
 	} else {
 		conn, err := grpc.NewClient(
 			"unix:"+config.lvmdSocket,

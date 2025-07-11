@@ -95,6 +95,13 @@ func subMain(parentCtx context.Context) error {
 		}
 	}
 
+	if config.LVMCommandPrefix != nil {
+		if lvmPath != "" {
+			return fmt.Errorf("cannot set both --lvm-path and lvm-command-prefix")
+		}
+		command.SetLVMCommandPrefix(config.LVMCommandPrefix)
+	}
+
 	// UNIX domain socket file should be removed before listening.
 	err = os.Remove(config.SocketName)
 	if err != nil && !os.IsNotExist(err) {
@@ -195,7 +202,7 @@ func Execute() {
 func init() {
 	fs := rootCmd.Flags()
 	fs.StringVar(&cfgFilePath, "config", filepath.Join("/etc", "topolvm", "lvmd.yaml"), "config file")
-	fs.StringVar(&lvmPath, "lvm-path", "", "lvm command path on the host OS")
+	fs.StringVar(&lvmPath, "lvm-path", "", "lvm command path on the host OS. This is deprecated and users should use lvm-command-prefix setting instead.")
 	fs.StringVar(&profilingBindAddress, "profiling-bind-address", "", "bind address to expose pprof profiling. If empty, profiling is disabled")
 	fs.StringVar(&metricsBindAddress, "metrics-bind-address", ":8080", "bind address to expose prometheus metrics. If empty, metrics are disabled")
 

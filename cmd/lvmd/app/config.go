@@ -18,6 +18,9 @@ type Config struct {
 	DeviceClasses []*lvmdTypes.DeviceClass `json:"device-classes"`
 	// LvcreateOptionClasses are classes that define options for the lvcreate command
 	LvcreateOptionClasses []*lvmdTypes.LvcreateOptionClass `json:"lvcreate-option-classes"`
+	// LVMCommandPrefix is a list of strings necessary to run a LVM command.
+	// For example, if it's X, `/sbin/lvm lvcreate ...` will be run as `X /sbin/lvm lvcreate ...`.
+	LVMCommandPrefix []string `json:"lvm-command-prefix"`
 }
 
 var config = &Config{
