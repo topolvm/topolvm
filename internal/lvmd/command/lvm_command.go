@@ -71,12 +71,7 @@ func callLVMInto(ctx context.Context, into any, logVerbosity int, args ...string
 // Not calling close on this method will result in a resource leak.
 func callLVMStreamed(ctx context.Context, logVerbosity int, args ...string) (io.ReadCloser, error) {
 	ctx = log.IntoContext(ctx, log.FromContext(ctx).WithCallDepth(1))
-
 	wholeCommand := slices.Concat(lvmCommandPrefix, []string{lvm}, args)
-	if len(wholeCommand) < 2 {
-		return nil, fmt.Errorf("invalid invocation of LVM command: %v", wholeCommand)
-	}
-
 	cmd := exec.Command(wholeCommand[0], wholeCommand[1:]...)
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "LC_ALL=C")
