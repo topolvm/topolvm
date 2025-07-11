@@ -21,19 +21,20 @@ const (
 )
 
 var (
-	lvm              = "/sbin/lvm"
-	lvmCommandPrefix = []string{"/usr/bin/nsenter", "-m", "-u", "-i", "-n", "-p", "-t", "1"}
+	lvmCommandPrefix = []string{"/usr/bin/nsenter", "-m", "-u", "-i", "-n", "-p", "-t", "1", "/sbin/lvm"}
 )
 
-// SetLVMPath sets the path to the lvm command.
+// SetLVMPath sets the path to the lvm command. Note that this function must not
+// be called together with SetLVMCommandPrefix.
 func SetLVMPath(path string) {
 	if path != "" {
-		lvm = path
+		lvmCommandPrefix[len(lvmCommandPrefix)-1] = path
 	}
 }
 
 // SetLVMCommandPrefix sets a list of strings necessary to run a LVM command.
-// For example, if it's X, `/sbin/lvm lvcreate ...` will be run as `X /sbin/lvm lvcreate ...`.
+// For example, if it's X, `/sbin/lvm lvcreate ...` will be run as `X /sbin/lvm
+// lvcreate ...`.  This function must not be called together with SetLVMPath.
 func SetLVMCommandPrefix(prefix []string) {
 	lvmCommandPrefix = prefix
 }
@@ -71,7 +72,7 @@ func callLVMInto(ctx context.Context, into any, logVerbosity int, args ...string
 // Not calling close on this method will result in a resource leak.
 func callLVMStreamed(ctx context.Context, logVerbosity int, args ...string) (io.ReadCloser, error) {
 	ctx = log.IntoContext(ctx, log.FromContext(ctx).WithCallDepth(1))
-	wholeCommand := slices.Concat(lvmCommandPrefix, []string{lvm}, args)
+	wholeCommand := slices.Concat(lvmCommandPrefix, args)
 	cmd := exec.Command(wholeCommand[0], wholeCommand[1:]...)
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "LC_ALL=C")

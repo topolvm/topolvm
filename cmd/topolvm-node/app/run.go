@@ -99,6 +99,9 @@ func subMain(ctx context.Context) error {
 		)
 
 		if config.lvmd.LVMCommandPrefix != nil {
+			if config.lvmPath != "" {
+				return fmt.Errorf("cannot set both --lvm-path and lvm-command-prefix")
+			}
 			lvmd.SetLVMCommandPrefix(config.lvmd.LVMCommandPrefix)
 		}
 	} else {
