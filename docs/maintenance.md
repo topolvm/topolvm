@@ -27,6 +27,7 @@ Edit the following files.
 - `versions.mk`
 - `.github/workflows/e2e-k8s-incluster-lvmd.yaml`
 - `.github/workflows/e2e-k8s-workflow.yaml`
+- `test/e2e/README.md`
 
 Next, we should update `go.mod` by the following commands.
 Please note that Kubernetes v1 corresponds with v0 for the release tags. For example, v1.17.2 corresponds with the `v0.17.2` tag.
