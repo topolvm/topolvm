@@ -24,6 +24,7 @@ var config struct {
 	lvmPath              string
 	lvmd                 lvmd.Config
 	profilingBindAddress string
+	defaultClass         string
 }
 
 var rootCmd = &cobra.Command{
@@ -63,6 +64,7 @@ func init() {
 	fs.StringVar(&config.lvmPath, "lvm-path", "", "lvm command path on the host OS. This is deprecated and users should use lvm-command-prefix setting instead.")
 	fs.StringVar(&cfgFilePath, "config", filepath.Join("/etc", "topolvm", "lvmd.yaml"), "config file")
 	fs.StringVar(&config.profilingBindAddress, "profiling-bind-address", "", "Bind pprof profiling to the given network address. If empty, profiling is disabled.")
+	fs.StringVar(&config.defaultClass, "default-class", "", "Default volume group for volumes")
 
 	_ = viper.BindEnv("nodename", "NODE_NAME")
 	_ = viper.BindPFlag("nodename", fs.Lookup("nodename"))
