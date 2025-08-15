@@ -101,6 +101,7 @@ func (s *lvService) CreateLV(ctx context.Context, req *proto.CreateLVRequest) (*
 			// convert to int64 because lvmd internals and lvm use uint64 but CSI uses int64.
 			// For most conventional lvm use cases overflow here will never occur (9223372 TB or above cause overflow)
 			SizeBytes: int64(lv.Size()),
+			Path:      lv.Path(),
 			DevMajor:  lv.MajorNumber(),
 			DevMinor:  lv.MinorNumber(),
 		},

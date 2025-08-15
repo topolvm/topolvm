@@ -91,6 +91,8 @@ spec:
                 x-kubernetes-int-or-string: true
               message:
                 type: string
+              path:
+                type: string
               volumeID:
                 description: |-
                   INSERT ADDITIONAL STATUS FIELD - define observed state of cluster

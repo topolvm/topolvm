@@ -152,23 +152,37 @@ func (s *nodeServerNoLocked) NodePublishVolume(ctx context.Context, req *csi.Nod
 
 	var lv *proto.LogicalVolume
 	var err error
+	var sourcePath string
 
 	lvr, err := s.k8sLVService.GetVolume(ctx, volumeID)
 	if err != nil {
 		return nil, err
 	}
-	lv, err = s.getLvFromContext(ctx, lvr.Spec.DeviceClass, volumeID)
-	if err != nil {
-		return nil, err
-	}
-	if lv == nil {
-		return nil, status.Errorf(codes.NotFound, "failed to find LV: %s", volumeID)
+
+	if lvr.Status.Path != "" {
+		sourcePath = lvr.Status.Path
+	} else {
+		// this function does a time-consuming scan so it is avoided if lvr.Status.Path is stated.
+		lv, err = s.getLvFromContext(ctx, lvr.Spec.DeviceClass, volumeID)
+		if err != nil {
+			return nil, err
+		}
+		if lv == nil {
+			return nil, status.Errorf(codes.NotFound, "failed to find LV: %s", volumeID)
+		}
+
+		sourcePath = lv.GetPath()
+		// updating lvr.Status.Path
+		err = s.k8sLVService.UpdateStatusPath(ctx, lvr, sourcePath)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if isBlockVol {
-		err = s.nodePublishBlockVolume(req, lv)
+		err = s.nodePublishBlockVolume(req, sourcePath)
 	} else if isFsVol {
-		err = s.nodePublishFilesystemVolume(req, lv)
+		err = s.nodePublishFilesystemVolume(req, sourcePath)
 	}
 	if err != nil {
 		return nil, err
@@ -199,7 +213,7 @@ func toReadOnlyMountOption(readOnly bool) []string {
 	return map[bool][]string{true: {"ro"}, false: nil}[readOnly]
 }
 
-func (s *nodeServerNoLocked) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequest, lv *proto.LogicalVolume) error {
+func (s *nodeServerNoLocked) nodePublishFilesystemVolume(req *csi.NodePublishVolumeRequest, sourcePath string) error {
 	// Check request
 	mountOption := req.GetVolumeCapability().GetMount()
 	if mountOption.FsType == "" {
@@ -215,7 +229,7 @@ func (s *nodeServerNoLocked) nodePublishFilesystemVolume(req *csi.NodePublishVol
 		return status.Errorf(codes.Internal, "mkdir failed: target=%s, error=%v", req.GetTargetPath(), err)
 	}
 
-	fsType, err := filesystem.DetectFilesystem(lv.GetPath())
+	fsType, err := filesystem.DetectFilesystem(sourcePath)
 	if err != nil {
 		return status.Errorf(codes.Internal, "filesystem check failed: volume=%s, error=%v", req.GetVolumeId(), err)
 	}
@@ -234,7 +248,7 @@ func (s *nodeServerNoLocked) nodePublishFilesystemVolume(req *csi.NodePublishVol
 		if len(fsType) > 0 {
 			mountFunc = s.mounter.Mount
 		}
-		if err := mountFunc(lv.GetPath(), req.GetTargetPath(), mountOption.FsType, mountOptions); err != nil {
+		if err := mountFunc(sourcePath, req.GetTargetPath(), mountOption.FsType, mountOptions); err != nil {
 			return status.Errorf(codes.Internal, "mount failed: volume=%s, error=%v", req.GetVolumeId(), err)
 		}
 		if err := os.Chmod(req.GetTargetPath(), 0777|os.ModeSetgid); err != nil {
@@ -243,8 +257,8 @@ func (s *nodeServerNoLocked) nodePublishFilesystemVolume(req *csi.NodePublishVol
 	}
 
 	r := mountutil.NewResizeFs(s.mounter.Exec)
-	if resize, err := r.NeedResize(lv.GetPath(), req.GetTargetPath()); resize {
-		if _, err := r.Resize(lv.GetPath(), req.GetTargetPath()); err != nil {
+	if resize, err := r.NeedResize(sourcePath, req.GetTargetPath()); resize {
+		if _, err := r.Resize(sourcePath, req.GetTargetPath()); err != nil {
 			return status.Errorf(codes.Internal, "failed to resize filesystem %s (mounted at: %s): %v", req.VolumeId, req.GetTargetPath(), err)
 		}
 	} else if err != nil {
@@ -259,7 +273,7 @@ func (s *nodeServerNoLocked) nodePublishFilesystemVolume(req *csi.NodePublishVol
 	return nil
 }
 
-func (s *nodeServerNoLocked) nodePublishBlockVolume(req *csi.NodePublishVolumeRequest, lv *proto.LogicalVolume) error {
+func (s *nodeServerNoLocked) nodePublishBlockVolume(req *csi.NodePublishVolumeRequest, sourcePath string) error {
 	// Find lv and create a block device with it
 	// We mount via bind mount so that we can also respect the readonly flag
 	mountOptions := append(toReadOnlyMountOption(req.GetReadonly()), "bind")
@@ -274,7 +288,7 @@ func (s *nodeServerNoLocked) nodePublishBlockVolume(req *csi.NodePublishVolumeRe
 		return status.Errorf(codes.Internal, "chmod failed: target=%s, error=%v", req.GetTargetPath(), err)
 	}
 
-	if err := s.mounter.Mount(lv.GetPath(), req.GetTargetPath(), "", mountOptions); err != nil {
+	if err := s.mounter.Mount(sourcePath, req.GetTargetPath(), "", mountOptions); err != nil {
 		return status.Errorf(codes.Internal, "(bind)mount failed: volume=%s, error=%v", req.GetVolumeId(), err)
 	}
 
@@ -447,6 +461,10 @@ func (s *nodeServerNoLocked) NodeGetVolumeStats(ctx context.Context, req *csi.No
 }
 
 func (s *nodeServerNoLocked) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
+	var err error
+	var lv *proto.LogicalVolume
+	var sourcePath string
+
 	volumeID := req.GetVolumeId()
 	volumePath := req.GetVolumePath()
 	logger := nodeLogger.WithValues("volume_id", volumeID,
@@ -465,7 +483,7 @@ func (s *nodeServerNoLocked) NodeExpandVolume(ctx context.Context, req *csi.Node
 
 	// We need to check the capacity range but don't use the converted value
 	// because the filesystem can be resized without the requested size.
-	_, err := convertRequestCapacityBytes(
+	_, err = convertRequestCapacityBytes(
 		req.GetCapacityRange().GetRequiredBytes(),
 		req.GetCapacityRange().GetLimitBytes(),
 	)
@@ -479,18 +497,31 @@ func (s *nodeServerNoLocked) NodeExpandVolume(ctx context.Context, req *csi.Node
 	}
 
 	lvr, err := s.k8sLVService.GetVolume(ctx, volumeID)
-	deviceClass := topolvm.DefaultDeviceClassName
-	if err == nil {
-		deviceClass = lvr.Spec.DeviceClass
-	} else if !errors.Is(err, k8s.ErrVolumeNotFound) {
+	if !errors.Is(err, k8s.ErrVolumeNotFound) {
 		return nil, err
 	}
-	lv, err := s.getLvFromContext(ctx, deviceClass, volumeID)
-	if err != nil {
-		return nil, err
-	}
-	if lv == nil {
-		return nil, status.Errorf(codes.NotFound, "failed to find LV: %s", volumeID)
+
+	if lvr.Status.Path != "" {
+		sourcePath = lvr.Status.Path
+	} else {
+		deviceClass := topolvm.DefaultDeviceClassName
+		if err == nil {
+			deviceClass = lvr.Spec.DeviceClass
+		}
+		// this function does a time-consuming scan so it is avoided if lvr.Status.Path is stated
+		lv, err = s.getLvFromContext(ctx, deviceClass, volumeID)
+		if err != nil {
+			return nil, err
+		}
+		if lv == nil {
+			return nil, status.Errorf(codes.NotFound, "failed to find LV: %s", volumeID)
+		}
+		sourcePath = lv.GetPath()
+		// updating lvr.Status.Path
+		err = s.k8sLVService.UpdateStatusPath(ctx, lvr, sourcePath)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	args := []string{"-o", "source", "--noheadings", "--target", req.GetVolumePath()}
@@ -507,7 +538,7 @@ func (s *nodeServerNoLocked) NodeExpandVolume(ctx context.Context, req *csi.Node
 
 	logger.Info("triggering filesystem resize")
 	r := mountutil.NewResizeFs(s.mounter.Exec)
-	if _, err := r.Resize(lv.GetPath(), volumePath); err != nil {
+	if _, err := r.Resize(sourcePath, volumePath); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to resize filesystem %s (mounted at: %s): %v", volumeID, volumePath, err)
 	}
 

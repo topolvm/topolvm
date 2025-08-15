@@ -343,6 +343,30 @@ func (s *LogicalVolumeService) updateSpecSize(ctx context.Context, volumeID stri
 		})
 }
 
+// UpdateStatusPath updates .Status.Path of LogicalVolume.
+func (s *LogicalVolumeService) UpdateStatusPath(ctx context.Context, lv *topolvmv1.LogicalVolume, path string) error {
+	logger.Info("Updating Status.Path", "path", path)
+	return wait.ExponentialBackoffWithContext(ctx,
+		retry.DefaultBackoff,
+		func(ctx context.Context) (bool, error) {
+			lv.Status.Path = path
+			if lv.Annotations == nil {
+				lv.Annotations = make(map[string]string)
+			}
+			lv.Annotations[topolvm.GetResizeRequestedAtKey()] = time.Now().UTC().String()
+			if err := s.writer.Status().Update(ctx, lv); err != nil {
+				if apierrors.IsConflict(err) {
+					logger.Info("detected conflict when trying to update LogicalVolume spec", "name", lv.Name)
+					return false, nil
+				} else {
+					logger.Error(err, "failed to update LogicalVolume spec", "name", lv.Name)
+					return false, err
+				}
+			}
+			return true, nil
+		})
+}
+
 // createAndWait creates a new LogicalVolume resource and wait until it is fully provisioned
 func (s *LogicalVolumeService) createAndWait(ctx context.Context, lv *topolvmv1.LogicalVolume) (*topolvmv1.LogicalVolume, error) {
 	if err := s.create(ctx, lv); err != nil {
