@@ -257,6 +257,7 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 
 		lv.Status.VolumeID = volume.Name
 		lv.Status.CurrentSize = resource.NewQuantity(volume.SizeBytes, resource.BinarySI)
+		lv.Status.Path = volume.Path
 		lv.Status.Code = codes.OK
 		lv.Status.Message = ""
 		return nil
