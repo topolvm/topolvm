@@ -39,17 +39,6 @@ Must update Kubernetes with each new version of Kubernetes.
 - [ ] crictl
   - https://github.com/kubernetes-sigs/cri-tools/releases
 
-### Semi-required Dependencies
-
-These are not released on the occasion of a Kubernetes version upgrade, so if there is a release that corresponds to a Kubernetes version, use it.
-
-- [ ] node driver registrar
-  - https://github.com/kubernetes-csi/node-driver-registrar/tree/master/CHANGELOG
-- [ ] liveness probe
-  - https://github.com/kubernetes-csi/livenessprobe/tree/master/CHANGELOG
-- [ ] cri-docker
-  - https://github.com/Mirantis/cri-dockerd/releases
-
 ### Release notes check
 
 - [ ] Read the necessary release notes for Kubernetes.
