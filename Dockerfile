@@ -1,5 +1,5 @@
 # Build topolvm
-FROM --platform=$BUILDPLATFORM golang:1.24-bullseye AS build-topolvm
+FROM --platform=$BUILDPLATFORM golang:1.24-bookworm AS build-topolvm
 
 # Get argument
 ARG TOPOLVM_VERSION
@@ -12,7 +12,7 @@ RUN touch pkg/lvmd/proto/*.go
 RUN make build-topolvm TOPOLVM_VERSION=${TOPOLVM_VERSION} GOARCH=${TARGETARCH}
 
 # TopoLVM container
-FROM ubuntu:22.04 AS topolvm
+FROM ubuntu:24.04 AS topolvm
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
