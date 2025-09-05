@@ -7,7 +7,7 @@ on:
 jobs:
   build:
     name: "build"
-    runs-on: "ubuntu-22.04"
+    runs-on: "ubuntu-24.04"
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v5
@@ -30,7 +30,7 @@ jobs:
   container-structure-test:
     name: "container-structure-test"
     needs: build
-    runs-on: "ubuntu-22.04"
+    runs-on: "ubuntu-24.04"
     strategy:
       fail-fast: true
       matrix:
@@ -48,7 +48,7 @@ jobs:
   example:
     if:  startsWith(github.head_ref, 'bump-chart-')
     name: "example"
-    runs-on: "ubuntu-22.04"
+    runs-on: "ubuntu-24.04"
     defaults:
       run:
         working-directory: "example"

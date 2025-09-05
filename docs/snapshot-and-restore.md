@@ -75,7 +75,7 @@ metadata:
 spec:
   containers:
   - name: pause
-    image: ubuntu:22.04
+    image: ubuntu:24.04
     command:
     - bash
     - -c
@@ -148,7 +148,7 @@ spec:
     requests:
       storage: 1Gi
   storageClassName: topolvm-provisioner-thin
-  dataSource:
+  dataSourceRef:
     name: my-snapshot
     kind: VolumeSnapshot
     apiGroup: snapshot.storage.k8s.io
@@ -160,7 +160,7 @@ metadata:
 spec:
   containers:
   - name: pause
-    image: ubuntu:22.04
+    image: ubuntu:24.04
     command:
     - bash
     - -c

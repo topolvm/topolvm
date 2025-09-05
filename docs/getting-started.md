@@ -36,7 +36,7 @@ helm install --namespace=topolvm-system topolvm topolvm/topolvm
 If you want to install cert-manager together, use the following command instead.
 
 ```sh
-CERT_MANAGER_VERSION=v1.17.1
+CERT_MANAGER_VERSION=v1.17.4
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/${CERT_MANAGER_VERSION}/cert-manager.crds.yaml
 
 helm install --namespace=topolvm-system topolvm topolvm/topolvm --set cert-manager.enabled=true
