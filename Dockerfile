@@ -1,5 +1,5 @@
 # Build topolvm
-FROM --platform=$BUILDPLATFORM golang:1.23-bullseye AS build-topolvm
+FROM --platform=$BUILDPLATFORM golang:1.24-bullseye AS build-topolvm
 
 # Get argument
 ARG TOPOLVM_VERSION
