@@ -53,6 +53,9 @@ ifeq ($(STRUCTURE_TEST_TARGET),with-sidecar)
 CONTAINER_STRUCTURE_TEST_IMAGE=$(IMAGE_PREFIX)topolvm-with-sidecar:devel
 endif
 
+export ENVTEST_KUBERNETES_VERSION
+export ENVTEST_ASSETS_DIR
+
 ##@ General
 
 # The help target prints out all targets with their descriptions organized
@@ -132,14 +135,12 @@ lint-fix: ## Run golangci-lint linter and perform fixes
 test: lint ## Run lint and unit tests.
 	go install ./...
 
-	mkdir -p $(ENVTEST_ASSETS_DIR)
-	source <($(BINDIR)/setup-envtest use $(ENVTEST_KUBERNETES_VERSION) --bin-dir=$(ENVTEST_ASSETS_DIR) -p env); GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn go test -count=1 -race -v --timeout=120s ./...
+	GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn go test -count=1 -race -v --timeout=120s ./...
 
 groupname-test: ## Run unit tests that depends on the groupname.
 	go install ./...
 
-	mkdir -p $(ENVTEST_ASSETS_DIR)
-	source <($(BINDIR)/setup-envtest use $(ENVTEST_KUBERNETES_VERSION) --bin-dir=$(ENVTEST_ASSETS_DIR) -p env); GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn TEST_LEGACY=true go test -count=1 -race -v --timeout=60s ./internal/client/*
+	GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn TEST_LEGACY=true go test -count=1 -race -v --timeout=60s ./internal/client/*
 	TEST_LEGACY=true go test -count=1 -race -v --timeout=60s ./constants*.go
 
 .PHONY: clean
@@ -272,7 +273,6 @@ install-helm-docs: | $(BINDIR)
 .PHONY: tools
 tools: install-kind install-container-structure-test install-helm install-helm-docs | $(BINDIR) ## Install development tools.
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell dirname $(GOLANGCI_LINT)) $(GOLANGCI_LINT_VERSION)
-	GOBIN=$(BINDIR) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@$(ENVTEST_BRANCH)
 	GOBIN=$(BINDIR) go install sigs.k8s.io/controller-tools/cmd/controller-gen@v$(CONTROLLER_TOOLS_VERSION)
 
 	$(CURL) -o protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-linux-x86_64.zip

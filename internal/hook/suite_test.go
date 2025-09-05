@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -193,8 +194,12 @@ var _ = BeforeSuite(func() {
 	}
 
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "config", "crd", "bases")},
-		WebhookInstallOptions: webhookInstallOptions,
+		CRDDirectoryPaths:           []string{filepath.Join("..", "..", "config", "crd", "bases")},
+		ErrorIfCRDPathMissing:       true,
+		DownloadBinaryAssets:        true,
+		DownloadBinaryAssetsVersion: "v" + os.Getenv("ENVTEST_KUBERNETES_VERSION"),
+		BinaryAssetsDirectory:       os.Getenv("ENVTEST_ASSETS_DIR"),
+		WebhookInstallOptions:       webhookInstallOptions,
 	}
 
 	var err error
