@@ -4,7 +4,7 @@ metadata:
   name: %s
 spec:
   storageClassName: topolvm-provisioner-thin
-  dataSource:
+  dataSourceRef:
     name: %s
     kind: PersistentVolumeClaim
   accessModes:
