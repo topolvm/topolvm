@@ -2,7 +2,7 @@
 BUILDX_VERSION := 0.28.0
 # If you update the version, you also need to update getting-started.md.
 # https://github.com/cert-manager/cert-manager/releases
-CERT_MANAGER_VERSION := v1.17.1
+CERT_MANAGER_VERSION := v1.17.4
 # https://github.com/helm/chart-testing/releases
 CHART_TESTING_VERSION := 3.13.0
 # https://github.com/containernetworking/plugins/releases
