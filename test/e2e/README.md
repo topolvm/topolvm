@@ -92,7 +92,7 @@ You can use the following script to run the tests using Minikube on [Multipass](
 set -euxo pipefail
 
 GOVERSION=1.24.3 # Choose a supported version
-KUBERNETES_VERSION=1.32.2 # Choose a supported version
+KUBERNETES_VERSION=1.33.4 # Choose a supported version
 
 multipass delete -p testvm || true
 multipass launch lts --name testvm --memory 8G --disk 20G --cpus 4
