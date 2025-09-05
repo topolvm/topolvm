@@ -148,7 +148,7 @@ spec:
     requests:
       storage: 1Gi
   storageClassName: topolvm-provisioner-thin
-  dataSource:
+  dataSourceRef:
     name: my-snapshot
     kind: VolumeSnapshot
     apiGroup: snapshot.storage.k8s.io
