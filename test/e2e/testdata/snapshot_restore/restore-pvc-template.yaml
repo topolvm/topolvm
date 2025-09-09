@@ -10,7 +10,7 @@ spec:
     requests:
       storage: %d
   storageClassName: topolvm-provisioner-thin
-  dataSource:
+  dataSourceRef:
     name: %s
     kind: VolumeSnapshot
     apiGroup: snapshot.storage.k8s.io
