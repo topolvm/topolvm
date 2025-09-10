@@ -866,10 +866,7 @@ func testE2E() {
 	})
 
 	DescribeTable("should resize filesystem",
-		// expectedSizes is the expected size of the volume after a resize.
-		// there are 3 steps of resizing: online, offline, and after deleting pods.
-		// thus the expected sizes should be 3 elements.
-		func(storageClass string, expectedSizes []int) {
+		func(storageClass string) {
 			By(fmt.Sprintf("deploying Pod with PVC based on StorageClass: %s", storageClass))
 			claimYAML := []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 1024<<20, storageClass))
 			podYaml := []byte(fmt.Sprintf(podVolumeMountTemplateYAML, "ubuntu", "topo-pvc"))
@@ -885,12 +882,18 @@ func testE2E() {
 			}).Should(Succeed())
 
 			By("resizing PVC online")
-			claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 2*1024<<20, storageClass))
+			sizeInByte := 2 * 1024 << 20
+			claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", sizeInByte, storageClass))
 			_, err = kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 			Expect(err).ShouldNot(HaveOccurred())
 
 			By("confirming that the specified device is resized in the Pod")
 			timeout := time.Minute * 5
+			// We want to verify that the file system has been expanded,
+			// but it's difficult to confirm whether the size matches expectations
+			// on a per-byte basis. Therefore, we perform a rough comparison to see
+			// if the size confirmed by the df command is at least 90% of the PVC size.
+			expectedSizeLowerBound := int(float64(sizeInByte) * 0.9 / 1024)
 			Eventually(func() error {
 				stdout, err := kubectl("exec", "-n", ns, "ubuntu", "--", "df", "--output=size", "/test1")
 				if err != nil {
@@ -901,8 +904,9 @@ func testE2E() {
 				if err != nil {
 					return fmt.Errorf("failed to convert volume size string. data: %s, err: %w", stdout, err)
 				}
-				if volSize != expectedSizes[0] {
-					return fmt.Errorf("failed to match volume size. actual: %d, expected: %d", volSize, expectedSizes[0])
+				if volSize < expectedSizeLowerBound {
+					return fmt.Errorf("failed to match volume size. actual: %d, expectedSizeLowerBound: %d",
+						volSize, expectedSizeLowerBound)
 				}
 				return nil
 			}, timeout).Should(Succeed())
@@ -912,7 +916,8 @@ func testE2E() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			By("resizing PVC offline")
-			claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 3*1024<<20, storageClass))
+			sizeInByte = 3 * 1024 << 20
+			claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", sizeInByte, storageClass))
 			_, err = kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -921,6 +926,7 @@ func testE2E() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			By("confirming that the specified device is resized in the Pod")
+			expectedSizeLowerBound = int(float64(sizeInByte) * 0.9 / 1024)
 			Eventually(func() error {
 				stdout, err := kubectl("exec", "-n", ns, "ubuntu", "--", "df", "--output=size", "/test1")
 				if err != nil {
@@ -931,8 +937,9 @@ func testE2E() {
 				if err != nil {
 					return fmt.Errorf("failed to convert volume size string. data: %s, err: %w", stdout, err)
 				}
-				if volSize != expectedSizes[1] {
-					return fmt.Errorf("failed to match volume size. actual: %d, expected: %d", volSize, expectedSizes[1])
+				if volSize < expectedSizeLowerBound {
+					return fmt.Errorf("failed to match volume size. actual: %d, expectedSizeLowerBound: %d",
+						volSize, expectedSizeLowerBound)
 				}
 				return nil
 			}, timeout).Should(Succeed())
@@ -942,7 +949,8 @@ func testE2E() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			By("resizing PVC")
-			claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", 4*1024<<20, storageClass))
+			sizeInByte = 4 * 1024 << 20
+			claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", sizeInByte, storageClass))
 			_, err = kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -959,6 +967,7 @@ func testE2E() {
 			}, timeout).Should(Succeed())
 
 			By("confirming that the specified device is resized in the Pod")
+			expectedSizeLowerBound = int(float64(sizeInByte) * 0.9 / 1024)
 			Eventually(func() error {
 				stdout, err := kubectl("exec", "-n", ns, "ubuntu", "--", "df", "--output=size", "/test1")
 				if err != nil {
@@ -969,8 +978,9 @@ func testE2E() {
 				if err != nil {
 					return fmt.Errorf("failed to convert volume size string. data: %s, err: %w", stdout, err)
 				}
-				if volSize != expectedSizes[2] {
-					return fmt.Errorf("failed to match volume size. actual: %d, expected: %d", volSize, expectedSizes[2])
+				if volSize < expectedSizeLowerBound {
+					return fmt.Errorf("failed to match volume size. actual: %d, expectedSizeLowerBound: %d",
+						volSize, expectedSizeLowerBound)
 				}
 				return nil
 			}, timeout).Should(Succeed())
@@ -1028,16 +1038,8 @@ func testE2E() {
 			_, err = kubectlWithInput(claimYAML, "delete", "-n", ns, "-f", "-")
 			Expect(err).ShouldNot(HaveOccurred())
 		},
-		Entry("xfs", "topolvm-provisioner", []int{
-			2*1024*1024 - 10240, // 2MB - 10KiB XFS overhead
-			3*1024*1024 - 10240, // 3MB - 10KiB XFS overhead
-			4*1024*1024 - 10240, // 4MB - 10KiB XFS overhead
-		}),
-		Entry("btrfs", "topolvm-provisioner-btrfs", []int{
-			2 * 1024 * 1024, // 2MB
-			3 * 1024 * 1024, // 3MB
-			4 * 1024 * 1024, // 4MB
-		}),
+		Entry("xfs", "topolvm-provisioner"),
+		Entry("btrfs", "topolvm-provisioner-btrfs"),
 	)
 
 	It("should resize a block device", func() {
