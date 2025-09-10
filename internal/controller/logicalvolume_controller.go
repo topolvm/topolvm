@@ -70,7 +70,7 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 	}
 
-	if lv.ObjectMeta.DeletionTimestamp == nil {
+	if lv.DeletionTimestamp == nil {
 		if !controllerutil.ContainsFinalizer(lv, topolvm.GetLogicalVolumeFinalizer()) {
 			lv2 := lv.DeepCopy()
 			controllerutil.AddFinalizer(lv2, topolvm.GetLogicalVolumeFinalizer())

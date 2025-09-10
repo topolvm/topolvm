@@ -40,7 +40,7 @@ type thinPoolAdapter struct {
 }
 
 func (p *thinPoolAdapter) Free(ctx context.Context) (uint64, error) {
-	usage, err := p.ThinPool.Usage(ctx)
+	usage, err := p.Usage(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get free space: %w", err)
 	}

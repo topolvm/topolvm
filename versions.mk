@@ -14,7 +14,7 @@ CRI_DOCKERD_VERSION := v0.3.20
 # https://github.com/kubernetes-sigs/cri-tools/releases
 CRICTL_VERSION := v1.33.0
 # https://github.com/golangci/golangci-lint/releases
-GOLANGCI_LINT_VERSION := v1.64.8
+GOLANGCI_LINT_VERSION := v2.4.0
 # https://github.com/norwoodj/helm-docs/releases
 HELM_DOCS_VERSION := 1.14.2
 # https://github.com/helm/helm/releases

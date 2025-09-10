@@ -1182,7 +1182,7 @@ var _ = Describe("client", func() {
 
 					ann := map[string]string{"foo": "bar"}
 					lv2 := convertToCurrent(lv)
-					lv2.TypeMeta.APIVersion = topolvmlegacyv1.GroupVersion.String()
+					lv2.APIVersion = topolvmlegacyv1.GroupVersion.String()
 					lv3 := lv2.DeepCopy()
 					lv3.Annotations = ann
 					lv3.Spec.Name = fmt.Sprintf("updated-legacy-%d", i)
@@ -1573,7 +1573,7 @@ var _ = Describe("client", func() {
 						Expect(err).ShouldNot(HaveOccurred())
 
 						lv2 := convertToCurrent(lv)
-						lv2.TypeMeta.APIVersion = topolvmlegacyv1.GroupVersion.String()
+						lv2.APIVersion = topolvmlegacyv1.GroupVersion.String()
 						lv3 := lv2.DeepCopy()
 						setCurrentLVStatus(lv3, i)
 						patch := client.MergeFrom(lv2)

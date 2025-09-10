@@ -1,36 +1,20 @@
+version: "2"
 run:
   timeout: 5m
   allow-parallel-runners: true
-
-issues:
-  # don't skip warning about doc comments
-  # don't exclude the default set of lint
-  exclude-use-default: false
-  # restore some of the defaults
-  # (fill in the rest as needed)
-  exclude-rules:
-    - path: "api/*"
-      linters:
-        - lll
-    - path: "internal/*"
-      linters:
-        - dupl
-        - lll
-
-    # FIXME: remove this once we have fixed the issues
-    - path: "test/e2e/*"
-      linters:
-        - gocyclo
 linters:
+  settings:
+    staticcheck:
+      dot-import-whitelist: # allow dot imports for the following packages
+        - github.com/onsi/gomega
+        - github.com/onsi/ginkgo/v2
+  default: none
   enable:
+    - copyloopvar
     - dupl
     - errcheck
-    - copyloopvar
     - goconst
     - gocyclo
-    - gofmt
-    - goimports
-    - gosimple
     - govet
     - ineffassign
     - lll
@@ -38,7 +22,24 @@ linters:
     - nakedret
     - prealloc
     - staticcheck
-    - typecheck
     - unconvert
     - unparam
     - unused
+  exclusions:
+    rules:
+      - path: "api/*"
+        linters:
+          - lll
+      - path: "internal/*"
+        linters:
+          - dupl
+          - lll
+
+      # FIXME: remove this once we have fixed the issues
+      - path: "test/e2e/*"
+        linters:
+          - gocyclo
+formatters:
+  enable:
+    - gofmt
+    - goimports
