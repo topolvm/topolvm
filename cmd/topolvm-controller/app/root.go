@@ -92,17 +92,17 @@ func init() {
 	fs.BoolVar(&config.skipNodeFinalize, "skip-node-finalize", false, "skips automatic cleanup of PhysicalVolumeClaims when a Node is deleted")
 	fs.StringVar(&config.profilingBindAddress, "profiling-bind-address", "", "Bind pprof profiling to the given network address. If empty, profiling is disabled.")
 
-	driver.QuantityVar(fs, &config.controllerServerSettings.MinimumAllocationSettings.Block,
+	driver.QuantityVar(fs, &config.controllerServerSettings.Block,
 		"minimum-allocation-block",
 		resource.MustParse(DefaultMinimumAllocationSizeBlock),
 		"Minimum Allocation Sizing for block storage. Logical Volumes will always be at least this big.")
-	config.controllerServerSettings.MinimumAllocationSettings.Filesystem = make(map[string]driver.Quantity)
+	config.controllerServerSettings.Filesystem = make(map[string]driver.Quantity)
 	for filesystem, minimum := range map[string]resource.Quantity{
 		"ext4":  resource.MustParse(DefaultMinimumAllocationSizeExt4),
 		"xfs":   resource.MustParse(DefaultMinimumAllocationSizeXFS),
 		"btrfs": resource.MustParse(DefaultMinimumAllocationSizeBtrfs),
 	} {
-		config.controllerServerSettings.MinimumAllocationSettings.Filesystem[filesystem] = driver.NewQuantityFlagVar(fs,
+		config.controllerServerSettings.Filesystem[filesystem] = driver.NewQuantityFlagVar(fs,
 			fmt.Sprintf("minimum-allocation-%s", filesystem),
 			minimum,
 			fmt.Sprintf("Minimum Allocation Sizing for volumes with the %s filesystem. Logical Volumes will always be at least this big.", filesystem))

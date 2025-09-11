@@ -176,7 +176,7 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 		return nil, status.Error(codes.InvalidArgument, "no volume capabilities are provided")
 	}
 
-	required, limit := s.settings.MinimumAllocationSettings.MinMaxAllocationsFromSettings(
+	required, limit := s.settings.MinMaxAllocationsFromSettings(
 		req.GetCapacityRange().GetRequiredBytes(),
 		req.GetCapacityRange().GetLimitBytes(),
 		capabilities,
