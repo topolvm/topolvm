@@ -7,7 +7,7 @@ metadata:
 spec:
   containers:
     - name: ubuntu
-      image: ubuntu:22.04
+      image: ubuntu:24.04
       command: ["/usr/bin/sleep", "infinity"]
       volumeMounts:
         - mountPath: /test1

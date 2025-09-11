@@ -75,7 +75,7 @@ metadata:
 spec:
   containers:
   - name: pause
-    image: ubuntu:22.04
+    image: ubuntu:24.04
     command:
     - bash
     - -c
@@ -160,7 +160,7 @@ metadata:
 spec:
   containers:
   - name: pause
-    image: ubuntu:22.04
+    image: ubuntu:24.04
     command:
     - bash
     - -c

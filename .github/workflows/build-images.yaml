@@ -21,7 +21,7 @@ on:
 jobs:
   build-images:
     name: "build-images"
-    runs-on: "ubuntu-22.04"
+    runs-on: "ubuntu-24.04"
     strategy:
       fail-fast: true
       matrix:
