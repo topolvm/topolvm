@@ -79,7 +79,7 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 				log.Error(err, "failed to add finalizer", "name", lv.Name)
 				return ctrl.Result{}, err
 			}
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{RequeueAfter: requeueIntervalForSimpleUpdate}, nil
 		}
 
 		if !containsKeyAndValue(lv.Labels, topolvm.CreatedbyLabelKey, topolvm.CreatedbyLabelValue) {
@@ -93,7 +93,7 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 				log.Error(err, "failed to add label", "name", lv.Name)
 				return ctrl.Result{}, err
 			}
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{RequeueAfter: requeueIntervalForSimpleUpdate}, nil
 		}
 
 		if lv.Status.VolumeID == "" {
