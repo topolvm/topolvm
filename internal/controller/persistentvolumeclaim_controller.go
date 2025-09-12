@@ -53,7 +53,7 @@ func (r *PersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, err
 	} else if removed {
 		return ctrl.Result{
-			Requeue: true,
+			RequeueAfter: requeueIntervalForSimpleUpdate,
 		}, nil
 	}
 
