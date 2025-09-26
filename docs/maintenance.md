@@ -139,6 +139,12 @@ Read [kubernetes go.mod](https://github.com/kubernetes/kubernetes/blob/master/go
 
 Visit [the upstream web page](https://kubernetes-csi.github.io/docs/drivers.html) to check current TopoLVM information. If some information is old, create PR to update the information
 
+#### Update Ubuntu and Debian
+
+If the support term for using Ubuntu is about to expire, update the versions. The Debian version in the `Dockerfile` should also be updated. The target version can be found in the updated Ubuntu image at `/etc/debian_version`.
+
+Note that we use the oldest supported Ubuntu LTS version for as long as possible to ensure compatibility between the host kernel and the mkfs tools in the image. See also `docs/limitations.md`.
+
 #### Final Check
 
 `git grep <dropped kubernetes version e.g. 1.18>`, `git grep image:`, `git grep -i VERSION` and looking `versions.mk` might help us avoid overlooking necessary changes.

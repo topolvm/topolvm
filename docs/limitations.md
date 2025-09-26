@@ -90,7 +90,7 @@ When you use TopoLVM on old Linux kernel hosts with official docker image, you m
 - [mkfs.xfs incompatibility whith RHEL/Centos7.X #257](https://github.com/topolvm/topolvm/issues/257)
 - [xfs mount failed #283](https://github.com/topolvm/topolvm/issues/283)
 
-This is because the official docker image is based on Ubuntu 24.04 and [xfsprogs v5.13 or later](https://packages.ubuntu.com/search?keywords=xfsprogs). It is possible to use incompatible filesystem options on older Linux kernels. Also, we don't know which kernel version exactly causes the problem, because the official xfs Q&A does not provide compatible kernel versions.
+This is because the official docker image is based on Ubuntu 22.04 and [xfsprogs v5.13 or later](https://packages.ubuntu.com/search?keywords=xfsprogs). It is possible to use incompatible filesystem options on older Linux kernels. Also, we don't know which kernel version exactly causes the problem, because the official xfs Q&A does not provide compatible kernel versions.
 In the past, we used Ubuntu 18.04 as a base image and used older xfsprogs whenever possible, but Ubuntu 18.04 became the end of support and we have upgraded the base image version.
 
 ## Restoring Snapshots or creating Clones with differing StorageClass from their source can fail

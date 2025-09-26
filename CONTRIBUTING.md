@@ -76,7 +76,7 @@ And if there is no activity for another 7 days, it will be closed.
 
 ## Development Environment Setup
 
-Our recommended environment is Ubuntu 24.04. Because following steps modify your system globally,
+Our recommended environment is Ubuntu 22.04. Because following steps modify your system globally,
 we suggest preparing a dedicated physical or virtual machine.
 
 1. Download the repository.
