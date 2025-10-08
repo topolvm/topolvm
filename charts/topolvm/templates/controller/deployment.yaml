@@ -49,6 +49,11 @@ spec:
       containers:
         - name: topolvm-controller
           image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           command:
             - /topolvm-controller
             {{- if not .Values.controller.leaderElection.enabled }}
@@ -137,6 +142,11 @@ spec:
           {{- with .Values.image.pullPolicy }}
           imagePullPolicy: {{ . }}
           {{- end }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           {{- with .Values.resources.csi_provisioner }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
@@ -183,6 +193,11 @@ spec:
           {{- with .Values.image.pullPolicy }}
           imagePullPolicy: {{ . }}
           {{- end }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           {{- with .Values.resources.csi_resizer }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
@@ -214,6 +229,11 @@ spec:
           {{- with .Values.image.pullPolicy }}
           imagePullPolicy: {{ . }}
           {{- end }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           {{- with .Values.resources.csi_snapshotter }}
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
@@ -245,6 +265,11 @@ spec:
           {{- with .Values.image.pullPolicy }}
           imagePullPolicy: {{ . }}
           {{- end }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           command:
             - /livenessprobe
             - --csi-address=/run/topolvm/csi-topolvm.sock
