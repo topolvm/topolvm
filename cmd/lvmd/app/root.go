@@ -73,6 +73,13 @@ func subMain(parentCtx context.Context) error {
 		return err
 	}
 
+	if config.LVMCommandPrefix != nil {
+		if lvmPath != "" {
+			return fmt.Errorf("cannot set both --lvm-path and lvm-command-prefix")
+		}
+		command.SetLVMCommandPrefix(config.LVMCommandPrefix)
+	}
+
 	vgs, err := command.ListVolumeGroups(parentCtx)
 	if err != nil {
 		logger.Error(err, "error while retrieving volume groups")
@@ -93,13 +100,6 @@ func subMain(parentCtx context.Context) error {
 				return err
 			}
 		}
-	}
-
-	if config.LVMCommandPrefix != nil {
-		if lvmPath != "" {
-			return fmt.Errorf("cannot set both --lvm-path and lvm-command-prefix")
-		}
-		command.SetLVMCommandPrefix(config.LVMCommandPrefix)
 	}
 
 	// UNIX domain socket file should be removed before listening.

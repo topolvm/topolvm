@@ -87,16 +87,12 @@ func subMain(ctx context.Context) error {
 	var vgService proto.VGServiceClient
 	var health grpc_health_v1.HealthClient
 
+	lvmd.SetLVMPath(config.lvmPath)
+
 	if config.embedLvmd {
 		if err := loadConfFile(ctx, cfgFilePath); err != nil {
 			return err
 		}
-
-		lvService, vgService = lvmd.NewEmbeddedServiceClients(
-			ctx,
-			config.lvmd.DeviceClasses,
-			config.lvmd.LvcreateOptionClasses,
-		)
 
 		if config.lvmd.LVMCommandPrefix != nil {
 			if config.lvmPath != "" {
@@ -104,6 +100,12 @@ func subMain(ctx context.Context) error {
 			}
 			lvmd.SetLVMCommandPrefix(config.lvmd.LVMCommandPrefix)
 		}
+
+		lvService, vgService = lvmd.NewEmbeddedServiceClients(
+			ctx,
+			config.lvmd.DeviceClasses,
+			config.lvmd.LvcreateOptionClasses,
+		)
 	} else {
 		conn, err := grpc.NewClient(
 			"unix:"+config.lvmdSocket,
@@ -116,8 +118,6 @@ func subMain(ctx context.Context) error {
 		lvService, vgService = proto.NewLVServiceClient(conn), proto.NewVGServiceClient(conn)
 		health = grpc_health_v1.NewHealthClient(conn)
 	}
-
-	lvmd.SetLVMPath(config.lvmPath)
 
 	if err := controller.SetupLogicalVolumeReconcilerWithServices(
 		mgr, client, nodename, vgService, lvService); err != nil {
