@@ -7,6 +7,7 @@ CONTROLLER_GEN := $(BINDIR)/controller-gen
 CONTAINER_STRUCTURE_TEST := $(BINDIR)/container-structure-test
 GOLANGCI_LINT = $(BINDIR)/golangci-lint
 PROTOC := PATH=$(BINDIR):$(PATH) $(BINDIR)/protoc -I=$(shell pwd)/include:.
+YQ := $(BINDIR)/yq
 PACKAGES := unzip lvm2 xfsprogs thin-provisioning-tools patch
 ENVTEST_ASSETS_DIR := $(shell pwd)/testbin
 
@@ -281,6 +282,9 @@ tools: install-kind install-container-structure-test install-helm install-helm-d
 	GOBIN=$(BINDIR) go install google.golang.org/protobuf/cmd/protoc-gen-go@v$(PROTOC_GEN_GO_VERSION)
 	GOBIN=$(BINDIR) go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v$(PROTOC_GEN_GO_GRPC_VERSION)
 	GOBIN=$(BINDIR) go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v$(PROTOC_GEN_DOC_VERSION)
+	$(CURL) https://github.com/mikefarah/yq/releases/download/v$(YQ_VERSION)/yq_linux_amd64.tar.gz \
+		| tar xvz ./yq_linux_amd64 \
+		&& mv yq_linux_amd64 $(YQ)
 
 .PHONY: setup
 setup: ## Setup local environment.

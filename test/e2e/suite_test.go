@@ -74,9 +74,13 @@ func isStorageCapacity() bool {
 	return os.Getenv("STORAGE_CAPACITY") == "true"
 }
 
-func skipIfStorageCapacity(reason ...string) {
-	if isStorageCapacity() {
-		msg := "skip because current environment is storage capacity"
+func isStorageCapacityScoring() bool {
+	return os.Getenv("STORAGE_CAPACITY_SCORING") == "true"
+}
+
+func skipIfStorageCapacityWithoutScoring(reason ...string) {
+	if isStorageCapacity() && !isStorageCapacityScoring() {
+		msg := "skip because current environment is storage capacity without storage capacity scoring"
 		if len(reason) > 0 {
 			msg += ": " + reason[0]
 		}

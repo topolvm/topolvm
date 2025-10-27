@@ -25,10 +25,13 @@ HELM_VERSION := 3.18.6
 KIND_VERSION := v0.30.0
 # It is set by CI using the environment variable, use conditional assignment.
 KUBERNETES_VERSION ?= 1.33.4
+KUBERNETES_MINOR = $(shell echo $(KUBERNETES_VERSION) | cut -d '.' -f2)
 # https://github.com/kubernetes/minikube/releases
 MINIKUBE_VERSION := v1.36.0
 # https://github.com/protocolbuffers/protobuf/releases
 PROTOC_VERSION := 32.0
+# https://github.com/mikefarah/yq/releases
+YQ_VERSION := 4.48.1
 
 # Tools versions which are defined in go.mod
 SELF_DIR := $(dir $(lastword $(MAKEFILE_LIST)))

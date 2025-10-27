@@ -605,7 +605,7 @@ func testE2E() {
 	})
 
 	It("should choose a node with the largest capacity when volumeBindingMode == Immediate is specified", func() {
-		skipIfStorageCapacity(
+		skipIfStorageCapacityWithoutScoring(
 			"Storage Capacity Tracking doesn't check Storage Capacity when volumeBindingMode == Immediate is specified",
 		)
 
@@ -753,7 +753,7 @@ func testE2E() {
 	})
 
 	It("should schedule pods and volumes according to topolvm-scheduler", func() {
-		skipIfStorageCapacity()
+		skipIfStorageCapacityWithoutScoring()
 		skipIfSingleNode()
 
 		/*
