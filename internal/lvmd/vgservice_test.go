@@ -18,11 +18,14 @@ import (
 )
 
 const (
+	vgServiceTestVGName   = "test_vgservice"
+	vgServiceTestPoolName = "test_vgservice_pool"
+	vgServiceTestThickDC  = vgServiceTestVGName
+	vgServiceTestThinDC   = vgServiceTestPoolName
+)
+
+var (
 	vgServiceTestOverprovisionRatio = float64(10.0)
-	vgServiceTestVGName             = "test_vgservice"
-	vgServiceTestPoolName           = "test_vgservice_pool"
-	vgServiceTestThickDC            = vgServiceTestVGName
-	vgServiceTestThinDC             = vgServiceTestPoolName
 )
 
 type mockWatchServer struct {
@@ -317,7 +320,7 @@ func setupVGService(ctx context.Context, t *testing.T) (
 					Type:        lvmdTypes.TypeThin,
 					ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
 						Name:               vgServiceTestPoolName,
-						OverprovisionRatio: vgServiceTestOverprovisionRatio,
+						OverprovisionRatio: &vgServiceTestOverprovisionRatio,
 					},
 				},
 			},

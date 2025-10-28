@@ -88,7 +88,7 @@ func TestValidateDeviceClasses(t *testing.T) {
 					Type:        lvmdTypes.TypeThin,
 					ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
 						Name:               "pool0",
-						OverprovisionRatio: opRatio,
+						OverprovisionRatio: &opRatio,
 					},
 				},
 				{
@@ -99,7 +99,7 @@ func TestValidateDeviceClasses(t *testing.T) {
 					Type:        lvmdTypes.TypeThin,
 					ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
 						Name:               "pool1",
-						OverprovisionRatio: opRatio,
+						OverprovisionRatio: &opRatio,
 					},
 				},
 				{
@@ -111,7 +111,7 @@ func TestValidateDeviceClasses(t *testing.T) {
 					Type:        lvmdTypes.TypeThin,
 					ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
 						Name:               "pool0",
-						OverprovisionRatio: opRatio,
+						OverprovisionRatio: &opRatio,
 					},
 				},
 			},
@@ -127,7 +127,7 @@ func TestValidateDeviceClasses(t *testing.T) {
 					Type:        lvmdTypes.TypeThin,
 					ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
 						Name:               "pool0",
-						OverprovisionRatio: opRatio,
+						OverprovisionRatio: &opRatio,
 					},
 				},
 				{
@@ -145,7 +145,7 @@ func TestValidateDeviceClasses(t *testing.T) {
 					Type:        lvmdTypes.TypeThin,
 					ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
 						Name:               "pool1",
-						OverprovisionRatio: opRatio,
+						OverprovisionRatio: &opRatio,
 					},
 				},
 				{
@@ -260,7 +260,7 @@ func TestValidateDeviceClasses(t *testing.T) {
 					Name:        "dev1",
 					VolumeGroup: "vg0",
 					ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
-						OverprovisionRatio: opRatio,
+						OverprovisionRatio: &opRatio,
 					},
 				},
 			},
@@ -290,7 +290,7 @@ func TestValidateDeviceClasses(t *testing.T) {
 					Default:     true,
 					Type:        lvmdTypes.TypeThin,
 					ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
-						OverprovisionRatio: opRatio,
+						OverprovisionRatio: &opRatio,
 					},
 				},
 			},
@@ -318,7 +318,7 @@ func TestValidateDeviceClasses(t *testing.T) {
 					Type:        lvmdTypes.TypeThin,
 					ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
 						Name:               "pool0",
-						OverprovisionRatio: wrongOpRatio,
+						OverprovisionRatio: &wrongOpRatio,
 					},
 				},
 			},
@@ -334,7 +334,7 @@ func TestValidateDeviceClasses(t *testing.T) {
 					Type:        lvmdTypes.DeviceType("dummy"),
 					ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
 						Name:               "pool0",
-						OverprovisionRatio: wrongOpRatio,
+						OverprovisionRatio: &wrongOpRatio,
 					},
 				},
 			},
@@ -356,7 +356,7 @@ func TestValidateDeviceClasses(t *testing.T) {
 					Type:        lvmdTypes.TypeThin,
 					ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
 						Name:               "pool0",
-						OverprovisionRatio: opRatio,
+						OverprovisionRatio: &opRatio,
 					},
 				},
 				{
@@ -366,7 +366,7 @@ func TestValidateDeviceClasses(t *testing.T) {
 					Type:        lvmdTypes.TypeThin,
 					ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
 						Name:               "pool0",
-						OverprovisionRatio: opRatio,
+						OverprovisionRatio: &opRatio,
 					},
 				},
 			},
@@ -418,7 +418,7 @@ func TestDeviceClassManager(t *testing.T) {
 			Type:        lvmdTypes.TypeThin,
 			ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
 				Name:               "pool0",
-				OverprovisionRatio: opRatio,
+				OverprovisionRatio: &opRatio,
 			},
 		},
 	}

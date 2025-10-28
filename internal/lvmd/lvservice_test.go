@@ -84,7 +84,7 @@ func setupLVService(ctx context.Context, t *testing.T) (
 					Type:        lvmdTypes.TypeThin,
 					ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
 						Name:               poolName,
-						OverprovisionRatio: overprovisionRatio,
+						OverprovisionRatio: &overprovisionRatio,
 					},
 				},
 			},
