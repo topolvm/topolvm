@@ -12,7 +12,7 @@ type ThinPoolConfig struct {
 	// Name of thinpool
 	Name string `json:"name"`
 	// OverprovisionRatio signifies the upper bound multiplier for allowing logical volume creation in this pool
-	OverprovisionRatio float64 `json:"overprovision-ratio"`
+	OverprovisionRatio *float64 `json:"overprovision-ratio"`
 }
 
 // DeviceClass maps between device-classes and target for logical volume creation

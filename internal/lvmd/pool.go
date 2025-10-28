@@ -36,7 +36,7 @@ func storagePoolForDeviceClass(ctx context.Context, dc *lvmdTypes.DeviceClass) (
 
 type thinPoolAdapter struct {
 	*command.ThinPool
-	overprovisionRatio float64
+	overprovisionRatio *float64
 }
 
 func (p *thinPoolAdapter) Free(ctx context.Context) (uint64, error) {

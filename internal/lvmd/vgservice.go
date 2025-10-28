@@ -137,7 +137,7 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 			tpi.MetadataPercent = tpu.MetadataPercent
 
 			// used for annotating the node for capacity aware scheduling
-			opb, err := tpu.FreeBytes(dc.ThinPoolConfig.OverprovisionRatio)
+			opb, err := tpu.FreeBytes(dc.ThinPoolConfig.OverprovisionRatio) // adjust
 			if err != nil {
 				return status.Errorf(codes.Internal, "failed to get pool usage: %v", err)
 			}
