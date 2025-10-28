@@ -8,6 +8,7 @@
 - [Use lvcreate-options at Your Own Risk](#use-lvcreate-options-at-your-own-risk)
 - [Error when using TopoLVM on old Linux kernel hosts with official docker image](#error-when-using-topolvm-on-old-linux-kernel-hosts-with-official-docker-image)
 - [Restoring Snapshots or creating Clones with differing StorageClass from their source can fail](#restoring-snapshots-or-creating-clones-with-differing-storageclass-from-their-source-can-fail)
+- [In rare cases, the actual volume remains even after deleting the PVC](#in-rare-cases-the-actual-volume-remains-even-after-deleting-the-pvc)
 
 ## Pod without PVC
 
@@ -99,3 +100,8 @@ TopoLVM assumes that PersistentVolumes created via Snapshotting or Cloning have 
 This was originally introduced to support changes for cloud-providers where storage-class attributes might change ([see the PR for implementation details](https://github.com/kubernetes-csi/external-provisioner/pull/699)) during the restore process, however this doesn't apply for TopoLVM.
 
 Thus, if a pod consumes a restored/cloned PV having a different storage class from the original PV, this pod will not get scheduled if the StorageClass contents differ from the source StorageClass (e.g. by using a different device class).
+
+## In rare cases, the actual volume remains even after deleting the PVC
+
+In rare cases, a logical volume may not be deleted even after deleting its PVC. This is more likely to occur when deleting a PVC immediately after creation. This is due to [a bug in the external provisioner](https://github.com/kubernetes-csi/external-provisioner/issues/486) and is not specific to TopoLVM.
+As workarounds, avoid deleting the PVC immediately after creation. And run manual garbage collection. i.e., manually delete the LogicalVolume when there is no corresponding PV/PVC for a LogicalVolume that has existed for a certain period of time or longer.
