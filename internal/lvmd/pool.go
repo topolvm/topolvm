@@ -10,6 +10,7 @@ import (
 
 type storagePool interface {
 	Free(ctx context.Context) (uint64, error)
+	AllowCreate(requestedBytes uint64, freeBytes uint64) bool
 	ListVolumes(ctx context.Context) (map[string]*command.LogicalVolume, error)
 	FindVolume(ctx context.Context, name string) (*command.LogicalVolume, error)
 	CreateVolume(ctx context.Context, name string, size uint64, tags []string, stripe uint, stripeSize string, lvcreateOptions []string) error
@@ -48,8 +49,16 @@ func (p *thinPoolAdapter) Free(ctx context.Context) (uint64, error) {
 	return usage.FreeBytes(p.overprovisionRatio)
 }
 
+func (p *thinPoolAdapter) AllowCreate(requestedBytes uint64, freeBytes uint64) bool {
+	return command.AllowCreate(requestedBytes, freeBytes, p.overprovisionRatio != nil)
+}
+
 type volumeGroupAdapter struct {
 	*command.VolumeGroup
+}
+
+func (vg *volumeGroupAdapter) AllowCreate(requestedBytes uint64, freeBytes uint64) bool {
+	return requestedBytes <= freeBytes
 }
 
 func (vg *volumeGroupAdapter) Free(_ context.Context) (uint64, error) {

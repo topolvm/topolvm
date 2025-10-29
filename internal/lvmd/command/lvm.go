@@ -302,8 +302,11 @@ func (t ThinPoolUsage) FreeBytes(overprovisionRatio *float64) (uint64, error) {
 		}
 		return virtualPoolSize - t.VirtualBytes, nil
 	} else {
+		// but this check is useless as we don't care about free bytes...
+		free := uint64((1.0 - t.DataPercent/100.0) * float64(t.SizeBytes))
+		fmt.Printf("DataPercent: %v SizeBytes: %v\n, free: %v\n", t.DataPercent, t.SizeBytes, free)
 		//TODO inspect exactly the DataPercent format and adjust this
-		return uint64((1.0 - t.DataPercent/100.0) * float64(t.SizeBytes)), nil
+		return free, nil
 		//return uint64(t.DataPercent * t.SizeBytes), nil
 	}
 }
@@ -436,6 +439,14 @@ func (t *ThinPool) Usage(ctx context.Context) (*ThinPoolUsage, error) {
 		tpu.VirtualBytes += l.size
 	}
 	return tpu, nil
+}
+
+func AllowCreate(requestedBytes uint64, freeBytes uint64, useOverprovisioning bool) bool {
+	if useOverprovisioning {
+		return requestedBytes <= freeBytes
+	} else {
+		return freeBytes > 0
+	}
 }
 
 // LogicalVolume represents a logical volume.
