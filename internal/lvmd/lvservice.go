@@ -53,7 +53,6 @@ func (s *lvService) CreateLV(ctx context.Context, req *proto.CreateLVRequest) (*
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get free bytes: %v", err)
 	}
-
 	if !pool.AllowCreate(requested, free) {
 		logger.Error(err, "not enough space left on VG", "free", free, "requested", requested)
 		return nil, status.Errorf(codes.ResourceExhausted, "not enough space left on VG: free=%d, requested=%d", free, requested)
@@ -203,7 +202,6 @@ func (s *lvService) CreateLVSnapshot(ctx context.Context, req *proto.CreateLVSna
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get free bytes: %v", err)
 	}
-
 	if !command.AllowCreate(desiredSize, free, dc.ThinPoolConfig.OverprovisionRatio != nil) {
 		logger.Error(err, "not enough space left on VG", "free", free, "desiredSize", desiredSize)
 		return nil, status.Errorf(codes.ResourceExhausted, "not enough space left on VG: free=%d, desiredSize=%d", free, desiredSize)

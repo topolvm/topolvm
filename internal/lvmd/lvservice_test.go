@@ -409,7 +409,7 @@ func TestLVService_ThinLV_WithoutOverprovisioning(t *testing.T) {
 		t.Errorf(`does not match size 2: %d`, lv.Size()>>30)
 	}
 
-	//should just be created as actually used data is below the pool size
+	//should just be created as actually used data (0%) is below the pool size
 	_, err = lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
 		Name:        "testp3",
 		DeviceClass: deviceClassInTest,
