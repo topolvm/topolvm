@@ -17,9 +17,10 @@ GINKGO_FLAGS :=
 GO_FILES := $(shell find ../.. -path ../../test -prune -o -name '*.go' -print)
 HELM := ../../bin/helm
 KIND := ../../bin/kind
+YQ := ../../bin/yq
 KIND_CONFIG := topolvm-cluster.yaml
 KUBECTL := $(BINDIR)/kubectl-$(KUBERNETES_VERSION)
-MINIKUBE_FEATURE_GATES="CSIVolumeHealth=true"
+MINIKUBE_FEATURE_GATES := CSIVolumeHealth=true
 MINIKUBE_HOME := $(shell pwd)/minikube
 # MINIKUBE_HOME is set not to use /root because minikube uses $HOME and $HOME is /root when sudo is used.
 # TMPDIR is set to avoid permission errors if fs.protected_regular=1.
@@ -30,6 +31,7 @@ DOMAIN_NAME := topolvm.io
 HELM_VALUES_FILES := manifests/values/base.yaml
 SCHEDULER_CONFIG := ../../deploy/scheduler-config/scheduler-config.yaml
 STORAGE_CAPACITY := true
+STORAGE_CAPACITY_SCORING := false
 USE_LEGACY :=
 
 ifeq ($(TEST_SCHEDULER_EXTENDER_TYPE),daemonset)
@@ -53,6 +55,11 @@ else ifeq ($(TEST_LVMD_TYPE),embedded)
 HELM_VALUES_FILES += manifests/values/embedded-lvmd.yaml
 endif
 
+ifeq ($(shell [ $(STORAGE_CAPACITY) = "true" ] && [ $(KUBERNETES_MINOR) -ge 33 ] && echo yes),yes)
+STORAGE_CAPACITY_SCORING := true
+MINIKUBE_FEATURE_GATES := $(MINIKUBE_FEATURE_GATES),StorageCapacityScoring=true
+endif
+
 topolvm.img: $(GO_FILES)
 	mkdir -p tmpbin
 	CGO_ENABLED=0 go build -o tmpbin/hypertopolvm ../../cmd/hypertopolvm
@@ -72,6 +79,9 @@ endif
 launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml $(KIND)
 	$(SUDO) rm -rf /tmp/topolvm/controller /tmp/topolvm/worker*
 	sed -e "s|@KUBERNETES_VERSION@|$(KUBERNETES_VERSION)|" $(KIND_CONFIG) > /tmp/$(KIND_CONFIG)
+ifeq ($(STORAGE_CAPACITY_SCORING),true)
+	$(YQ) -i '.featureGates.StorageCapacityScoring = true' /tmp/$(KIND_CONFIG)
+endif
 	$(KIND) create cluster --name=$(CLUSTER_NAME) --config /tmp/$(KIND_CONFIG) --image $(KIND_NODE_IMAGE)
 
 .PHONY: shutdown-kind
@@ -302,5 +312,6 @@ common/test: $(GINKGO)
 	E2ETEST=1 \
 	KUBECTL=$(KUBECTL) \
 	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
+	STORAGE_CAPACITY_SCORING=$(STORAGE_CAPACITY_SCORING) \
 	USE_LEGACY=$(USE_LEGACY) \
 	$(GINKGO) --fail-fast -v $(GINKGO_FLAGS) .
