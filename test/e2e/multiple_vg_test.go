@@ -75,7 +75,7 @@ func testMultipleVolumeGroups() {
 
 		expectMessage := "no capacity annotation"
 		if isStorageCapacity() {
-			expectMessage = "node(s) did not have enough free storage."
+			expectMessage = "node(s) did not have enough free storage"
 		}
 
 		By("confirming that the pod wasn't scheduled")
