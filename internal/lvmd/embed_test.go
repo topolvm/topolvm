@@ -28,7 +28,7 @@ func TestNewEmbeddedServiceClients(t *testing.T) {
 				Type:        lvmdTypes.TypeThin,
 				ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
 					Name:               "test_pool",
-					OverprovisionRatio: overprovisionRatio,
+					OverprovisionRatio: &overprovisionRatio,
 				},
 			}},
 		},
