@@ -23,12 +23,18 @@ func testNodeDelete() {
 
 	BeforeEach(func() {
 		skipIfSingleNode()
+		skipIfStorageCapacityWithoutScoring(
+			"Without StorageCapacityTracking, pods cannot be scheduled on each worker node.",
+		)
 
 		createNamespace(nsNodeDeleteTest)
 	})
 
 	AfterEach(func() {
-		_, err := kubectl("delete", "namespaces", nsNodeDeleteTest)
+		stdout, err := kubectl("get", "pod", "-n", nsNodeDeleteTest, "-o", "wide")
+		Expect(err).ShouldNot(HaveOccurred())
+		fmt.Printf("Pods in %s namespace:\n%s\n", nsNodeDeleteTest, string(stdout))
+		_, err = kubectl("delete", "namespaces", nsNodeDeleteTest)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
