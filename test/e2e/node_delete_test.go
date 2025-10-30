@@ -23,6 +23,9 @@ func testNodeDelete() {
 
 	BeforeEach(func() {
 		skipIfSingleNode()
+		skipIfStorageCapacityWithoutScoring(
+			"Without StorageCapacityTracking, pods cannot be scheduled on each worker node.",
+		)
 
 		createNamespace(nsNodeDeleteTest)
 	})

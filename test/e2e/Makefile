@@ -146,6 +146,7 @@ setup:
 	$(MAKE) $(HELM)
 	$(MAKE) $(KIND)
 	$(MAKE) $(KUBECTL)
+	$(MAKE) $(YQ)
 
 $(BINDIR):
 	mkdir -p $@
@@ -166,6 +167,11 @@ $(KIND):
 $(KUBECTL): | $(BINDIR)
 	$(CURL) -o $@ https://dl.k8s.io/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl
 	chmod a+x $@
+
+$(YQ): | $(BINDIR)
+	$(CURL) https://github.com/mikefarah/yq/releases/download/v$(YQ_VERSION)/yq_linux_amd64.tar.gz \
+		| tar xvz ./yq_linux_amd64 \
+		&& mv yq_linux_amd64 $(YQ)
 
 .PHONY: incluster-lvmd/create-vg
 incluster-lvmd/create-vg:
