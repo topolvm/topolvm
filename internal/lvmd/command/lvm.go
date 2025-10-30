@@ -288,8 +288,9 @@ type ThinPoolUsage struct {
 	SizeBytes       uint64
 }
 
-// FreeBytes if using overprovisioning return overprovisioning-based calculations
-// otherwise return pool's current data% usage
+// FreeBytes Depending on overprovisioning returns either
+// overprovisioning-based calculations or
+// pool's current data% usage
 func (t ThinPoolUsage) FreeBytes(overprovisionRatio *float64) (uint64, error) {
 	if overprovisionRatio != nil {
 		opr := *overprovisionRatio
@@ -436,8 +437,8 @@ func (t *ThinPool) Usage(ctx context.Context) (*ThinPoolUsage, error) {
 	return tpu, nil
 }
 
-func AllowCreate(requestedBytes uint64, freeBytes uint64, useOverprovisioning bool) bool {
-	if useOverprovisioning {
+func CheckCapacity(requestedBytes uint64, freeBytes uint64, usesOverprovisioning bool) bool {
+	if usesOverprovisioning {
 		return requestedBytes <= freeBytes
 	} else {
 		return freeBytes > 0
