@@ -13,6 +13,7 @@ import (
 	clientwrapper "github.com/topolvm/topolvm/internal/client"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -50,6 +51,19 @@ func testLogicalVolume() {
 		pvcYaml := fmt.Sprintf(pvcTemplateYAMLForLV, pvcName, unroundedSize)
 		_, err := kubectlWithInput([]byte(pvcYaml), "apply", "-n", nsLogicalVolumeTest, "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
+
+		var desiredNumberOfCSIStorageCapacity int
+		if isStorageCapacity() {
+			// In this test case, topolvm-node pod is restarted for several times.
+			// When CSI node driver is deleted, corresponding CSIStorageCapacity resources are also deleted.
+			// So, here we record the number of CSIStorageCapacity resources created at this point,
+			// and check later that CSIStorageCapacity resources are created for all nodes again.
+			// If we don't do this, the successive tests may fail.
+			var cscs storagev1.CSIStorageCapacityList
+			err = getObjects(&cscs, "csistoragecapacities", "-n", "topolvm-system")
+			Expect(err).ShouldNot(HaveOccurred())
+			desiredNumberOfCSIStorageCapacity = len(cscs.Items)
+		}
 
 		By("getting created PVC")
 		var pvc corev1.PersistentVolumeClaim
@@ -123,6 +137,11 @@ func testLogicalVolume() {
 		startTopoLVMNode(desiredTopoLVMNodeCount)
 		currentSize = waitForSettingCurrentSize(lv.Name)
 		Expect(currentSize).To(BeEquivalentTo(int64(2 * 1024 * 1024 * 1024)))
+
+		if isStorageCapacity() {
+			By("checking that CSIStorageCapacity exists for all nodes again")
+			checkDesiredNumberOfCSIStorageCapacityExist(desiredNumberOfCSIStorageCapacity)
+		}
 
 		By("checking actual volume size is changed to 2Gi")
 		lvInfo, err = getLVInfo(lv.Status.VolumeID)
@@ -241,4 +260,13 @@ func stopTopoLVMNode(nodeName string, desiredTopoLVMNodeCount int) {
 				}
 			`, nodeName)
 	waitForTopoLVMNodeDSPatched(patch, "strategic", desiredTopoLVMNodeCount)
+}
+
+func checkDesiredNumberOfCSIStorageCapacityExist(desiredNumberOfCSIStorageCapacity int) {
+	Eventually(func(g Gomega) {
+		var cscs storagev1.CSIStorageCapacityList
+		err := getObjects(&cscs, "csistoragecapacities", "-n", "topolvm-system")
+		g.Expect(err).ShouldNot(HaveOccurred())
+		g.Expect(cscs.Items).Should(HaveLen(desiredNumberOfCSIStorageCapacity))
+	}).Should(Succeed())
 }
