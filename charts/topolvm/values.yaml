@@ -730,6 +730,10 @@ webhook:
     ## ref: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#matching-requests-objectselector
     objectSelector: {}
       # webhook: topolvm
+    # webhook.podMutatingWebhook.ignoreNamespaces -- Namespaces to be ignored by the Pod MutatingWebhook.
+    ignoreNamespaces:
+      - kube-system
+      - topolvm-system
   pvcMutatingWebhook:
     # webhook.pvcMutatingWebhook.enabled -- Enable PVC MutatingWebhook.
     enabled: true
@@ -738,6 +742,10 @@ webhook:
     ## ref: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#matching-requests-objectselector
     objectSelector: {}
       # webhook: topolvm
+    # webhook.pvcMutatingWebhook.ignoreNamespaces -- Namespaces to be ignored by the PVC MutatingWebhook.
+    ignoreNamespaces:
+      - kube-system
+      - topolvm-system
 
 # Container Security Context
 # ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/

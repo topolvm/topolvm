@@ -293,8 +293,6 @@ common/setup-components: $(HELM) $(KUBECTL)
 
 	@echo install TopoLVM
 	$(KUBECTL) create namespace topolvm-system
-	$(KUBECTL) label namespace topolvm-system $(DOMAIN_NAME)/webhook=ignore
-	$(KUBECTL) label namespace kube-system $(DOMAIN_NAME)/webhook=ignore
 	$(HELM) repo add jetstack https://charts.jetstack.io
 	$(HELM) repo update
 	$(HELM) dependency build ../../charts/topolvm/
