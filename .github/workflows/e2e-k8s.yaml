@@ -59,3 +59,10 @@ jobs:
     with:
       test_scheduler_extender_type: "deployment"
       test_legacy: "true"
+
+  storage-capacity-scoring:
+    needs: build
+    uses: ./.github/workflows/e2e-k8s-workflow.yaml
+    with:
+      test_scheduler_extender_type: "none"
+      test_legacy: "false"

@@ -19,17 +19,32 @@ jobs:
       TEST_SCHEDULER_EXTENDER_TYPE: ${{ inputs.test_scheduler_extender_type }}
       TEST_LEGACY: ${{ inputs.test_legacy }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
+      - id: check
+        run: |
+          KUBERNETES_MINOR=$(echo "${{ matrix.kubernetes_versions }}" | cut -d'.' -f2)
+          if [ "$KUBERNETES_MINOR" -le 32 ] && [ "$TEST_SCHEDULER_EXTENDER_TYPE" = "none" ]; then
+            echo "Skipping test for Kubernetes version ${{ matrix.kubernetes_versions }} with scheduler extender type 'none'"
+            echo "should_run=false" >> $GITHUB_OUTPUT
+          else
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          fi
+      - if: steps.check.outputs.should_run == 'true'
+        uses: actions/checkout@v5
+      - if: steps.check.outputs.should_run == 'true'
+        uses: actions/setup-go@v6
         with:
           go-version-file: "go.mod"
-      - uses: actions/cache/restore@v4
+      - if: steps.check.outputs.should_run == 'true'
+        uses: actions/cache/restore@v4
         with:
           path: |
             bin
             test/e2e/bin
             test/e2e/topolvm.img
           key: e2e-cache-${{ github.sha }}
-      - run: touch test/e2e/topolvm.img # update timestamp not to rebuild image
-      - run: make -C test/e2e start-lvmd
-      - run: make -C test/e2e test
+      - if: steps.check.outputs.should_run == 'true'
+        run: touch test/e2e/topolvm.img # update timestamp not to rebuild image
+      - if: steps.check.outputs.should_run == 'true'
+        run: make -C test/e2e start-lvmd
+      - if: steps.check.outputs.should_run == 'true'
+        run: make -C test/e2e test
