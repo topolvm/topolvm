@@ -36,7 +36,7 @@ func storagePoolForDeviceClass(ctx context.Context, dc *lvmdTypes.DeviceClass) (
 
 type thinPoolAdapter struct {
 	*command.ThinPool
-	overprovisionRatio float64
+	overprovisionRatio *float64
 }
 
 func (p *thinPoolAdapter) Free(ctx context.Context) (uint64, error) {
@@ -46,6 +46,15 @@ func (p *thinPoolAdapter) Free(ctx context.Context) (uint64, error) {
 	}
 
 	return usage.FreeBytes(p.overprovisionRatio)
+}
+
+func CheckCapacity(pool storagePool, requestedBytes uint64, freeBytes uint64) bool {
+	switch p := pool.(type) {
+	case *thinPoolAdapter:
+		return command.CheckCapacity(requestedBytes, freeBytes, p.overprovisionRatio != nil)
+	default:
+		return requestedBytes <= freeBytes
+	}
 }
 
 type volumeGroupAdapter struct {
