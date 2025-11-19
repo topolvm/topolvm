@@ -198,11 +198,17 @@ func (s *lvService) CreateLVSnapshot(ctx context.Context, req *proto.CreateLVSna
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get pool usage: %v", err)
 	}
-	free, err := poolUsage.FreeBytes(dc.ThinPoolConfig.OverprovisionRatio)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to get free bytes: %v", err)
+	var free uint64
+	if dc.ThinPoolConfig.SkipOverprovisioningRatio {
+		free = poolUsage.FreePoolBytes()
+	} else {
+		free, err = poolUsage.FreeOverprovisionedBytes(dc.ThinPoolConfig.OverprovisionRatio)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to get free bytes: %v", err)
+		}
 	}
-	if !command.CheckCapacity(desiredSize, free, dc.ThinPoolConfig.OverprovisionRatio != nil) {
+
+	if !command.CheckCapacity(desiredSize, free, dc.ThinPoolConfig.SkipOverprovisioningRatio) {
 		logger.Error(err, "not enough space left on VG", "free", free, "desiredSize", desiredSize)
 		return nil, status.Errorf(codes.ResourceExhausted, "not enough space left on VG: free=%d, desiredSize=%d", free, desiredSize)
 	}

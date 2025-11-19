@@ -338,7 +338,7 @@ func setupVGService(ctx context.Context, t *testing.T) (
 					Type:        lvmdTypes.TypeThin,
 					ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
 						Name:               vgServiceTestPoolName,
-						OverprovisionRatio: &vgServiceTestOverprovisionRatio,
+						OverprovisionRatio: vgServiceTestOverprovisionRatio,
 					},
 				},
 				{
@@ -348,7 +348,8 @@ func setupVGService(ctx context.Context, t *testing.T) (
 					SpareGB:     &spareGB,
 					Type:        lvmdTypes.TypeThin,
 					ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
-						Name: vgServiceTestPoolName,
+						Name:                      vgServiceTestPoolName,
+						SkipOverprovisioningRatio: true,
 					},
 				},
 			},

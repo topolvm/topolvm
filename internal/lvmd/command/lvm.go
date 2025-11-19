@@ -288,23 +288,20 @@ type ThinPoolUsage struct {
 	SizeBytes       uint64
 }
 
-// FreeBytes Depending on overprovisioning returns either
-// overprovisioning-based calculations or
-// pool's current data% usage
-func (t ThinPoolUsage) FreeBytes(overprovisionRatio *float64) (uint64, error) {
-	if overprovisionRatio != nil {
-		opr := *overprovisionRatio
-		if opr < 1.0 {
-			return 0, errors.New("overprovision ratio must be >= 1.0")
-		}
-		virtualPoolSize := uint64(math.Floor(opr * float64(t.SizeBytes)))
-		if virtualPoolSize <= t.VirtualBytes {
-			return 0, nil
-		}
-		return virtualPoolSize - t.VirtualBytes, nil
-	} else {
-		return uint64(((100.0 - t.DataPercent) / 100.0) * float64(t.SizeBytes)), nil
+func (t ThinPoolUsage) FreeOverprovisionedBytes(overprovisionRatio float64) (uint64, error) {
+	if overprovisionRatio < 1.0 {
+		return 0, errors.New("overprovision ratio must be >= 1.0")
 	}
+	virtualPoolSize := uint64(math.Floor(overprovisionRatio * float64(t.SizeBytes)))
+	if virtualPoolSize <= t.VirtualBytes {
+		return 0, nil
+	}
+	return virtualPoolSize - t.VirtualBytes, nil
+}
+
+// FreePoolBytes pool's current data% usage
+func (t ThinPoolUsage) FreePoolBytes() uint64 {
+	return uint64(((100.0 - t.DataPercent) / 100.0) * float64(t.SizeBytes))
 }
 
 func fullName(name string, vg *VolumeGroup) string {
@@ -437,11 +434,11 @@ func (t *ThinPool) Usage(ctx context.Context) (*ThinPoolUsage, error) {
 	return tpu, nil
 }
 
-func CheckCapacity(requestedBytes uint64, freeBytes uint64, usesOverprovisioning bool) bool {
-	if usesOverprovisioning {
-		return requestedBytes <= freeBytes
-	} else {
+func CheckCapacity(requestedBytes uint64, freeBytes uint64, skipOverprovisioning bool) bool {
+	if skipOverprovisioning {
 		return freeBytes > 0
+	} else {
+		return requestedBytes <= freeBytes
 	}
 }
 

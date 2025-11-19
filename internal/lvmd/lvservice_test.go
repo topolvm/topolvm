@@ -84,8 +84,9 @@ func setupLVService(ctx context.Context, t *testing.T) (
 					VolumeGroup: vg.Name(),
 					Type:        lvmdTypes.TypeThin,
 					ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
-						Name:               poolName,
-						OverprovisionRatio: &overprovisionRatio,
+						Name:                      poolName,
+						SkipOverprovisioningRatio: false,
+						OverprovisionRatio:        overprovisionRatio,
 					},
 				},
 				{
@@ -94,7 +95,8 @@ func setupLVService(ctx context.Context, t *testing.T) (
 					VolumeGroup: vg.Name(),
 					Type:        lvmdTypes.TypeThin,
 					ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
-						Name: poolName,
+						Name:                      poolName,
+						SkipOverprovisioningRatio: true,
 					},
 				},
 			},

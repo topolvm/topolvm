@@ -28,7 +28,11 @@ func storagePoolForDeviceClass(ctx context.Context, dc *lvmdTypes.DeviceClass) (
 		if err != nil {
 			return nil, err
 		}
-		return &thinPoolAdapter{pool, dc.ThinPoolConfig.OverprovisionRatio}, nil
+		return &thinPoolAdapter{
+			pool,
+			dc.ThinPoolConfig.SkipOverprovisioningRatio,
+			dc.ThinPoolConfig.OverprovisionRatio,
+		}, nil
 	}
 
 	return nil, fmt.Errorf("unsupported device class target: %s", dc.Type)
@@ -36,7 +40,8 @@ func storagePoolForDeviceClass(ctx context.Context, dc *lvmdTypes.DeviceClass) (
 
 type thinPoolAdapter struct {
 	*command.ThinPool
-	overprovisionRatio *float64
+	skipOverprovisionRatio bool
+	overprovisionRatio     float64
 }
 
 func (p *thinPoolAdapter) Free(ctx context.Context) (uint64, error) {
@@ -44,14 +49,17 @@ func (p *thinPoolAdapter) Free(ctx context.Context) (uint64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("failed to get free space: %w", err)
 	}
-
-	return usage.FreeBytes(p.overprovisionRatio)
+	if p.skipOverprovisionRatio {
+		return usage.FreePoolBytes(), nil
+	} else {
+		return usage.FreeOverprovisionedBytes(p.overprovisionRatio)
+	}
 }
 
 func CheckCapacity(pool storagePool, requestedBytes uint64, freeBytes uint64) bool {
 	switch p := pool.(type) {
 	case *thinPoolAdapter:
-		return command.CheckCapacity(requestedBytes, freeBytes, p.overprovisionRatio != nil)
+		return command.CheckCapacity(requestedBytes, freeBytes, p.skipOverprovisionRatio)
 	default:
 		return requestedBytes <= freeBytes
 	}
