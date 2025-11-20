@@ -21,11 +21,12 @@ TopoLVM uses webhooks. To work webhooks properly, add a label to the target name
 
 ```sh
 kubectl label namespace topolvm-system topolvm.io/webhook=ignore
-kubectl label namespace kube-system topolvm.io/webhook=ignore
 ```
 
 > [!NOTE]
-> The label `topolvm.io/webhook=ignore` is set here to prevent the triggering of TopoLVM's mutating webhooks when pods and pvcs are created in the topolvm-system and kube-system namespaces. These webhooks depend on the topolvm-controller. Therefore, the webhooks should not be activated during TopoLVM's startup process to avoid causing it to become stuck.
+> The label `topolvm.io/webhook=ignore` is set here to prevent the triggering of TopoLVM's mutating webhooks when pods and pvcs are created in the topolvm-system namespaces. These webhooks depend on the topolvm-controller. Therefore, the webhooks should not be activated during TopoLVM's startup process to avoid causing it to become stuck.
+>
+> Instead of setting the label you can use `.webhook.{pvc,pod}MutatingWebhook.ignoreNamespaces` field in values.yaml. See its documentation for details.
 
 Then, install TopoLVM with the release name `topolvm`.
 
