@@ -22,3 +22,8 @@ storageClasses:
       allowVolumeExpansion: true
       additionalParameters:
         "topolvm.io/device-class": "ssd-thin"
+
+image:
+  repository: ghcr.io/anisurrahman75/topolvm
+  tag: devel
+  pullPolicy: Always

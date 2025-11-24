@@ -415,3 +415,251 @@ func TestLVService_ThinSnapshots(t *testing.T) {
 		t.Errorf(`testsnaptag1 not present on snapshot`)
 	}
 }
+
+//func TestLVService_MountLV(t *testing.T) {
+//	ctx := ctrl.LoggerInto(context.Background(), testr.New(t))
+//	lvService, _, _, _ := setupLVService(ctx, t)
+//
+//	// Create a test logical volume
+//	//res, err := lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
+//	//	Name:        "test_mount",
+//	//	DeviceClass: lvServiceTestThickDC,
+//	//	SizeBytes:   100 << 20, // 100 MiB
+//	//})
+//	//if err != nil {
+//	//	t.Fatal(err)
+//	//}
+//	//if res.GetVolume().GetName() != "test_mount" {
+//	//	t.Errorf(`res.Volume.Name != "test_mount": %s`, res.GetVolume().GetName())
+//	//}
+//
+//	// Create a temporary mount point
+//	mountPoint := path.Join(t.TempDir(), "test_mount_point")
+//
+//	//// Test mounting with default ext4 filesystem
+//	//t.Run("MountWithDefaultFS", func(t *testing.T) {
+//	//	mountRes, err := lvService.MountLV(context.Background(), &proto.MountLVRequest{
+//	//		Name:        "test_mount",
+//	//		DeviceClass: lvServiceTestThickDC,
+//	//		TargetPath:  mountPoint,
+//	//	})
+//	//	if err != nil {
+//	//		t.Fatalf("failed to mount LV: %v", err)
+//	//	}
+//	//	if mountRes.GetDevicePath() == "" {
+//	//		t.Error("device path is empty")
+//	//	}
+//	//
+//	//	// Verify mount point exists
+//	//	cmd := exec.Command("mountpoint", "-q", mountPoint)
+//	//	if err := cmd.Run(); err != nil {
+//	//		t.Error("mount point verification failed")
+//	//	}
+//	//
+//	//	// Verify filesystem type
+//	//	cmd = exec.Command("findmnt", "-n", "-o", "FSTYPE", mountPoint)
+//	//	output, err := cmd.Output()
+//	//	if err != nil {
+//	//		t.Fatalf("failed to check filesystem: %v", err)
+//	//	}
+//	//	fsType := string(output[:len(output)-1]) // Remove trailing newline
+//	//	if fsType != "ext4" {
+//	//		t.Errorf("expected ext4, got %s", fsType)
+//	//	}
+//	//
+//	//	// Verify mount is read-write
+//	//	cmd = exec.Command("findmnt", "-n", "-o", "OPTIONS", mountPoint)
+//	//	output, err = cmd.Output()
+//	//	if err != nil {
+//	//		t.Fatalf("failed to check mount options: %v", err)
+//	//	}
+//	//	options := string(output)
+//	//	if !contains(options, "rw") {
+//	//		t.Errorf("mount should be read-write, got options: %s", options)
+//	//	}
+//	//
+//	//	// Test idempotency - mount again should succeed
+//	//	_, err = lvService.MountLV(context.Background(), &proto.MountLVRequest{
+//	//		Name:        "test_mount",
+//	//		DeviceClass: lvServiceTestThickDC,
+//	//		TargetPath:  mountPoint,
+//	//	})
+//	//	if err != nil {
+//	//		t.Errorf("remounting should be idempotent: %v", err)
+//	//	}
+//	//
+//	//	// Cleanup: unmount
+//	//	exec.Command("umount", mountPoint).Run()
+//	//})
+//
+//	// Test mounting with XFS filesystem
+//	t.Run("MountWithXFS", func(t *testing.T) {
+//		// Create another LV for XFS test
+//		_, err := lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
+//			Name:        "test_mount_xfs",
+//			DeviceClass: lvServiceTestThickDC,
+//			SizeBytes:   1 << 30, // 1 GiB
+//		})
+//		if err != nil {
+//			t.Fatal(err)
+//		}
+//
+//		xfsMountPoint := path.Join(t.TempDir(), "test_xfs_mount")
+//
+//		mountRes, err := lvService.MountLV(context.Background(), &proto.MountLVRequest{
+//			Name:        "test_mount_xfs",
+//			DeviceClass: lvServiceTestThickDC,
+//			TargetPath:  xfsMountPoint,
+//			FsType:      "xfs",
+//		})
+//		if err != nil {
+//			t.Fatalf("failed to mount XFS LV: %v", err)
+//		}
+//		if mountRes.GetDevicePath() == "" {
+//			t.Error("device path is empty")
+//		}
+//
+//		// Verify XFS filesystem
+//		cmd := exec.Command("findmnt", "-n", "-o", "FSTYPE", xfsMountPoint)
+//		output, err := cmd.Output()
+//		if err != nil {
+//			t.Fatalf("failed to check filesystem: %v", err)
+//		}
+//		fsType := string(output[:len(output)-1])
+//		if fsType != "xfs" {
+//			t.Errorf("expected xfs, got %s", fsType)
+//		}
+//
+//		// Verify nouuid option is present for XFS
+//		cmd = exec.Command("findmnt", "-n", "-o", "OPTIONS", xfsMountPoint)
+//		output, err = cmd.Output()
+//		if err != nil {
+//			t.Fatalf("failed to check mount options: %v", err)
+//		}
+//		options := string(output)
+//		if !contains(options, "nouuid") {
+//			t.Errorf("XFS should have nouuid option, got: %s", options)
+//		}
+//
+//		// Cleanup
+//		exec.Command("umount", xfsMountPoint).Run()
+//	})
+//
+//	//// Test mounting with custom mount options
+//	//t.Run("MountWithCustomOptions", func(t *testing.T) {
+//	//	// Unmount if still mounted
+//	//	exec.Command("umount", mountPoint).Run()
+//	//
+//	//	mountRes, err := lvService.MountLV(context.Background(), &proto.MountLVRequest{
+//	//		Name:         "test_mount",
+//	//		DeviceClass:  lvServiceTestThickDC,
+//	//		TargetPath:   mountPoint,
+//	//		FsType:       "ext4",
+//	//		MountOptions: []string{"noatime", "nodiratime"},
+//	//	})
+//	//	if err != nil {
+//	//		t.Fatalf("failed to mount with custom options: %v", err)
+//	//	}
+//	//	if mountRes.GetDevicePath() == "" {
+//	//		t.Error("device path is empty")
+//	//	}
+//	//
+//	//	// Verify custom options
+//	//	cmd := exec.Command("findmnt", "-n", "-o", "OPTIONS", mountPoint)
+//	//	output, err := cmd.Output()
+//	//	if err != nil {
+//	//		t.Fatalf("failed to check mount options: %v", err)
+//	//	}
+//	//	options := string(output)
+//	//	if !contains(options, "noatime") {
+//	//		t.Errorf("mount should have noatime option, got: %s", options)
+//	//	}
+//	//
+//	//	// Cleanup
+//	//	exec.Command("umount", mountPoint).Run()
+//	//})
+//	//
+//	//// Test mounting in read-only mode
+//	//t.Run("MountReadOnly", func(t *testing.T) {
+//	//	roMountPoint := path.Join(t.TempDir(), "test_ro_mount")
+//	//
+//	//	mountRes, err := lvService.MountLV(context.Background(), &proto.MountLVRequest{
+//	//		Name:         "test_mount",
+//	//		DeviceClass:  lvServiceTestThickDC,
+//	//		TargetPath:   roMountPoint,
+//	//		FsType:       "ext4",
+//	//		MountOptions: []string{"ro"},
+//	//	})
+//	//	if err != nil {
+//	//		t.Fatalf("failed to mount in read-only mode: %v", err)
+//	//	}
+//	//	if mountRes.GetDevicePath() == "" {
+//	//		t.Error("device path is empty")
+//	//	}
+//	//
+//	//	// Verify mount is read-only
+//	//	cmd := exec.Command("findmnt", "-n", "-o", "OPTIONS", roMountPoint)
+//	//	output, err := cmd.Output()
+//	//	if err != nil {
+//	//		t.Fatalf("failed to check mount options: %v", err)
+//	//	}
+//	//	options := string(output)
+//	//	if !contains(options, "ro") {
+//	//		t.Errorf("mount should be read-only, got options: %s", options)
+//	//	}
+//	//
+//	//	// Cleanup
+//	//	exec.Command("umount", roMountPoint).Run()
+//	//})
+//	//
+//	//// Test error: non-existent LV
+//	//t.Run("MountNonExistentLV", func(t *testing.T) {
+//	//	_, err := lvService.MountLV(context.Background(), &proto.MountLVRequest{
+//	//		Name:        "nonexistent",
+//	//		DeviceClass: lvServiceTestThickDC,
+//	//		TargetPath:  "/tmp/nonexistent",
+//	//	})
+//	//	if err == nil {
+//	//		t.Error("expected error for non-existent LV")
+//	//	}
+//	//	code := status.Code(err)
+//	//	if code != codes.NotFound {
+//	//		t.Errorf("expected NotFound error, got: %s", code)
+//	//	}
+//	//})
+//	//
+//	//// Test error: empty target path
+//	//t.Run("MountEmptyTargetPath", func(t *testing.T) {
+//	//	_, err := lvService.MountLV(context.Background(), &proto.MountLVRequest{
+//	//		Name:        "test_mount",
+//	//		DeviceClass: lvServiceTestThickDC,
+//	//		TargetPath:  "",
+//	//	})
+//	//	if err == nil {
+//	//		t.Error("expected error for empty target path")
+//	//	}
+//	//	code := status.Code(err)
+//	//	if code != codes.InvalidArgument {
+//	//		t.Errorf("expected InvalidArgument error, got: %s", code)
+//	//	}
+//	//})
+//
+//	// Cleanup: remove LVs
+//	t.Cleanup(func() {
+//		exec.Command("umount", mountPoint).Run()
+//		_, _ = lvService.RemoveLV(context.Background(), &proto.RemoveLVRequest{
+//			Name:        "test_mount",
+//			DeviceClass: lvServiceTestThickDC,
+//		})
+//		_, _ = lvService.RemoveLV(context.Background(), &proto.RemoveLVRequest{
+//			Name:        "test_mount_xfs",
+//			DeviceClass: lvServiceTestThickDC,
+//		})
+//	})
+//}
+//
+//func contains(s, substr string) bool {
+//	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) &&
+//		(s[:len(substr)] == substr || s[len(s)-len(substr):] == substr ||
+//			len(s) > len(substr)+1 && s[1:len(substr)+1] == substr))
+//}

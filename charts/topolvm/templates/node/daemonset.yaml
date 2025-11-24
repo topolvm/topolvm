@@ -92,6 +92,10 @@ spec:
           resources: {{ toYaml . | nindent 12 }}
           {{- end }}
           env:
+            - name: ONLINE_SNAPSHOT_DIR
+              value: {{ .Values.node.kubeletWorkDirectory }}/online-snapshots
+            - name: HOST_NAMESPACE
+              value: {{ .Release.Namespace }}
             - name: NODE_NAME
               valueFrom:
                 fieldRef:
@@ -118,6 +122,9 @@ spec:
             {{- end }}
             - name: pod-volumes-dir
               mountPath: {{ .Values.node.kubeletWorkDirectory }}/pods
+              mountPropagation: "Bidirectional"
+            - name: online-snapshots-dir
+              mountPath: {{ .Values.node.kubeletWorkDirectory }}/online-snapshots
               mountPropagation: "Bidirectional"
             - name: csi-plugin-dir
               mountPath: {{ .Values.node.kubeletWorkDirectory }}/plugins/kubernetes.io/csi
@@ -227,6 +234,10 @@ spec:
         - name: pod-volumes-dir
           hostPath:
             path: {{ .Values.node.kubeletWorkDirectory }}/pods/
+            type: DirectoryOrCreate
+        - name: online-snapshots-dir
+          hostPath:
+            path: {{ .Values.node.kubeletWorkDirectory }}/online-snapshots
             type: DirectoryOrCreate
         {{- if .Values.node.lvmdEmbedded }}
           {{ $global := . }}

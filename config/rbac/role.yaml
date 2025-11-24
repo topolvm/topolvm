@@ -50,7 +50,18 @@ rules:
   - topolvm.io
   resources:
   - logicalvolumes/status
+  - onlinesnapshotstorages/status
   verbs:
   - get
   - patch
   - update
+- apiGroups:
+  - topolvm.io
+  resources:
+  - onlinesnapshotstorages
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch

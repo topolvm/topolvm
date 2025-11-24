@@ -56,6 +56,24 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+    - topolvm.io
+  resources:
+    - onlinesnapshotstorages
+    - onlinesnapshotstorages/status
+  verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+- apiGroups:
+    - ""
+  resources:
+    - secrets
+  verbs: ["get", "list", "create", "patch", "watch", "delete"]
 ---
 # Copied from https://github.com/kubernetes-csi/external-provisioner/blob/master/deploy/kubernetes/rbac.yaml
 kind: ClusterRole

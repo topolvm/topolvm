@@ -17,3 +17,11 @@ const (
 	// requeueIntervalForSimpleUpdate is the requeue interval when updating the manifest during reconciliation and re-execute loop
 	requeueIntervalForSimpleUpdate = 1 * time.Second
 )
+
+// Online Snapshot-related constants
+const (
+	SnapshotModeOnline       = "online"
+	SnapshotMode             = "topolvm.io/snapshotMode"
+	SnapshotStorageNamespace = "topolvm.io/snapshotStorageNamespace"
+	SnapshotStorageName      = "topolvm.io/snapshotStorageName"
+)

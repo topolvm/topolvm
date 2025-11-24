@@ -92,6 +92,63 @@ spec:
                 x-kubernetes-int-or-string: true
               message:
                 type: string
+              onlineSnapshot:
+                properties:
+                  completionTime:
+                    description: CompletionTime is when the backup finished (success
+                      or failure)
+                    format: date-time
+                    type: string
+                  error:
+                    description: Error provides structured failure info if the snapshot
+                      failed
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    type: object
+                  message:
+                    description: Message provides a short description of the snapshot’s
+                      state
+                    type: string
+                  phase:
+                    description: Phase represents the current phase of the snapshot
+                    type: string
+                  progress:
+                    description: Progress reports how much data has been backed up
+                    properties:
+                      bytesDone:
+                        format: int64
+                        type: integer
+                      percentage:
+                        description: Percentage can be calculated by controller or
+                          client (UploadedBytes / TotalBytes * 100)
+                        type: string
+                      totalBytes:
+                        format: int64
+                        type: integer
+                    type: object
+                  retryCount:
+                    description: RetryCount represents how many times this snapshot
+                      operation has retried (for controller logic)
+                    type: integer
+                  snapshotID:
+                    description: SnapshotID is the unique Restic snapshot identifier
+                    type: string
+                  startTime:
+                    description: StartTime is when the backup process began
+                    format: date-time
+                    type: string
+                  url:
+                    description: URL is the Restic repository URL where the snapshot
+                      is stored
+                    type: string
+                  version:
+                    description: Version keeps track of restic binary or backup engine
+                      version used
+                    type: string
+                type: object
               volumeID:
                 description: |-
                   INSERT ADDITIONAL STATUS FIELD - define observed state of cluster

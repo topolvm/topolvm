@@ -331,3 +331,207 @@ func (s *lvService) ResizeLV(ctx context.Context, req *proto.ResizeLVRequest) (*
 
 	return &proto.ResizeLVResponse{SizeBytes: int64(lv.Size())}, nil
 }
+
+//func (s *lvService) MountLV(ctx context.Context, req *proto.MountLVRequest) (*proto.MountLVResponse, error) {
+//	logger := log.FromContext(ctx).WithValues("name", req.GetName())
+//
+//	// Get device class
+//	dc, err := s.dcmapper.DeviceClass(req.DeviceClass)
+//	if err != nil {
+//		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
+//	}
+//
+//	// Find the volume group
+//	vg, err := command.FindVolumeGroup(ctx, dc.VolumeGroup)
+//	if errors.Is(err, command.ErrNotFound) {
+//		return nil, status.Errorf(codes.NotFound, "%s: %s", err.Error(), req.DeviceClass)
+//	} else if err != nil {
+//		logger.Error(err, "failed to get volume group", "name", dc.VolumeGroup)
+//		return nil, status.Error(codes.Internal, err.Error())
+//	}
+//
+//	// Find the logical volume
+//	lv, err := vg.FindVolume(ctx, req.GetName())
+//	if errors.Is(err, command.ErrNotFound) {
+//		logger.Error(err, "logical volume is not found")
+//		return nil, status.Errorf(codes.NotFound, "logical volume %s is not found", req.GetName())
+//	}
+//	if err != nil {
+//		logger.Error(err, "failed to find volume")
+//		return nil, status.Error(codes.Internal, err.Error())
+//	}
+//
+//	// Get device path
+//	devicePath := lv.Path()
+//
+//	// Set default filesystem type if not specified
+//	fsType := req.GetFsType()
+//	if fsType == "" {
+//		fsType = "ext4"
+//	}
+//
+//	// Validate target path
+//	targetPath := req.GetTargetPath()
+//	if targetPath == "" {
+//		return nil, status.Error(codes.InvalidArgument, "target_path is required")
+//	}
+//
+//	// Create target directory if it doesn't exist
+//	if err := os.MkdirAll(targetPath, 0755); err != nil {
+//		logger.Error(err, "failed to create target directory", "target", targetPath)
+//		return nil, status.Errorf(codes.Internal, "failed to create target directory: %v", err)
+//	}
+//
+//	//Detect existing filesystem
+//	existingFS, err := filesystem.DetectFilesystem(devicePath)
+//	if err != nil {
+//		logger.Error(err, "failed to detect filesystem", "device", devicePath)
+//		return nil, status.Errorf(codes.Internal, "failed to detect filesystem: %v", err)
+//	}
+//
+//	// If filesystem exists and differs from requested, return error
+//	if existingFS != "" && existingFS != fsType {
+//		return nil, status.Errorf(codes.FailedPrecondition,
+//			"device already formatted with different filesystem: existing=%s, requested=%s",
+//			existingFS, fsType)
+//	}
+//
+//	fsType, err := filesystem.DetectFilesystem(lv.GetPath())
+//	if err != nil {
+//		return status.Errorf(codes.Internal, "filesystem check failed: volume=%s, error=%v", req.GetVolumeId(), err)
+//	}
+//
+//	if fsType != "" && fsType != mountOption.FsType {
+//		return status.Errorf(codes.Internal, "target device is already formatted with different filesystem: volume=%s, current=%s, new:%s", req.GetVolumeId(), fsType, mountOption.FsType)
+//	}
+//
+//	fmt.Println("############## FS type: ", fsType)         // Debug print
+//	fmt.Println("############## Existing FS: ", existingFS) // Debug print
+//
+//	//// Format the device if no filesystem exists
+//	//if existingFS == "" {
+//	//	logger.Info("formatting device", "device", devicePath, "fsType", fsType)
+//	//	var mkfsCmd *exec.Cmd
+//	//	switch fsType {
+//	//	case "ext4":
+//	//		mkfsCmd = exec.CommandContext(ctx, "mkfs.ext4", "-F", devicePath)
+//	//	case "ext3":
+//	//		mkfsCmd = exec.CommandContext(ctx, "mkfs.ext3", "-F", devicePath)
+//	//	case "xfs":
+//	//		mkfsCmd = exec.CommandContext(ctx, "mkfs.xfs", "-f", devicePath)
+//	//	default:
+//	//		return nil, status.Errorf(codes.InvalidArgument, "unsupported filesystem type: %s", fsType)
+//	//	}
+//	//	fmt.Println("############## Mounting device", "device", devicePath, "fsType", fsType)
+//	//
+//	//	fmt.Println("############## Mkfs Command: ", mkfsCmd.String()) // Debug print
+//	//
+//	//	if output, err := mkfsCmd.CombinedOutput(); err != nil {
+//	//		logger.Error(err, "failed to format device", "device", devicePath, "output", string(output))
+//	//		return nil, status.Errorf(codes.Internal, "failed to format device: %v, output: %s", err, string(output))
+//	//	}
+//	//	logger.Info("device formatted successfully", "device", devicePath, "fsType", fsType)
+//	//}
+//
+//	// Check if already mounted
+//	mountedCheck := exec.CommandContext(ctx, "mountpoint", "-q", targetPath)
+//	if err := mountedCheck.Run(); err == nil {
+//		logger.Info("target path is already a mount point", "target", targetPath)
+//		return &proto.MountLVResponse{
+//			DevicePath: devicePath,
+//		}, nil
+//	}
+//
+//	// Prepare mount options
+//	mountOptions := req.GetMountOptions()
+//	if mountOptions == nil {
+//		mountOptions = []string{}
+//	}
+//
+//	// Ensure read-write mode unless read-only is explicitly specified
+//	hasRW := false
+//	hasRO := false
+//	for _, opt := range mountOptions {
+//		if opt == "rw" {
+//			hasRW = true
+//		}
+//		if opt == "ro" {
+//			hasRO = true
+//		}
+//	}
+//	// Add "ro" by default if neither "rw" nor "ro" is specified
+//	if !hasRW && !hasRO {
+//		mountOptions = append(mountOptions, "ro")
+//	}
+//
+//	//Add nouuid option for xfs
+//	if fsType == "xfs" {
+//		hasNouuid := false
+//		for _, opt := range mountOptions {
+//			if opt == "nouuid" {
+//				hasNouuid = true
+//				break
+//			}
+//		}
+//		if !hasNouuid {
+//			mountOptions = append(mountOptions, "nouuid")
+//		}
+//	}
+//
+//	// Build mount command
+//	var mountArgs []string
+//	if len(mountOptions) > 0 {
+//		mountArgs = append(mountArgs, "-o", fmt.Sprintf("%s", joinMountOptions(mountOptions)))
+//	}
+//	mountArgs = append(mountArgs, "-t", fsType, devicePath, targetPath)
+//
+//	// Execute mount command
+//	logger.Info("executing mount command",
+//		"device", devicePath,
+//		"target", targetPath,
+//		"fsType", fsType,
+//		"options", mountOptions)
+//
+//	mountCmd := exec.CommandContext(ctx, "mount", mountArgs...)
+//
+//	fmt.Println("############## Mount Command: ", mountCmd.String()) // Debug print
+//
+//	time.Sleep(20 * time.Second)
+//
+//	//if output, err := mountCmd.CombinedOutput(); err != nil {
+//	//	fmt.Println(err)
+//	//	logger.Error(err, "failed to mount device",
+//	//		"device", devicePath,
+//	//		"target", targetPath,
+//	//		"output", string(output))
+//	//	return nil, status.Errorf(codes.Internal, "failed to mount device: %v, output: %s", err, string(output))
+//	//}
+//	//
+//	//// Set permissions on mounted directory
+//	//if err := os.Chmod(targetPath, 0777|os.ModeSetgid); err != nil {
+//	//	logger.Error(err, "failed to set permissions on mounted directory", "target", targetPath)
+//	//	// Don't fail the operation, just log the warning
+//	//	logger.Info("warning: failed to chmod 2777 on target", "target", targetPath, "error", err)
+//	//}
+//	//
+//	logger.Info("successfully mounted logical volume",
+//		"device", devicePath,
+//		"target", targetPath,
+//		"fsType", fsType)
+//
+//	return &proto.MountLVResponse{
+//		DevicePath: devicePath,
+//	}, nil
+//}
+//
+//// joinMountOptions joins mount options into a comma-separated string
+//func joinMountOptions(options []string) string {
+//	if len(options) == 0 {
+//		return ""
+//	}
+//	result := options[0]
+//	for i := 1; i < len(options); i++ {
+//		result += "," + options[i]
+//	}
+//	return result
+//}

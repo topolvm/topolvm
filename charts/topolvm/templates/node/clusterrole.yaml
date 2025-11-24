@@ -14,3 +14,37 @@ rules:
   - apiGroups: ["storage.k8s.io"]
     resources: ["csidrivers"]
     verbs: ["get", "list", "watch"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups:
+      - ""
+    resources: ["pods"]
+    verbs: ["*"]
+  - apiGroups:
+      - "apps"
+    resources: [ "daemonsets" ]
+    verbs: [ "*" ]
+  - apiGroups:
+      - topolvm.io
+    resources:
+      - onlinesnapshotstorages
+      - onlinesnapshotstorages/status
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs: [ "get", "list", "create", "patch", "watch", "delete" ]
+  - apiGroups:
+      - ""
+    resources:
+      - persistentvolumes
+    verbs: [ "get", "list", "create", "patch", "watch", "delete" ]

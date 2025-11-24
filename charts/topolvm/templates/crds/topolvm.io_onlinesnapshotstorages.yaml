@@ -1,0 +1,218 @@
+{{ if not .Values.useLegacy }}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: onlinesnapshotstorages.topolvm.io
+spec:
+  group: topolvm.io
+  names:
+    kind: OnlineSnapshotStorage
+    listKind: OnlineSnapshotStorageList
+    plural: onlinesnapshotstorages
+    singular: onlinesnapshotstorage
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.storage.provider
+      name: Provider
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          OnlineSnapshotStorage defines a storage destination where online
+          VolumeSnapshots are stored and managed (e.g., via Restic or similar tools).
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: OnlineSnapshotStorageSpec defines configuration for the backend
+              target.\
+            properties:
+              backupFlags:
+                description: BackupFlags defines additional flags for backup commands.
+                items:
+                  type: string
+                type: array
+              engine:
+                default: restic
+                description: Engine defines which snapshot engine to use (e.g., restic,
+                  kopia).
+                enum:
+                - restic
+                - kopia
+                type: string
+              globalFlags:
+                description: |-
+                  GlobalFlags defines flags applied to all restic operations.
+                  Example: ["--no-lock", "--limit-upload=4", "--verbose"]
+                items:
+                  type: string
+                type: array
+              restoreFlags:
+                description: RestoreFlags defines additional flags for restore commands.
+                items:
+                  type: string
+                type: array
+              storage:
+                description: Storage specifies the backend storage configuration.
+                properties:
+                  azure:
+                    description: Azure specifies the storage information for Azure
+                      Blob container
+                    properties:
+                      container:
+                        description: Container specifies the name of the Azure Blob
+                          container that will be used as storage backend.
+                        type: string
+                      maxConnections:
+                        description: MaxConnections specifies the maximum number of
+                          concurrent connections to use to upload/download data to
+                          this backend.
+                        format: int64
+                        type: integer
+                      prefix:
+                        description: Prefix specifies a directory inside the bucket/container
+                          where the data for this backend will be stored.
+                        type: string
+                      secretName:
+                        description: SecretName specifies the name of the Secret that
+                          contains the access credential for this storage.
+                        type: string
+                      storageAccount:
+                        description: StorageAccount specifies the name of the Azure
+                          Storage Account
+                        type: string
+                    type: object
+                  gcs:
+                    description: GCS specifies the storage information for GCS bucket
+                    properties:
+                      bucket:
+                        description: Bucket specifies the name of the bucket that
+                          will be used as storage backend.
+                        type: string
+                      maxConnections:
+                        description: MaxConnections specifies the maximum number of
+                          concurrent connections to use to upload/download data to
+                          this backend.
+                        format: int64
+                        type: integer
+                      prefix:
+                        description: Prefix specifies a directory inside the bucket/container
+                          where the data for this backend will be stored.
+                        type: string
+                      secretName:
+                        description: SecretName specifies the name of the Secret that
+                          contains the access credential for this storage.
+                        type: string
+                    type: object
+                  provider:
+                    description: Provider specifies the provider of the storage
+                    enum:
+                    - s3
+                    - gcs
+                    - azure
+                    - local
+                    type: string
+                  s3:
+                    description: S3 specifies the storage information for AWS S3 and
+                      S3 compatible storage.
+                    properties:
+                      bucket:
+                        description: Bucket specifies the name of the bucket that
+                          will be used as storage backend.
+                        type: string
+                      endpoint:
+                        description: Endpoint specifies the URL of the S3 or S3 compatible
+                          storage bucket.
+                        type: string
+                      insecureTLS:
+                        description: |-
+                          InsecureTLS controls whether a client should skip TLS certificate verification.
+                          Setting this field to true disables verification, which might be necessary in cases
+                          where the server uses self-signed certificates or certificates from an untrusted CA.
+                          Use this option with caution, as it can expose the client to man-in-the-middle attacks
+                          and other security risks. Only use it when absolutely necessary.
+                        type: boolean
+                      maxConnections:
+                        description: MaxConnections specifies the maximum number of
+                          concurrent connections to use to upload/download/delete
+                          data to this backend.
+                        format: int64
+                        type: integer
+                      prefix:
+                        description: Prefix specifies a directory inside the bucket/container
+                          where the data for this backend will be stored.
+                        type: string
+                      region:
+                        description: Region specifies the region where the bucket
+                          is located
+                        type: string
+                      secretName:
+                        description: |-
+                          SecretName specifies the name of the Secret that contains the access credential for this storage.
+                          Must be in the same namespace as TopoLVM components.
+                        type: string
+                    type: object
+                type: object
+              validateOnCreate:
+                default: true
+                description: |-
+                  ValidateOnCreate controls whether the controller should validate the backend
+                  (by attempting to connect/ping the backend storage) immediately after creation.
+                type: boolean
+            required:
+            - engine
+            - storage
+            type: object
+          status:
+            description: OnlineSnapshotStorageStatus defines observed backend health.
+            properties:
+              lastChecked:
+                description: LastChecked records the timestamp of the most recent
+                  backend validation.
+                format: date-time
+                type: string
+              message:
+                description: Message provides human-readable context or error info.
+                type: string
+              phase:
+                description: Phase indicates current validation or operational state
+                  (e.g., Ready, Error).
+                enum:
+                - Ready
+                - Pending
+                - Error
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+
+{{ end }}

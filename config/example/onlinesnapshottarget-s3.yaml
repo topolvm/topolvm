@@ -1,0 +1,23 @@
+apiVersion: topolvm.io/v1
+kind: OnlineSnapshotStorage
+metadata:
+  name: s3-storage
+  namespace: topolvm-system
+spec:
+  engine: restic
+  validateOnCreate: false
+  storage:
+    provider: s3
+    s3:
+      endpoint: s3.amazonaws.com
+      bucket: kubestash
+      prefix: /topolvm-test/snapshots
+      region: us-east-2
+      secretName: s3-secret
+  globalFlags:
+    - "--verbose"
+    - "--no-lock"
+  backupFlags:
+    - "--exclude-caches"
+  restoreFlags:
+    - "--verify"

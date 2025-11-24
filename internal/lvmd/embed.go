@@ -83,7 +83,7 @@ func (l *embeddedChannelWatch) Trailer() metadata.MD { return nil }
 func (l *embeddedChannelWatch) CloseSend() error { return nil }
 
 // Context is relaying the server context to satisfy the grpc.ClientStream and grpc.ServerStream interface.
-// Client Context is ignored as the server context is always living longer.
+// client Context is ignored as the server context is always living longer.
 func (l *embeddedChannelWatch) Context() context.Context { return l.ctx }
 
 // Recv is used to receive a WatchResponse as a VGService_WatchClient.
@@ -158,3 +158,7 @@ func (l *embeddedServiceClients) GetLVList(ctx context.Context, in *proto.GetLVL
 func (l *embeddedServiceClients) GetFreeBytes(ctx context.Context, in *proto.GetFreeBytesRequest, _ ...grpc.CallOption) (*proto.GetFreeBytesResponse, error) {
 	return l.vgServiceServer.GetFreeBytes(ctx, in)
 }
+
+//func (l *embeddedServiceClients) MountLV(ctx context.Context, in *proto.MountLVRequest, _ ...grpc.CallOption) (*proto.MountLVResponse, error) {
+//	return l.lvServiceServer.MountLV(ctx, in)
+//}

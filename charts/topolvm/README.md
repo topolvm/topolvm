@@ -34,7 +34,7 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v15.
 | controller.prometheus.podMonitor.namespace | string | `""` | Optional namespace in which to create PodMonitor. |
 | controller.prometheus.podMonitor.relabelings | list | `[]` | RelabelConfigs to apply to samples before scraping. |
 | controller.prometheus.podMonitor.scrapeTimeout | string | `""` | Scrape timeout. If not set, the Prometheus default scrape timeout is used. |
-| controller.replicaCount | int | `2` | Number of replicas for CSI controller service. |
+| controller.replicaCount | int | `1` | Number of replicas for CSI controller service. |
 | controller.securityContext.enabled | bool | `true` | Enable securityContext. |
 | controller.storageCapacityTracking.enabled | bool | `true` | Enable Storage Capacity Tracking for csi-provisioner. |
 | controller.terminationGracePeriodSeconds | int | `nil` | Specify terminationGracePeriodSeconds. |
@@ -54,9 +54,9 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v15.
 | image.csi.csiSnapshotter | string | `nil` | Specify csi-snapshot image. If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used. |
 | image.csi.livenessProbe | string | `nil` | Specify livenessprobe image. If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used. |
 | image.csi.nodeDriverRegistrar | string | `nil` | Specify csi-node-driver-registrar: image. If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used. |
-| image.pullPolicy | string | `nil` | TopoLVM image pullPolicy. |
+| image.pullPolicy | string | `"IfNotPresent"` | TopoLVM image pullPolicy. |
 | image.pullSecrets | list | `[]` | List of imagePullSecrets. |
-| image.repository | string | `"ghcr.io/topolvm/topolvm-with-sidecar"` | TopoLVM image repository to use. |
+| image.repository | string | `"ghcr.io/anisurrahman75/topolvm-with-sidecar"` | TopoLVM image repository to use. |
 | image.tag | string | `{{ .Chart.AppVersion }}` | TopoLVM image tag to use. |
 | livenessProbe.csi_registrar | object | `{"failureThreshold":null,"initialDelaySeconds":10,"periodSeconds":60,"timeoutSeconds":3}` | Specify livenessProbe. # ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/ |
 | livenessProbe.lvmd | object | `{"failureThreshold":null,"initialDelaySeconds":10,"periodSeconds":60,"timeoutSeconds":3}` | Specify livenessProbe. # ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/ |
@@ -69,11 +69,11 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v15.
 | lvmd.additionalVolumes | list | `[]` | Specify additional volumes without conflicting with default volumes most useful for initContainers but available to all containers in the pod. |
 | lvmd.affinity | object | `{}` | Specify affinity. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity |
 | lvmd.args | list | `[]` | Arguments to be passed to the command. |
-| lvmd.deviceClasses | list | `[{"default":true,"name":"ssd","spare-gb":10,"volume-group":"myvg1"}]` | Specify the device-class settings. |
+| lvmd.deviceClasses | list | `[{"default":true,"name":"ssd","spare-gb":10,"volume-group":"myvg1"},{"name":"thin","thin-pool":{"name":"pool0","overprovision-ratio":5},"type":"thin","volume-group":"myvg1"}]` | Specify the device-class settings. |
 | lvmd.env | list | `[]` | extra environment variables |
 | lvmd.initContainers | list | `[]` | Additional initContainers for the lvmd service. |
 | lvmd.labels | object | `{}` | Additional labels to be added to the Daemonset. |
-| lvmd.lvcreateOptionClasses | list | `[]` | Specify the lvcreate-option-class settings. |
+| lvmd.lvcreateOptionClasses | list | `[{"name":"topolvm-provisioner-thin","storageClass":{"additionalParameters":{"{{ include \"topolvm.pluginName\" . }}/device-class":"thin"},"allowVolumeExpansion":true,"fsType":"xfs","isDefaultClass":false,"volumeBindingMode":"WaitForFirstConsumer"}}]` | Specify the lvcreate-option-class settings. |
 | lvmd.managed | bool | `true` | If true, set up lvmd service with DaemonSet. |
 | lvmd.metrics.annotations | object | `{"prometheus.io/port":"metrics"}` | Annotations for Scrape used by Prometheus. |
 | lvmd.metrics.enabled | bool | `true` | If true, enable scraping of metrics by Prometheus. |
@@ -137,7 +137,7 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v15.
 | scheduler.additionalContainers | list | `[]` | Define extra containers to add to the Daemonset. Please ensure not to use any existing container names. |
 | scheduler.affinity | object | `{"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"node-role.kubernetes.io/control-plane","operator":"Exists"}]}]}}}` | Specify affinity on the Deployment or DaemonSet. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity |
 | scheduler.args | list | `[]` | Arguments to be passed to the command. |
-| scheduler.deployment.replicaCount | int | `2` | Number of replicas for Deployment. |
+| scheduler.deployment.replicaCount | int | `1` | Number of replicas for Deployment. |
 | scheduler.enabled | bool | `false` | If true, enable scheduler extender for TopoLVM |
 | scheduler.labels | object | `{}` | Additional labels to be added to the Deployment or Daemonset. |
 | scheduler.minReadySeconds | int | `nil` | Specify minReadySeconds on the Deployment or DaemonSet. |
@@ -159,7 +159,7 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v15.
 | securityContext.runAsGroup | int | `10000` | Specify runAsGroup. |
 | securityContext.runAsUser | int | `10000` | Specify runAsUser. |
 | snapshot.enabled | bool | `true` | Turn on the snapshot feature. |
-| storageClasses | list | `[{"name":"topolvm-provisioner","storageClass":{"additionalParameters":{},"allowVolumeExpansion":true,"annotations":{},"fsType":"xfs","isDefaultClass":false,"mountOptions":[],"reclaimPolicy":null,"volumeBindingMode":"WaitForFirstConsumer"}}]` | Whether to create storageclass(es) ref: https://kubernetes.io/docs/concepts/storage/storage-classes/ |
+| storageClasses | list | `[{"name":"topolvm-provisioner","storageClass":{"additionalParameters":{},"allowVolumeExpansion":true,"annotations":{},"fsType":"xfs","isDefaultClass":false,"mountOptions":[],"reclaimPolicy":null,"volumeBindingMode":"WaitForFirstConsumer"}},{"name":"topolvm-provisioner-thin","storageClass":{"additionalParameters":{"{{ include \"topolvm.pluginName\" . }}/device-class":"thin"},"allowVolumeExpansion":true,"fsType":"xfs","isDefaultClass":false,"volumeBindingMode":"WaitForFirstConsumer"}}]` | Whether to create storageclass(es) ref: https://kubernetes.io/docs/concepts/storage/storage-classes/ |
 | useLegacy | bool | `false` | If true, the legacy plugin name and legacy custom resource group is used(topolvm.cybozu.com). |
 | webhook.caBundle | string | `nil` | Specify the certificate to be used for AdmissionWebhook. |
 | webhook.existingCertManagerIssuer | object | `{}` | Specify the cert-manager issuer to be used for AdmissionWebhook. |

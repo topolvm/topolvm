@@ -594,3 +594,7 @@ func (l *LogicalVolume) Rename(ctx context.Context, name string) error {
 	l.path = path.Join(path.Dir(l.path), l.name)
 	return nil
 }
+
+//func (l *LogicalVolume) MountVolume(ctx context.Context) {
+//
+//}
