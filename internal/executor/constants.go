@@ -33,9 +33,6 @@ const (
 	// LabelSnapshotPodKey is the label key to identify snapshot pods
 	LabelSnapshotPodKey = "topolvm.io/snapshot-pod"
 
-	// LabelRestorePodKey is the label key to identify restore pods
-	LabelRestorePodKey = "topolvm.io/restore-pod"
-
 	// EnvHostNamespace is the environment variable key for the host namespace
 	EnvHostNamespace = "HOST_NAMESPACE"
 

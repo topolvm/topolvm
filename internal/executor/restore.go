@@ -10,7 +10,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -48,7 +47,7 @@ func NewRestoreExecutor(
 
 // Execute creates a restore pod that will perform the online restore operation.
 func (e *RestoreExecutor) Execute() error {
-	objMeta := e.buildObjectMeta()
+	objMeta := buildObjectMeta(topolvmv1.OperationRestore, e.logicalVolume)
 	hostPod, err := getHostPod(e.client)
 	if err != nil {
 		return err
@@ -216,19 +215,6 @@ func (e *RestoreExecutor) buildResourceRequirements() corev1.ResourceRequirement
 		Limits: corev1.ResourceList{
 			corev1.ResourceCPU:    resource.MustParse("500m"),
 			corev1.ResourceMemory: resource.MustParse("512Mi"),
-		},
-	}
-}
-
-// buildObjectMeta creates the metadata for the restore pod.
-func (e *RestoreExecutor) buildObjectMeta() metav1.ObjectMeta {
-	return metav1.ObjectMeta{
-		Name:        fmt.Sprintf("%s-restore", e.logicalVolume.Name),
-		Namespace:   getNamespace(),
-		Labels:      buildLabels(e.logicalVolume),
-		Annotations: buildAnnotations(e.logicalVolume),
-		OwnerReferences: []metav1.OwnerReference{
-			*metav1.NewControllerRef(e.logicalVolume, topolvmv1.GroupVersion.WithKind("LogicalVolume")),
 		},
 	}
 }

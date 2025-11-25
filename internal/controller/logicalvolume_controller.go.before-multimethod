@@ -180,11 +180,6 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 				}
 
 				log.Info("successfully unmounted LV", "name", lv.Name, "uid", lv.UID)
-
-				if err := r.executeCleanerOperation(ctx, lv, topolvmv1.OperationRestore, log); err != nil {
-					log.Error(err, "failed to execute cleaner operation", "name", lv.Name)
-					return ctrl.Result{}, err
-				}
 			}
 		}
 
@@ -208,12 +203,7 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 				return ctrl.Result{}, err
 			}
 		}
-		if r.isSnapshotOperationComplete(lv) {
-			if err := r.executeCleanerOperation(ctx, lv, topolvmv1.OperationBackup, log); err != nil {
-				log.Error(err, "failed to execute cleaner operation", "name", lv.Name)
-				return ctrl.Result{}, err
-			}
-		}
+
 		return ctrl.Result{}, nil
 	}
 
@@ -222,15 +212,11 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		// Our finalizer has finished, so the reconciler can do nothing.
 		return ctrl.Result{}, nil
 	}
+
 	log.Info("start finalizing LogicalVolume", "name", lv.Name)
 	err := r.removeLVIfExists(ctx, log, lv)
 	if err != nil {
 		return ctrl.Result{}, err
-	}
-
-	if r.isLVHasSnapshot(lv) {
-		log.Info("snapshot LV found; waiting for snapshot to be deleted", "name", lv.Name)
-		
 	}
 
 	lv2 := lv.DeepCopy()
@@ -241,16 +227,6 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
-}
-
-func (r *LogicalVolumeReconciler) isLVHasSnapshot(lv *topolvmv1.LogicalVolume) bool {
-	if lv.Status.Snapshot == nil {
-		return false
-	}
-	return lv.Status.Snapshot != nil &&
-		lv.Status.Snapshot.Phase == topolvmv1.OperationPhaseSucceeded &&
-		lv.Status.Snapshot.SnapshotID != ""
-
 }
 
 func (r *LogicalVolumeReconciler) isPersistentVolumeExist(lv *topolvmv1.LogicalVolume) (bool, error) {
@@ -414,28 +390,6 @@ func (r *LogicalVolumeReconciler) executeSnapshotOperation(ctx context.Context, 
 		}
 		return err
 	}
-	return nil
-}
-
-func (r *LogicalVolumeReconciler) executeCleanerOperation(ctx context.Context, lv *topolvmv1.LogicalVolume, operation topolvmv1.OperationType, log logr.Logger) error {
-	exec := executor.NewCleanerExecutor(r.client, lv, operation)
-	cleaner := "Cleaner"
-	if err := exec.Execute(); err != nil {
-		errorCode := "SnapshotCleanUpFailed"
-		log.Error(err, "failed to execute operation", "operation", cleaner, "name", lv.Name)
-
-		snapshotErr := &topolvmv1.SnapshotError{
-			Code:    errorCode,
-			Message: fmt.Sprintf("failed to execute %s: %v", cleaner, err),
-		}
-		message := fmt.Sprintf("Failed to execute %s: %v", cleaner, err)
-
-		if updateErr := r.updateSnapshotOperationStatus(ctx, lv, operation, topolvmv1.OperationPhaseFailed, message, snapshotErr); updateErr != nil {
-			log.Error(updateErr, "failed to update snapshot status after execution error", "name", lv.Name)
-		}
-		return err
-	}
-	log.Info("successfully executed cleaner operation for LogicalVolume", "name", lv.Name)
 	return nil
 }
 
@@ -619,6 +573,7 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 
 		// Create a snapshot LV
 		if lv.Spec.Source != "" && !restoreFrSnapshot {
+			fmt.Println("############################# Snapshot LV #########################")
 			// accessType should be either "readonly" or "readwrite".
 			if lv.Spec.AccessType != "ro" && lv.Spec.AccessType != "rw" {
 				return fmt.Errorf("invalid access type for source volume: %s", lv.Spec.AccessType)

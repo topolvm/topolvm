@@ -55,7 +55,7 @@ func NewSnapshotExecutor(
 
 // Execute creates a snapshot pod that will perform the online snapshot operation.
 func (e *SnapshotExecutor) Execute() error {
-	objMeta := e.buildObjectMeta()
+	objMeta := buildObjectMeta(topolvmv1.OperationBackup, e.logicalVolume)
 	hostPod, err := getHostPod(e.client)
 	if err != nil {
 		return err
@@ -295,56 +295,4 @@ func (e *SnapshotExecutor) buildResourceRequirements() corev1.ResourceRequiremen
 		Requests: requests,
 		Limits:   limits,
 	}
-}
-
-// buildObjectMeta constructs the metadata for the snapshot pod.
-func (e *SnapshotExecutor) buildObjectMeta() metav1.ObjectMeta {
-	return metav1.ObjectMeta{
-		Name:        fmt.Sprintf("%s-snapshot", e.logicalVolume.Name),
-		Namespace:   getNamespace(),
-		Labels:      buildLabels(e.logicalVolume),
-		Annotations: buildAnnotations(e.logicalVolume),
-		OwnerReferences: []metav1.OwnerReference{
-			*metav1.NewControllerRef(e.logicalVolume, topolvmv1.GroupVersion.WithKind("LogicalVolume")),
-		},
-	}
-}
-
-func getNamespace() string {
-	namespace := os.Getenv(EnvHostNamespace)
-	if namespace == "" {
-		namespace = "topolvm-system"
-	}
-	return namespace
-}
-
-// buildLabels constructs labels for the snapshot pod.
-func buildLabels(lv *topolvmv1.LogicalVolume) map[string]string {
-	labels := map[string]string{
-		LabelAppKey:           LabelAppValue,
-		LabelLogicalVolumeKey: lv.Name,
-		LabelSnapshotPodKey:   "true",
-	}
-
-	return labels
-}
-
-// buildAnnotations constructs annotations for the snapshot pod.
-func buildAnnotations(lv *topolvmv1.LogicalVolume) map[string]string {
-	annotations := map[string]string{
-		"topolvm.io/snapshot-source":  lv.Spec.Source,
-		"topolvm.io/device-class":     lv.Spec.DeviceClass,
-		"topolvm.io/snapshot-version": "v1",
-	}
-	return annotations
-}
-
-// getSnapshotImageFromEnv retrieves the snapshot image from environment variables
-// or returns the default image.
-func getSnapshotImageFromEnv() string {
-	image := os.Getenv("SNAPSHOT_IMAGE")
-	if image == "" {
-		image = DefaultSnapshotImage
-	}
-	return image
 }
