@@ -12,6 +12,7 @@ import (
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/topolvm/topolvm"
+	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	"github.com/topolvm/topolvm/internal/driver/internal/k8s"
 	"github.com/topolvm/topolvm/internal/filesystem"
 	"github.com/topolvm/topolvm/internal/lvmd/command"
@@ -127,6 +128,8 @@ func (s *nodeServerNoLocked) NodePublishVolume(ctx context.Context, req *csi.Nod
 		"num_secrets", len(req.GetSecrets()),
 		"volume_context", volumeContext)
 
+	//status.Error(codes.FailedPrecondition, "NodePublishVolume is not implemented")
+
 	if len(volumeID) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "no volume_id is provided")
 	}
@@ -156,6 +159,9 @@ func (s *nodeServerNoLocked) NodePublishVolume(ctx context.Context, req *csi.Nod
 	lvr, err := s.k8sLVService.GetVolume(ctx, volumeID)
 	if err != nil {
 		return nil, err
+	}
+	if lvr.Status.Snapshot != nil && lvr.Status.Snapshot.Phase != topolvmv1.OperationPhaseSucceeded {
+		return nil, status.Error(codes.FailedPrecondition, "volume restore is still in progress")
 	}
 	lv, err = s.getLvFromContext(ctx, lvr.Spec.DeviceClass, volumeID)
 	if err != nil {

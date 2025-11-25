@@ -44,7 +44,7 @@ func main() {
 		node.Execute()
 	case "topolvm-controller":
 		controller.Execute()
-	case "online-snapshotter":
+	case "topolvm-snapshotter":
 		onlinesnapshotter.Execute()
 	default:
 		usage()

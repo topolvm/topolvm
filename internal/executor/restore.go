@@ -28,8 +28,8 @@ type RestoreExecutor struct {
 	targetPVCInfo types.NamespacedName
 }
 
-// NewRestoreExecutor creates a new RestoreExecutor instance with the provided dependencies.
-func NewRestoreExecutor(
+// NewSnapshotRestoreExecutor creates a new RestoreExecutor instance with the provided dependencies.
+func NewSnapshotRestoreExecutor(
 	client client.Client,
 	logicalVolume *topolvmv1.LogicalVolume,
 	snapshotLogicalVolume *topolvmv1.LogicalVolume,
@@ -68,8 +68,6 @@ func (e *RestoreExecutor) Execute() error {
 	return err
 }
 
-// buildPodSpec constructs the pod spec by copying from the DaemonSet's pod template
-// and replacing containers with the restore container.
 func (e *RestoreExecutor) buildPodSpec(hostPod *corev1.Pod) (corev1.PodSpec, error) {
 	daemonSet, err := getDaemonSetFromOwnerRef(e.client, hostPod)
 	if err != nil {
@@ -122,7 +120,6 @@ func (e *RestoreExecutor) createRestorePod(pod *corev1.Pod) error {
 	return nil
 }
 
-// buildRestoreContainer creates a container configured to execute the online restore command.
 func (e *RestoreExecutor) buildRestoreContainer(templateContainer *corev1.Container) corev1.Container {
 	image := templateContainer.Image
 	imagePullPolicy := corev1.PullIfNotPresent
@@ -142,7 +139,7 @@ func (e *RestoreExecutor) buildRestoreContainer(templateContainer *corev1.Contai
 		Image:           image,
 		ImagePullPolicy: imagePullPolicy,
 		Command: []string{
-			"/online-snapshotter",
+			fmt.Sprintf("/%s", topolvmv1.TopoLVMSnapshotter),
 			RestoreCommandName, // "backup" subcommand
 		},
 		Args:            e.buildRestoreArgs(),
@@ -172,13 +169,11 @@ func (e *RestoreExecutor) buildRestoreArgs() []string {
 	}
 }
 
-// buildRestoreEnv constructs the environment variables for the restore container.
 func (e *RestoreExecutor) buildRestoreEnv(templateContainer *corev1.Container) []corev1.EnvVar {
 	var env []corev1.EnvVar
 	return env
 }
 
-// isReservedEnvVar checks if an environment variable name is reserved for restore operations.
 func (e *RestoreExecutor) isReservedEnvVar(name string) bool {
 	reserved := []string{
 		"LOGICAL_VOLUME_NAME",
@@ -197,7 +192,6 @@ func (e *RestoreExecutor) isReservedEnvVar(name string) bool {
 	return false
 }
 
-// buildSecurityContext creates the security context for the restore container.
 func (e *RestoreExecutor) buildSecurityContext() *corev1.SecurityContext {
 	privileged := true
 	return &corev1.SecurityContext{
@@ -205,7 +199,6 @@ func (e *RestoreExecutor) buildSecurityContext() *corev1.SecurityContext {
 	}
 }
 
-// buildResourceRequirements creates the resource requirements for the restore container.
 func (e *RestoreExecutor) buildResourceRequirements() corev1.ResourceRequirements {
 	return corev1.ResourceRequirements{
 		Requests: corev1.ResourceList{

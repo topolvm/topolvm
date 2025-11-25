@@ -8,8 +8,8 @@ import (
 	"time"
 
 	v1 "github.com/topolvm/topolvm/api/v1"
-	"github.com/topolvm/topolvm/internal/snapshotengine/config"
-	"github.com/topolvm/topolvm/internal/snapshotengine/restic"
+	"github.com/topolvm/topolvm/internal/backupengine/config"
+	"github.com/topolvm/topolvm/internal/backupengine/restic"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -31,6 +31,14 @@ func NewResticProvider(client client.Client, snapStorage *v1.OnlineSnapshotStora
 
 type resticProvider struct {
 	wrapper *restic.ResticWrapper
+}
+
+func (r *resticProvider) Delete(ctx context.Context, param DeleteParam) ([]byte, error) {
+	r.wrapper.SetShowCMD(true)
+	r.wrapper.SetRepository(*param.RepoRef.Repository)
+	fmt.Println("############## REPOSITORY: ", *param.RepoRef.Repository)
+	fmt.Println("############## REPO: ", r.wrapper.GetEnv(restic.RESTIC_REPOSITORY))
+	return r.wrapper.DeleteSnapshots(param.SnapshotIDs)
 }
 
 func (r *resticProvider) ValidateConnection(ctx context.Context) error {

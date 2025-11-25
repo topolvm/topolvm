@@ -33,6 +33,12 @@ type RestoreParam struct {
 	Args         []string
 }
 
+// DeleteParam includes parameters for delete operations
+type DeleteParam struct {
+	RepoRef
+	SnapshotIDs []string
+}
+
 // SnapshotInfo contains information about a snapshot
 type SnapshotInfo struct {
 	ID       string
@@ -191,6 +197,8 @@ type Provider interface {
 
 	// Restore restores files from a snapshot
 	Restore(ctx context.Context, param RestoreParam) (*RestoreResult, error)
+
+	Delete(ctx context.Context, param DeleteParam) ([]byte, error)
 
 	// Backup // InitRepo initializes a new repository in the storage backend
 	//InitRepo(ctx context.Context, param RepoRef) error

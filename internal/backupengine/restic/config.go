@@ -23,7 +23,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/topolvm/topolvm/internal/snapshotengine/config"
+	"github.com/topolvm/topolvm/internal/backupengine/config"
 	shell "gomodules.xyz/go-sh"
 )
 

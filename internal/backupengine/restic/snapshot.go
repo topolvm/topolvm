@@ -28,6 +28,10 @@ func (w *ResticWrapper) DeleteSnapshots(snapshotIDs []string) ([]byte, error) {
 	return w.deleteSnapshots(snapshotIDs)
 }
 
+func (w *ResticWrapper) Prune(pruneOpts PruneOptions) ([]byte, error) {
+	return w.prune(pruneOpts)
+}
+
 // GetSnapshotSize returns size of a snapshot in bytes
 func (w *ResticWrapper) GetSnapshotSize(snapshotID string) (uint64, error) {
 	out, err := w.stats(snapshotID)

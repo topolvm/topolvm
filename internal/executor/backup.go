@@ -3,7 +3,6 @@ package executor
 import (
 	"context"
 	"fmt"
-	"os"
 
 	snapshot_api "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
@@ -36,8 +35,8 @@ type SnapshotExecutor struct {
 	targetPVCInfo types.NamespacedName
 }
 
-// NewSnapshotExecutor creates a new SnapshotExecutor instance with the provided dependencies.
-func NewSnapshotExecutor(
+// NewSnapshotBackupExecutor creates a new SnapshotExecutor instance with the provided dependencies.
+func NewSnapshotBackupExecutor(
 	client client.Client,
 	logicalVolume *topolvmv1.LogicalVolume,
 	resp *mounter.MountResponse,
@@ -61,7 +60,6 @@ func (e *SnapshotExecutor) Execute() error {
 		return err
 	}
 
-	e.namespace = hostPod.Namespace
 	err = e.setTargetedPVCInfo()
 	if err != nil {
 		return err
@@ -162,22 +160,6 @@ func (e *SnapshotExecutor) buildPodSpec(hostPod *corev1.Pod) (corev1.PodSpec, er
 	return *podSpec, nil
 }
 
-// getHostPod retrieves the current pod running this executor.
-func getHostPod(rClient client.Client) (*corev1.Pod, error) {
-	hostPod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      os.Getenv(EnvHostName),
-			Namespace: os.Getenv(EnvHostNamespace),
-		},
-	}
-
-	if err := rClient.Get(context.Background(), client.ObjectKeyFromObject(hostPod), hostPod); err != nil {
-		return nil, fmt.Errorf("failed to get host pod: %w", err)
-	}
-
-	return hostPod, nil
-}
-
 // getDaemonSetFromOwnerRef retrieves the DaemonSet from the pod's owner reference.
 func getDaemonSetFromOwnerRef(rClient client.Client, pod *corev1.Pod) (*appsv1.DaemonSet, error) {
 	// Find the DaemonSet owner reference
@@ -229,7 +211,7 @@ func (e *SnapshotExecutor) buildSnapshotContainer(templateContainer *corev1.Cont
 		Image:           image,
 		ImagePullPolicy: imagePullPolicy,
 		Command: []string{
-			"/online-snapshotter",
+			fmt.Sprintf("/%s", topolvmv1.TopoLVMSnapshotter),
 			BackupCommandName, // "backup" subcommand
 		},
 		Args:            e.buildSnapshotArgs(),

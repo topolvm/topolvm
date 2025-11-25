@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	"github.com/topolvm/topolvm"
@@ -134,13 +135,26 @@ func (r *NodeReconciler) doFinalize(ctx context.Context, log logr.Logger, node c
 		return err
 	}
 	for _, lv := range lvList.Items {
-		err = r.cleanupLogicalVolume(ctx, log, &lv)
-		if err != nil {
-			return err
+		if !r.isLVHasSnapshot(&lv) {
+			fmt.Println("######################### Why I am here #############33")
+			err = r.cleanupLogicalVolume(ctx, log, &lv)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	return nil
+}
+
+func (r *NodeReconciler) isLVHasSnapshot(lv *topolvmv1.LogicalVolume) bool {
+	if lv.Status.Snapshot == nil {
+		return false
+	}
+	return lv.Status.Snapshot != nil &&
+		lv.Status.Snapshot.Phase == topolvmv1.OperationPhaseSucceeded &&
+		lv.Status.Snapshot.SnapshotID != ""
+
 }
 
 func (r *NodeReconciler) cleanupLogicalVolume(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) error {

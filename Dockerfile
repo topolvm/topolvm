@@ -28,7 +28,7 @@ RUN ln -s hypertopolvm /lvmd \
     && ln -s hypertopolvm /topolvm-scheduler \
     && ln -s hypertopolvm /topolvm-node \
     && ln -s hypertopolvm /topolvm-controller \
-    && ln -s hypertopolvm /online-snapshotter
+    && ln -s hypertopolvm /topolvm-snapshotter
 
 COPY --from=build-topolvm /workdir/LICENSE /LICENSE
 

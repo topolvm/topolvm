@@ -65,7 +65,7 @@ package executor
 //	logicalVolume topolvmv1.LogicalVolume,
 //	opts ...SnapshotExecutorOption,
 //) *SnapshotExecutor {
-//	executor := NewSnapshotExecutor(client, logicalVolume)
+//	executor := NewSnapshotBackupExecutor(client, logicalVolume)
 //
 //	for _, opt := range opts {
 //		opt(executor)

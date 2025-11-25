@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/topolvm/topolvm/internal/snapshotengine/config"
+	"github.com/topolvm/topolvm/internal/backupengine/config"
 )
 
 // NewKopiaProvider creates a new Kopia repository provider
@@ -14,6 +14,11 @@ func NewKopiaProvider(_ *config.SetupOptions) (Provider, error) {
 }
 
 type kopiaProvider struct {
+}
+
+func (k *kopiaProvider) Delete(ctx context.Context, param DeleteParam) ([]byte, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (k *kopiaProvider) ValidateConnection(ctx context.Context) error {

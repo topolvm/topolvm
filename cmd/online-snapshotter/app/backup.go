@@ -9,7 +9,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
-	"github.com/topolvm/topolvm/internal/snapshotengine/provider"
+	"github.com/topolvm/topolvm/internal/backupengine/provider"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"

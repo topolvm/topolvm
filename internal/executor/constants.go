@@ -9,6 +9,10 @@ const (
 	// This is the subcommand of the online-snapshotter binary
 	RestoreCommandName = "restore"
 
+	// DeleteCommandName is the command name for deleting/forgetting a snapshot
+	// This is the subcommand of the online-snapshotter binary
+	DeleteCommandName = "delete"
+
 	// DefaultSnapshotImage is the default image used for the snapshot container
 	DefaultSnapshotImage = "topolvm/topolvm:latest"
 
@@ -17,6 +21,9 @@ const (
 
 	// RestoreContainerName is the name of the restore container
 	RestoreContainerName = "restore-executor"
+
+	// DeleteContainerName is the name of the delete container
+	DeleteContainerName = "delete-executor"
 
 	SnapshotData    = "snapshot-data"
 	SnapshotDataDir = "snapshot-data-dir"

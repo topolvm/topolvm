@@ -181,9 +181,11 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 				log.Info("successfully unmounted LV", "name", lv.Name, "uid", lv.UID)
 
-				if err := r.executeCleanerOperation(ctx, lv, topolvmv1.OperationRestore, log); err != nil {
-					log.Error(err, "failed to execute cleaner operation", "name", lv.Name)
-					return ctrl.Result{}, err
+				if !hasSnapshotRestoreExecutorCleanupCondition(lv) {
+					if err := r.executeCleanerOperation(ctx, lv, topolvmv1.OperationRestore, log); err != nil {
+						log.Error(err, "failed to execute cleaner operation", "name", lv.Name)
+						return ctrl.Result{}, err
+					}
 				}
 			}
 		}
@@ -207,11 +209,12 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			if err := r.performSnapshotBackup(ctx, log, lv, vsContent, vsClass); err != nil {
 				return ctrl.Result{}, err
 			}
-		}
-		if r.isSnapshotOperationComplete(lv) {
-			if err := r.executeCleanerOperation(ctx, lv, topolvmv1.OperationBackup, log); err != nil {
-				log.Error(err, "failed to execute cleaner operation", "name", lv.Name)
-				return ctrl.Result{}, err
+			if r.isSnapshotOperationComplete(lv) &&
+				!hasSnapshotBackupExecutorCleanupCondition(lv) {
+				if err := r.executeCleanerOperation(ctx, lv, topolvmv1.OperationBackup, log); err != nil {
+					log.Error(err, "failed to execute cleaner operation", "name", lv.Name)
+					return ctrl.Result{}, err
+				}
 			}
 		}
 		return ctrl.Result{}, nil
@@ -229,26 +232,43 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	if r.isLVHasSnapshot(lv) {
-		log.Info("snapshot LV found; waiting for snapshot to be deleted", "name", lv.Name)
-		
-	}
+		if !hasSnapshotDeleteExecutorCondition(lv) {
+			if err := r.executeSnapshotDeleteOperation(ctx, lv, log); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
 
+		if hasConditionSnapshotDeleteSucceeded(lv) {
+			if err := r.removeFinalizerAndDeleteLV(ctx, log, lv); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+		return ctrl.Result{}, nil
+	}
+	if err := r.removeFinalizerAndDeleteLV(ctx, log, lv); err != nil {
+		return ctrl.Result{}, err
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *LogicalVolumeReconciler) removeFinalizerAndDeleteLV(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) error {
+
+	fmt.Println("######################### Why I am here ############# LogicalVolume")
 	lv2 := lv.DeepCopy()
 	controllerutil.RemoveFinalizer(lv2, topolvm.GetLogicalVolumeFinalizer())
 	patch := client.MergeFrom(lv)
 	if err := r.client.Patch(ctx, lv2, patch); err != nil {
 		log.Error(err, "failed to remove finalizer", "name", lv.Name)
-		return ctrl.Result{}, err
+		return err
 	}
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func (r *LogicalVolumeReconciler) isLVHasSnapshot(lv *topolvmv1.LogicalVolume) bool {
 	if lv.Status.Snapshot == nil {
 		return false
 	}
-	return lv.Status.Snapshot != nil &&
-		lv.Status.Snapshot.Phase == topolvmv1.OperationPhaseSucceeded &&
+	return lv.Status.Snapshot.Phase == topolvmv1.OperationPhaseSucceeded &&
 		lv.Status.Snapshot.SnapshotID != ""
 
 }
@@ -398,7 +418,8 @@ func (r *LogicalVolumeReconciler) mountLogicalVolume(ctx context.Context, lv *to
 	return resp, nil
 }
 
-func (r *LogicalVolumeReconciler) executeSnapshotOperation(ctx context.Context, lv *topolvmv1.LogicalVolume, exec executor.Executor, operation topolvmv1.OperationType, log logr.Logger) error {
+func (r *LogicalVolumeReconciler) executeSnapshotOperation(ctx context.Context, lv *topolvmv1.LogicalVolume,
+	exec executor.Executor, operation topolvmv1.OperationType, log logr.Logger) error {
 	if err := exec.Execute(); err != nil {
 		errorCode := "SnapshotExecutionFailed"
 		log.Error(err, "failed to execute operation", "operation", operation, "name", lv.Name)
@@ -417,23 +438,41 @@ func (r *LogicalVolumeReconciler) executeSnapshotOperation(ctx context.Context, 
 	return nil
 }
 
-func (r *LogicalVolumeReconciler) executeCleanerOperation(ctx context.Context, lv *topolvmv1.LogicalVolume, operation topolvmv1.OperationType, log logr.Logger) error {
-	exec := executor.NewCleanerExecutor(r.client, lv, operation)
-	cleaner := "Cleaner"
+func (r *LogicalVolumeReconciler) executeSnapshotDeleteOperation(ctx context.Context, lv *topolvmv1.LogicalVolume, log logr.Logger) error {
+	_, vsClass, err := r.getVolumeSnapshotResources(ctx, lv)
+	if err != nil {
+		log.Error(err, "failed to get VolumeSnapshotContent/VolumeSnapshotClass", "name", lv.Name)
+		return err
+	}
+	exec := executor.NewSnapshotDeleteExecutor(r.client, lv, vsClass)
 	if err := exec.Execute(); err != nil {
-		errorCode := "SnapshotCleanUpFailed"
-		log.Error(err, "failed to execute operation", "operation", cleaner, "name", lv.Name)
-
-		snapshotErr := &topolvmv1.SnapshotError{
-			Code:    errorCode,
-			Message: fmt.Sprintf("failed to execute %s: %v", cleaner, err),
-		}
-		message := fmt.Sprintf("Failed to execute %s: %v", cleaner, err)
-
-		if updateErr := r.updateSnapshotOperationStatus(ctx, lv, operation, topolvmv1.OperationPhaseFailed, message, snapshotErr); updateErr != nil {
-			log.Error(updateErr, "failed to update snapshot status after execution error", "name", lv.Name)
+		log.Error(err, "failed to execute snapshot delete executor", "name", lv.Name)
+		if updateErr := setSnapshotDeleteExecutorEnsuredToFalse(ctx, r.client, lv, err); updateErr != nil {
+			log.Error(updateErr, "failed to set snapshot delete executor ensured to false", "name", lv.Name)
 		}
 		return err
+	}
+	if err := setSnapshotDeleteExecutorEnsuredToTrue(ctx, r.client, lv); err != nil {
+		log.Error(err, "failed to set snapshot delete executor ensured to true", "name", lv.Name)
+		return err
+	}
+
+	log.Info("successfully executed snapshot delete operation for LogicalVolume", "name", lv.Name)
+	return nil
+}
+
+func (r *LogicalVolumeReconciler) executeCleanerOperation(ctx context.Context, lv *topolvmv1.LogicalVolume, operation topolvmv1.OperationType, log logr.Logger) error {
+	exec := executor.NewCleanerExecutor(r.client, lv, operation)
+	if err := exec.Execute(); err != nil {
+		if err := setSnapshotExecutorCleanupToFalse(ctx, r.client, operation, lv, err); err != nil {
+			log.Error(err, "failed to set snapshot executor cleanup to false", "name", lv.Name)
+			return err
+		}
+	}
+	if err := setSnapshotExecutorCleanupToTrue(ctx, r.client, operation, lv); err != nil {
+		log.Error(err, "failed to set snapshot executor cleanup to true", "name", lv.Name)
+		return err
+
 	}
 	log.Info("successfully executed cleaner operation for LogicalVolume", "name", lv.Name)
 	return nil
@@ -462,8 +501,18 @@ func (r *LogicalVolumeReconciler) performSnapshotBackup(ctx context.Context, log
 		return err
 	}
 	// Execute the snapshot backup
-	snapshotExecutor := executor.NewSnapshotExecutor(r.client, lv, mountResponse, vsContent, vsClass)
-	return r.executeSnapshotOperation(ctx, lv, snapshotExecutor, topolvmv1.OperationBackup, log)
+	snapshotExecutor := executor.NewSnapshotBackupExecutor(r.client, lv, mountResponse, vsContent, vsClass)
+	if err := r.executeSnapshotOperation(ctx, lv, snapshotExecutor, topolvmv1.OperationBackup, log); err != nil {
+		if err := setSnapshotBackupExecutorEnsuredToFalse(ctx, r.client, lv, err); err != nil {
+			return fmt.Errorf("failed to set snapshot backup executor ensured to false: %w", err)
+		}
+		return err
+	}
+	if err = setSnapshotBackupExecutorEnsuredToTrue(ctx, r.client, lv); err != nil {
+		return fmt.Errorf("failed to set snapshot backup executor ensured to true: %w", err)
+	}
+	return nil
+
 }
 
 func (r *LogicalVolumeReconciler) performSnapshotRestore(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume,
@@ -482,15 +531,26 @@ func (r *LogicalVolumeReconciler) performSnapshotRestore(ctx context.Context, lo
 		log.Info("snapshot restore is currently running", "name", lv.Name)
 		return nil
 	}
-	// Use bind mount for restore (LV is already mounted by the pod)
+
+	// Use bind mount for restore (the pod already mounts LV)
 	mountOptions := []string{}
 	mountResponse, err := r.mountLogicalVolume(ctx, lv, mountOptions, topolvmv1.OperationRestore, log)
 	if err != nil {
 		return err
 	}
+
 	// Execute the snapshot restore
-	restoreExecutor := executor.NewRestoreExecutor(r.client, lv, sourceLV, mountResponse, vsClass)
-	return r.executeSnapshotOperation(ctx, lv, restoreExecutor, topolvmv1.OperationRestore, log)
+	restoreExecutor := executor.NewSnapshotRestoreExecutor(r.client, lv, sourceLV, mountResponse, vsClass)
+	err = r.executeSnapshotOperation(ctx, lv, restoreExecutor, topolvmv1.OperationRestore, log)
+	if err != nil {
+		if err := setSnapshotRestoreExecutorEnsuredToFalse(ctx, r.client, lv, err); err != nil {
+			return fmt.Errorf("failed to set snapshot restore executor ensured to false: %w", err)
+		}
+	}
+	if err = setSnapshotRestoreExecutorEnsuredToTrue(ctx, r.client, lv); err != nil {
+		return fmt.Errorf("failed to set snapshot restore executor ensured to true: %w", err)
+	}
+	return nil
 }
 
 func (r *LogicalVolumeReconciler) getVolumeSnapshotContent(ctx context.Context, lv *topolvmv1.LogicalVolume) (*snapshot_api.VolumeSnapshotContent, error) {

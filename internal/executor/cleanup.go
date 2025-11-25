@@ -40,8 +40,6 @@ func (e *CleanerExecutor) Execute() error {
 	}
 	if err := e.client.Get(ctx, client.ObjectKeyFromObject(pod), pod); err == nil {
 		logger.Info("Deleting snapshot pod", "pod", pod.Name)
-		fmt.Println("######################## Deleting Snapshot Pod ########################")
-		fmt.Println("###################@#@## Pod Name:", pod.Name)
 		if err := e.client.Delete(ctx, pod); err != nil && !errors.IsNotFound(err) {
 			return fmt.Errorf("failed to delete snapshot pod: %w", err)
 		}

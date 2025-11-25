@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
-	"github.com/topolvm/topolvm/internal/snapshotengine/provider"
+	"github.com/topolvm/topolvm/internal/backupengine/provider"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
