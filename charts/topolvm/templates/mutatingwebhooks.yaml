@@ -21,6 +21,12 @@ webhooks:
       - key: {{ include "topolvm.pluginName" . }}/webhook
         operator: NotIn
         values: ["ignore"]
+      {{- with .Values.webhook.podMutatingWebhook.ignoreNamespaces }}
+      - key: kubernetes.io/metadata.name
+        operator: NotIn
+        values:
+          {{- toYaml . | nindent 10 }}
+      {{- end }}
     {{- if .Values.webhook.podMutatingWebhook.objectSelector }}
     objectSelector:
       matchLabels:
@@ -59,6 +65,12 @@ webhooks:
       - key: {{ include "topolvm.pluginName" . }}/webhook
         operator: NotIn
         values: ["ignore"]
+      {{- with .Values.webhook.pvcMutatingWebhook.ignoreNamespaces }}
+      - key: kubernetes.io/metadata.name
+        operator: NotIn
+        values:
+          {{- toYaml . | nindent 10 }}
+      {{- end }}
     {{- if .Values.webhook.pvcMutatingWebhook.objectSelector }}
     objectSelector:
       matchLabels:

@@ -17,21 +17,19 @@ helm repo add topolvm https://topolvm.github.io/topolvm
 helm repo update
 ```
 
-TopoLVM uses webhooks. To work webhooks properly, add a label to the target namespace. We also recommend to use a dedicated namespace.
-
-```sh
-kubectl label namespace topolvm-system topolvm.io/webhook=ignore
-kubectl label namespace kube-system topolvm.io/webhook=ignore
-```
-
-> [!NOTE]
-> The label `topolvm.io/webhook=ignore` is set here to prevent the triggering of TopoLVM's mutating webhooks when pods and pvcs are created in the topolvm-system and kube-system namespaces. These webhooks depend on the topolvm-controller. Therefore, the webhooks should not be activated during TopoLVM's startup process to avoid causing it to become stuck.
-
 Then, install TopoLVM with the release name `topolvm`.
 
 ```sh
 helm install --namespace=topolvm-system topolvm topolvm/topolvm
 ```
+
+> [!NOTE]
+> If you'd like to install TopoLVM in a namespace other than `topolvm-system`, you
+> must set its name in the `.webhook.{pvc,pod}MutatingWebhook.ignoreNamespaces`
+> field in values.yaml.  By doing so, TopoLVM's mutating webhooks, which depend on
+> topolvm-controller in the installed namespace, won't be used when a Pod or a PVC
+> is created in the same namespace, and TopoLVM's startup process won't get stuck
+> due to a circular dependency.
 
 If you want to install cert-manager together, use the following command instead.
 
