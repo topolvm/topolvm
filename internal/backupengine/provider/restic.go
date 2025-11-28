@@ -36,8 +36,10 @@ type resticProvider struct {
 func (r *resticProvider) Delete(ctx context.Context, param DeleteParam) ([]byte, error) {
 	r.wrapper.SetShowCMD(true)
 	r.wrapper.SetRepository(*param.RepoRef.Repository)
-	fmt.Println("############## REPOSITORY: ", *param.RepoRef.Repository)
-	fmt.Println("############## REPO: ", r.wrapper.GetEnv(restic.RESTIC_REPOSITORY))
+	err := r.wrapper.EnsureNoExclusiveLock()
+	if err != nil {
+		return nil, err
+	}
 	return r.wrapper.DeleteSnapshots(param.SnapshotIDs)
 }
 
@@ -125,6 +127,10 @@ func (r *resticProvider) Backup(ctx context.Context, param BackupParam) (*Backup
 	r.wrapper.SetShowCMD(true)
 	r.wrapper.AddSuffixToRepository(param.RepoRef.Suffix)
 	param.RepoRef.FullPath = r.wrapper.GetEnv(restic.RESTIC_REPOSITORY)
+	err := r.wrapper.EnsureNoExclusiveLock()
+	if err != nil {
+		return nil, err
+	}
 	if exist := r.wrapper.RepositoryAlreadyExist(); !exist {
 		err := r.wrapper.InitializeRepository()
 		if err != nil {
@@ -166,6 +172,10 @@ func (r *resticProvider) Restore(ctx context.Context, param RestoreParam) (*Rest
 	r.wrapper.SetShowCMD(true)
 	r.wrapper.SetRepository(*param.RepoRef.Repository)
 	param.RepoRef.FullPath = r.wrapper.GetEnv(restic.RESTIC_REPOSITORY)
+	err := r.wrapper.EnsureNoExclusiveLock()
+	if err != nil {
+		return nil, err
+	}
 	restoreOpt := restic.RestoreOptions{
 		Host:         param.Hostname,
 		Destination:  param.Destination,

@@ -144,6 +144,21 @@ func hasSnapshotRestoreExecutorCleanupCondition(lv *topolvmv1.LogicalVolume) boo
 		meta.IsStatusConditionTrue(lv.Status.Conditions, topolvmv1.TypeSnapshotRestoreExecutorCleaned)
 }
 
+func updateLVStatus(ctx context.Context, kClient client.Client, lv *topolvmv1.LogicalVolume) error {
+	// Refresh the LogicalVolume to get the latest version
+	freshLV := &topolvmv1.LogicalVolume{}
+	if err := kClient.Get(ctx, client.ObjectKeyFromObject(lv), freshLV); err != nil {
+		return fmt.Errorf("failed to get latest LogicalVolume: %w", err)
+	}
+	freshLV.Status = lv.Status
+	if err := kClient.Status().Update(ctx, freshLV); err != nil {
+		return fmt.Errorf("failed to update snapshot status: %w", err)
+	}
+	lv.Status = freshLV.Status
+	lv.ObjectMeta.ResourceVersion = freshLV.ObjectMeta.ResourceVersion
+	return nil
+}
+
 func updateLVStatusCondition(ctx context.Context, kClient client.Client, lv *topolvmv1.LogicalVolume) error {
 	// Refresh the LogicalVolume to get the latest version
 	freshLV := &topolvmv1.LogicalVolume{}

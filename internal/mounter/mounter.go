@@ -207,7 +207,7 @@ func (m *LVMount) fetchLogicalVolume(ctx context.Context, k8sLV *v1.LogicalVolum
 		return nil, err
 	}
 	if lv == nil {
-		return nil, fmt.Errorf("failed to find the logical volume for k8s LV %s", k8sLV.Name)
+		return nil, status.Errorf(codes.NotFound, "failed to find the logical volume for k8s LV %s", k8sLV.Name)
 	}
 	return lv, nil
 }

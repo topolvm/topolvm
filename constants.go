@@ -55,6 +55,11 @@ func GetResizeRequestedAtKey() string {
 	return fmt.Sprintf("%s/resize-requested-at", GetPluginName())
 }
 
+// GetResticRestoreRequiredKey returns the key of LogicalVolume annotation that indicates Snapshot restore is required before NodePublish.
+func GetResticRestoreRequiredKey() string {
+	return fmt.Sprintf("%s/snapshot-restore-required", GetPluginName())
+}
+
 // GetPendingDeletionKey returns the name of the pending-deletion annotation
 func GetLVPendingDeletionKey() string {
 	return fmt.Sprintf("%s/pendingdeletion", GetPluginName())

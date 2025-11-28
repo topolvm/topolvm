@@ -160,8 +160,9 @@ func (s *nodeServerNoLocked) NodePublishVolume(ctx context.Context, req *csi.Nod
 	if err != nil {
 		return nil, err
 	}
-	if lvr.Status.Snapshot != nil && lvr.Status.Snapshot.Phase != topolvmv1.OperationPhaseSucceeded {
-		return nil, status.Error(codes.FailedPrecondition, "volume restore is still in progress")
+	if lvr.Status.Snapshot != nil &&
+		lvr.Status.Snapshot.Phase != topolvmv1.OperationPhaseSucceeded {
+		return nil, status.Error(codes.FailedPrecondition, "volume is restoring snapshot, cannot be published, wait until the operation is completed")
 	}
 	lv, err = s.getLvFromContext(ctx, lvr.Spec.DeviceClass, volumeID)
 	if err != nil {

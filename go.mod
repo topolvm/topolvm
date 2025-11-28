@@ -33,6 +33,7 @@ require (
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/mount-utils v0.33.4
 	k8s.io/utils v0.0.0-20250820121507-0af2bda4dd1d
+	kmodules.xyz/client-go v0.32.7
 	kmodules.xyz/objectstore-api v0.32.2
 	kmodules.xyz/offshoot-api v0.32.0
 	sigs.k8s.io/controller-runtime v0.21.0

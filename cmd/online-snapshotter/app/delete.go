@@ -76,15 +76,7 @@ func (opt *DeleteOptions) execute(ctx context.Context) error {
 	}
 	if err := opt.performDelete(ctx); err != nil {
 		opt.log.Error(err, "delete operation failed")
-		if newErr := opt.setDeleteConditionToFailed(ctx, err); newErr != nil {
-			return fmt.Errorf("failed to set delete condition to failed: %w", newErr)
-		}
 	}
-
-	if err := opt.setDeleteConditionToSuccess(ctx); err != nil {
-		return fmt.Errorf("failed to set delete condition to success: %w", err)
-	}
-
 	return nil
 }
 
@@ -96,20 +88,19 @@ func (opt *DeleteOptions) performDelete(ctx context.Context) error {
 		return err
 	}
 
-	err = opt.executeDelete(ctx, pvider)
-	if err != nil {
+	if err = opt.executeDelete(ctx, pvider); err != nil {
 		opt.handleDeleteError(ctx, "delete execution failed", err)
 		return err
+	}
+	if err = opt.setDeleteConditionToSuccess(ctx); err != nil {
+		return fmt.Errorf("failed to set delete condition to success: %w", err)
 	}
 	return nil
 }
 
 func (opt *DeleteOptions) executeDelete(ctx context.Context, pvider provider.Provider) error {
 	param := opt.buildDeleteParams()
-	out, err := pvider.Delete(ctx, param)
-	fmt.Println("##################### Output ####################")
-	fmt.Println(string(out))
-
+	_, err := pvider.Delete(ctx, param)
 	if err != nil {
 		return fmt.Errorf("delete operation failed: %w", err)
 	}
@@ -139,8 +130,9 @@ func (opt *DeleteOptions) handleDeleteError(ctx context.Context, message string,
 	opt.log.Error(err, message, "lvName", opt.lvName)
 	errorMsg := err.Error()
 	newCond := metav1.Condition{
-		Type:    topolvmv1.ConditionDeleteCleanupFailed,
+		Type:    topolvmv1.TypeSnapshotDeleteEnsured,
 		Status:  metav1.ConditionTrue,
+		Reason:  topolvmv1.ConditionDeleteCleanupFailed,
 		Message: errorMsg,
 	}
 	meta.SetStatusCondition(&opt.logicalVol.Status.Conditions, newCond)

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/go-logr/logr"
 	snapshot_api "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
@@ -164,7 +163,7 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 			if !exists {
 				log.Info("PV does not exist yet; waiting", "name", lv.Name)
-				return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+				return ctrl.Result{RequeueAfter: requeueIntervalForSimpleUpdate}, nil
 			}
 
 			if err := r.performSnapshotRestore(ctx, log, lv, sourceLV, vsClass); err != nil {
@@ -252,8 +251,6 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 }
 
 func (r *LogicalVolumeReconciler) removeFinalizerAndDeleteLV(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) error {
-
-	fmt.Println("######################### Why I am here ############# LogicalVolume")
 	lv2 := lv.DeepCopy()
 	controllerutil.RemoveFinalizer(lv2, topolvm.GetLogicalVolumeFinalizer())
 	patch := client.MergeFrom(lv)
@@ -728,6 +725,10 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 			volume = resp.Volume
 		}
 
+		if restoreFrSnapshot {
+			metav1.SetMetaDataAnnotation(&lv.ObjectMeta, topolvm.GetResticRestoreRequiredKey(), "true")
+		}
+
 		lv.Status.VolumeID = volume.Name
 		lv.Status.CurrentSize = resource.NewQuantity(volume.SizeBytes, resource.BinarySI)
 		lv.Status.Code = codes.OK
@@ -743,11 +744,10 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 		return err
 	}
 
-	if err := r.client.Status().Update(ctx, lv); err != nil {
+	if err := updateLVStatus(ctx, r.client, lv); err != nil {
 		log.Error(err, "failed to update status", "name", lv.Name, "uid", lv.UID)
 		return err
 	}
-
 	log.Info("created new LV", "name", lv.Name, "uid", lv.UID, "status.volumeID", lv.Status.VolumeID)
 	return nil
 }

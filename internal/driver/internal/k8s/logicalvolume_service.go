@@ -389,7 +389,11 @@ func (s *LogicalVolumeService) waitForVolumeProvisioning(ctx context.Context, lv
 			logger.Error(err, "failed to get LogicalVolume", "name", lvName)
 			return false, err
 		}
-
+		if metav1.HasAnnotation(newLV.ObjectMeta, topolvm.GetResticRestoreRequiredKey()) {
+			if newLV.Status.Snapshot == nil {
+				return false, nil
+			}
+		}
 		if newLV.Status.VolumeID != "" {
 			logger.Info("LogicalVolume successfully provisioned", "volume_id", newLV.Status.VolumeID)
 			return true, nil
