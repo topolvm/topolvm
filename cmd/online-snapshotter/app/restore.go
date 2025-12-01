@@ -199,7 +199,6 @@ func (opt *RestoreOptions) buildRestoreParams() provider.RestoreParam {
 	return provider.RestoreParam{
 		RepoRef: provider.RepoRef{
 			Repository: &opt.repository,
-			Hostname:   hostname,
 		},
 		SnapshotID: opt.snapshotID,
 		//Destination: opt.mountPath,

@@ -6,5 +6,4 @@ const (
 const (
 	backupErrorCode  = "BackupFailed"
 	restoreErrorCode = "RestoreFailed"
-	hostname         = "filesystem"
 )

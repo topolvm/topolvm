@@ -1195,9 +1195,6 @@ k8s.io/utils/path
 k8s.io/utils/pointer
 k8s.io/utils/ptr
 k8s.io/utils/trace
-# kmodules.xyz/client-go v0.32.7
-## explicit; go 1.23.0
-kmodules.xyz/client-go
 # kmodules.xyz/objectstore-api v0.32.2
 ## explicit; go 1.24
 kmodules.xyz/objectstore-api/api/v1

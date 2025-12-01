@@ -223,8 +223,7 @@ func (opt *BackupOptions) handleBackupSuccess(ctx context.Context, result *provi
 func (opt *BackupOptions) buildBackupParams() provider.BackupParam {
 	return provider.BackupParam{
 		RepoRef: provider.RepoRef{
-			Suffix:   filepath.Join(opt.targetedPVCRef.Namespace, opt.targetedPVCRef.Name),
-			Hostname: hostname,
+			Suffix: filepath.Join(opt.targetedPVCRef.Namespace, opt.targetedPVCRef.Name),
 		},
 		BackupPaths: []string{opt.mountPath},
 	}

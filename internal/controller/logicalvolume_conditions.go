@@ -32,6 +32,11 @@ func setSnapshotBackupExecutorEnsuredToFalse(ctx context.Context, client client.
 	return updateLVStatusCondition(ctx, client, lv)
 }
 
+func hasSnapshotBackupExecutorCondition(lv *topolvmv1.LogicalVolume) bool {
+	return meta.IsStatusConditionFalse(lv.Status.Conditions, topolvmv1.TypeSnapshotBackupExecutorEnsured) ||
+		meta.IsStatusConditionTrue(lv.Status.Conditions, topolvmv1.TypeSnapshotBackupExecutorEnsured)
+}
+
 func setSnapshotRestoreExecutorEnsuredToTrue(ctx context.Context, client client.Client, lv *topolvmv1.LogicalVolume) error {
 	newCond := metav1.Condition{
 		Type:    topolvmv1.TypeSnapshotRestoreExecutorEnsured,
@@ -52,6 +57,11 @@ func setSnapshotRestoreExecutorEnsuredToFalse(ctx context.Context, client client
 	}
 	meta.SetStatusCondition(&lv.Status.Conditions, newCond)
 	return updateLVStatusCondition(ctx, client, lv)
+}
+
+func hasSnapshotRestoreExecutorCondition(lv *topolvmv1.LogicalVolume) bool {
+	return meta.IsStatusConditionFalse(lv.Status.Conditions, topolvmv1.TypeSnapshotRestoreExecutorEnsured) ||
+		meta.IsStatusConditionTrue(lv.Status.Conditions, topolvmv1.TypeSnapshotRestoreExecutorEnsured)
 }
 
 func setSnapshotExecutorCleanupToTrue(ctx context.Context, client client.Client, operation topolvmv1.OperationType, lv *topolvmv1.LogicalVolume) error {

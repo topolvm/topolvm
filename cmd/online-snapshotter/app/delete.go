@@ -111,7 +111,6 @@ func (opt *DeleteOptions) buildDeleteParams() provider.DeleteParam {
 	return provider.DeleteParam{
 		RepoRef: provider.RepoRef{
 			Repository: &opt.repository,
-			Hostname:   hostname,
 		},
 		SnapshotIDs: []string{opt.logicalVol.Status.Snapshot.SnapshotID},
 	}

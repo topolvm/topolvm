@@ -317,6 +317,16 @@ func (w *ResticWrapper) unlock() ([]byte, error) {
 	return w.run(Command{Name: ResticCMD, Args: args})
 }
 
+func (w *ResticWrapper) unlockStale() ([]byte, error) {
+	klog.Infoln("Removing stale locks from restic repository")
+	args := w.appendCacheDirFlag([]interface{}{"unlock"})
+	args = w.appendMaxConnectionsFlag(args)
+	args = w.appendCaCertFlag(args)
+	args = w.appendInsecureTLSFlag(args)
+
+	return w.run(Command{Name: ResticCMD, Args: args})
+}
+
 func (w *ResticWrapper) migrateToV2() ([]byte, error) {
 	klog.Infoln("Migrating repository to v2")
 	args := w.appendCacheDirFlag([]interface{}{"migrate", "upgrade_repo_v2"})

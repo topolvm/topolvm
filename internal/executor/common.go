@@ -14,7 +14,7 @@ import (
 
 func buildObjectMeta(operation topolvmv1.OperationType, lv *topolvmv1.LogicalVolume) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
-		Name:        fmt.Sprintf("snapshot-%s-%s", strings.ToLower(string(operation)), lv.Name),
+		Name:        fmt.Sprintf("%s-%s", strings.ToLower(string(operation)), lv.Name),
 		Namespace:   getNamespace(),
 		Labels:      buildLabels(lv),
 		Annotations: buildAnnotations(lv),
