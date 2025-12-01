@@ -19,7 +19,7 @@ jobs:
           # The exit code will be 1 if the pattern is not found by grep.
           echo ${{ inputs.app-version }} | grep -E "^[0-9]+.[0-9]+.[0-9]+$"
           echo ${{ inputs.chart-version }} | grep -E "^[0-9]+.[0-9]+.[0-9]+$"
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Configure Git
