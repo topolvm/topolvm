@@ -65,7 +65,7 @@ func (k *kopiaProvider) Backup(_ context.Context, param BackupParam) (*BackupRes
 		Provider:     "kopia",
 		Hostname:     param.Hostname,
 		Paths:        param.BackupPaths,
-		Repository:   param.RepoRef.FullPath,
+		Repository:   param.FullPath,
 	}, fmt.Errorf("kopia provider not implemented yet")
 }
 

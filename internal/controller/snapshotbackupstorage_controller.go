@@ -13,39 +13,39 @@ import (
 	crlog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// OnlineSnapshotStorageReconciler reconciles an OnlineSnapshotStorage object
-type OnlineSnapshotStorageReconciler struct {
+// SnapshotBackupStorageReconciler reconciles an SnapshotBackupStorage object
+type SnapshotBackupStorageReconciler struct {
 	client client.Client
 }
 
-// NewOnlineSnapshotStorageReconciler returns OnlineSnapshotStorageReconciler.
-func NewOnlineSnapshotStorageReconciler(client client.Client) *OnlineSnapshotStorageReconciler {
-	return &OnlineSnapshotStorageReconciler{
+// NewSnapshotBackupStorageReconciler returns SnapshotBackupStorageReconciler.
+func NewSnapshotBackupStorageReconciler(client client.Client) *SnapshotBackupStorageReconciler {
+	return &SnapshotBackupStorageReconciler{
 		client: client,
 	}
 }
 
-//+kubebuilder:rbac:groups=topolvm.io,resources=onlinesnapshotstorages,verbs=get;list;watch;update;patch
-//+kubebuilder:rbac:groups=topolvm.io,resources=onlinesnapshotstorages/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=topolvm.io,resources=snapshotbackupstorages,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups=topolvm.io,resources=snapshotbackupstorages/status,verbs=get;update;patch
 
-// Reconcile OnlineSnapshotStorage
-func (r *OnlineSnapshotStorageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+// Reconcile SnapshotBackupStorage
+func (r *SnapshotBackupStorageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := crlog.FromContext(ctx)
 
-	storage := &topolvmv1.OnlineSnapshotStorage{}
+	storage := &topolvmv1.SnapshotBackupStorage{}
 	err := r.client.Get(ctx, req.NamespacedName, storage)
 	switch {
 	case err == nil:
 	case apierrors.IsNotFound(err):
 		return ctrl.Result{}, nil
 	default:
-		log.Error(err, "unable to fetch OnlineSnapshotStorage")
+		log.Error(err, "unable to fetch SnapshotBackupStorage")
 		return ctrl.Result{}, err
 	}
 
 	// Handle deletion
 	if storage.DeletionTimestamp != nil {
-		// OnlineSnapshotStorage doesn't need finalization logic for now
+		// SnapshotBackupStorage doesn't need finalization logic for now
 		// Resources should be cleaned up by dependent objects
 		return ctrl.Result{}, nil
 	}
@@ -59,8 +59,8 @@ func (r *OnlineSnapshotStorageReconciler) Reconcile(ctx context.Context, req ctr
 	return ctrl.Result{}, nil
 }
 
-// validateAndUpdateStatus validates the OnlineSnapshotStorage configuration and updates its status
-func (r *OnlineSnapshotStorageReconciler) validateAndUpdateStatus(ctx context.Context, target *topolvmv1.OnlineSnapshotStorage) error {
+// validateAndUpdateStatus validates the SnapshotBackupStorage configuration and updates its status
+func (r *SnapshotBackupStorageReconciler) validateAndUpdateStatus(ctx context.Context, target *topolvmv1.SnapshotBackupStorage) error {
 	log := crlog.FromContext(ctx)
 
 	// If validation is not required on create and status is already set, skip validation
@@ -78,7 +78,7 @@ func (r *OnlineSnapshotStorageReconciler) validateAndUpdateStatus(ctx context.Co
 		if err := r.validateBackendConnection(ctx, targetCopy); err != nil {
 			targetCopy.Status.Phase = topolvmv1.PhaseError
 			targetCopy.Status.Message = fmt.Sprintf("Storage storage connection validation failed: %v", err)
-			log.Info("OnlineSnapshotStorage backend connection validation failed", "name", target.Name, "error", err)
+			log.Info("SnapshotBackupStorage backend connection validation failed", "name", target.Name, "error", err)
 
 			// Update status and return
 			if err := r.client.Status().Update(ctx, targetCopy); err != nil {
@@ -87,7 +87,7 @@ func (r *OnlineSnapshotStorageReconciler) validateAndUpdateStatus(ctx context.Co
 			}
 			return nil
 		}
-		log.Info("OnlineSnapshotStorage backend connection validation passed", "name", target.Name)
+		log.Info("SnapshotBackupStorage backend connection validation passed", "name", target.Name)
 	}
 
 	// All validations passed
@@ -97,7 +97,7 @@ func (r *OnlineSnapshotStorageReconciler) validateAndUpdateStatus(ctx context.Co
 	} else {
 		targetCopy.Status.Message = "Storage configuration is valid"
 	}
-	log.Info("OnlineSnapshotStorage is ready", "name", target.Name)
+	log.Info("SnapshotBackupStorage is ready", "name", target.Name)
 
 	// Update status if changed
 	if targetCopy.Status.Phase != target.Status.Phase ||
@@ -112,7 +112,7 @@ func (r *OnlineSnapshotStorageReconciler) validateAndUpdateStatus(ctx context.Co
 }
 
 // validateBackendConnection validates the actual connection to the backend storage
-func (r *OnlineSnapshotStorageReconciler) validateBackendConnection(ctx context.Context, storage *topolvmv1.OnlineSnapshotStorage) error {
+func (r *SnapshotBackupStorageReconciler) validateBackendConnection(ctx context.Context, storage *topolvmv1.SnapshotBackupStorage) error {
 	// Get the appropriate snapshot engine
 	engine, err := provider.GetProvider(r.client, storage)
 	if err != nil {
@@ -128,8 +128,8 @@ func (r *OnlineSnapshotStorageReconciler) validateBackendConnection(ctx context.
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *OnlineSnapshotStorageReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *SnapshotBackupStorageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&topolvmv1.OnlineSnapshotStorage{}).
+		For(&topolvmv1.SnapshotBackupStorage{}).
 		Complete(r)
 }

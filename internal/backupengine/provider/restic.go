@@ -14,7 +14,7 @@ import (
 )
 
 // NewResticProvider creates a new Restic repository provider
-func NewResticProvider(client client.Client, snapStorage *v1.OnlineSnapshotStorage) (Provider, error) {
+func NewResticProvider(client client.Client, snapStorage *v1.SnapshotBackupStorage) (Provider, error) {
 	setupOptions, err := config.NewSetupOptionsForStorage(client, snapStorage)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create setup options: %w", err)
@@ -35,7 +35,7 @@ type resticProvider struct {
 
 func (r *resticProvider) Delete(ctx context.Context, param DeleteParam) ([]byte, error) {
 	r.wrapper.SetShowCMD(true)
-	r.wrapper.SetRepository(*param.RepoRef.Repository)
+	r.wrapper.SetRepository(*param.Repository)
 	err := r.wrapper.EnsureNoExclusiveLock()
 	if err != nil {
 		return nil, err
@@ -90,17 +90,6 @@ func (r *resticProvider) InitRepo(_ context.Context, param RepoRef) error {
 	return nil
 }
 
-// ConnectToRepo establishes connection to an existing repository
-func (r *resticProvider) ConnectToRepo(_ context.Context, param RepoRef) error {
-
-	return nil
-}
-
-// updateBackendFromTarget updates the backend configuration with OnlineSnapshotTarget information
-func (r *resticProvider) updateBackendFromTarget(param RepoRef) error {
-	return nil
-}
-
 // PrepareRepo combines InitRepo and ConnectToRepo
 func (r *resticProvider) PrepareRepo(_ context.Context, param RepoRef) error {
 	return nil
@@ -125,8 +114,8 @@ func (r *resticProvider) PruneRepo(_ context.Context, param RepoRef) error {
 // Backup creates a new snapshot
 func (r *resticProvider) Backup(ctx context.Context, param BackupParam) (*BackupResult, error) {
 	r.wrapper.SetShowCMD(true)
-	r.wrapper.AddSuffixToRepository(param.RepoRef.Suffix)
-	param.RepoRef.FullPath = r.wrapper.GetEnv(restic.RESTIC_REPOSITORY)
+	r.wrapper.AddSuffixToRepository(param.Suffix)
+	param.FullPath = r.wrapper.GetEnv(restic.RESTIC_REPOSITORY)
 	err := r.wrapper.EnsureNoExclusiveLock()
 	if err != nil {
 		return nil, err
@@ -140,7 +129,7 @@ func (r *resticProvider) Backup(ctx context.Context, param BackupParam) (*Backup
 				Provider:     string(v1.EngineRestic),
 				Hostname:     param.Hostname,
 				Paths:        param.BackupPaths,
-				Repository:   param.RepoRef.FullPath,
+				Repository:   param.FullPath,
 			}, err
 		}
 	}
@@ -160,7 +149,7 @@ func (r *resticProvider) Backup(ctx context.Context, param BackupParam) (*Backup
 			Provider:     string(v1.EngineRestic),
 			Hostname:     param.Hostname,
 			Paths:        param.BackupPaths,
-			Repository:   param.RepoRef.FullPath,
+			Repository:   param.FullPath,
 		}, err
 	}
 	result := r.convertOutputToBackupResult(out, param)
@@ -170,8 +159,8 @@ func (r *resticProvider) Backup(ctx context.Context, param BackupParam) (*Backup
 // Restore restores files from a snapshot
 func (r *resticProvider) Restore(ctx context.Context, param RestoreParam) (*RestoreResult, error) {
 	r.wrapper.SetShowCMD(true)
-	r.wrapper.SetRepository(*param.RepoRef.Repository)
-	param.RepoRef.FullPath = r.wrapper.GetEnv(restic.RESTIC_REPOSITORY)
+	r.wrapper.SetRepository(*param.Repository)
+	param.FullPath = r.wrapper.GetEnv(restic.RESTIC_REPOSITORY)
 	err := r.wrapper.EnsureNoExclusiveLock()
 	if err != nil {
 		return nil, err
@@ -195,7 +184,7 @@ func (r *resticProvider) Restore(ctx context.Context, param RestoreParam) (*Rest
 			ErrorMessage: fmt.Sprintf("restore failed: %v", err),
 			Provider:     string(v1.EngineRestic),
 			Hostname:     param.Hostname,
-			Repository:   param.RepoRef.FullPath,
+			Repository:   param.FullPath,
 		}, err
 	}
 	result := r.convertOutputToRestoreResult(out, param)
@@ -206,7 +195,7 @@ func (r *resticProvider) convertOutputToRestoreResult(output *restic.RestoreOutp
 	result := &RestoreResult{
 		Provider:    string(v1.EngineRestic),
 		Hostname:    param.Hostname,
-		Repository:  param.RepoRef.FullPath,
+		Repository:  param.FullPath,
 		RestoreTime: time.Now(),
 	}
 
@@ -232,7 +221,7 @@ func (r *resticProvider) convertOutputToBackupResult(output *restic.BackupOutput
 		Provider:   string(v1.EngineRestic),
 		Hostname:   param.Hostname,
 		Paths:      param.BackupPaths,
-		Repository: param.RepoRef.FullPath,
+		Repository: param.FullPath,
 		BackupTime: time.Now(),
 	}
 

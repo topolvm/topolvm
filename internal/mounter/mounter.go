@@ -2,6 +2,7 @@ package mounter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -23,7 +24,6 @@ import (
 var mountLogger = ctrl.Log.WithName("driver").WithName("mounter")
 
 type LVMount struct {
-	nodeName  string
 	client    client.Client
 	vgClient  proto.VGServiceClient
 	lvService proto.LVServiceClient
@@ -233,57 +233,10 @@ func (m *LVMount) doMount(device, target, fsType string, options []string) error
 	return m.mounter.FormatAndMount(device, target, fsType, options)
 }
 
-func (m *LVMount) doFormatAndMount(device, target, fsType string, options []string) error {
-	// Check if device is already formatted
-	existingFormat, err := filesystem.DetectFilesystem(device)
-	if err != nil {
-		return fmt.Errorf("failed to detect filesystem: %v", err)
-	}
-
-	// If device is not formatted, format it first
-	if existingFormat == "" {
-		mountLogger.Info("Device is unformatted, formatting now",
-			"device", device,
-			"fsType", fsType,
-		)
-
-		// Format the device using mkfs
-		// We need to format without the read-only option
-		var args []string
-		if fsType == "ext4" || fsType == "ext3" {
-			args = []string{
-				"-F",  // Force flag
-				"-m0", // Zero blocks reserved for super-user
-				device,
-			}
-		} else if fsType == "xfs" {
-			args = []string{
-				"-f", // force flag
-				device,
-			}
-		} else {
-			args = []string{device}
-		}
-
-		output, err := m.mounter.Exec.Command("mkfs."+fsType, args...).CombinedOutput()
-		if err != nil {
-			return fmt.Errorf("failed to format device %s as %s: %v, output: %s", device, fsType, err, string(output))
-		}
-
-		mountLogger.Info("Device formatted successfully",
-			"device", device,
-			"fsType", fsType,
-		)
-	}
-
-	// Now mount with the requested options (including ro if specified)
-	return m.mounter.Mount(device, target, fsType, options)
-}
-
 func (m *LVMount) fail(resp *MountResponse, msg string) (*MountResponse, error) {
 	resp.Success = false
 	resp.Message = msg
-	return resp, fmt.Errorf(msg)
+	return resp, errors.New(msg)
 }
 
 // findMountPoint finds the mount point for a given device by parsing /proc/mounts

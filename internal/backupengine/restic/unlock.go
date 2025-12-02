@@ -51,25 +51,6 @@ func (w *ResticWrapper) getLockStats(lockID string) (*LockStats, error) {
 	return extractLockStats(out)
 }
 
-// getHostNameIfAnyExclusiveLock scans every lock and returns the hostname aka (Pod name) of the first exclusive lock it finds, or "" if none exist.
-func (w *ResticWrapper) getHostNameIfAnyExclusiveLock() (string, error) {
-	klog.Infoln("Checking for exclusive locks in the repository...")
-	ids, err := w.getLockIDs()
-	if err != nil {
-		return "", fmt.Errorf("failed to list locks: %w", err)
-	}
-	for _, id := range ids {
-		st, err := w.getLockStats(id)
-		if err != nil {
-			return "", fmt.Errorf("failed to inspect lock %s: %w", id, err)
-		}
-		if st.Exclusive { // There's no chances to get multiple exclusive locks, so we can return the first one we find.
-			return st.Hostname, nil
-		}
-	}
-	return "", nil
-}
-
 // EnsureNoExclusiveLock blocks until any exclusive lock is released.
 // If a lock is held by a Running Pod, it waits; otherwise it unlocks.
 func (w *ResticWrapper) EnsureNoExclusiveLock() error {

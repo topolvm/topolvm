@@ -67,13 +67,6 @@ type restoreParams struct {
 	args        []string
 }
 
-type keyParams struct {
-	id   string
-	user string
-	host string
-	file string
-}
-
 func (w *ResticWrapper) listSnapshots(snapshotIDs []string) ([]Snapshot, error) {
 	result := make([]Snapshot, 0)
 	args := w.appendCacheDirFlag([]interface{}{"snapshots", "--json", "--quiet", "--no-lock"})
@@ -327,16 +320,6 @@ func (w *ResticWrapper) unlockStale() ([]byte, error) {
 	return w.run(Command{Name: ResticCMD, Args: args})
 }
 
-func (w *ResticWrapper) migrateToV2() ([]byte, error) {
-	klog.Infoln("Migrating repository to v2")
-	args := w.appendCacheDirFlag([]interface{}{"migrate", "upgrade_repo_v2"})
-	args = w.appendMaxConnectionsFlag(args)
-	args = w.appendCaCertFlag(args)
-	args = w.appendInsecureTLSFlag(args)
-
-	return w.run(Command{Name: ResticCMD, Args: args})
-}
-
 func (w *ResticWrapper) prune(pruneOpts PruneOptions) ([]byte, error) {
 	klog.Infoln("Pruning repository")
 
@@ -512,43 +495,6 @@ func (w *ResticWrapper) applyNiceSettings(oldCommand Command) (Command, error) {
 	return newCommand, nil
 }
 
-func (w *ResticWrapper) addKey(params keyParams) ([]byte, error) {
-	klog.Infoln("Adding new key to restic repository")
-
-	args := []interface{}{"key", "add", "--no-lock"}
-	if params.host != "" {
-		args = append(args, "--host", params.host)
-	}
-
-	if params.user != "" {
-		args = append(args, "--user", params.user)
-	}
-
-	if params.file != "" {
-		args = append(args, "--new-password-file", params.file)
-	}
-
-	args = w.appendCacheDirFlag(args)
-	args = w.appendMaxConnectionsFlag(args)
-	args = w.appendCaCertFlag(args)
-	args = w.appendInsecureTLSFlag(args)
-
-	return w.run(Command{Name: ResticCMD, Args: args})
-}
-
-func (w *ResticWrapper) listKey() ([]byte, error) {
-	klog.Infoln("Listing restic keys")
-
-	args := []interface{}{"key", "list", "--no-lock"}
-
-	args = w.appendCacheDirFlag(args)
-	args = w.appendMaxConnectionsFlag(args)
-	args = w.appendCaCertFlag(args)
-	args = w.appendInsecureTLSFlag(args)
-
-	return w.run(Command{Name: ResticCMD, Args: args})
-}
-
 func (w *ResticWrapper) listLocks() ([]byte, error) {
 	klog.Infoln("Listing restic locks")
 
@@ -575,36 +521,6 @@ func (w *ResticWrapper) lockStats(lockID string) ([]byte, error) {
 	return w.run(Command{Name: ResticCMD, Args: args})
 }
 
-func (w *ResticWrapper) updateKey(params keyParams) ([]byte, error) {
-	klog.Infoln("Updating restic key")
-
-	args := []interface{}{"key", "passwd", "--no-lock"}
-
-	if params.file != "" {
-		args = append(args, "--new-password-file", params.file)
-	}
-
-	args = w.appendCacheDirFlag(args)
-	args = w.appendMaxConnectionsFlag(args)
-	args = w.appendCaCertFlag(args)
-	args = w.appendInsecureTLSFlag(args)
-
-	return w.run(Command{Name: ResticCMD, Args: args})
-}
-
-func (w *ResticWrapper) removeKey(params keyParams) ([]byte, error) {
-	klog.Infoln("Removing restic key")
-
-	args := []interface{}{"key", "remove", params.id, "--no-lock"}
-
-	args = w.appendCacheDirFlag(args)
-	args = w.appendMaxConnectionsFlag(args)
-	args = w.appendCaCertFlag(args)
-	args = w.appendInsecureTLSFlag(args)
-
-	return w.run(Command{Name: ResticCMD, Args: args})
-}
-
 func (w *ResticWrapper) appendInsecureTLSFlag(args []interface{}) []interface{} {
 	if w.config.InsecureTLS {
 		return append(args, "--insecure-tls")
@@ -613,7 +529,7 @@ func (w *ResticWrapper) appendInsecureTLSFlag(args []interface{}) []interface{} 
 }
 
 func (c *Command) getCommandArgsAsString() string {
-	var cmdParts []string
+	cmdParts := []string{}
 	for _, arg := range c.Args {
 		cmdParts = append(cmdParts, fmt.Sprintf("%v", arg))
 	}

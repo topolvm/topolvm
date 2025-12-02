@@ -29,7 +29,7 @@ type SetupOptions struct {
 	IONice         *ofst.IONiceSettings
 }
 
-func NewSetupOptionsForStorage(client runtime_client.Client, storage *v1.OnlineSnapshotStorage) (*SetupOptions, error) {
+func NewSetupOptionsForStorage(client runtime_client.Client, storage *v1.SnapshotBackupStorage) (*SetupOptions, error) {
 	var opt SetupOptions
 	var secretName string
 	if s3 := storage.Spec.Storage.S3; s3 != nil {

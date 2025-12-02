@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
-	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
@@ -27,17 +26,16 @@ type BackupOptions struct {
 	client client.Client
 
 	// Logical volume details
-	lvName      string
-	nodeName    string
-	deviceClass string
-	mountPath   string
-	logicalVol  *topolvmv1.LogicalVolume
+	lvName     string
+	nodeName   string
+	mountPath  string
+	logicalVol *topolvmv1.LogicalVolume
 
 	// References
-	timeout            time.Duration
+	//timeout            time.Duration
 	targetedPVCRef     types.NamespacedName
 	snapshotStorageRef types.NamespacedName
-	snapshotStorage    *topolvmv1.OnlineSnapshotStorage
+	snapshotStorage    *topolvmv1.SnapshotBackupStorage
 }
 
 var bOpt = new(BackupOptions)
@@ -69,18 +67,27 @@ func newBackupCommand() *cobra.Command {
 }
 
 func parseBackupFlags(cmd *cobra.Command) {
-	cmd.Flags().StringVar(&masterURL, "master", masterURL, "The address of the Kubernetes API server (overrides any value in kubeconfig)")
-	cmd.Flags().StringVar(&kubeconfigPath, "kubeconfig", kubeconfigPath, "Path to kubeconfig file with authorization information (the master location is set by the master flag)")
+	cmd.Flags().StringVar(&masterURL, "master", masterURL,
+		"The address of the Kubernetes API server")
+	cmd.Flags().StringVar(&kubeconfigPath, "kubeconfig", kubeconfigPath,
+		"Path to kubeconfig file with authorization information")
 
-	cmd.Flags().StringVar(&bOpt.lvName, "lv-name", "", "Name of the logical volume to backup (required)")
-	cmd.Flags().StringVar(&bOpt.nodeName, "node-name", "", "Node name where the logical volume resides (required)")
-	cmd.Flags().StringVar(&bOpt.mountPath, "mount-path", "", "Mount path of the logical volume (required)")
+	cmd.Flags().StringVar(&bOpt.lvName, "lv-name",
+		"", "Name of the logical volume to backup (required)")
+	cmd.Flags().StringVar(&bOpt.nodeName, "node-name",
+		"", "Node name where the logical volume resides (required)")
+	cmd.Flags().StringVar(&bOpt.mountPath, "mount-path",
+		"", "Mount path of the logical volume (required)")
 
-	cmd.Flags().StringVar(&bOpt.targetedPVCRef.Namespace, "targeted-pvc-namespace", "", "Namespace of the targeted PVC")
-	cmd.Flags().StringVar(&bOpt.targetedPVCRef.Name, "targeted-pvc-name", "", "Name of the targeted PVC")
+	cmd.Flags().StringVar(&bOpt.targetedPVCRef.Namespace, "targeted-pvc-namespace",
+		"", "Namespace of the targeted PVC")
+	cmd.Flags().StringVar(&bOpt.targetedPVCRef.Name, "targeted-pvc-name",
+		"", "Name of the targeted PVC")
 
-	cmd.Flags().StringVar(&bOpt.snapshotStorageRef.Namespace, "snapshot-storage-namespace", "", "Namespace of the OnlineSnapshotStorage CR")
-	cmd.Flags().StringVar(&bOpt.snapshotStorageRef.Name, "snapshot-storage-name", "", "Name of the OnlineSnapshotStorage CR")
+	cmd.Flags().StringVar(&bOpt.snapshotStorageRef.Namespace, "snapshot-storage-namespace",
+		"", "Namespace of the SnapshotBackupStorage CR")
+	cmd.Flags().StringVar(&bOpt.snapshotStorageRef.Name, "snapshot-storage-name",
+		"", "Name of the SnapshotBackupStorage CR")
 }
 
 func (opt *BackupOptions) initialize(ctx context.Context) error {
@@ -111,9 +118,10 @@ func (opt *BackupOptions) setupKubernetesClient() error {
 
 func (opt *BackupOptions) loadResources(ctx context.Context) error {
 	var err error
-	opt.snapshotStorage, err = fetchSnapshotStorage(ctx, opt.client, metav1.ObjectMeta{Name: opt.snapshotStorageRef.Name, Namespace: opt.snapshotStorageRef.Namespace})
+	opt.snapshotStorage, err = fetchSnapshotStorage(ctx, opt.client,
+		metav1.ObjectMeta{Name: opt.snapshotStorageRef.Name, Namespace: opt.snapshotStorageRef.Namespace})
 	if err != nil {
-		return fmt.Errorf("failed to fetch OnlineSnapshotStorage: %w", err)
+		return fmt.Errorf("failed to fetch SnapshotBackupStorage: %w", err)
 	}
 	opt.log.Info("loaded snapshot storage", "name", opt.snapshotStorage.Name, "namespace", opt.snapshotStorage.Namespace)
 
@@ -196,7 +204,7 @@ func (opt *BackupOptions) handleBackupError(ctx context.Context, message string,
 	opt.log.Error(err, message, "lvName", opt.lvName)
 
 	errorMsg := err.Error()
-	if updateErr := opt.setStatusFailed(ctx, errorMsg); updateErr != nil {
+	if updateErr := setStatusFailed(ctx, opt.client, opt.logicalVol, errorMsg); updateErr != nil {
 		opt.log.Error(updateErr, "failed to update error status", "originalError", errorMsg)
 	}
 
@@ -236,7 +244,7 @@ func (opt *BackupOptions) setStatusRunning(ctx context.Context) error {
 
 	opt.logicalVol.Status.Snapshot.StartTime = metav1.Now()
 	opt.logicalVol.Status.Snapshot.Phase = topolvmv1.OperationPhaseRunning
-	opt.logicalVol.Status.Snapshot.Message = fmt.Sprintf("Snapshot execution in progress")
+	opt.logicalVol.Status.Snapshot.Message = "Snapshot execution in progress"
 	if err := opt.client.Status().Update(ctx, opt.logicalVol); err != nil {
 		return fmt.Errorf("failed to update online snapshot status: %w", err)
 	}
@@ -259,7 +267,7 @@ func (opt *BackupOptions) setStatusSuccess(ctx context.Context, result *provider
 	now := metav1.Now()
 	lv.Status.Snapshot.Phase = topolvmv1.OperationPhaseSucceeded
 	lv.Status.Snapshot.SnapshotID = result.SnapshotID
-	lv.Status.Snapshot.Message = fmt.Sprintf("Backup completed successfully")
+	lv.Status.Snapshot.Message = "Backup completed successfully"
 	lv.Status.Snapshot.CompletionTime = &now
 	lv.Status.Snapshot.Duration = result.Duration
 	lv.Status.Snapshot.Version = result.Provider
@@ -277,28 +285,5 @@ func (opt *BackupOptions) setStatusSuccess(ctx context.Context, result *provider
 		"files", result.Files.Total,
 		"duration", result.Duration)
 
-	return nil
-}
-
-func (opt *BackupOptions) setStatusFailed(ctx context.Context, errorMessage string) error {
-	snapshotErr := &topolvmv1.SnapshotError{
-		Code:    backupErrorCode,
-		Message: errorMessage,
-	}
-
-	if opt.logicalVol.Status.Snapshot == nil {
-		opt.logicalVol.Status.Snapshot = &topolvmv1.SnapshotStatus{
-			StartTime: metav1.Now(),
-		}
-	}
-	now := metav1.Now()
-	opt.logicalVol.Status.Snapshot.Error = snapshotErr
-	opt.logicalVol.Status.Snapshot.Phase = topolvmv1.OperationPhaseFailed
-	opt.logicalVol.Status.Snapshot.CompletionTime = &now
-	opt.logicalVol.Status.Snapshot.Message = fmt.Sprintf("Backup failed: %s", errorMessage)
-
-	if err := opt.client.Status().Update(ctx, opt.logicalVol); err != nil {
-		return fmt.Errorf("failed to update online snapshot status: %w", err)
-	}
 	return nil
 }

@@ -120,9 +120,9 @@ func subMain() error {
 		return err
 	}
 
-	if err := controller.SetupOnlineSnapshotStorageReconciler(
+	if err := controller.SetupSnapshotBackupStorageReconciler(
 		mgr, client); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "OnlineSnapshotStorage")
+		setupLog.Error(err, "unable to create controller", "controller", "SnapshotBackupStorage")
 		return err
 	}
 

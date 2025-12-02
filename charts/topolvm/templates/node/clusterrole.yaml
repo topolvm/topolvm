@@ -28,8 +28,8 @@ rules:
   - apiGroups:
       - topolvm.io
     resources:
-      - onlinesnapshotstorages
-      - onlinesnapshotstorages/status
+      - snapshotbackupstorages
+      - snapshotbackupstorages/status
     verbs:
       - create
       - delete

@@ -102,19 +102,6 @@ func upsertSnapshotStats(hostStats HostBackupStats, snapStats SnapshotStats) Hos
 	return hostStats
 }
 
-func (backupOutput *BackupOutput) upsertHostBackupStats(hostStats HostBackupStats) {
-	// check if an entry already exist for this host in backupOutput. If exist then update it.
-	for i, v := range backupOutput.Stats {
-		if v.Hostname == hostStats.Hostname {
-			backupOutput.Stats[i] = hostStats
-			return
-		}
-	}
-
-	// no entry for this host. add a new entry
-	backupOutput.Stats = append(backupOutput.Stats, hostStats)
-}
-
 func (w *ResticWrapper) RepositoryAlreadyExist() bool {
 	return w.repositoryExist()
 }

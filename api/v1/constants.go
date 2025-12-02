@@ -20,7 +20,7 @@ const (
 )
 
 const (
-	// PhaseReady Phase constants for OnlineSnapshotStorage
+	// PhaseReady Phase constants for SnapshotBackupStorage
 	PhaseReady = "Ready"
 	PhaseError = "Error"
 )

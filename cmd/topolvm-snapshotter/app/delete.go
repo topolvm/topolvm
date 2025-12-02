@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
@@ -22,15 +21,13 @@ type DeleteOptions struct {
 	client client.Client
 
 	// Logical volume details
-	lvName      string
-	nodeName    string
-	deviceClass string
-	repository  string
-	logicalVol  *topolvmv1.LogicalVolume
+	lvName     string
+	repository string
+	logicalVol *topolvmv1.LogicalVolume
 
-	timeout            time.Duration
+	//timeout            time.Duration
 	snapshotStorageRef types.NamespacedName
-	snapshotStorage    *topolvmv1.OnlineSnapshotStorage
+	snapshotStorage    *topolvmv1.SnapshotBackupStorage
 }
 
 var dOpt = new(DeleteOptions)
@@ -61,13 +58,19 @@ func newDeleteCommand() *cobra.Command {
 }
 
 func parseDeleteFlags(cmd *cobra.Command) {
-	cmd.Flags().StringVar(&masterURL, "master", masterURL, "The address of the Kubernetes API server (overrides any value in kubeconfig)")
-	cmd.Flags().StringVar(&kubeconfigPath, "kubeconfig", kubeconfigPath, "Path to kubeconfig file with authorization information (the master location is set by the master flag)")
+	cmd.Flags().StringVar(&masterURL, "master", masterURL,
+		"The address of the Kubernetes API server")
+	cmd.Flags().StringVar(&kubeconfigPath, "kubeconfig", kubeconfigPath,
+		"Path to kubeconfig file with authorization information")
 
-	cmd.Flags().StringVar(&dOpt.repository, "repository", "", "Repository URL (required)")
-	cmd.Flags().StringVar(&dOpt.lvName, "lv-name", "", "Name of the logical volume to backup (required)")
-	cmd.Flags().StringVar(&dOpt.snapshotStorageRef.Namespace, "snapshot-storage-namespace", "", "Namespace of the OnlineSnapshotStorage CR")
-	cmd.Flags().StringVar(&dOpt.snapshotStorageRef.Name, "snapshot-storage-name", "", "Name of the OnlineSnapshotStorage CR")
+	cmd.Flags().StringVar(&dOpt.repository, "repository",
+		"", "Repository URL (required)")
+	cmd.Flags().StringVar(&dOpt.lvName, "lv-name",
+		"", "Name of the logical volume to backup (required)")
+	cmd.Flags().StringVar(&dOpt.snapshotStorageRef.Namespace, "snapshot-storage-namespace",
+		"", "Namespace of the SnapshotBackupStorage CR")
+	cmd.Flags().StringVar(&dOpt.snapshotStorageRef.Name, "snapshot-storage-name",
+		"", "Name of the SnapshotBackupStorage CR")
 }
 
 func (opt *DeleteOptions) execute(ctx context.Context) error {
@@ -153,20 +156,20 @@ func (opt *DeleteOptions) setDeleteConditionToRunning(ctx context.Context) error
 	return updateLVStatusCondition(ctx, opt.client, opt.logicalVol)
 }
 
-func (opt *DeleteOptions) setDeleteConditionToFailed(ctx context.Context, err error) error {
-	errorMsg := err.Error()
-	newCond := metav1.Condition{
-		Type:    topolvmv1.TypeSnapshotDeleteEnsured,
-		Status:  metav1.ConditionTrue,
-		Reason:  topolvmv1.ConditionDeleteCleanupFailed,
-		Message: errorMsg,
-	}
-	meta.SetStatusCondition(&opt.logicalVol.Status.Conditions, newCond)
-	if updateErr := updateLVStatusCondition(ctx, opt.client, opt.logicalVol); updateErr != nil {
-		return fmt.Errorf("failed to update status condition: %w", updateErr)
-	}
-	return nil
-}
+//func (opt *DeleteOptions) setDeleteConditionToFailed(ctx context.Context, err error) error {
+//	errorMsg := err.Error()
+//	newCond := metav1.Condition{
+//		Type:    topolvmv1.TypeSnapshotDeleteEnsured,
+//		Status:  metav1.ConditionTrue,
+//		Reason:  topolvmv1.ConditionDeleteCleanupFailed,
+//		Message: errorMsg,
+//	}
+//	meta.SetStatusCondition(&opt.logicalVol.Status.Conditions, newCond)
+//	if updateErr := updateLVStatusCondition(ctx, opt.client, opt.logicalVol); updateErr != nil {
+//		return fmt.Errorf("failed to update status condition: %w", updateErr)
+//	}
+//	return nil
+//}
 
 func (opt *DeleteOptions) setDeleteConditionToSuccess(ctx context.Context) error {
 	newCond := metav1.Condition{
@@ -207,9 +210,10 @@ func (opt *DeleteOptions) setupKubernetesClient() error {
 
 func (opt *DeleteOptions) loadResources(ctx context.Context) error {
 	var err error
-	opt.snapshotStorage, err = fetchSnapshotStorage(ctx, opt.client, metav1.ObjectMeta{Name: opt.snapshotStorageRef.Name, Namespace: opt.snapshotStorageRef.Namespace})
+	opt.snapshotStorage, err = fetchSnapshotStorage(ctx, opt.client,
+		metav1.ObjectMeta{Name: opt.snapshotStorageRef.Name, Namespace: opt.snapshotStorageRef.Namespace})
 	if err != nil {
-		return fmt.Errorf("failed to fetch OnlineSnapshotStorage: %w", err)
+		return fmt.Errorf("failed to fetch SnapshotBackupStorage: %w", err)
 	}
 	opt.log.Info("loaded snapshot storage", "name", opt.snapshotStorage.Name, "namespace", opt.snapshotStorage.Namespace)
 

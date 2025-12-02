@@ -11,7 +11,6 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	restclient "k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
 
@@ -35,49 +34,27 @@ func NewRuntimeClient(config *restclient.Config) (client.Client, error) {
 	})
 }
 
-func fetchSnapshotStorage(ctx context.Context, client client.Client, objMeta metav1.ObjectMeta) (*topolvmv1.OnlineSnapshotStorage, error) {
-	storage := &topolvmv1.OnlineSnapshotStorage{
+func fetchSnapshotStorage(ctx context.Context, rClient client.Client,
+	objMeta metav1.ObjectMeta) (*topolvmv1.SnapshotBackupStorage, error) {
+	storage := &topolvmv1.SnapshotBackupStorage{
 		ObjectMeta: objMeta,
 	}
-	if err := client.Get(ctx, runtimeclient.ObjectKeyFromObject(storage), storage); err != nil {
-		return nil, fmt.Errorf("failed to get OnlineSnapshotStorage %s/%s: %w",
+	if err := rClient.Get(ctx, client.ObjectKeyFromObject(storage), storage); err != nil {
+		return nil, fmt.Errorf("failed to get SnapshotBackupStorage %s/%s: %w",
 			storage.Namespace, storage.Name, err)
 	}
 	return storage, nil
 }
 
-func fetchLogicalVolume(ctx context.Context, client client.Client, objMeta metav1.ObjectMeta) (*topolvmv1.LogicalVolume, error) {
+func fetchLogicalVolume(ctx context.Context, rClient client.Client,
+	objMeta metav1.ObjectMeta) (*topolvmv1.LogicalVolume, error) {
 	lv := &topolvmv1.LogicalVolume{
 		ObjectMeta: objMeta,
 	}
-	if err := client.Get(ctx, runtimeclient.ObjectKeyFromObject(lv), lv); err != nil {
+	if err := rClient.Get(ctx, client.ObjectKeyFromObject(lv), lv); err != nil {
 		return nil, fmt.Errorf("failed to get LogicalVolume %s: %w", lv.Name, err)
 	}
 	return lv, nil
-}
-
-func updateStatus(ctx context.Context, client client.Client, lv *topolvmv1.LogicalVolume,
-	phase topolvmv1.OperationPhase, message string, snapshotErr *topolvmv1.SnapshotError) error {
-
-	if lv.Status.Snapshot == nil {
-		startTime := metav1.Now()
-		lv.Status.Snapshot = &topolvmv1.SnapshotStatus{
-			StartTime: startTime,
-		}
-	}
-
-	lv.Status.Snapshot.Phase = phase
-	lv.Status.Snapshot.Message = message
-
-	if snapshotErr != nil {
-		lv.Status.Snapshot.Error = snapshotErr
-	}
-
-	if err := client.Status().Update(ctx, lv); err != nil {
-		return fmt.Errorf("failed to update online snapshot status: %w", err)
-	}
-
-	return nil
 }
 
 func updateLVStatusCondition(ctx context.Context, kClient client.Client, lv *topolvmv1.LogicalVolume) error {
@@ -96,6 +73,30 @@ func updateLVStatusCondition(ctx context.Context, kClient client.Client, lv *top
 		return fmt.Errorf("failed to update snapshot status: %w", err)
 	}
 	lv.Status = freshLV.Status
-	lv.ObjectMeta.ResourceVersion = freshLV.ObjectMeta.ResourceVersion
+	lv.ResourceVersion = freshLV.ResourceVersion
+	return nil
+}
+
+func setStatusFailed(ctx context.Context, rClient client.Client,
+	logicalVol *topolvmv1.LogicalVolume, errorMessage string) error {
+	snapshotErr := &topolvmv1.SnapshotError{
+		Code:    backupErrorCode,
+		Message: errorMessage,
+	}
+
+	if logicalVol.Status.Snapshot == nil {
+		logicalVol.Status.Snapshot = &topolvmv1.SnapshotStatus{
+			StartTime: metav1.Now(),
+		}
+	}
+	now := metav1.Now()
+	logicalVol.Status.Snapshot.Error = snapshotErr
+	logicalVol.Status.Snapshot.Phase = topolvmv1.OperationPhaseFailed
+	logicalVol.Status.Snapshot.CompletionTime = &now
+	logicalVol.Status.Snapshot.Message = fmt.Sprintf("Backup failed: %s", errorMessage)
+
+	if err := rClient.Status().Update(ctx, logicalVol); err != nil {
+		return fmt.Errorf("failed to update online snapshot status: %w", err)
+	}
 	return nil
 }

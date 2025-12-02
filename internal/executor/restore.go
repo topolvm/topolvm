@@ -10,7 +10,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -24,8 +23,7 @@ type RestoreExecutor struct {
 	mountResponse         *mounter.MountResponse
 	vsClass               *snapshot_api.VolumeSnapshotClass
 
-	namespace     string
-	targetPVCInfo types.NamespacedName
+	namespace string
 }
 
 // NewSnapshotRestoreExecutor creates a new RestoreExecutor instance with the provided dependencies.
@@ -167,29 +165,6 @@ func (e *RestoreExecutor) buildRestoreArgs() []string {
 		fmt.Sprintf("--snapshot-storage-name=%s", defaultNamespaceIfEmpty(e.vsClass.Parameters[SnapshotStorageName])),
 		fmt.Sprintf("--snapshot-storage-namespace=%s", defaultNamespaceIfEmpty(e.vsClass.Parameters[SnapshotStorageNamespace])),
 	}
-}
-
-func (e *RestoreExecutor) buildRestoreEnv(templateContainer *corev1.Container) []corev1.EnvVar {
-	var env []corev1.EnvVar
-	return env
-}
-
-func (e *RestoreExecutor) isReservedEnvVar(name string) bool {
-	reserved := []string{
-		"LOGICAL_VOLUME_NAME",
-		"LOGICAL_VOLUME_SIZE",
-		"NODE_NAME",
-		"DEVICE_CLASS",
-		"RESTORE_SNAPSHOT_ID",
-		"RESTORE_REPOSITORY_URL",
-	}
-
-	for _, r := range reserved {
-		if name == r {
-			return true
-		}
-	}
-	return false
 }
 
 func (e *RestoreExecutor) buildSecurityContext() *corev1.SecurityContext {

@@ -95,7 +95,7 @@ manifests: generate-legacy-api ## Generate WebhookConfiguration, ClusterRole and
 		output:crd:artifacts:config=config/crd/bases
 	cat config/crd/bases/topolvm.io_logicalvolumes.yaml | xargs -d"	" printf "$$CRD_TEMPLATE" > charts/topolvm/templates/crds/topolvm.io_logicalvolumes.yaml
 	#cat config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml | xargs -d"	" printf "$$LEGACY_CRD_TEMPLATE" > charts/topolvm/templates/crds/topolvm.cybozu.com_logicalvolumes.yaml
-	cat config/crd/bases/topolvm.io_onlinesnapshotstorages.yaml | xargs -d"	" printf "$$CRD_TEMPLATE" > charts/topolvm/templates/crds/topolvm.io_onlinesnapshotstorages.yaml
+	cat config/crd/bases/topolvm.io_snapshotbackupstorages.yaml | xargs -d"	" printf "$$CRD_TEMPLATE" > charts/topolvm/templates/crds/topolvm.io_snapshotbackupstorages.yaml
 
 .PHONY: generate-api ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 generate-api: 

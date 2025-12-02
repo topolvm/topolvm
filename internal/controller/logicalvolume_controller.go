@@ -34,7 +34,6 @@ type LogicalVolumeReconciler struct {
 	vgService proto.VGServiceClient
 	lvService proto.LVServiceClient
 	lvMount   *mounter.LVMount
-	executor  executor.Executor
 }
 
 //+kubebuilder:rbac:groups=topolvm.io,resources=logicalvolumes,verbs=get;list;watch;update;patch
@@ -122,17 +121,13 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		if sourceLV != nil {
 			log.Info("snapshot LV found", "name", sourceLV.Name)
 
-			vsContent, vsClass, err = r.getVolumeSnapshotResources(ctx, sourceLV)
+			_, vsClass, err = r.getVolumeSnapshotResources(ctx, sourceLV)
 			if err != nil {
 				log.Error(err, "failed to get VolumeSnapshotContent/VolumeSnapshotClass", "name", lv.Name)
 				return ctrl.Result{}, err
 			}
 
-			shouldRestore, err = r.shouldPerformSnapshotRestore(sourceLV, vsClass)
-			if err != nil {
-				log.Error(err, "failed to check whether to restore from snapshot", "name", lv.Name)
-				return ctrl.Result{}, err
-			}
+			shouldRestore = r.shouldPerformSnapshotRestore(sourceLV, vsClass)
 		}
 
 		// -----------------------------------------------------------------------------
@@ -190,12 +185,7 @@ func (r *LogicalVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			return ctrl.Result{}, err
 		}
 
-		shouldBackup, err := r.shouldPerformSnapshotBackup(vsClass)
-		if err != nil {
-			log.Error(err, "failed to check whether to perform snapshot backup", "name", lv.Name)
-			return ctrl.Result{}, err
-		}
-
+		shouldBackup := r.shouldPerformSnapshotBackup(vsClass)
 		if shouldBackup {
 			if err := r.performSnapshotBackup(ctx, log, lv, vsContent, vsClass); err != nil {
 				return ctrl.Result{}, err
@@ -315,8 +305,8 @@ func (r *LogicalVolumeReconciler) getVolumeSnapshotContentIfExists(ctx context.C
 	return content, err
 }
 
-func (r *LogicalVolumeReconciler) shouldPerformSnapshotBackup(vsClass *snapshot_api.VolumeSnapshotClass) (bool, error) {
-	return r.isOnlineSnapshotEnabled(vsClass), nil
+func (r *LogicalVolumeReconciler) shouldPerformSnapshotBackup(vsClass *snapshot_api.VolumeSnapshotClass) bool {
+	return r.isOnlineSnapshotEnabled(vsClass)
 }
 
 func (r *LogicalVolumeReconciler) getSourceLogicalVolume(ctx context.Context, lv *topolvmv1.LogicalVolume) (*topolvmv1.LogicalVolume, error) {
@@ -335,13 +325,14 @@ func (r *LogicalVolumeReconciler) getSourceLogicalVolume(ctx context.Context, lv
 	return sourceLV, nil
 }
 
-func (r *LogicalVolumeReconciler) shouldPerformSnapshotRestore(sourceLV *topolvmv1.LogicalVolume, vsClass *snapshot_api.VolumeSnapshotClass) (bool, error) {
+func (r *LogicalVolumeReconciler) shouldPerformSnapshotRestore(sourceLV *topolvmv1.LogicalVolume,
+	vsClass *snapshot_api.VolumeSnapshotClass) bool {
 	// Check if source snapshot is ready or already completed
 	if sourceLV.Status.Snapshot == nil ||
 		(sourceLV.Status.Snapshot != nil && sourceLV.Status.Snapshot.Phase == topolvmv1.OperationPhaseSucceeded) {
-		return r.isOnlineSnapshotEnabled(vsClass), nil
+		return r.isOnlineSnapshotEnabled(vsClass)
 	}
-	return false, nil
+	return false
 }
 
 func (r *LogicalVolumeReconciler) isOnlineSnapshotEnabled(vsClass *snapshot_api.VolumeSnapshotClass) bool {
@@ -359,10 +350,6 @@ func (r *LogicalVolumeReconciler) isSnapshotOperationComplete(lv *topolvmv1.Logi
 	}
 	phase := lv.Status.Snapshot.Phase
 	return phase == topolvmv1.OperationPhaseSucceeded || phase == topolvmv1.OperationPhaseFailed
-}
-
-func (r *LogicalVolumeReconciler) isSnapshotOperationRunning(lv *topolvmv1.LogicalVolume) bool {
-	return lv.Status.Snapshot != nil && lv.Status.Snapshot.Phase == topolvmv1.OperationPhaseRunning
 }
 
 func (r *LogicalVolumeReconciler) initializeSnapshotStatus(ctx context.Context, lv *topolvmv1.LogicalVolume, operation topolvmv1.OperationType, log logr.Logger) error {
@@ -584,7 +571,7 @@ func (r *LogicalVolumeReconciler) updateSnapshotOperationStatus(ctx context.Cont
 
 	// Sync the original object with the latest status
 	lv.Status = freshLV.Status
-	lv.ObjectMeta.ResourceVersion = freshLV.ObjectMeta.ResourceVersion
+	lv.ResourceVersion = freshLV.ResourceVersion
 	return nil
 }
 

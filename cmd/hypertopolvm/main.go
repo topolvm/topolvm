@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 
 	lvmd "github.com/topolvm/topolvm/cmd/lvmd/app"
-	onlinesnapshotter "github.com/topolvm/topolvm/cmd/online-snapshotter/app"
 	controller "github.com/topolvm/topolvm/cmd/topolvm-controller/app"
 	node "github.com/topolvm/topolvm/cmd/topolvm-node/app"
 	scheduler "github.com/topolvm/topolvm/cmd/topolvm-scheduler/app"
+	onlinesnapshotter "github.com/topolvm/topolvm/cmd/topolvm-snapshotter/app"
 )
 
 func usage() {

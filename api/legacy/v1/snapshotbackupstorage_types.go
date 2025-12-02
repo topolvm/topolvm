@@ -10,18 +10,18 @@ import (
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
-// OnlineSnapshotStorage defines a storage destination where online
+// SnapshotBackupStorage defines a storage destination where online
 // VolumeSnapshots are stored and managed (e.g., via Restic or similar tools).
-type OnlineSnapshotStorage struct {
+type SnapshotBackupStorage struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   OnlineSnapshotStorageSpec   `json:"spec,omitempty"`
-	Status OnlineSnapshotStorageStatus `json:"status,omitempty"`
+	Spec   SnapshotBackupStorageSpec       `json:"spec,omitempty"`
+	Status SnapshotBackupStorageSpecStatus `json:"status,omitempty"`
 }
 
-// OnlineSnapshotStorageSpec defines configuration for the backend target.\
-type OnlineSnapshotStorageSpec struct {
+// SnapshotBackupStorageSpec defines configuration for the backend target.\
+type SnapshotBackupStorageSpec struct {
 	// Engine defines which snapshot engine to use (e.g., restic, kopia).
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=restic;kopia
@@ -52,8 +52,8 @@ type OnlineSnapshotStorageSpec struct {
 	ValidateOnCreate bool `json:"validateOnCreate,omitempty"`
 }
 
-// OnlineSnapshotStorageStatus defines observed backend health.
-type OnlineSnapshotStorageStatus struct {
+// SnapshotBackupStorageSpecStatus defines observed backend health.
+type SnapshotBackupStorageSpecStatus struct {
 	// Phase indicates current validation or operational state (e.g., Ready, Error).
 	// +kubebuilder:validation:Enum=Ready;Pending;Error
 	Phase string `json:"phase,omitempty"`
@@ -87,13 +87,13 @@ type Storage struct {
 
 //+kubebuilder:object:root=true
 
-// OnlineSnapshotStorageList contains a list of OnlineSnapshotStorage
-type OnlineSnapshotStorageList struct {
+// SnapshotBackupStorageList contains a list of SnapshotBackupStorage
+type SnapshotBackupStorageList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []OnlineSnapshotStorage `json:"items"`
+	Items           []SnapshotBackupStorage `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&OnlineSnapshotStorage{}, &OnlineSnapshotStorageList{})
+	SchemeBuilder.Register(&SnapshotBackupStorage{}, &SnapshotBackupStorageList{})
 }

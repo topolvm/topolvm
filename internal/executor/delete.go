@@ -43,7 +43,7 @@ func (e *DeleteExecutor) Execute() error {
 	if err != nil {
 		return err
 	}
-	
+
 	e.namespace = hostPod.Namespace
 	podSpec, err := e.buildPodSpec(hostPod)
 	if err != nil {

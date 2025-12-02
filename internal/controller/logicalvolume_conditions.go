@@ -66,14 +66,15 @@ func hasSnapshotRestoreExecutorCondition(lv *topolvmv1.LogicalVolume) bool {
 
 func setSnapshotExecutorCleanupToTrue(ctx context.Context, client client.Client, operation topolvmv1.OperationType, lv *topolvmv1.LogicalVolume) error {
 	var newCond metav1.Condition
-	if operation == topolvmv1.OperationBackup {
+	switch operation {
+	case topolvmv1.OperationBackup:
 		newCond = metav1.Condition{
 			Type:    topolvmv1.TypeSnapshotBackupExecutorCleaned,
 			Status:  metav1.ConditionTrue,
 			Reason:  topolvmv1.ReasonSuccessfullyCleanedSnapshotBackupExecutor,
 			Message: "Snapshot Backup Executor has been cleaned successfully.",
 		}
-	} else if operation == topolvmv1.OperationRestore {
+	case topolvmv1.OperationRestore:
 		newCond = metav1.Condition{
 			Type:    topolvmv1.TypeSnapshotRestoreExecutorCleaned,
 			Status:  metav1.ConditionTrue,
@@ -87,14 +88,15 @@ func setSnapshotExecutorCleanupToTrue(ctx context.Context, client client.Client,
 
 func setSnapshotExecutorCleanupToFalse(ctx context.Context, client client.Client, operation topolvmv1.OperationType, lv *topolvmv1.LogicalVolume, err error) error {
 	var newCond metav1.Condition
-	if operation == topolvmv1.OperationBackup {
+	switch operation {
+	case topolvmv1.OperationBackup:
 		newCond = metav1.Condition{
 			Type:    topolvmv1.TypeSnapshotBackupExecutorCleaned,
 			Status:  metav1.ConditionFalse,
 			Reason:  topolvmv1.ReasonFailedToCleanedSnapshotBackupExecutor,
 			Message: fmt.Sprintf("Failed to clean Snapshot Backup Executor: %q", err.Error()),
 		}
-	} else if operation == topolvmv1.OperationRestore {
+	case topolvmv1.OperationRestore:
 		newCond = metav1.Condition{
 			Type:    topolvmv1.TypeSnapshotRestoreExecutorCleaned,
 			Status:  metav1.ConditionFalse,
@@ -165,7 +167,7 @@ func updateLVStatus(ctx context.Context, kClient client.Client, lv *topolvmv1.Lo
 		return fmt.Errorf("failed to update snapshot status: %w", err)
 	}
 	lv.Status = freshLV.Status
-	lv.ObjectMeta.ResourceVersion = freshLV.ObjectMeta.ResourceVersion
+	lv.ResourceVersion = freshLV.ResourceVersion
 	return nil
 }
 
@@ -185,6 +187,6 @@ func updateLVStatusCondition(ctx context.Context, kClient client.Client, lv *top
 		return fmt.Errorf("failed to update snapshot status: %w", err)
 	}
 	lv.Status = freshLV.Status
-	lv.ObjectMeta.ResourceVersion = freshLV.ObjectMeta.ResourceVersion
+	lv.ResourceVersion = freshLV.ResourceVersion
 	return nil
 }
