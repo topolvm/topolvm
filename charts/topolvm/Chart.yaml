@@ -4,7 +4,7 @@ type: application
 home: https://github.com/topolvm/topolvm
 name: topolvm
 description: Topolvm
-version: 15.7.1
+version: 15.8.0
 appVersion: 0.38.1
 sources:
   - https://github.com/topolvm/topolvm
