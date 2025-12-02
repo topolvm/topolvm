@@ -13,7 +13,7 @@ import (
 	crlog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// SnapshotBackupStorageReconciler reconciles an SnapshotBackupStorage object
+// SnapshotBackupStorageReconciler reconciles a SnapshotBackupStorage object
 type SnapshotBackupStorageReconciler struct {
 	client client.Client
 }
