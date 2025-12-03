@@ -11,6 +11,9 @@ import (
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	"github.com/topolvm/topolvm/internal/executor"
 	"github.com/topolvm/topolvm/internal/mounter"
+	"github.com/topolvm/topolvm/pkg/lvmd/proto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -152,13 +155,13 @@ func (h *snapshotHandler) checkPVExists(ctx context.Context, lv *topolvmv1.Logic
 
 func (h *snapshotHandler) restoreFromSnapshot(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) error {
 	// Initialize status if needed
-	if err := h.initializeSnapshotStatus(ctx, lv, topolvmv1.OperationRestore, log); err != nil {
+	if err := h.initializeSnapshotStatus(ctx, log, lv, topolvmv1.OperationRestore); err != nil {
 		return err
 	}
 
 	// Use bind mount for restore (the pod already mounts LV)
 	mountOptions := []string{}
-	mountResponse, err := h.mountLogicalVolume(ctx, lv, mountOptions, topolvmv1.OperationRestore, log)
+	mountResponse, err := h.mountLogicalVolume(ctx, log, lv, mountOptions, topolvmv1.OperationRestore)
 	if err == nil {
 		restoreExecutor := executor.NewSnapshotRestoreExecutor(h.client, lv, h.sourceLV, mountResponse, h.vsClass)
 		err = h.executeSnapshotOperation(ctx, lv, restoreExecutor, topolvmv1.OperationRestore, log)
@@ -178,13 +181,13 @@ func (h *snapshotHandler) restoreFromSnapshot(ctx context.Context, log logr.Logg
 
 func (h *snapshotHandler) backupSnapshot(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) error {
 	// Initialize status if needed
-	if err := h.initializeSnapshotStatus(ctx, lv, topolvmv1.OperationBackup, log); err != nil {
+	if err := h.initializeSnapshotStatus(ctx, log, lv, topolvmv1.OperationBackup); err != nil {
 		return err
 	}
 
 	// Mount the logical volume with read-only and no-recovery options
 	mountOptions := []string{"ro", "norecovery"}
-	mountResponse, err := h.mountLogicalVolume(ctx, lv, mountOptions, topolvmv1.OperationBackup, log)
+	mountResponse, err := h.mountLogicalVolume(ctx, log, lv, mountOptions, topolvmv1.OperationBackup)
 	if err == nil {
 		snapshotExecutor := executor.NewSnapshotBackupExecutor(h.client, lv, mountResponse, h.vsContent, h.vsClass)
 		err = h.executeSnapshotOperation(ctx, lv, snapshotExecutor, topolvmv1.OperationBackup, log)
@@ -220,7 +223,7 @@ func (h *snapshotHandler) executeSnapshotOperation(ctx context.Context, lv *topo
 	return nil
 }
 
-func (h *snapshotHandler) executeCleanerOperation(ctx context.Context, lv *topolvmv1.LogicalVolume, operation topolvmv1.OperationType, log logr.Logger) error {
+func (h *snapshotHandler) executeCleanerOperation(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume, operation topolvmv1.OperationType) error {
 	err := h.lvMount.Unmount(ctx, lv)
 	if err == nil {
 		log.Info("successfully unmounted LV", "name", lv.Name, "uid", lv.UID)
@@ -231,16 +234,80 @@ func (h *snapshotHandler) executeCleanerOperation(ctx context.Context, lv *topol
 		if newErr := setSnapshotExecutorCleanupToFalse(ctx, h.client, operation, lv, err); newErr != nil {
 			return fmt.Errorf("failed to set snapshot executor cleanup to false: originalErr=%w wrapErr=%w", err, newErr)
 		}
-	} else {
-		if err = setSnapshotExecutorCleanupToTrue(ctx, h.client, operation, lv); err != nil {
-			return fmt.Errorf("failed to set snapshot executor cleanup to true: %w", err)
-		}
-		log.Info("successfully executed cleaner operation for LogicalVolume", "name", lv.Name)
+		return err
 	}
+
+	if err = setSnapshotExecutorCleanupToTrue(ctx, h.client, operation, lv); err != nil {
+		return fmt.Errorf("failed to set snapshot executor cleanup to true: %w", err)
+	}
+	log.Info("successfully executed cleaner operation for LogicalVolume", "name", lv.Name)
+
 	return nil
 }
 
-func (h *snapshotHandler) executeSnapshotDeleteOperation(ctx context.Context, lv *topolvmv1.LogicalVolume, log logr.Logger) error {
+func (h *snapshotHandler) cleanupLVMSnapshotAfterBackup(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) error {
+	log.Info("cleaning up LVM snapshot after backup completion", "name", lv.Name, "volumeID", lv.Status.VolumeID)
+	if err := h.removeLVMSnapshot(ctx, log, lv); err != nil {
+		log.Error(err, "failed to remove LVM snapshot", "name", lv.Name)
+		if setErr := setLVMSnapshotCleanedToFalse(ctx, h.client, lv, err); setErr != nil {
+			return fmt.Errorf("failed to set LVM snapshot cleanup to false: originalErr=%w wrapErr=%w", err, setErr)
+		}
+		return err
+	}
+
+	if err := setLVMSnapshotCleanedToTrue(ctx, h.client, lv); err != nil {
+		return fmt.Errorf("failed to set LVM snapshot cleanup to true: %w", err)
+	}
+
+	log.Info("successfully removed LVM snapshot volume", "name", lv.Name, "volumeID", lv.Status.VolumeID)
+	return nil
+}
+
+func (h *snapshotHandler) removeLVMSnapshot(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) error {
+	if lv.Status.VolumeID == "" {
+		log.Info("no VolumeID set, skipping LVM snapshot removal", "name", lv.Name)
+		return nil
+	}
+
+	volumeID := lv.Status.VolumeID
+
+	// Remove the LVM snapshot volume
+	_, err := h.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{
+		Name:        string(lv.UID),
+		DeviceClass: lv.Spec.DeviceClass,
+	})
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			log.Info("LVM snapshot already removed", "name", lv.Name, "uid", lv.UID)
+			// Even if not found, we should clear the status
+		} else {
+			return fmt.Errorf("failed to remove LVM snapshot: %w", err)
+		}
+	}
+
+	log.Info("removed LVM snapshot", "name", lv.Name, "uid", lv.UID, "volumeID", volumeID)
+	return nil
+}
+
+func (h *snapshotHandler) updateStatusMessageAfterSnapshotRemoval(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume, msg string) error {
+	// Refresh the LogicalVolume to get the latest version
+	freshLV := &topolvmv1.LogicalVolume{}
+	if err := h.client.Get(ctx, client.ObjectKeyFromObject(lv), freshLV); err != nil {
+		return fmt.Errorf("failed to get latest LogicalVolume: %w", err)
+	}
+	freshLV.Status.Message = msg
+	if err := h.client.Status().Update(ctx, freshLV); err != nil {
+		return fmt.Errorf("failed to update LogicalVolume status: %w", err)
+	}
+	// Sync the original object with the latest status
+	lv.Status = freshLV.Status
+	lv.ResourceVersion = freshLV.ResourceVersion
+
+	log.Info("updated LogicalVolume status after LVM snapshot removal", "name", lv.Name, "volumeID", "", "currentSize", "nil")
+	return nil
+}
+
+func (h *snapshotHandler) executeSnapshotDeleteOperation(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) error {
 	if err := h.setVolumeSnapshotInfo(ctx, log, lv); err != nil {
 		return fmt.Errorf("failed to set volume snapshot info: %w", err)
 	}
@@ -264,7 +331,7 @@ func (h *snapshotHandler) executeSnapshotDeleteOperation(ctx context.Context, lv
 	return nil
 }
 
-func (h *snapshotHandler) mountLogicalVolume(ctx context.Context, lv *topolvmv1.LogicalVolume, mountOptions []string, operation topolvmv1.OperationType, log logr.Logger) (*mounter.MountResponse, error) {
+func (h *snapshotHandler) mountLogicalVolume(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume, mountOptions []string, operation topolvmv1.OperationType) (*mounter.MountResponse, error) {
 	resp, err := h.lvMount.Mount(ctx, lv, mountOptions)
 	if err != nil {
 		mountType := "mount"
@@ -290,7 +357,7 @@ func (h *snapshotHandler) mountLogicalVolume(ctx context.Context, lv *topolvmv1.
 	return resp, nil
 }
 
-func (h *snapshotHandler) initializeSnapshotStatus(ctx context.Context, lv *topolvmv1.LogicalVolume, operation topolvmv1.OperationType, log logr.Logger) error {
+func (h *snapshotHandler) initializeSnapshotStatus(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume, operation topolvmv1.OperationType) error {
 	if lv.Status.Snapshot != nil && lv.Status.Snapshot.Phase != "" {
 		return nil
 	}

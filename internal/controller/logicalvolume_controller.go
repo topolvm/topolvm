@@ -116,8 +116,8 @@ func (r *LogicalVolumeReconciler) reconcile(ctx context.Context, lv *topolvmv1.L
 	}
 	if r.snapshot.shouldBackup {
 		log.Info("Processing snapshot backup", "name", lv.Name)
-		if err := r.reconcileSnapshotBackup(ctx, log, lv); err != nil {
-			return ctrl.Result{}, err
+		if result, err := r.reconcileSnapshotBackup(ctx, log, lv); err != nil {
+			return result, err
 		}
 	}
 
@@ -145,7 +145,7 @@ func (r *LogicalVolumeReconciler) reconcileSnapshotRestore(ctx context.Context, 
 	if isSnapshotOperationComplete(lv) {
 		log.Info("snapshot restore completed successfully", "name", lv.Name)
 		if !hasSnapshotRestoreExecutorCleanupCondition(lv) {
-			if err := r.snapshot.executeCleanerOperation(ctx, lv, topolvmv1.OperationRestore, log); err != nil {
+			if err := r.snapshot.executeCleanerOperation(ctx, log, lv, topolvmv1.OperationRestore); err != nil {
 				log.Error(err, "failed to execute cleaner operation", "name", lv.Name)
 				return ctrl.Result{}, err
 			}
@@ -174,26 +174,47 @@ func (r *LogicalVolumeReconciler) reconcileSnapshotRestore(ctx context.Context, 
 	return ctrl.Result{}, nil
 }
 
-func (r *LogicalVolumeReconciler) reconcileSnapshotBackup(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) error {
+func (r *LogicalVolumeReconciler) reconcileSnapshotBackup(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) (ctrl.Result, error) {
 	// Cleanup if complete
 	if isSnapshotOperationComplete(lv) {
 		log.Info("snapshot backup completed successfully", "name", lv.Name)
+		// First, cleanup the executor pod
 		if !hasSnapshotBackupExecutorCleanupCondition(lv) {
-			if err := r.snapshot.executeCleanerOperation(ctx, lv, topolvmv1.OperationBackup, log); err != nil {
+			if err := r.snapshot.executeCleanerOperation(ctx, log, lv, topolvmv1.OperationBackup); err != nil {
 				log.Error(err, "failed to execute cleaner operation", "name", lv.Name)
-				return err
+				return ctrl.Result{}, err
 			}
 		}
+
+		// Then, cleanup the LVM snapshot volume only if the snapshot operation succeeded
+		if !hasLVMSnapshotCleanupCondition(lv) &&
+			hasSnapshotBackupExecutorCleanupCondition(lv) &&
+			lv.Status.Snapshot.Phase == topolvmv1.OperationPhaseSucceeded {
+			if err := r.snapshot.cleanupLVMSnapshotAfterBackup(ctx, log, lv); err != nil {
+				log.Error(err, "failed to cleanup LVM snapshot", "name", lv.Name)
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{RequeueAfter: requeueIntervalForSimpleUpdate}, nil
+		}
+
+		msg := "LVM snapshot removed after backup completion"
+		if hasLVMSnapshotCleanupCondition(lv) && lv.Status.Message != msg {
+			if err := r.snapshot.updateStatusMessageAfterSnapshotRemoval(ctx, log, lv, msg); err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to update LV status after snapshot removal: %w", err)
+			}
+		}
+
+		return ctrl.Result{}, nil
 	}
 
 	if hasSnapshotBackupExecutorCondition(lv) {
 		log.Info("Snapshot Backup Executor triggered previously, waiting for completion", "name", lv.Name)
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	// Otherwise, take backup of the snapshot and return
 	err := r.snapshot.backupSnapshot(ctx, log, lv)
-	return err
+	return ctrl.Result{}, err
 }
 
 func (r *LogicalVolumeReconciler) ensureFinalizerAndLabels(ctx context.Context, lv *topolvmv1.LogicalVolume, log logr.Logger) (ctrl.Result, error) {
@@ -244,7 +265,7 @@ func (r *LogicalVolumeReconciler) handleDeletion(ctx context.Context, lv *topolv
 
 func (r *LogicalVolumeReconciler) deletionWithSnapshot(ctx context.Context, lv *topolvmv1.LogicalVolume, log logr.Logger) (ctrl.Result, error) {
 	if !hasSnapshotDeleteExecutorCondition(lv) {
-		if err := r.snapshot.executeSnapshotDeleteOperation(ctx, lv, log); err != nil {
+		if err := r.snapshot.executeSnapshotDeleteOperation(ctx, log, lv); err != nil {
 			log.Error(err, "snapshot delete operation failed", "name", lv.Name)
 			return ctrl.Result{}, err
 		}

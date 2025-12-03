@@ -156,6 +156,33 @@ func hasSnapshotRestoreExecutorCleanupCondition(lv *topolvmv1.LogicalVolume) boo
 		meta.IsStatusConditionTrue(lv.Status.Conditions, topolvmv1.TypeSnapshotRestoreExecutorCleaned)
 }
 
+func setLVMSnapshotCleanedToTrue(ctx context.Context, client client.Client, lv *topolvmv1.LogicalVolume) error {
+	newCond := metav1.Condition{
+		Type:    topolvmv1.TypeLVMSnapshotCleaned,
+		Status:  metav1.ConditionTrue,
+		Reason:  topolvmv1.ReasonSuccessfullyCleanedLVMSnapshot,
+		Message: "LVM snapshot volume has been removed successfully after backup completion.",
+	}
+	meta.SetStatusCondition(&lv.Status.Conditions, newCond)
+	return updateLVStatusCondition(ctx, client, lv)
+}
+
+func setLVMSnapshotCleanedToFalse(ctx context.Context, client client.Client, lv *topolvmv1.LogicalVolume, err error) error {
+	newCond := metav1.Condition{
+		Type:    topolvmv1.TypeLVMSnapshotCleaned,
+		Status:  metav1.ConditionFalse,
+		Reason:  topolvmv1.ReasonFailedToCleanLVMSnapshot,
+		Message: fmt.Sprintf("Failed to clean LVM snapshot: %q", err.Error()),
+	}
+	meta.SetStatusCondition(&lv.Status.Conditions, newCond)
+	return updateLVStatusCondition(ctx, client, lv)
+}
+
+func hasLVMSnapshotCleanupCondition(lv *topolvmv1.LogicalVolume) bool {
+	return meta.IsStatusConditionFalse(lv.Status.Conditions, topolvmv1.TypeLVMSnapshotCleaned) ||
+		meta.IsStatusConditionTrue(lv.Status.Conditions, topolvmv1.TypeLVMSnapshotCleaned)
+}
+
 func updateLVStatus(ctx context.Context, kClient client.Client, lv *topolvmv1.LogicalVolume) error {
 	// Refresh the LogicalVolume to get the latest version
 	freshLV := &topolvmv1.LogicalVolume{}
