@@ -86,6 +86,13 @@ const (
 	ReasonFailedToCleanedSnapshotRestoreExecutor     = "FailedToCleanedSnapshotRestoreExecutor"
 )
 
+// TypeLVMSnapshotCleaned indicates whether the LVM snapshot volume has been removed after backup.
+const (
+	TypeLVMSnapshotCleaned               = "LVMSnapshotCleaned"
+	ReasonSuccessfullyCleanedLVMSnapshot = "SuccessfullyCleanedLVMSnapshot"
+	ReasonFailedToCleanLVMSnapshot       = "FailedToCleanLVMSnapshot"
+)
+
 // TypeSnapshotDeleteExecutorEnsured indicates whether the Snapshot Delete Executor is ensured or not.
 const (
 	TypeSnapshotDeleteExecutorEnsured               = "SnapshotDeleteExecutorEnsured"

@@ -96,25 +96,6 @@ type BackupResult struct {
 	Version string `json:"version,omitempty"`
 }
 
-/*
-
-type HostRestoreStats struct {
-	// Hostname indicate name of the host that has been restored
-	// +optional
-	Hostname string `json:"hostname,omitempty"`
-	// Phase indicates restore phase of this host
-	// +optional
-	Phase HostRestorePhase `json:"phase,omitempty"`
-	// Duration indicates total time taken to complete restore for this hosts
-	// +optional
-	Duration string `json:"duration,omitempty"`
-	// Error indicates string value of error in case of restore failure
-	// +optional
-	Error string `json:"error,omitempty"`
-}
-
-*/
-
 // RestoreResult contains the result of a restore operation
 // This is a generic structure that works for both Restic and Kopia
 type RestoreResult struct {
@@ -199,51 +180,4 @@ type Provider interface {
 	Restore(ctx context.Context, param RestoreParam) (*RestoreResult, error)
 
 	Delete(ctx context.Context, param DeleteParam) ([]byte, error)
-
-	// Backup // InitRepo initializes a new repository in the storage backend
-	//InitRepo(ctx context.Context, param RepoRef) error
-	//
-	//// ConnectToRepo establishes connection to an existing repository
-	//ConnectToRepo(ctx context.Context, param RepoRef) error
-	//
-	//// PrepareRepo combines InitRepo and ConnectToRepo - initializes if needed, connects otherwise
-	//PrepareRepo(ctx context.Context, param RepoRef) error
-	//
-	//// BoostRepoConnect re-ensures local connection to the repo (useful after pod restarts)
-	//BoostRepoConnect(ctx context.Context, param RepoRef) error
-	//
-	//// EnsureUnlockRepo removes any stale file locks in the storage
-	//EnsureUnlockRepo(ctx context.Context, param RepoRef) error
-	//
-	//// PruneRepo performs full maintenance/pruning of the repository
-	//PruneRepo(ctx context.Context, param RepoRef) error
-
-	//
-	//// Restore restores files from a snapshot
-	//Restore(ctx context.Context, param RestoreParam) error
-	//
-	//// Snapshot Management
-	//
-	//// ListSnapshots lists all snapshots in the repository
-	//ListSnapshots(ctx context.Context, param RepoRef) ([]SnapshotInfo, error)
-	//
-	//// DeleteSnapshot deletes a specific snapshot by ID
-	//DeleteSnapshot(ctx context.Context, snapshotID string, param RepoRef) error
-	//
-	//// Forget removes a snapshot from the repository (alias for DeleteSnapshot)
-	//Forget(ctx context.Context, snapshotID string, param RepoRef) error
-	//
-	//// BatchForget removes multiple snapshots
-	//BatchForget(ctx context.Context, snapshotIDs []string, param RepoRef) []error
-	//
-	//// CheckRepository verifies the repository integrity
-	//CheckRepository(ctx context.Context, param RepoRef) error
-	//
-	//// Stats & Maintenance
-	//
-	//// DefaultMaintenanceFrequency returns the default frequency to run maintenance
-	//DefaultMaintenanceFrequency(ctx context.Context, param RepoRef) time.Duration
-	//
-	//// GetRepositoryStats returns statistics about the repository
-	//GetRepositoryStats(ctx context.Context, param RepoRef) (*RepositoryStats, error)
 }

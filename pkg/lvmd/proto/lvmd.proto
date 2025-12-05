@@ -78,20 +78,6 @@ message ResizeLVResponse {
     int64 size_bytes = 1;                   // Volume size in canonical CSI bytes.
 }
 
-//// Represents the input for MountLV.
-//message MountLVRequest {
-//    string name = 1;                        // The logical volume name.
-//    string device_class = 2;                // Device class of the LV.
-//    string target_path = 3;                 // The directory path where the LV should be mounted.
-//    string fs_type = 4;                     // Filesystem type (e.g., ext4, xfs). If empty, defaults to ext4.
-//    repeated string mount_options = 5;      // Mount options (e.g., rw, ro, etc.).
-//}
-//
-//// Represents the response of MountLV.
-//message MountLVResponse {
-//    string device_path = 1;                 // Path to the mounted device.
-//}
-
 // Represents the response of GetLVList.
 message GetLVListResponse {
     repeated LogicalVolume volumes = 1;  // Information of volumes.

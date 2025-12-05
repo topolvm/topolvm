@@ -43,8 +43,6 @@ type LogicalVolumeStatus struct {
 
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
-	//// +optional
-	//OnlineSnapshot *OnlineSnapshotStatus `json:"onlineSnapshot,omitempty"`
 
 	// +optional
 	Snapshot *SnapshotStatus `json:"snapshot,omitempty"`
@@ -104,61 +102,6 @@ type SnapshotError struct {
 	Code    string `json:"code,omitempty"`    // e.g., "RepositoryNotReachable", "VolumeMountFailed"
 	Message string `json:"message,omitempty"` // human-readable error
 }
-
-//type OnlineSnapshotStatus struct {
-//	// Phase represents the current phase of the snapshot
-//	// +optional
-//	Phase SnapshotPhase `json:"phase,omitempty"`
-//
-//	// Error provides structured failure info if the snapshot failed
-//	// +optional
-//	Error *OnlineSnapshotError `json:"error,omitempty"`
-//
-//	// Progress reports how much data has been backed up
-//	// +optional
-//	Progress *BackupProgress `json:"progress,omitempty"`
-//
-//	// URL is the Restic repository path where the snapshot is stored
-//	// +optional
-//	RepositorySuffix string `json:"repository,omitempty"`
-//
-//	// SnapshotID is the unique Restic snapshot identifier
-//	// +optional
-//	SnapshotID string `json:"snapshotID,omitempty"`
-//
-//	// Paths are the paths that were backed up
-//	// +optional
-//	Paths []string `json:"paths,omitempty"`
-//
-//	// Message provides a short description of the snapshot’s state
-//	// +optional
-//	Message string `json:"message,omitempty"`
-//
-//	// StartTime is when the backup process began
-//	// +optional
-//	StartTime *metav1.Time `json:"startTime,omitempty"`
-//
-//	// CompletionTime is when the backup finished (success or failure)
-//	// +optional
-//	CompletionTime *metav1.Time `json:"completionTime,omitempty"`
-//
-//	// Duration is how long the backup took
-//	// +optional
-//	Duration string `json:"duration,omitempty"`
-//
-//	// RetryCount represents how many times this snapshot operation has retried (for controller logic)
-//	// +optional
-//	RetryCount int `json:"retryCount,omitempty"`
-//
-//	// Version keeps track of restic binary or backup engine version used
-//	// +optional
-//	Version string `json:"version,omitempty"`
-//}
-
-//type OnlineSnapshotError struct {
-//	Code    string `json:"code,omitempty"`    // e.g., "RepositoryNotReachable", "VolumeMountFailed"
-//	Message string `json:"message,omitempty"` // human-readable error
-//}
 
 type BackupProgress struct {
 	// +optional
