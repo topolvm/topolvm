@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -230,9 +231,16 @@ func (s *nodeServerNoLocked) nodePublishFilesystemVolume(req *csi.NodePublishVol
 	}
 
 	if !mounted {
-		mountFunc := s.mounter.FormatAndMount
-		if len(fsType) > 0 {
-			mountFunc = s.mounter.Mount
+		mountFunc := s.mounter.Mount
+		if len(fsType) == 0 {
+			// NOTE: temporary instrumentation to reproduce the mount failure reported in
+			// https://github.com/topolvm/topolvm/issues/1126. We inject a fake jmicron-like
+			// signature into the last sector when the device is treated as unformatted, then
+			// wipe signatures before mkfs. Remove this after validation.
+			if err := s.injectFakeJmicronSignature(lv.GetPath(), req.GetVolumeId()); err != nil {
+				return err
+			}
+			mountFunc = s.mounter.FormatAndMount
 		}
 		if err := mountFunc(lv.GetPath(), req.GetTargetPath(), mountOption.FsType, mountOptions); err != nil {
 			return status.Errorf(codes.Internal, "mount failed: volume=%s, error=%v", req.GetVolumeId(), err)
@@ -256,6 +264,34 @@ func (s *nodeServerNoLocked) nodePublishFilesystemVolume(req *csi.NodePublishVol
 		"target_path", req.GetTargetPath(),
 		"fstype", mountOption.FsType)
 
+	return nil
+}
+
+// injectFakeJmicronSignature writes "JM" at the beginning of the last sector of the device.
+// Temporary instrumentation for reproducing https://github.com/topolvm/topolvm/issues/1126.
+func (s *nodeServerNoLocked) injectFakeJmicronSignature(devicePath, volumeID string) error {
+	out, err := s.mounter.Exec.Command("blockdev", "--getsz", devicePath).CombinedOutput()
+	if err != nil {
+		return status.Errorf(codes.Internal, "blockdev failed: volume=%s, output=%s, error=%v", volumeID, string(out), err)
+	}
+	sectors, err := strconv.ParseInt(strings.TrimSpace(string(out)), 10, 64)
+	if err != nil {
+		return status.Errorf(codes.Internal, "failed to parse sector size: volume=%s, output=%s, error=%v", volumeID, string(out), err)
+	}
+	if sectors == 0 {
+		return status.Errorf(codes.Internal, "invalid sector size: volume=%s, sectors=%d", volumeID, sectors)
+	}
+	f, err := os.OpenFile(devicePath, os.O_WRONLY, 0)
+	if err != nil {
+		return status.Errorf(codes.Internal, "open failed: volume=%s, error=%v", volumeID, err)
+	}
+	defer func() { _ = f.Close() }()
+	if _, err := f.Seek((sectors-1)*512, io.SeekStart); err != nil {
+		return status.Errorf(codes.Internal, "seek failed: volume=%s, error=%v", volumeID, err)
+	}
+	if _, err := f.Write([]byte("JM")); err != nil {
+		return status.Errorf(codes.Internal, "write failed: volume=%s, error=%v", volumeID, err)
+	}
 	return nil
 }
 
