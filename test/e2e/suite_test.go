@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -128,12 +127,6 @@ var _ = BeforeSuite(func() {
 	Expect(err).ShouldNot(HaveOccurred())
 })
 
-var _ = AfterEach(func() {
-	if CurrentSpecReport().Failed() {
-		dumpGlobalDebug()
-	}
-})
-
 var _ = Describe("TopoLVM", func() {
 	Context("scheduling", testScheduling)
 	Context("metrics", testMetrics)
@@ -150,16 +143,3 @@ var _ = Describe("TopoLVM", func() {
 	Context("empty storageclass", testEmptyStorageClass)
 	Context("CSI sanity", testSanity)
 })
-
-func dumpGlobalDebug() {
-	cmds := [][]string{
-		{"get", "pods", "-A", "-o", "wide"},
-		{"describe", "pods", "-A"},
-		{"get", "events", "-A", "--sort-by=.lastTimestamp"},
-		{"logs", "-n", "topolvm-system", "-l", "app.kubernetes.io/name=topolvm-node", "--tail=200"},
-	}
-	for _, args := range cmds {
-		out, err := kubectl(args...)
-		_, _ = fmt.Fprintf(GinkgoWriter, "# kubectl %s\n%s\nerr=%v\n", strings.Join(args, " "), out, err)
-	}
-}
