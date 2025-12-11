@@ -240,6 +240,9 @@ func (s *nodeServerNoLocked) nodePublishFilesystemVolume(req *csi.NodePublishVol
 			if err := s.injectFakeJmicronSignature(lv.GetPath(), req.GetVolumeId()); err != nil {
 				return err
 			}
+			if out, err := s.mounter.Exec.Command("wipefs", "-a", lv.GetPath()).CombinedOutput(); err != nil {
+				return status.Errorf(codes.Internal, "wipefs failed: volume=%s, output=%s, error=%v", req.GetVolumeId(), string(out), err)
+			}
 			mountFunc = s.mounter.FormatAndMount
 		}
 		if err := mountFunc(lv.GetPath(), req.GetTargetPath(), mountOption.FsType, mountOptions); err != nil {
