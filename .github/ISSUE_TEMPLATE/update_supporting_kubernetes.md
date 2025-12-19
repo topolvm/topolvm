@@ -19,9 +19,6 @@ There is a check list to confirm depending libraries or tools are released. The 
 
 Must update Kubernetes with each new version of Kubernetes.
 
-- [ ] k8s.io/mount-utils
-  - https://github.com/kubernetes/mount-utils/tags
-    - The supported Kubernetes version is written in the description of each tag.
 - [ ] sigs.k8s.io/controller-runtime
   - https://github.com/kubernetes-sigs/controller-runtime/releases
 - [ ] sigs.k8s.io/controller-tools
