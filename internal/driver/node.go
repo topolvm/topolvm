@@ -230,9 +230,15 @@ func (s *nodeServerNoLocked) nodePublishFilesystemVolume(req *csi.NodePublishVol
 	}
 
 	if !mounted {
-		mountFunc := s.mounter.FormatAndMount
-		if len(fsType) > 0 {
-			mountFunc = s.mounter.Mount
+		mountFunc := s.mounter.Mount
+		if len(fsType) == 0 {
+			// wipefs to clear stray signatures (e.g., JMicron marker in the
+			// last sector per #1126). Behavior was verified in PR 1127. If you
+			// need the verification code, see that PR.
+			if out, err := s.mounter.Exec.Command("wipefs", "-a", lv.GetPath()).CombinedOutput(); err != nil {
+				return status.Errorf(codes.Internal, "wipefs failed: volume=%s, output=%s, error=%v", req.GetVolumeId(), string(out), err)
+			}
+			mountFunc = s.mounter.FormatAndMount
 		}
 		if err := mountFunc(lv.GetPath(), req.GetTargetPath(), mountOption.FsType, mountOptions); err != nil {
 			return status.Errorf(codes.Internal, "mount failed: volume=%s, error=%v", req.GetVolumeId(), err)
