@@ -235,9 +235,13 @@ func (s *nodeServerNoLocked) nodePublishFilesystemVolume(req *csi.NodePublishVol
 			// wipefs to clear stray signatures (e.g., JMicron marker in the
 			// last sector per #1126). Behavior was verified in PR 1127. If you
 			// need the verification code, see that PR.
-			if out, err := s.mounter.Exec.Command("wipefs", "-a", lv.GetPath()).CombinedOutput(); err != nil {
+			out, err := s.mounter.Exec.Command("wipefs", "-a", lv.GetPath()).CombinedOutput()
+			if err != nil {
 				return status.Errorf(codes.Internal, "wipefs failed: volume=%s, output=%s, error=%v", req.GetVolumeId(), string(out), err)
 			}
+			nodeLogger.Info("wipefs succeeded",
+				"volume", req.GetVolumeId(),
+				"output", string(out))
 			mountFunc = s.mounter.FormatAndMount
 		}
 		if err := mountFunc(lv.GetPath(), req.GetTargetPath(), mountOption.FsType, mountOptions); err != nil {
