@@ -35,7 +35,7 @@ jobs:
         with:
           go-version-file: "go.mod"
       - if: steps.check.outputs.should_run == 'true'
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             bin
