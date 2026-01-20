@@ -291,7 +291,11 @@ spec:
         {{- if or .Values.webhook.podMutatingWebhook.enabled .Values.webhook.pvcMutatingWebhook.enabled }}
         - name: certs
           secret:
+            {{- if .Values.webhook.customCertSecret.enabled }}
+            secretName: {{ required "webhook.customCertSecret.name is required when webhook.customCertSecret.enabled is true" .Values.webhook.customCertSecret.name }}
+            {{- else }}
             secretName: {{ template "topolvm.fullname" . }}-mutatingwebhook
+            {{- end }}
         {{- end }}
         {{- with .Values.controller.volumes }}
         {{- toYaml . | nindent 8 }}

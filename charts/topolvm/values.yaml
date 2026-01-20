@@ -722,6 +722,28 @@ webhook:
     # group: cert-manager.io
     # kind: Issuer
     # name: webhook-issuer
+  # webhook.customCertSecret -- Use a pre-existing TLS secret for webhook certificates.
+  # When enabled, cert-manager Certificate/Issuer resources are not created, and the specified
+  # secret is mounted to the controller pod for serving HTTPS.
+  # The secret must contain tls.crt and tls.key.
+  #
+  # The caBundle for the MutatingWebhookConfiguration must be managed separately using one of:
+  # - webhook.annotations: to let an external controller inject caBundle automatically
+  # - webhook.caBundle: to specify the CA bundle directly
+  #
+  # When both webhook.caBundle and webhook.customCertSecret.enabled are set, the caBundle
+  # will be used in the webhook configuration and customCertSecret will be mounted to the
+  # controller. Ensure the caBundle matches the CA that signed the certificate in the custom
+  # secret, otherwise webhook calls will fail TLS verification.
+  customCertSecret:
+    # webhook.customCertSecret.enabled -- Enable using a custom certificate secret instead of cert-manager.
+    enabled: false
+    # webhook.customCertSecret.name -- Name of the existing secret containing TLS certificate (must have tls.crt and tls.key).
+    name: ""
+  # webhook.annotations -- Additional annotations to add to the MutatingWebhookConfiguration.
+  # Useful for external certificate injection controllers that watch for specific annotations
+  # to automatically inject the caBundle into the webhook configuration.
+  annotations: {}
   podMutatingWebhook:
     # webhook.podMutatingWebhook.enabled -- Enable Pod MutatingWebhook.
     enabled: false
