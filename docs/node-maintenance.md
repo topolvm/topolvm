@@ -13,7 +13,7 @@ To remove a node and volumes/pods on the node from the cluster, follow these ste
     If drain stacks due to PodDisruptionBudgets or something, try `--force` option.
 
 2. Run `kubectl delete nodes NODE`
-3. TopoLVM will remove Pods and PersistentVolumeClaims on the node.
+3. TopoLVM will remove PersistentVolumeClaims on the node.
 4. `StatefulSet` controller reschedules Pods and PVCs on other nodes.
 
 ## Rebooting Nodes

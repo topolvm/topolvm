@@ -30,7 +30,7 @@ func NewPersistentVolumeClaimReconciler(client client.Client, apiReader client.R
 }
 
 //+kubebuilder:rbac:groups=core,resources=persistentvolumeclaims,verbs=get;list;watch;update
-//+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;delete;update
+//+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;update
 
 // Reconcile PVC
 func (r *PersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -65,11 +65,6 @@ func (r *PersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req ctr
 	if pvc.DeletionTimestamp == nil {
 		err := r.notifyKubeletToResizeFS(ctx, pvc)
 		return ctrl.Result{}, err
-	}
-
-	result, err := r.deletePodsUsingDeletingPVC(ctx, pvc)
-	if result.RequeueAfter != 0 || err != nil {
-		return result, err
 	}
 
 	controllerutil.RemoveFinalizer(pvc, topolvm.PVCFinalizer)
@@ -122,42 +117,6 @@ needResizing:
 		}
 	}
 	return nil
-}
-
-func (r *PersistentVolumeClaimReconciler) deletePodsUsingDeletingPVC(ctx context.Context, pvc *corev1.PersistentVolumeClaim) (ctrl.Result, error) {
-	// Delete the pods that are using the PV/PVC.
-	//
-	// This was originally created as a workaround for the following issue.
-	// https://github.com/kubernetes/kubernetes/pull/93457
-	//
-	// Because the issue was fixed, the PVC reconciler was once removed by PR #536.
-	// However, it turned out that the PVC finalizer was also useful to
-	// resolve the issue that a pod created from StatefulSet persists in the PENDING state
-	// when PVC is deleted for some reasons like node deletion.
-	// Thus, the reconciler was revived by PR #620.
-	log := crlog.FromContext(ctx)
-	pods, err := r.getPodsByPVC(ctx, pvc)
-	if err != nil {
-		log.Error(err, "unable to fetch PodList for a PVC")
-		return ctrl.Result{}, err
-	}
-	for _, pod := range pods {
-		err := r.client.Delete(ctx, &pod, client.GracePeriodSeconds(1))
-		if err != nil {
-			log.Error(err, "unable to delete Pod", "name", pod.Name, "namespace", pod.Namespace)
-			return ctrl.Result{}, err
-		}
-		log.Info("deleted Pod", "name", pod.Name, "namespace", pod.Namespace)
-	}
-
-	// Requeue until other finalizers complete their jobs.
-	if len(pvc.Finalizers) != 1 {
-		return ctrl.Result{
-			RequeueAfter: 10 * time.Second,
-		}, nil
-	}
-
-	return ctrl.Result{}, nil
 }
 
 func (r *PersistentVolumeClaimReconciler) getPodsByPVC(ctx context.Context, pvc *corev1.PersistentVolumeClaim) ([]corev1.Pod, error) {
