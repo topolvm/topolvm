@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -48,10 +49,6 @@ const (
 	pvcMutatingWebhookPath = "/pvc/mutate"
 )
 
-func strPtr(s string) *string { return &s }
-
-func modePtr(m storagev1.VolumeBindingMode) *storagev1.VolumeBindingMode { return &m }
-
 func setupCommonResources() {
 	// StrageClass
 	sc := &storagev1.StorageClass{
@@ -59,7 +56,7 @@ func setupCommonResources() {
 			Name: topolvmProvisionerStorageClassName,
 		},
 		Provisioner:       "topolvm.io",
-		VolumeBindingMode: modePtr(storagev1.VolumeBindingWaitForFirstConsumer),
+		VolumeBindingMode: ptr.To(storagev1.VolumeBindingWaitForFirstConsumer),
 		Parameters: map[string]string{
 			topolvm.GetDeviceClassKey(): "dc1",
 		},
@@ -72,7 +69,7 @@ func setupCommonResources() {
 			Name: topolvmProvisioner2StorageClassName,
 		},
 		Provisioner:       "topolvm.io",
-		VolumeBindingMode: modePtr(storagev1.VolumeBindingWaitForFirstConsumer),
+		VolumeBindingMode: ptr.To(storagev1.VolumeBindingWaitForFirstConsumer),
 		Parameters: map[string]string{
 			topolvm.GetDeviceClassKey(): "dc2",
 		},
@@ -85,7 +82,7 @@ func setupCommonResources() {
 			Name: topolvmProvisioner3StorageClassName,
 		},
 		Provisioner:       "topolvm.io",
-		VolumeBindingMode: modePtr(storagev1.VolumeBindingWaitForFirstConsumer),
+		VolumeBindingMode: ptr.To(storagev1.VolumeBindingWaitForFirstConsumer),
 		Parameters: map[string]string{
 			topolvm.GetDeviceClassKey(): "dc3",
 		},
@@ -98,7 +95,7 @@ func setupCommonResources() {
 			Name: topolvmProvisionerImmediateStorageClassName,
 		},
 		Provisioner:       "topolvm.io",
-		VolumeBindingMode: modePtr(storagev1.VolumeBindingImmediate),
+		VolumeBindingMode: ptr.To(storagev1.VolumeBindingImmediate),
 		Parameters: map[string]string{
 			topolvm.GetDeviceClassKey(): "dc1",
 		},
@@ -148,7 +145,7 @@ var _ = BeforeSuite(func() {
 						FailurePolicy:           &failPolicy,
 						ClientConfig: admissionv1.WebhookClientConfig{
 							Service: &admissionv1.ServiceReference{
-								Path: strPtr(podMutatingWebhookPath),
+								Path: ptr.To(podMutatingWebhookPath),
 							},
 						},
 						Rules: []admissionv1.RuleWithOperations{
@@ -171,7 +168,7 @@ var _ = BeforeSuite(func() {
 						FailurePolicy:           &failPolicy,
 						ClientConfig: admissionv1.WebhookClientConfig{
 							Service: &admissionv1.ServiceReference{
-								Path: strPtr(pvcMutatingWebhookPath),
+								Path: ptr.To(pvcMutatingWebhookPath),
 							},
 						},
 						Rules: []admissionv1.RuleWithOperations{
