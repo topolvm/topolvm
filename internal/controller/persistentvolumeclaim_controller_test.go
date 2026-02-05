@@ -12,6 +12,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/config"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
 var _ = Describe("PersistentVolumeClaimController controller", func() {
@@ -27,6 +28,9 @@ var _ = Describe("PersistentVolumeClaimController controller", func() {
 			Scheme: scheme,
 			Controller: config.Controller{
 				SkipNameValidation: &skipNameValidation,
+			},
+			Metrics: server.Options{
+				BindAddress: "0", // disable metrics
 			},
 		})
 		Expect(err).ToNot(HaveOccurred())
