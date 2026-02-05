@@ -21,13 +21,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
-const (
-	logicalVolumeNameBase = "lv"
-	nodeNameBase          = "node"
-	pvcNameBase           = "pvc"
-	storageClassNameBase  = "sc"
-)
-
 var volumes = &[]*proto.LogicalVolume{}
 
 type MockVGServiceClient struct {

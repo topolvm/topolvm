@@ -70,9 +70,11 @@ func GetNodeFinalizer() string {
 	return fmt.Sprintf("%s/node", GetPluginName())
 }
 
+// Deprecated: the finalizer is no longer used. will be removed in future releases.
 // PVCFinalizer is a finalizer of PVC.
 const PVCFinalizer = pluginName + "/pvc"
 
+// Deprecated: the finalizer is no longer used. will be removed in future releases.
 // LegacyPVCFinalizer is a legacy finalizer of PVC.
 const LegacyPVCFinalizer = legacyPluginName + "/pvc"
 

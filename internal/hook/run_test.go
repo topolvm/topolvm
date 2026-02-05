@@ -38,7 +38,6 @@ func run(ctx context.Context, cfg *rest.Config, scheme *runtime.Scheme, opts *en
 	dec := admission.NewDecoder(scheme)
 	wh := mgr.GetWebhookServer()
 	wh.Register(podMutatingWebhookPath, PodMutator(mgr.GetClient(), mgr.GetAPIReader(), dec))
-	wh.Register(pvcMutatingWebhookPath, PVCMutator(mgr.GetClient(), mgr.GetAPIReader(), dec))
 
 	if err := mgr.Start(ctx); err != nil {
 		return err

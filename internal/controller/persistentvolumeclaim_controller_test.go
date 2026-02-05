@@ -273,7 +273,7 @@ var _ = Describe("PersistentVolumeClaimController controller", func() {
 		}
 	})
 
-	It("should remove deprecated finalizer", func() {
+	It("should remove unused finalizer", func() {
 		ctx := context.Background()
 		ns := createNamespace()
 		testCases := []struct {
@@ -307,13 +307,14 @@ var _ = Describe("PersistentVolumeClaimController controller", func() {
 				},
 			},
 			{
-				title: "combination of foreign and deprecated finalizers",
+				title: "combination of foreign and unused finalizers",
 				pvcMeta: metav1.ObjectMeta{
 					Name:      "pvc3",
 					Namespace: ns,
 					Finalizers: []string{
 						"dummy/dummy",
 						"topolvm.cybozu.com/pvc",
+						"topolvm.io/pvc",
 					},
 				},
 				expectFinalizers: []string{
@@ -322,49 +323,18 @@ var _ = Describe("PersistentVolumeClaimController controller", func() {
 				},
 			},
 			{
-				title: "there is an only new finalizer",
+				title: "there are multiple unused finalizers",
 				pvcMeta: metav1.ObjectMeta{
 					Name:      "pvc4",
 					Namespace: ns,
 					Finalizers: []string{
+						"topolvm.cybozu.com/pvc",
+						"topolvm.cybozu.com/pvc",
+						"topolvm.io/pvc",
 						"topolvm.io/pvc",
 					},
 				},
 				expectFinalizers: []string{
-					"topolvm.io/pvc",
-					"kubernetes.io/pvc-protection",
-				},
-			},
-			{
-				title: "there are same old finalizers",
-				pvcMeta: metav1.ObjectMeta{
-					Name:      "pvc5",
-					Namespace: ns,
-					Finalizers: []string{
-						"dummy/dummy",
-						"topolvm.cybozu.com/pvc",
-						"topolvm.cybozu.com/pvc",
-					},
-				},
-				expectFinalizers: []string{
-					"dummy/dummy",
-					"kubernetes.io/pvc-protection",
-				},
-			},
-			{
-				title: "there are old finalizer and new finalizer",
-				pvcMeta: metav1.ObjectMeta{
-					Name:      "pvc6",
-					Namespace: ns,
-					Finalizers: []string{
-						"dummy/dummy",
-						"topolvm.cybozu.com/pvc",
-						"topolvm.io/pvc",
-					},
-				},
-				expectFinalizers: []string{
-					"dummy/dummy",
-					"topolvm.io/pvc",
 					"kubernetes.io/pvc-protection",
 				},
 			},

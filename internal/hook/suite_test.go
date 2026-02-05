@@ -46,7 +46,6 @@ const (
 	missingStorageClassName                     = "missing-storageclass"
 
 	podMutatingWebhookPath = "/pod/mutate"
-	pvcMutatingWebhookPath = "/pvc/mutate"
 )
 
 func setupCommonResources() {
@@ -162,29 +161,6 @@ var _ = BeforeSuite(func() {
 						},
 						SideEffects: &sideEffects,
 					},
-					{
-						Name:                    "pvc-hook.topolvm.io",
-						AdmissionReviewVersions: []string{"v1", "v1beta1"},
-						FailurePolicy:           &failPolicy,
-						ClientConfig: admissionv1.WebhookClientConfig{
-							Service: &admissionv1.ServiceReference{
-								Path: ptr.To(pvcMutatingWebhookPath),
-							},
-						},
-						Rules: []admissionv1.RuleWithOperations{
-							{
-								Operations: []admissionv1.OperationType{
-									admissionv1.Create,
-								},
-								Rule: admissionv1.Rule{
-									APIGroups:   []string{""},
-									APIVersions: []string{"v1"},
-									Resources:   []string{"persistentvolumeclaims"},
-								},
-							},
-						},
-						SideEffects: &sideEffects,
-					},
 				},
 			},
 		},
@@ -230,7 +206,6 @@ var _ = BeforeSuite(func() {
 	By("setting up resources")
 	setupCommonResources()
 	setupMutatePodResources()
-	setupMutatePVCResources()
 })
 
 var _ = AfterSuite(func() {
