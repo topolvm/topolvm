@@ -6,9 +6,12 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/topolvm/topolvm"
 	corev1 "k8s.io/api/core/v1"
+	storegev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/config"
@@ -435,11 +438,9 @@ var _ = Describe("PersistentVolumeClaimController controller", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "pvc0",
 				Namespace: ns,
-				Finalizers: []string{
-					"topolvm.io/pvc",
-				},
 			},
 			Spec: corev1.PersistentVolumeClaimSpec{
+				StorageClassName: ptr.To(storageClassNameBase),
 				AccessModes: []corev1.PersistentVolumeAccessMode{
 					corev1.ReadWriteOnce,
 				},
@@ -450,10 +451,18 @@ var _ = Describe("PersistentVolumeClaimController controller", func() {
 				},
 			},
 		}
+		sc := storegev1.StorageClass{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: storageClassNameBase,
+			},
+			Provisioner: topolvm.GetPluginName(),
+		}
 
 		err := k8sClient.Create(ctx, &pod)
 		Expect(err).NotTo(HaveOccurred())
 		err = k8sClient.Create(ctx, &pvc)
+		Expect(err).NotTo(HaveOccurred())
+		err = k8sClient.Create(ctx, &sc)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Checking a precondition that the Pod doesn't have annotation")

@@ -6,6 +6,7 @@ import (
 
 	"github.com/topolvm/topolvm"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,6 +32,7 @@ func NewPersistentVolumeClaimReconciler(client client.Client, apiReader client.R
 
 //+kubebuilder:rbac:groups=core,resources=persistentvolumeclaims,verbs=get;list;watch;update
 //+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;update
+//+kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=get;list;watch
 
 // Reconcile PVC
 func (r *PersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -57,11 +59,6 @@ func (r *PersistentVolumeClaimReconciler) Reconcile(ctx context.Context, req ctr
 		}, nil
 	}
 
-	// Skip if PVC does not have TopoLVM's finalizer which added by the Pod mutating webhook.
-	if !controllerutil.ContainsFinalizer(pvc, topolvm.PVCFinalizer) {
-		return ctrl.Result{}, nil
-	}
-
 	if pvc.DeletionTimestamp == nil {
 		err := r.notifyKubeletToResizeFS(ctx, pvc)
 		return ctrl.Result{}, err
@@ -86,8 +83,14 @@ func (r *PersistentVolumeClaimReconciler) notifyKubeletToResizeFS(ctx context.Co
 	var condTransitionAt time.Time
 	for _, cond := range pvc.Status.Conditions {
 		if cond.Type == corev1.PersistentVolumeClaimFileSystemResizePending && cond.Status == corev1.ConditionTrue {
-			condTransitionAt = cond.LastTransitionTime.Time
-			goto needResizing
+			isRelated, err := r.isPVCRelated(ctx, pvc)
+			if err != nil {
+				return err
+			}
+			if isRelated {
+				condTransitionAt = cond.LastTransitionTime.Time
+				goto needResizing
+			}
 		}
 	}
 	return nil
@@ -95,7 +98,6 @@ func (r *PersistentVolumeClaimReconciler) notifyKubeletToResizeFS(ctx context.Co
 needResizing:
 	pods, err := r.getPodsByPVC(ctx, pvc)
 	if err != nil {
-		log.Error(err, "unable to fetch PodList for a PVC")
 		return err
 	}
 	for _, pod := range pods {
@@ -119,11 +121,35 @@ needResizing:
 	return nil
 }
 
+func (r *PersistentVolumeClaimReconciler) isPVCRelated(ctx context.Context, pvc *corev1.PersistentVolumeClaim) (bool, error) {
+	log := crlog.FromContext(ctx)
+
+	if pvc.Spec.StorageClassName == nil {
+		return false, nil
+	}
+
+	var scl storagev1.StorageClassList
+	err := r.client.List(ctx, &scl)
+	if err != nil {
+		log.Error(err, "unable to fetch StorageClassList")
+		return false, err
+	}
+	for _, sc := range scl.Items {
+		if *pvc.Spec.StorageClassName == sc.Name &&
+			sc.Provisioner == topolvm.GetPluginName() {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func (r *PersistentVolumeClaimReconciler) getPodsByPVC(ctx context.Context, pvc *corev1.PersistentVolumeClaim) ([]corev1.Pod, error) {
+	log := crlog.FromContext(ctx)
 	var pods corev1.PodList
 	// query directly to API server to avoid latency for cache updates
 	err := r.apiReader.List(ctx, &pods, client.InNamespace(pvc.Namespace))
 	if err != nil {
+		log.Error(err, "unable to fetch PodList for a PVC")
 		return nil, err
 	}
 
