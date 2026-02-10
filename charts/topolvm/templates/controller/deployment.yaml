@@ -61,7 +61,7 @@ spec:
             {{- else }}
             - --leader-election-namespace={{ .Release.Namespace }}
             {{- end }}
-            {{- if or .Values.webhook.podMutatingWebhook.enabled .Values.webhook.pvcMutatingWebhook.enabled }}
+            {{- if .Values.webhook.podMutatingWebhook.enabled }}
             - --cert-dir=/certs
             {{- else }}
             - --enable-webhooks=false
@@ -128,7 +128,7 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /run/topolvm
-            {{- if or .Values.webhook.podMutatingWebhook.enabled .Values.webhook.pvcMutatingWebhook.enabled }}
+            {{- if .Values.webhook.podMutatingWebhook.enabled }}
             - name: certs
               mountPath: /certs
             {{- end }}
@@ -288,7 +288,7 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
       volumes:
-        {{- if or .Values.webhook.podMutatingWebhook.enabled .Values.webhook.pvcMutatingWebhook.enabled }}
+        {{- if .Values.webhook.podMutatingWebhook.enabled }}
         - name: certs
           secret:
             secretName: {{ template "topolvm.fullname" . }}-mutatingwebhook

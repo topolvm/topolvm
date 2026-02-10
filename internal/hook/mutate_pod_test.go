@@ -39,7 +39,7 @@ func setupMutatePodResources() {
 	localPVC.Namespace = mutatePodNamespace
 	localPVC.Name = "local-pvc"
 	localPVC.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-	localPVC.Spec.StorageClassName = strPtr(hostLocalStorageClassName)
+	localPVC.Spec.StorageClassName = ptr.To(hostLocalStorageClassName)
 	localPVC.Spec.Resources.Requests = corev1.ResourceList{
 		"storage": *resource.NewQuantity(10<<30, resource.BinarySI),
 	}
@@ -50,7 +50,7 @@ func setupMutatePodResources() {
 	boundPVC.Namespace = mutatePodNamespace
 	boundPVC.Name = "bound-pvc"
 	boundPVC.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-	boundPVC.Spec.StorageClassName = strPtr(topolvmProvisionerStorageClassName)
+	boundPVC.Spec.StorageClassName = ptr.To(topolvmProvisionerStorageClassName)
 	boundPVC.Spec.Resources.Requests = corev1.ResourceList{
 		"storage": *resource.NewQuantity(100<<30, resource.BinarySI),
 	}
@@ -66,7 +66,7 @@ func setupMutatePodResources() {
 	pvc1.Namespace = mutatePodNamespace
 	pvc1.Name = "pvc1"
 	pvc1.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-	pvc1.Spec.StorageClassName = strPtr(topolvmProvisionerStorageClassName)
+	pvc1.Spec.StorageClassName = ptr.To(topolvmProvisionerStorageClassName)
 	pvc1.Spec.Resources.Requests = corev1.ResourceList{
 		"storage": *resource.NewQuantity(100<<30, resource.BinarySI),
 	}
@@ -77,7 +77,7 @@ func setupMutatePodResources() {
 	pvc2.Namespace = mutatePodNamespace
 	pvc2.Name = "pvc2"
 	pvc2.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-	pvc2.Spec.StorageClassName = strPtr(topolvmProvisionerStorageClassName)
+	pvc2.Spec.StorageClassName = ptr.To(topolvmProvisionerStorageClassName)
 	pvc2.Spec.Resources.Requests = corev1.ResourceList{
 		"storage": *resource.NewQuantity(2<<30-1, resource.BinarySI),
 	}
@@ -88,7 +88,7 @@ func setupMutatePodResources() {
 	pvc3.Namespace = mutatePodNamespace
 	pvc3.Name = "pvc3"
 	pvc3.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-	pvc3.Spec.StorageClassName = strPtr(topolvmProvisioner2StorageClassName)
+	pvc3.Spec.StorageClassName = ptr.To(topolvmProvisioner2StorageClassName)
 	pvc3.Spec.Resources.Requests = corev1.ResourceList{
 		"storage": *resource.NewQuantity(3<<30, resource.BinarySI),
 	}
@@ -99,7 +99,7 @@ func setupMutatePodResources() {
 	pvc4.Namespace = mutatePodNamespace
 	pvc4.Name = "pvc4"
 	pvc4.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-	pvc4.Spec.StorageClassName = strPtr(topolvmProvisioner3StorageClassName)
+	pvc4.Spec.StorageClassName = ptr.To(topolvmProvisioner3StorageClassName)
 	pvc4.Spec.Resources.Requests = corev1.ResourceList{
 		"storage": *resource.NewQuantity(4<<30, resource.BinarySI),
 	}
@@ -110,7 +110,7 @@ func setupMutatePodResources() {
 	pvc5.Namespace = mutatePodNamespace
 	pvc5.Name = "pvc5"
 	pvc5.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-	pvc5.Spec.StorageClassName = strPtr(topolvmProvisionerStorageClassName)
+	pvc5.Spec.StorageClassName = ptr.To(topolvmProvisionerStorageClassName)
 	pvc5.Spec.Resources.Requests = corev1.ResourceList{
 		"storage": *resource.NewQuantity(500*mebibyte, resource.BinarySI),
 	}

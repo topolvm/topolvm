@@ -100,7 +100,6 @@ func subMain() error {
 		dec := admission.NewDecoder(scheme)
 		wh := mgr.GetWebhookServer()
 		wh.Register("/pod/mutate", hook.PodMutator(client, apiReader, dec))
-		wh.Register("/pvc/mutate", hook.PVCMutator(client, apiReader, dec))
 		if err := mgr.AddReadyzCheck("webhook", wh.StartedChecker()); err != nil {
 			return err
 		}

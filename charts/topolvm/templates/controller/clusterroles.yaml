@@ -20,9 +20,17 @@ rules:
   - ""
   resources:
   - persistentvolumeclaims
-  - pods
   verbs:
   - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
   - get
   - list
   - update

@@ -20,7 +20,7 @@ func run(ctx context.Context, cfg *rest.Config, scheme *runtime.Scheme, opts *en
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme,
 		Metrics: metricsserver.Options{
-			BindAddress: "localhost:8999",
+			BindAddress: "0", // disable metrics
 		},
 		LeaderElection: false,
 		WebhookServer: webhook.NewServer(webhook.Options{
@@ -38,7 +38,6 @@ func run(ctx context.Context, cfg *rest.Config, scheme *runtime.Scheme, opts *en
 	dec := admission.NewDecoder(scheme)
 	wh := mgr.GetWebhookServer()
 	wh.Register(podMutatingWebhookPath, PodMutator(mgr.GetClient(), mgr.GetAPIReader(), dec))
-	wh.Register(pvcMutatingWebhookPath, PVCMutator(mgr.GetClient(), mgr.GetAPIReader(), dec))
 
 	if err := mgr.Start(ctx); err != nil {
 		return err
