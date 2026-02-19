@@ -6,12 +6,16 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/topolvm/topolvm"
 	corev1 "k8s.io/api/core/v1"
+	storegev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/config"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
 var _ = Describe("PersistentVolumeClaimController controller", func() {
@@ -27,6 +31,9 @@ var _ = Describe("PersistentVolumeClaimController controller", func() {
 			Scheme: scheme,
 			Controller: config.Controller{
 				SkipNameValidation: &skipNameValidation,
+			},
+			Metrics: server.Options{
+				BindAddress: "0", // disable metrics
 			},
 		})
 		Expect(err).ToNot(HaveOccurred())
@@ -266,7 +273,7 @@ var _ = Describe("PersistentVolumeClaimController controller", func() {
 		}
 	})
 
-	It("should remove deprecated finalizer", func() {
+	It("should remove unused finalizer", func() {
 		ctx := context.Background()
 		ns := createNamespace()
 		testCases := []struct {
@@ -300,13 +307,14 @@ var _ = Describe("PersistentVolumeClaimController controller", func() {
 				},
 			},
 			{
-				title: "combination of foreign and deprecated finalizers",
+				title: "combination of foreign and unused finalizers",
 				pvcMeta: metav1.ObjectMeta{
 					Name:      "pvc3",
 					Namespace: ns,
 					Finalizers: []string{
 						"dummy/dummy",
 						"topolvm.cybozu.com/pvc",
+						"topolvm.io/pvc",
 					},
 				},
 				expectFinalizers: []string{
@@ -315,49 +323,18 @@ var _ = Describe("PersistentVolumeClaimController controller", func() {
 				},
 			},
 			{
-				title: "there is an only new finalizer",
+				title: "there are multiple unused finalizers",
 				pvcMeta: metav1.ObjectMeta{
 					Name:      "pvc4",
 					Namespace: ns,
 					Finalizers: []string{
+						"topolvm.cybozu.com/pvc",
+						"topolvm.cybozu.com/pvc",
+						"topolvm.io/pvc",
 						"topolvm.io/pvc",
 					},
 				},
 				expectFinalizers: []string{
-					"topolvm.io/pvc",
-					"kubernetes.io/pvc-protection",
-				},
-			},
-			{
-				title: "there are same old finalizers",
-				pvcMeta: metav1.ObjectMeta{
-					Name:      "pvc5",
-					Namespace: ns,
-					Finalizers: []string{
-						"dummy/dummy",
-						"topolvm.cybozu.com/pvc",
-						"topolvm.cybozu.com/pvc",
-					},
-				},
-				expectFinalizers: []string{
-					"dummy/dummy",
-					"kubernetes.io/pvc-protection",
-				},
-			},
-			{
-				title: "there are old finalizer and new finalizer",
-				pvcMeta: metav1.ObjectMeta{
-					Name:      "pvc6",
-					Namespace: ns,
-					Finalizers: []string{
-						"dummy/dummy",
-						"topolvm.cybozu.com/pvc",
-						"topolvm.io/pvc",
-					},
-				},
-				expectFinalizers: []string{
-					"dummy/dummy",
-					"topolvm.io/pvc",
 					"kubernetes.io/pvc-protection",
 				},
 			},
@@ -393,172 +370,6 @@ var _ = Describe("PersistentVolumeClaimController controller", func() {
 			}).Should(Equal(testPVC.expectFinalizers), testPVC.title)
 		}
 
-	})
-
-	It("should be deleted Pods which is using PVC that has finalizer", func() {
-		ctx := context.Background()
-		ns1 := createNamespace()
-		ns2 := createNamespace()
-
-		pods := []corev1.Pod{
-			// this pod will be deleted.
-			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "pod0",
-					Namespace: ns1,
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name:  "container",
-							Image: "registry.k8s.io/pause",
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "vol0",
-									MountPath: "/vol0",
-								},
-							},
-						},
-					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "vol0",
-							VolumeSource: corev1.VolumeSource{
-								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-									ClaimName: "pvc0",
-								},
-							},
-						},
-					},
-				},
-			},
-			// this pod will not be deleted because this pod doesn't used TopoLVM's PVC
-			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "pod1",
-					Namespace: ns1,
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name:  "container",
-							Image: "registry.k8s.io/pause",
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "vol1",
-									MountPath: "/vol1",
-								},
-							},
-						},
-					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "vol1",
-							VolumeSource: corev1.VolumeSource{
-								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-									ClaimName: "pvc1",
-								},
-							},
-						},
-					},
-				},
-			},
-			// this pod will not be delete because this pod exists in another namespace from the pod will be deleted
-			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "pod0",
-					Namespace: ns2,
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name:         "container",
-							Image:        "registry.k8s.io/pause",
-							VolumeMounts: []corev1.VolumeMount{},
-						},
-					},
-					Volumes: []corev1.Volume{},
-				},
-			},
-		}
-
-		for _, pod := range pods {
-			err := k8sClient.Create(ctx, &pod)
-			Expect(err).NotTo(HaveOccurred())
-		}
-
-		pvcMetas := []metav1.ObjectMeta{
-			// this PVC has a finalizer of TopoLVM
-			{
-				Name:      "pvc0",
-				Namespace: ns1,
-				Finalizers: []string{
-					"topolvm.io/pvc",
-				},
-			},
-			// this PVC doesn't have a finalizer of TopoLVM
-			{
-				Name:       "pvc1",
-				Namespace:  ns1,
-				Finalizers: []string{},
-			},
-		}
-
-		for _, pvcMeta := range pvcMetas {
-			pvc := corev1.PersistentVolumeClaim{
-				ObjectMeta: pvcMeta,
-				Spec: corev1.PersistentVolumeClaimSpec{
-					AccessModes: []corev1.PersistentVolumeAccessMode{
-						corev1.ReadWriteOnce,
-					},
-					Resources: corev1.VolumeResourceRequirements{
-						Requests: corev1.ResourceList{
-							"storage": resource.MustParse("1Gi"),
-						},
-					},
-				},
-			}
-			err := k8sClient.Create(ctx, &pvc)
-			Expect(err).NotTo(HaveOccurred())
-		}
-
-		for _, pvcMeta := range pvcMetas {
-
-			err := k8sClient.Delete(ctx, &corev1.PersistentVolumeClaim{
-				ObjectMeta: pvcMeta,
-			})
-			Expect(err).NotTo(HaveOccurred())
-
-			getPods := func(g Gomega) []string {
-				pods := []string{}
-
-				ns1pods := corev1.PodList{}
-				err := k8sClient.List(ctx, &ns1pods, client.InNamespace(ns1))
-				g.Expect(err).NotTo(HaveOccurred())
-				for _, pod := range ns1pods.Items {
-					pods = append(pods, pod.Namespace+"/"+pod.Name)
-				}
-
-				ns2pods := corev1.PodList{}
-				err = k8sClient.List(ctx, &ns2pods, client.InNamespace(ns2))
-				g.Expect(err).NotTo(HaveOccurred())
-				for _, pod := range ns2pods.Items {
-					pods = append(pods, pod.Namespace+"/"+pod.Name)
-				}
-
-				return pods
-			}
-
-			Eventually(getPods).Should(Equal([]string{
-				ns1 + "/pod1",
-				ns2 + "/pod0",
-			}), "when delete "+pvcMeta.Namespace+"/"+pvcMeta.Name)
-
-			Consistently(getPods, 10*time.Second, 1*time.Second).Should(Equal([]string{
-				ns1 + "/pod1",
-				ns2 + "/pod0",
-			}), "when delete "+pvcMeta.Namespace+"/"+pvcMeta.Name)
-		}
 	})
 
 	It("should annotate the Pod to notify kubelet to resize the filesystem when the PVC has FileSystemResizePending condition", func(ctx SpecContext) {
@@ -597,11 +408,9 @@ var _ = Describe("PersistentVolumeClaimController controller", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "pvc0",
 				Namespace: ns,
-				Finalizers: []string{
-					"topolvm.io/pvc",
-				},
 			},
 			Spec: corev1.PersistentVolumeClaimSpec{
+				StorageClassName: ptr.To(storageClassNameBase),
 				AccessModes: []corev1.PersistentVolumeAccessMode{
 					corev1.ReadWriteOnce,
 				},
@@ -612,10 +421,18 @@ var _ = Describe("PersistentVolumeClaimController controller", func() {
 				},
 			},
 		}
+		sc := storegev1.StorageClass{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: storageClassNameBase,
+			},
+			Provisioner: topolvm.GetPluginName(),
+		}
 
 		err := k8sClient.Create(ctx, &pod)
 		Expect(err).NotTo(HaveOccurred())
 		err = k8sClient.Create(ctx, &pvc)
+		Expect(err).NotTo(HaveOccurred())
+		err = k8sClient.Create(ctx, &sc)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Checking a precondition that the Pod doesn't have annotation")

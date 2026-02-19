@@ -38,6 +38,16 @@ func testSanity() {
 			return len(nodePods.Items)
 		}).Should(Equal(1))
 
+		Eventually(func(g Gomega) {
+			var pods corev1.PodList
+			err := getObjects(&pods, "pod", "-n", "topolvm-system", "-l", "app.kubernetes.io/component=controller")
+			g.Expect(err).ShouldNot(HaveOccurred())
+			for _, pod := range pods.Items {
+				g.Expect(pod.Status.Phase).To(Equal(corev1.PodRunning))
+				g.Expect(pod.Spec.NodeName).NotTo(BeElementOf("topolvm-e2e-worker2", "topolvm-e2e-worker3"))
+			}
+		}).Should(Succeed())
+
 		baseDir := "/var/lib/kubelet/plugins/" + topolvm.GetPluginName() + "/"
 		if nonControlPlaneNodeCount > 0 {
 			baseDir = "/tmp/topolvm/worker1/plugins/" + topolvm.GetPluginName() + "/"

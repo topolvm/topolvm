@@ -146,17 +146,6 @@ spec:
         topolvm.io/capacity: "1"
 ```
 
-### `/pvc/mutate`
-
-Mutate new PVCs to add `topolvm.io/pvc` finalizer. This finalizer is required to delete a pod in the following scenario.
-
-1. StatefulSet pod is deleted by `kubectl drain`. PVC is remained.
-2. A pod is recreated by the StatefulSet controller but not scheduled for some reasons.
-3. Delete a node resource on which the pod was running.
-4. PVC related to the node is deleted by the TopoLVM controller.
-
-At step 4, the StatefulSet pod is not deleted if the PVC finalizer does not exist.
-
 ## Controllers for Kubernetes Objects
 
 ### The Controller for Nodes
@@ -169,7 +158,7 @@ This node finalize procedure may be skipped with the `--skip-node-finalize` flag
 When this is true, the PVCs and the LogicalVolume CRs from a deleted node must be
 deleted manually by a cluster administrator.
 
-### The Controller for PersistentVolumeClams
+### The Controller for PersistentVolumeClaims
 
 The controller accomplishes two tasks.
 
