@@ -161,11 +161,9 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v15.
 | snapshot.enabled | bool | `true` | Turn on the snapshot feature. |
 | storageClasses | list | `[{"name":"topolvm-provisioner","storageClass":{"additionalParameters":{},"allowVolumeExpansion":true,"annotations":{},"fsType":"xfs","isDefaultClass":false,"mountOptions":[],"reclaimPolicy":null,"volumeBindingMode":"WaitForFirstConsumer"}}]` | Whether to create storageclass(es) ref: https://kubernetes.io/docs/concepts/storage/storage-classes/ |
 | useLegacy | bool | `false` | If true, the legacy plugin name and legacy custom resource group is used(topolvm.cybozu.com). |
-| webhook.annotations | object | `{}` | Additional annotations to add to the MutatingWebhookConfiguration. Useful for external certificate injection controllers that watch for specific annotations to automatically inject the caBundle into the webhook configuration. |
+| webhook.annotations | object | `{}` | Additional annotations to add to the MutatingWebhookConfiguration. |
 | webhook.caBundle | string | `nil` | Specify the certificate to be used for AdmissionWebhook. |
-| webhook.customCertSecret | object | `{"enabled":false,"name":""}` | Use a pre-existing TLS secret for webhook certificates. When enabled, cert-manager Certificate/Issuer resources are not created, and the specified secret is mounted to the controller pod for serving HTTPS. The secret must contain tls.crt and tls.key.  The caBundle for the MutatingWebhookConfiguration must be managed separately using one of: - webhook.annotations: to let an external controller inject caBundle automatically - webhook.caBundle: to specify the CA bundle directly  When both webhook.caBundle and webhook.customCertSecret.enabled are set, the caBundle will be used in the webhook configuration and customCertSecret will be mounted to the controller. Ensure the caBundle matches the CA that signed the certificate in the custom secret, otherwise webhook calls will fail TLS verification. |
-| webhook.customCertSecret.enabled | bool | `false` | Enable using a custom certificate secret instead of cert-manager. |
-| webhook.customCertSecret.name | string | `""` | Name of the existing secret containing TLS certificate (must have tls.crt and tls.key). |
+| webhook.certManager | bool | `true` | If true, cert-manager Certificate and Issuer resources are created to generate the webhook TLS secret. If false, you must provide your own TLS secret (see webhook.secretName). |
 | webhook.existingCertManagerIssuer | object | `{}` | Specify the cert-manager issuer to be used for AdmissionWebhook. |
 | webhook.podMutatingWebhook.enabled | bool | `false` | Enable Pod MutatingWebhook. |
 | webhook.podMutatingWebhook.ignoreNamespaces | list | `["kube-system","topolvm-system"]` | Namespaces to be ignored by the Pod MutatingWebhook. |
@@ -173,6 +171,7 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v15.
 | webhook.pvcMutatingWebhook.enabled | bool | `true` | Enable PVC MutatingWebhook. |
 | webhook.pvcMutatingWebhook.ignoreNamespaces | list | `["kube-system","topolvm-system"]` | Namespaces to be ignored by the PVC MutatingWebhook. |
 | webhook.pvcMutatingWebhook.objectSelector | object | `{}` | Labels required on PVCs for webhook action. **WARNING**: Modifying objectSelector can affect TopoLVM PVC management. Proceed with caution. # ref: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#matching-requests-objectselector |
+| webhook.secretName | string | `""` | Override the secret name used for webhook TLS certificates. When webhook.certManager is false, this must be set to the name of a pre-existing secret containing tls.crt and tls.key. When webhook.certManager is true, this is ignored (cert-manager manages the secret). |
 
 ## Generate Manifests
 

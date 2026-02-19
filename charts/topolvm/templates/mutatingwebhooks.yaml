@@ -1,17 +1,16 @@
 {{- if or .Values.webhook.podMutatingWebhook.enabled .Values.webhook.pvcMutatingWebhook.enabled }}
-{{- $root := . -}}
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   name: {{ template "topolvm.fullname" . }}-hook
-  {{- if or .Values.webhook.annotations (and (not .Values.webhook.caBundle) (not .Values.webhook.customCertSecret.enabled)) }}
+  {{- if or .Values.webhook.annotations (and (not .Values.webhook.caBundle) .Values.webhook.certManager) }}
   annotations:
-    {{- if and (not .Values.webhook.caBundle) (not .Values.webhook.customCertSecret.enabled) }}
+    {{- if and (not .Values.webhook.caBundle) .Values.webhook.certManager }}
     cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ template "topolvm.fullname" . }}-mutatingwebhook
     {{- end }}
     {{- with .Values.webhook.annotations }}
-    {{- tpl (toYaml .) $root | nindent 4 }}
+    {{- toYaml . | nindent 4 }}
     {{- end }}
   {{- end }}
   labels:

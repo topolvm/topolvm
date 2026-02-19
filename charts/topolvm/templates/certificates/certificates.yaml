@@ -1,6 +1,6 @@
 {{- if or .Values.webhook.podMutatingWebhook.enabled .Values.webhook.pvcMutatingWebhook.enabled }}
 {{- if not .Values.webhook.caBundle }}
-{{- if not .Values.webhook.customCertSecret.enabled }}
+{{- if .Values.webhook.certManager }}
 {{- if not .Values.webhook.existingCertManagerIssuer }}
 # Generate a CA Certificate used to sign certificates for the webhook
 apiVersion: cert-manager.io/v1
