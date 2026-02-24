@@ -18,12 +18,13 @@ import (
 )
 
 const (
-	lvServiceTestVGName   = "test_lvservice"
-	lvServiceTestPoolName = "test_lvservice_pool"
-	lvServiceTestThickDC  = lvServiceTestVGName
-	lvServiceTestThinDC   = lvServiceTestPoolName
-	lvServiceTestTag1     = "testtag1"
-	lvServiceTestTag2     = "testtag2"
+	lvServiceTestVGName     = "test_lvservice"
+	lvServiceTestPoolName   = "test_lvservice_pool"
+	lvServiceTestThickDC    = lvServiceTestVGName
+	lvServiceTestThinDC     = lvServiceTestPoolName
+	lvServiceTestThinDCNoOp = "test_lvservice_pool_noop"
+	lvServiceTestTag1       = "testtag1"
+	lvServiceTestTag2       = "testtag2"
 )
 
 func setupLVService(ctx context.Context, t *testing.T) (
@@ -78,13 +79,24 @@ func setupLVService(ctx context.Context, t *testing.T) (
 					VolumeGroup: vg.Name(),
 				},
 				{
-					// thinpool target
+					// thinpool target with overprovisioning
 					Name:        lvServiceTestThinDC,
 					VolumeGroup: vg.Name(),
 					Type:        lvmdTypes.TypeThin,
 					ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
-						Name:               poolName,
-						OverprovisionRatio: overprovisionRatio,
+						Name:                      poolName,
+						SkipOverprovisioningRatio: false,
+						OverprovisionRatio:        overprovisionRatio,
+					},
+				},
+				{
+					// thinpool target without overprovisioning
+					Name:        lvServiceTestThinDCNoOp,
+					VolumeGroup: vg.Name(),
+					Type:        lvmdTypes.TypeThin,
+					ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
+						Name:                      poolName,
+						SkipOverprovisioningRatio: true,
 					},
 				},
 			},
@@ -208,7 +220,7 @@ func TestLVService_ThickLV(t *testing.T) {
 	}
 }
 
-func TestLVService_ThinLV(t *testing.T) {
+func TestLVService_ThinLV_Overprovisioning(t *testing.T) {
 	ctx := ctrl.LoggerInto(context.Background(), testr.New(t))
 	lvService, count, vg, pool := setupLVService(ctx, t)
 
@@ -222,7 +234,7 @@ func TestLVService_ThinLV(t *testing.T) {
 		t.Fatal(err)
 	}
 	if *count != 1 {
-		t.Errorf("is not notified: %d", count)
+		t.Errorf("is not notified: %d", *count)
 	}
 	if res.GetVolume().GetName() != "testp1" {
 		t.Errorf(`res.Volume.Name != "testp1": %s`, res.GetVolume().GetName())
@@ -260,7 +272,7 @@ func TestLVService_ThinLV(t *testing.T) {
 		t.Fatal(err)
 	}
 	if *count != 2 {
-		t.Errorf("unexpected count: %d", count)
+		t.Errorf("unexpected count: %d", *count)
 	}
 
 	_, err = lvService.ResizeLV(context.Background(), &proto.ResizeLVRequest{
@@ -272,7 +284,7 @@ func TestLVService_ThinLV(t *testing.T) {
 		t.Fatal(err)
 	}
 	if *count != 3 {
-		t.Errorf("unexpected count: %d", count)
+		t.Errorf("unexpected count: %d", *count)
 	}
 
 	if err := vg.Update(ctx); err != nil {
@@ -287,6 +299,19 @@ func TestLVService_ThinLV(t *testing.T) {
 		t.Errorf(`does not match size 2: %d`, lv.Size()>>30)
 	}
 
+	//should exceed the overprovisioned limit and not be created
+	_, err = lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
+		Name:        "testp3",
+		DeviceClass: lvServiceTestThinDC,
+		SizeBytes:   10 << 30, // 10 GiB
+	})
+	if err == nil || status.Code(err) != codes.ResourceExhausted {
+		t.Fatal(err)
+	}
+	if *count != 3 {
+		t.Errorf("unexpected count: %d", *count)
+	}
+
 	_, err = lvService.RemoveLV(context.Background(), &proto.RemoveLVRequest{
 		Name:        "testp1",
 		DeviceClass: lvServiceTestThinDC,
@@ -295,7 +320,7 @@ func TestLVService_ThinLV(t *testing.T) {
 		t.Error(err)
 	}
 	if *count != 4 {
-		t.Errorf("unexpected count: %d", count)
+		t.Errorf("unexpected count: %d", *count)
 	}
 
 	if err := vg.Update(ctx); err != nil {
@@ -305,7 +330,118 @@ func TestLVService_ThinLV(t *testing.T) {
 	if !errors.Is(err, command.ErrNotFound) {
 		t.Error("unexpected error: ", err)
 	}
+}
 
+func TestLVService_ThinLV_WithoutOverprovisioning(t *testing.T) {
+	ctx := ctrl.LoggerInto(context.Background(), testr.New(t))
+	deviceClassInTest := lvServiceTestThinDCNoOp
+	lvService, count, vg, pool := setupLVService(ctx, t)
+
+	res, err := lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
+		Name:        "testp1",
+		DeviceClass: deviceClassInTest,
+		SizeBytes:   1 << 30, // 1 GiB
+		Tags:        []string{lvServiceTestTag1, lvServiceTestTag2},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if *count != 1 {
+		t.Errorf("is not notified: %d", *count)
+	}
+	if res.GetVolume().GetName() != "testp1" {
+		t.Errorf(`res.Volume.Name != "testp1": %s`, res.GetVolume().GetName())
+	}
+	if res.GetVolume().GetSizeBytes() != 1<<30 {
+		t.Errorf(`res.Volume.SizeBytes != %d: %d`, 1<<30, res.GetVolume().GetSizeBytes())
+	}
+	err = exec.Command("lvs", vg.Name()+"/testp1").Run()
+	if err != nil {
+		t.Error("failed to create logical volume")
+	}
+
+	if err := vg.Update(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	lv, err := pool.FindVolume(ctx, "testp1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if lv.Tags()[0] != lvServiceTestTag1 {
+		t.Errorf(`testtag1 not present on volume`)
+	}
+	if lv.Tags()[1] != lvServiceTestTag2 {
+		t.Errorf(`testtag1 not present on volume`)
+	}
+
+	_, err = lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
+		Name:        "testp2",
+		DeviceClass: deviceClassInTest,
+		SizeBytes:   3 << 30, // 3 GiB
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if *count != 2 {
+		t.Errorf("unexpected count: %d", *count)
+	}
+
+	_, err = lvService.ResizeLV(context.Background(), &proto.ResizeLVRequest{
+		Name:        "testp1",
+		DeviceClass: deviceClassInTest,
+		SizeBytes:   2 << 30, // 2 GiB
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if *count != 3 {
+		t.Errorf("unexpected count: %d", *count)
+	}
+
+	if err := vg.Update(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	lv, err = pool.FindVolume(ctx, "testp1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if lv.Size() != (2 << 30) {
+		t.Errorf(`does not match size 2: %d`, lv.Size()>>30)
+	}
+
+	//should just be created as actually used data (0%) is below the pool size
+	_, err = lvService.CreateLV(context.Background(), &proto.CreateLVRequest{
+		Name:        "testp3",
+		DeviceClass: deviceClassInTest,
+		SizeBytes:   10 << 30, // 10 GiB
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if *count != 4 {
+		t.Errorf("unexpected count: %d", *count)
+	}
+
+	_, err = lvService.RemoveLV(context.Background(), &proto.RemoveLVRequest{
+		Name:        "testp1",
+		DeviceClass: deviceClassInTest,
+	})
+	if err != nil {
+		t.Error(err)
+	}
+	if *count != 5 {
+		t.Errorf("unexpected count: %d", *count)
+	}
+
+	if err := vg.Update(ctx); err != nil {
+		t.Fatal(err)
+	}
+	_, err = pool.FindVolume(ctx, "test1")
+	if !errors.Is(err, command.ErrNotFound) {
+		t.Error("unexpected error: ", err)
+	}
 }
 
 func TestLVService_ThinSnapshots(t *testing.T) {
