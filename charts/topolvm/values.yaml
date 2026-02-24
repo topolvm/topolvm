@@ -722,6 +722,17 @@ webhook:
     # group: cert-manager.io
     # kind: Issuer
     # name: webhook-issuer
+  # webhook.certManager -- If true, cert-manager Certificate and Issuer resources are created
+  # to generate the webhook TLS secret. If false, you must provide your own TLS secret
+  # (see webhook.secretName).
+  certManager: true
+  # webhook.secretName -- Override the secret name used for webhook TLS certificates.
+  # When webhook.certManager is false, this must be set to the name of a
+  # pre-existing secret containing tls.crt and tls.key.
+  # When webhook.certManager is true, this is ignored (cert-manager manages the secret).
+  secretName: ""
+  # webhook.annotations -- Additional annotations to add to the MutatingWebhookConfiguration.
+  annotations: {}
   podMutatingWebhook:
     # webhook.podMutatingWebhook.enabled -- Enable Pod MutatingWebhook.
     enabled: false
