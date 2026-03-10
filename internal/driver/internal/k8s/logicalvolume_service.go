@@ -295,8 +295,8 @@ func (s *LogicalVolumeService) ExpandVolume(ctx context.Context, volumeID string
 			return false, nil
 		}
 
-		if changedLV.Status.CurrentSize.Cmp(*request) != 0 {
-			logger.Info("waiting for update of 'status.currentSize' to be updated to signal successful expansion",
+		if changedLV.Status.CurrentSize.Cmp(*request) < 0 {
+			logger.Info("waiting for update of 'status.currentSize' to be at least the requested size",
 				"name", lv.Name,
 				"status.currentSize", changedLV.Status.CurrentSize,
 				"spec.size", changedLV.Spec.Size,
