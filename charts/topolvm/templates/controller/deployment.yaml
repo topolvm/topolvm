@@ -157,6 +157,21 @@ spec:
             - /csi-provisioner
             - --csi-address=/run/topolvm/csi-topolvm.sock
             - --feature-gates=Topology=true
+            {{- if gt (int .Values.controller.csiProvisioner.workerThreads) 0 }}
+            - --worker-threads={{ .Values.controller.csiProvisioner.workerThreads }}
+            {{- end }}
+            {{- if gt (int .Values.controller.csiProvisioner.kubeAPIBurst) 0 }}
+            - --kube-api-burst={{ .Values.controller.csiProvisioner.kubeAPIBurst }}
+            {{- end }}
+            {{- if gt (int .Values.controller.csiProvisioner.kubeAPICapacityBurst) 0 }}
+            - --kube-api-capacity-burst={{ .Values.controller.csiProvisioner.kubeAPICapacityBurst }}
+            {{- end }}
+            {{- if gt (float64 .Values.controller.csiProvisioner.kubeAPICapacityQPS) 0.0 }}
+            - --kube-api-capacity-qps={{ .Values.controller.csiProvisioner.kubeAPICapacityQPS }}
+            {{- end }}
+            {{- if gt (int .Values.controller.csiProvisioner.kubeAPIQPS) 0 }}
+            - --kube-api-qps={{ .Values.controller.csiProvisioner.kubeAPIQPS }}
+            {{- end }}
             {{- if .Values.controller.leaderElection.enabled }}
             - --leader-election
             - --leader-election-namespace={{ .Release.Namespace }}

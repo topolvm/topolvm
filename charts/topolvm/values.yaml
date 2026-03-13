@@ -432,6 +432,22 @@ controller:
   # controller.args -- Arguments to be passed to the command.
   args: []
 
+  csiProvisioner:
+    # controller.csiProvisioner.workerThreads -- Specify `--worker-threads` for csi-provisioner. Set to 0 to use csi-provisioner defaults.
+    workerThreads: 0
+
+    # controller.csiProvisioner.kubeAPIBurst -- Specify `--kube-api-burst` for csi-provisioner. Set to 0 to use csi-provisioner defaults.
+    kubeAPIBurst: 0
+
+    # controller.csiProvisioner.kubeAPICapacityBurst -- Specify `--kube-api-capacity-burst` for csi-provisioner. Set to 0 to use csi-provisioner defaults.
+    kubeAPICapacityBurst: 0
+
+    # controller.csiProvisioner.kubeAPICapacityQPS -- Specify `--kube-api-capacity-qps` for csi-provisioner. Set to 0 to use csi-provisioner defaults.
+    kubeAPICapacityQPS: 0.0
+
+    # controller.csiProvisioner.kubeAPIQPS -- Specify `--kube-api-qps` for csi-provisioner. Set to 0 to use csi-provisioner defaults.
+    kubeAPIQPS: 0
+
   storageCapacityTracking:
     # controller.storageCapacityTracking.enabled -- Enable Storage Capacity Tracking for csi-provisioner.
     enabled: true
