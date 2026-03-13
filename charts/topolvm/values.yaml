@@ -432,6 +432,10 @@ controller:
   # controller.args -- Arguments to be passed to the command.
   args: []
 
+  csiProvisioner:
+    # controller.csiProvisioner.args -- Arguments to be passed to the csi-provisioner.
+    args: []
+
   storageCapacityTracking:
     # controller.storageCapacityTracking.enabled -- Enable Storage Capacity Tracking for csi-provisioner.
     enabled: true
