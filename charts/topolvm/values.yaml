@@ -432,6 +432,10 @@ controller:
   # controller.args -- Arguments to be passed to the command.
   args: []
 
+  csiResizer:
+    # controller.csiResizer.args -- Arguments to be passed to the csi-resizer.
+    args: []
+
   storageCapacityTracking:
     # controller.storageCapacityTracking.enabled -- Enable Storage Capacity Tracking for csi-provisioner.
     enabled: true
