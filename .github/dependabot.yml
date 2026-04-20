@@ -7,7 +7,7 @@ updates:
     schedule:
       interval: "monthly"
     groups:
-      github-actions-update:
+      github-actions-updates:
         patterns:
           - "*"
     cooldown:
