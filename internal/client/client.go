@@ -449,3 +449,8 @@ func (c *wrappedSubResourceClient) Patch(ctx context.Context, obj client.Object,
 	}
 	return sc.Patch(ctx, obj, patch, opts...)
 }
+
+func (c *wrappedSubResourceClient) Apply(ctx context.Context, obj runtime.ApplyConfiguration, opts ...client.SubResourceApplyOption) error {
+	// We're not using SubResource Apply currently, so we can safely return an error here.
+	return fmt.Errorf("wrappedSubResourceClient.Apply is not implemented")
+}

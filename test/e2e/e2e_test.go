@@ -615,7 +615,7 @@ func testE2E() {
 			var maxCapNodes []string
 			Eventually(func() error {
 				var maxCapacity int
-				maxCapNodes = []string{}
+				maxCapNodes = make([]string, 0, 2)
 				var nodes corev1.NodeList
 				err := getObjects(&nodes, "nodes")
 				if err != nil {
@@ -637,7 +637,8 @@ func testE2E() {
 					switch {
 					case capacity > maxCapacity:
 						maxCapacity = capacity
-						maxCapNodes = []string{node.GetName()}
+						maxCapNodes = maxCapNodes[:0]
+						maxCapNodes = append(maxCapNodes, node.GetName())
 					case capacity == maxCapacity:
 						maxCapNodes = append(maxCapNodes, node.GetName())
 					}

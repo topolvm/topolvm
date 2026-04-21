@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
+	"github.com/prometheus/common/model"
 	lvmdApp "github.com/topolvm/topolvm/cmd/lvmd/app"
 	"github.com/topolvm/topolvm/internal/lvmd"
 	lvmdTypes "github.com/topolvm/topolvm/pkg/lvmd/types"
@@ -93,7 +94,7 @@ func testMetrics() {
 					"curl", "http://localhost:8080/metrics")
 				g.Expect(err).ShouldNot(HaveOccurred())
 
-				var parser expfmt.TextParser
+				parser := expfmt.NewTextParser(model.UTF8Validation)
 				mfs, err = parser.TextToMetricFamilies(bytes.NewReader(stdout))
 				g.Expect(err).ShouldNot(HaveOccurred())
 			}).Should(Succeed())
@@ -179,7 +180,7 @@ func getMetricsFamily(nodeIP string) (map[string]*dto.MetricFamily, error) {
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	var parser expfmt.TextParser
+	parser := expfmt.NewTextParser(model.UTF8Validation)
 	return parser.TextToMetricFamilies(resp.Body)
 }
 
