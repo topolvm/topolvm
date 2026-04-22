@@ -42,4 +42,3 @@ jobs:
         stale-pr-label: "stale"
         exempt-issue-labels: "keepalive,update kubernetes"
         exempt-pr-labels: "keepalive"
-        exempt-draft-pr: true
