@@ -11,6 +11,8 @@ const (
 type ThinPoolConfig struct {
 	// Name of thinpool
 	Name string `json:"name"`
+	// SkipOverprovisioningRatio indicates whether overprovision ratio is used for space calculation
+	SkipOverprovisioningRatio bool `json:"skip-overprovisioning-ratio"`
 	// OverprovisionRatio signifies the upper bound multiplier for allowing logical volume creation in this pool
 	OverprovisionRatio float64 `json:"overprovision-ratio"`
 }
