@@ -17,6 +17,11 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v16.
 | controller.additionalContainers | list | `[]` | Define extra containers to add to the Deployment. Please ensure not to use any existing container names. |
 | controller.affinity | string | `"podAntiAffinity:\n  requiredDuringSchedulingIgnoredDuringExecution:\n    - labelSelector:\n        matchExpressions:\n          - key: app.kubernetes.io/component\n            operator: In\n            values:\n              - controller\n          - key: app.kubernetes.io/name\n            operator: In\n            values:\n              - {{ include \"topolvm.name\" . }}\n      topologyKey: kubernetes.io/hostname\n"` | Specify affinity. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity |
 | controller.args | list | `[]` | Arguments to be passed to the command. |
+| controller.csiProvisioner.kubeAPIBurst | int | `0` | Specify `--kube-api-burst` for csi-provisioner. Set to 0 to use csi-provisioner defaults. |
+| controller.csiProvisioner.kubeAPICapacityBurst | int | `0` | Specify `--kube-api-capacity-burst` for csi-provisioner. Set to 0 to use csi-provisioner defaults. |
+| controller.csiProvisioner.kubeAPICapacityQPS | float | `0` | Specify `--kube-api-capacity-qps` for csi-provisioner. Set to 0 to use csi-provisioner defaults. |
+| controller.csiProvisioner.kubeAPIQPS | int | `0` | Specify `--kube-api-qps` for csi-provisioner. Set to 0 to use csi-provisioner defaults. |
+| controller.csiProvisioner.workerThreads | int | `0` | Specify `--worker-threads` for csi-provisioner. Set to 0 to use csi-provisioner defaults. |
 | controller.initContainers | list | `[]` | Additional initContainers for the controller service. |
 | controller.labels | object | `{}` | Additional labels to be added to the Deployment. |
 | controller.leaderElection.enabled | bool | `true` | Enable leader election for controller and all sidecars. |
