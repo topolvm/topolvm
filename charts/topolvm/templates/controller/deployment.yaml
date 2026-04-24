@@ -207,6 +207,7 @@ spec:
           command:
             - /csi-resizer
             - --csi-address=/run/topolvm/csi-topolvm.sock
+            - --handle-volume-inuse-error={{ .Values.controller.csiResizer.handleVolumeInUseError }}
             {{- if .Values.controller.leaderElection.enabled }}
             - --leader-election
             - --leader-election-namespace={{ .Release.Namespace }}

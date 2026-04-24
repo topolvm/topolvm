@@ -432,6 +432,10 @@ controller:
   # controller.args -- Arguments to be passed to the command.
   args: []
 
+  csiResizer:
+    # controller.csiResizer.handleVolumeInUseError -- Specify `--handle-volume-inuse-error` for csi-resizer.
+    handleVolumeInUseError: true
+
   storageCapacityTracking:
     # controller.storageCapacityTracking.enabled -- Enable Storage Capacity Tracking for csi-provisioner.
     enabled: true
