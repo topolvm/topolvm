@@ -157,9 +157,10 @@ func TestCallLVM(t *testing.T) {
 
 func TestCommandReadCloserClose(t *testing.T) {
 	t.Run("Close returns even when the caller stops reading early", func(t *testing.T) {
-		// Produce ~256 KiB of output, safely larger than the pipe buffer
-		// so cmd.Wait would deadlock on an undrained stdout (#1161).
-		ctx := log.IntoContext(context.Background(), testr.New(t))
+		// Regression for #1161.
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		ctx = log.IntoContext(ctx, testr.New(t))
 		cmd := exec.CommandContext(ctx, "dd", "if=/dev/zero", "bs=1024", "count=256", "status=none")
 
 		rc, err := runCommand(ctx, verbosityLVMStateNoUpdate, cmd)
@@ -167,23 +168,13 @@ func TestCommandReadCloserClose(t *testing.T) {
 			t.Fatalf("runCommand: %v", err)
 		}
 
-		// Read only a handful of bytes, simulating a parser that bails
-		// out on the first value it decodes.
 		buf := make([]byte, 4)
 		if _, err := io.ReadFull(rc, buf); err != nil {
 			t.Fatalf("read prefix: %v", err)
 		}
 
-		done := make(chan error, 1)
-		go func() { done <- rc.Close() }()
-		select {
-		case err := <-done:
-			if err != nil {
-				t.Fatalf("close returned error: %v", err)
-			}
-		case <-time.After(5 * time.Second):
-			_ = cmd.Process.Kill()
-			t.Fatal("commandReadCloser.Close deadlocked with unread stdout")
+		if err := rc.Close(); err != nil {
+			t.Fatalf("close returned error: %v", err)
 		}
 	})
 }
