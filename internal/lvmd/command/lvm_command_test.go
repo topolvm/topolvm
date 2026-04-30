@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os/exec"
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-logr/logr/funcr"
 	"github.com/go-logr/logr/testr"
@@ -149,6 +151,30 @@ func TestCallLVM(t *testing.T) {
 		}
 		if !stdoutExistsInLogs {
 			t.Fatalf("version from stdout was not logged, existing logs: %v", messages)
+		}
+	})
+}
+
+func TestCommandReadCloserClose(t *testing.T) {
+	t.Run("Close returns even when the caller stops reading early", func(t *testing.T) {
+		// Regression for #1161.
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		ctx = log.IntoContext(ctx, testr.New(t))
+		cmd := exec.CommandContext(ctx, "dd", "if=/dev/zero", "bs=1024", "count=256", "status=none")
+
+		rc, err := runCommand(ctx, verbosityLVMStateNoUpdate, cmd)
+		if err != nil {
+			t.Fatalf("runCommand: %v", err)
+		}
+
+		buf := make([]byte, 4)
+		if _, err := io.ReadFull(rc, buf); err != nil {
+			t.Fatalf("read prefix: %v", err)
+		}
+
+		if err := rc.Close(); err != nil {
+			t.Fatalf("close returned error: %v", err)
 		}
 	})
 }

@@ -115,9 +115,12 @@ type commandReadCloser struct {
 	stderr io.ReadCloser
 }
 
-// Close closes stdout and stderr and waits for the command to exit. Close
-// should not be called before all reads from stdout have completed.
+// Close drains any unread stdout, reads stderr, and waits for the command to exit.
 func (p commandReadCloser) Close() error {
+	// Drain stdout before Wait() to prevent blocking when the caller stopped
+	// reading early and the child has more output than the pipe buffer.
+	_, _ = io.Copy(io.Discard, p.ReadCloser)
+
 	// Read the stderr output after the read has finished since we are sure by then the command must have run.
 	stderr, err := io.ReadAll(p.stderr)
 	if err != nil {
