@@ -23,7 +23,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: "go.mod"
-      - uses: actions/cache/restore@v5.0.4
+      - uses: actions/cache/restore@v5.0.5
         with:
           path: |
             bin
