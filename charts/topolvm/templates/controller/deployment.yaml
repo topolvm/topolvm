@@ -212,6 +212,10 @@ spec:
             - --leader-election-namespace={{ .Release.Namespace }}
             {{- end }}
             - --http-endpoint=:9810
+          {{- $csiResizerArgs := default (list) .Values.controller.csiResizer.args }}
+          {{- if gt (len $csiResizerArgs) 0 }}
+          args: {{ toYaml $csiResizerArgs | nindent 12 }}
+          {{- end }}
           ports:
             - containerPort: 9810
               name: csi-resizer
