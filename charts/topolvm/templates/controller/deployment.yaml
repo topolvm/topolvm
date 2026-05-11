@@ -166,6 +166,10 @@ spec:
             - --enable-capacity
             - --capacity-ownerref-level=2
             {{- end }}
+          {{- $csiProvisionerArgs := default (list) .Values.controller.csiProvisioner.args }}
+          {{- if gt (len $csiProvisionerArgs) 0 }}
+          args: {{ toYaml $csiProvisionerArgs | nindent 12 }}
+          {{- end }}
           ports:
             - containerPort: 9809
               name: csi-provisioner
