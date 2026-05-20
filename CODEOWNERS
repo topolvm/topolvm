@@ -1,13 +1,2 @@
-# Maintainers can approve and merge PRs.
-# @toshipp: Toshikuni Fukaya
-# @llamerada-jp: Yuji Ito
-# @satoru-takeuchi: Satoru Takeuchi
-# @cupnes: Yuma Ohgami
-# @daichimukai: Daichi Mukai
-# @peng225: Shinya Hayashi
-# @jakobmoellerdev: Jakob Möller
-# @pluser: ESASHIKA Kaoru
-# @ushitora-anqou: Ryotaro Banno
-# @molpako: Kyori Sakao
-# @skoya76: Kohya Shiozaki
+# reviewers can approve and merge PRs.
 * @topolvm/reviewers
