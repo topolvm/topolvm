@@ -4,6 +4,8 @@ on:
   pull_request:
     types: [synchronize, opened, reopened, labeled, unlabeled]
 
+permissions: {}
+
 jobs:
   label-do-not-merge:
     runs-on: ubuntu-latest

@@ -6,6 +6,9 @@ on:
       test_legacy:
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   e2e-k8s:
     name: "e2e-k8s"

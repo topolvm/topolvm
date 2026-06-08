@@ -3,6 +3,11 @@ on:
   push:
     tags:
       - "v*"
+
+permissions:
+  contents: write
+  packages: write
+
 jobs:
   prepare:
     name: "prepare"
