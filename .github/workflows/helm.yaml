@@ -6,6 +6,9 @@ on:
       - "charts/**"
       - "ct.yaml"
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     runs-on: "ubuntu-22.04"

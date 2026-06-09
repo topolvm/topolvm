@@ -10,6 +10,10 @@ on:
       - "CODEOWNERS"
     branches:
       - "main"
+
+permissions:
+  contents: read
+
 jobs:
   e2e-k8s-incluster-lvmd:
     name: "e2e-k8s-incluster-lvmd"
