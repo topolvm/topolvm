@@ -18,11 +18,15 @@ import (
 )
 
 const (
+	vgServiceTestVGName     = "test_vgservice"
+	vgServiceTestPoolName   = "test_vgservice_pool"
+	vgServiceTestThickDC    = vgServiceTestVGName
+	vgServiceTestThinDC     = vgServiceTestPoolName
+	vgServiceTestThinNoOpDC = "test_vgservice_pool_noop"
+)
+
+var (
 	vgServiceTestOverprovisionRatio = float64(10.0)
-	vgServiceTestVGName             = "test_vgservice"
-	vgServiceTestPoolName           = "test_vgservice_pool"
-	vgServiceTestThickDC            = vgServiceTestVGName
-	vgServiceTestThinDC             = vgServiceTestPoolName
 )
 
 type mockWatchServer struct {
@@ -240,7 +244,7 @@ func TestVGService_GetFreeBytes(t *testing.T) {
 		}
 	})
 
-	t.Run("thin lv", func(t *testing.T) {
+	t.Run("thin lv with overprovisioning", func(t *testing.T) {
 		res, err := vgService.GetFreeBytes(ctx, &proto.GetFreeBytesRequest{DeviceClass: vgServiceTestThinDC})
 		if err != nil {
 			t.Fatal(err)
@@ -254,6 +258,23 @@ func TestVGService_GetFreeBytes(t *testing.T) {
 		// there'll be round off in free bytes of thin pool
 		if res.GetFreeBytes() > expected {
 			t.Errorf("Free bytes mismatch: %d, expected: %d, freeBytes: %d", res.GetFreeBytes(), expected, opb)
+		}
+	})
+
+	t.Run("thin lv without overprovisioning", func(t *testing.T) {
+		// Pool is 1GiB, SpareGB is 1B, so free bytes is 0B
+		res, err := vgService.GetFreeBytes(ctx, &proto.GetFreeBytesRequest{DeviceClass: vgServiceTestThinNoOpDC})
+		if err != nil {
+			t.Fatal(err)
+		}
+		tpu, err := pool.Usage(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		occupied := uint64((1.0 - tpu.DataPercent/100.0) * float64(tpu.SizeBytes))
+		expected := occupied - (1 << 30)
+		if res.GetFreeBytes() > expected {
+			t.Errorf("Free bytes mismatch: %d, expected: %d, freeBytes: %d", res.GetFreeBytes(), expected, occupied)
 		}
 	})
 }
@@ -318,6 +339,17 @@ func setupVGService(ctx context.Context, t *testing.T) (
 					ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
 						Name:               vgServiceTestPoolName,
 						OverprovisionRatio: vgServiceTestOverprovisionRatio,
+					},
+				},
+				{
+					// thinpool target no overprovisioning
+					Name:        vgServiceTestThinNoOpDC,
+					VolumeGroup: vg.Name(),
+					SpareGB:     &spareGB,
+					Type:        lvmdTypes.TypeThin,
+					ThinPoolConfig: &lvmdTypes.ThinPoolConfig{
+						Name:                      vgServiceTestPoolName,
+						SkipOverprovisioningRatio: true,
 					},
 				},
 			},
