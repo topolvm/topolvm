@@ -29,23 +29,22 @@ Edit the following files.
 - `.github/workflows/e2e-k8s-workflow.yaml`
 - `test/e2e/README.md`
 
-Next, we should update `go.mod` by the following commands.
-Please note that Kubernetes v1 corresponds with v0 for the release tags. For example, v1.17.2 corresponds with the `v0.17.2` tag.
+We should also update `go.mod`. According to [the Kubebuilder documentation](https://book.kubebuilder.io/versions_compatibility_supportability), we should use versions compatible with Kubebuilder, so refer to the samples in the latest Kubebuilder testdata directory (e.g., https://github.com/kubernetes-sigs/kubebuilder/blob/v4.1.1/testdata/project-v4/go.mod#L8-L11 and https://github.com/kubernetes-sigs/kubebuilder/blob/v4.1.1/testdata/project-v4/Makefile#L162) to see which versions should be used.
+
+First, update `k8s.io/*` libraries. Please note that Kubernetes v1 corresponds with v0 for the release tags. For example, v1.17.2 corresponds with the `v0.17.2` tag.
 ```console
 $ VERSION=<upgrading Kubernetes release version>
 $ go get k8s.io/api@v${VERSION} k8s.io/apimachinery@v${VERSION} k8s.io/client-go@v${VERSION} k8s.io/mount-utils@v${VERSION}
 ```
 
-Read the [controller-runtime's release note](https://github.com/kubernetes-sigs/controller-runtime/releases), and check which version is compatible with the Kubernetes versions.
-Then, upgrade the controller-runtime's version by the following commands.
+Next, update controller-runtime by the following command. Before updating it, please read the [`controller-runtime`'s release note](https://github.com/kubernetes-sigs/controller-runtime/releases). If there are breaking changes, we should decide how to manage these changes.
 
 ```console
 $ VERSION=<upgrading controller-runtime version>
 $ go get sigs.k8s.io/controller-runtime@v${VERSION}
 ```
 
-Read the [`controller-tools`'s release note](https://github.com/kubernetes-sigs/controller-tools/releases), and update to the newest version that is compatible with all supported kubernetes versions. If there are breaking changes, we should decide how to manage these changes.
-Then, upgrade the controller-tools's version by the following commands.
+Then, update controller-tools. Before updating it, please read the [`controller-tools`'s release note](https://github.com/kubernetes-sigs/controller-tools/releases). If there are breaking changes, we should decide how to manage these changes.
 
 ```console
 $ VERSION=<upgrading controller-tools version>
@@ -69,7 +68,7 @@ These are minimal changes for the Kubernetes upgrade, but if there are some brea
 
 #### Go
 
-Choose the same version of Go [used by the latest Kubernetes](https://github.com/kubernetes/kubernetes/blob/master/go.mod) supported by TopoLVM.
+Choose the version compatible with Kubebuilder (e.g., https://github.com/kubernetes-sigs/kubebuilder/blob/v4.1.1/testdata/project-v4/go.mod#L3).
 
 Edit the following files.
 - `go.mod`
