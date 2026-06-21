@@ -22,7 +22,7 @@ jobs:
           # The exit code will be 1 if the pattern is not found by grep.
           echo ${{ inputs.app-version }} | grep -E "^[0-9]+.[0-9]+.[0-9]+$"
           echo ${{ inputs.chart-version }} | grep -E "^[0-9]+.[0-9]+.[0-9]+$"
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           fetch-depth: 0
       - name: Configure Git
@@ -44,7 +44,7 @@ jobs:
           sed -r -i "s/ghcr.io\/topolvm\/topolvm:[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/ghcr.io\/topolvm\/topolvm:${{ inputs.app-version }}/g" charts/topolvm/Chart.yaml
           make install-helm-docs && make generate-helm-docs
       - name: Issue an access token
-        uses: actions/create-github-app-token@v3
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
         id: app-token
         with:
           app-id: ${{ secrets.PROJECT_APP_ID }}
