@@ -15,12 +15,12 @@ jobs:
 
     steps:
       - name: "Checkout"
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           fetch-depth: 0
 
       - name: "Setup Go"
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
         with:
           go-version-file: "go.mod"
 
@@ -32,7 +32,7 @@ jobs:
         run: ./bin/helm-docs && git diff --no-patch --exit-code
 
       - name: "Set up chart-testing"
-        uses: helm/chart-testing-action@v2.8.0
+        uses: helm/chart-testing-action@6ec842c01de15ebb84c8627d2744a0c2f2755c9f
 
       - name: "Run chart-testing (lint)"
         run: ct lint --config ct.yaml
