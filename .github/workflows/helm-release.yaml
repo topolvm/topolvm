@@ -8,6 +8,9 @@ permissions:
 jobs:
   release:
     runs-on: "ubuntu-latest"
+    permissions:
+      pages: write
+      contents: write
     steps:
       - name: "Checkout"
         uses: actions/checkout@v6
