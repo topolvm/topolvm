@@ -28,8 +28,8 @@ jobs:
       TEST_LVMD_TYPE: ${{ matrix.test_lvmd_type }}
       TEST_SCHEDULER_EXTENDER_TYPE: "none"
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6.4.0
         with:
           go-version-file: "go.mod"
       - name: Set up Docker Buildx
