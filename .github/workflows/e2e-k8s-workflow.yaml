@@ -22,8 +22,8 @@ jobs:
       TEST_SCHEDULER_EXTENDER_TYPE: ${{ inputs.test_scheduler_extender_type }}
       TEST_LEGACY: ${{ inputs.test_legacy }}
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6.4.0
         with:
           go-version-file: "go.mod"
       - uses: actions/cache/restore@v5.0.5
