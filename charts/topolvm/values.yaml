@@ -5,9 +5,8 @@ image:
   # image.repository -- TopoLVM image repository to use.
   repository: ghcr.io/topolvm/topolvm-with-sidecar
 
-  # image.tag -- TopoLVM image tag to use.
-  # @default -- `{{ .Chart.AppVersion }}`
-  tag:  # 0.18.1
+  # image.reference -- TopoLVM image reference (a tag and/or a digest, e.g. "0.41.0@sha256:...") to use.
+  reference: 0.41.0@sha256:5faf5b94557516ae0f6fa7d329a5a4305e22aa2dc464af7641b31f2aca618036
 
   # image.pullPolicy -- TopoLVM image pullPolicy.
   pullPolicy:  # Always
@@ -17,23 +16,23 @@ image:
 
   csi:
     # image.csi.nodeDriverRegistrar -- Specify csi-node-driver-registrar: image.
-    # If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used.
+    # If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.reference }}` will be used.
     nodeDriverRegistrar:  # registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.2.0
 
     # image.csi.csiProvisioner -- Specify csi-provisioner image.
-    # If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used.
+    # If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.reference }}` will be used.
     csiProvisioner:  # registry.k8s.io/sig-storage/csi-provisioner:v2.2.1
 
     # image.csi.csiResizer -- Specify csi-resizer image.
-    # If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used.
+    # If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.reference }}` will be used.
     csiResizer:  # registry.k8s.io/sig-storage/csi-resizer:v1.2.0
 
     # image.csi.csiSnapshotter -- Specify csi-snapshot image.
-    # If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used.
+    # If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.reference }}` will be used.
     csiSnapshotter:  # registry.k8s.io/sig-storage/csi-snapshotter:v5.0.1
 
     # image.csi.livenessProbe -- Specify livenessprobe image.
-    # If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used.
+    # If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.reference }}` will be used.
     livenessProbe:  # registry.k8s.io/sig-storage/livenessprobe:v2.3.0
 
 # A scheduler extender for TopoLVM

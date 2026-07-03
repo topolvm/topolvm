@@ -21,7 +21,7 @@ DOMAIN_NAME := topolvm.io
 
 BUILD_IMAGE_FLAG :=
 ifeq ($(BUILD_IMAGE),true)
-BUILD_IMAGE_FLAG := --set image.tag=devel
+BUILD_IMAGE_FLAG := --set image.reference=devel
 endif
 
 $(KUBECTL):

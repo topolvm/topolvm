@@ -44,7 +44,7 @@ spec:
       {{- end }}
       containers:
         - name: topolvm-node
-          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.reference }}"
           {{- with .Values.image.pullPolicy }}
           imagePullPolicy: {{ . }}
           {{- end }}
@@ -130,7 +130,7 @@ spec:
           {{- if .Values.image.csi.nodeDriverRegistrar }}
           image: {{ .Values.image.csi.nodeDriverRegistrar }}
           {{- else }}
-          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.reference }}"
           {{- end }}
           {{- with .Values.image.pullPolicy }}
           imagePullPolicy: {{ . }}
@@ -182,7 +182,7 @@ spec:
           {{- if .Values.image.csi.livenessProbe }}
           image: {{ .Values.image.csi.livenessProbe }}
           {{- else }}
-          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.reference }}"
           {{- end }}
           {{- with .Values.image.pullPolicy }}
           imagePullPolicy: {{ . }}

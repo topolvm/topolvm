@@ -48,7 +48,7 @@ spec:
       {{- end }}
       containers:
         - name: topolvm-controller
-          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.reference }}"
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -137,7 +137,7 @@ spec:
           {{- if .Values.image.csi.csiProvisioner }}
           image: {{ .Values.image.csi.csiProvisioner }}
           {{- else }}
-          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.reference }}"
           {{- end }}
           {{- with .Values.image.pullPolicy }}
           imagePullPolicy: {{ . }}
@@ -188,7 +188,7 @@ spec:
           {{- if .Values.image.csi.csiResizer }}
           image: {{ .Values.image.csi.csiResizer }}
           {{- else }}
-          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.reference }}"
           {{- end }}
           {{- with .Values.image.pullPolicy }}
           imagePullPolicy: {{ . }}
@@ -224,7 +224,7 @@ spec:
           {{- if .Values.image.csi.csiSnapshotter }}
           image: {{ .Values.image.csi.csiSnapshotter }}
           {{- else }}
-          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.reference }}"
           {{- end }}
           {{- with .Values.image.pullPolicy }}
           imagePullPolicy: {{ . }}
@@ -260,7 +260,7 @@ spec:
           {{- if .Values.image.csi.livenessProbe }}
           image: {{ .Values.image.csi.livenessProbe }}
           {{- else }}
-          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.reference }}"
           {{- end }}
           {{- with .Values.image.pullPolicy }}
           imagePullPolicy: {{ . }}

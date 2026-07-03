@@ -49,15 +49,15 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v16.
 | env.topolvm_controller | list | `[]` | Specify environment variables for topolvm_controller container. |
 | env.topolvm_node | list | `[]` | Specify environment variables for topolvm_node container. |
 | env.topolvm_scheduler | list | `[]` | Specify environment variables for topolvm_scheduler container. |
-| image.csi.csiProvisioner | string | `nil` | Specify csi-provisioner image. If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used. |
-| image.csi.csiResizer | string | `nil` | Specify csi-resizer image. If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used. |
-| image.csi.csiSnapshotter | string | `nil` | Specify csi-snapshot image. If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used. |
-| image.csi.livenessProbe | string | `nil` | Specify livenessprobe image. If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used. |
-| image.csi.nodeDriverRegistrar | string | `nil` | Specify csi-node-driver-registrar: image. If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used. |
+| image.csi.csiProvisioner | string | `nil` | Specify csi-provisioner image. If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.reference }}` will be used. |
+| image.csi.csiResizer | string | `nil` | Specify csi-resizer image. If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.reference }}` will be used. |
+| image.csi.csiSnapshotter | string | `nil` | Specify csi-snapshot image. If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.reference }}` will be used. |
+| image.csi.livenessProbe | string | `nil` | Specify livenessprobe image. If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.reference }}` will be used. |
+| image.csi.nodeDriverRegistrar | string | `nil` | Specify csi-node-driver-registrar: image. If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.reference }}` will be used. |
 | image.pullPolicy | string | `nil` | TopoLVM image pullPolicy. |
 | image.pullSecrets | list | `[]` | List of imagePullSecrets. |
+| image.reference | string | `"0.41.0@sha256:5faf5b94557516ae0f6fa7d329a5a4305e22aa2dc464af7641b31f2aca618036"` | TopoLVM image reference (a tag and/or a digest, e.g. "0.41.0@sha256:...") to use. |
 | image.repository | string | `"ghcr.io/topolvm/topolvm-with-sidecar"` | TopoLVM image repository to use. |
-| image.tag | string | `{{ .Chart.AppVersion }}` | TopoLVM image tag to use. |
 | livenessProbe.csi_registrar | object | `{"failureThreshold":null,"initialDelaySeconds":10,"periodSeconds":60,"timeoutSeconds":3}` | Specify livenessProbe. # ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/ |
 | livenessProbe.lvmd | object | `{"failureThreshold":null,"initialDelaySeconds":10,"periodSeconds":60,"timeoutSeconds":3}` | Specify livenessProbe. # ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/ |
 | livenessProbe.topolvm_controller | object | `{"failureThreshold":null,"initialDelaySeconds":10,"periodSeconds":60,"timeoutSeconds":3}` | Specify livenessProbe. # ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/ |

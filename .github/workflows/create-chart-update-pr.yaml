@@ -35,6 +35,18 @@ jobs:
             git switch main
             git pull
             git switch -c bump-chart-${{ inputs.chart-version }}
+      - name: "Resolve image digest"
+        id: image
+        run: |
+          digest=$(gh api --paginate "/orgs/topolvm/packages/container/topolvm-with-sidecar/versions" \
+            --jq "[.[] | select(.metadata.container.tags[]? == \"${{ inputs.app-version }}\") | .name] | first")
+          if [ -z "$digest" ] || [ "$digest" = "null" ]; then
+            echo "::error::Could not find a digest for tag ${{ inputs.app-version }} in ghcr.io/topolvm/topolvm-with-sidecar" >&2
+            exit 1
+          fi
+          echo "digest=${digest}" >> "$GITHUB_OUTPUT"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
       - name: "Update files"
         run: |
           sed -r -i "s/checkout topolvm-chart-v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/checkout topolvm-chart-v${{ inputs.chart-version }}/g" example/README.md
@@ -42,6 +54,7 @@ jobs:
           sed -r -i "s/^version: [[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/version: ${{ inputs.chart-version }}/g" charts/topolvm/Chart.yaml
           sed -r -i "s/ghcr.io\/topolvm\/topolvm-with-sidecar:[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/ghcr.io\/topolvm\/topolvm-with-sidecar:${{ inputs.app-version }}/g" charts/topolvm/Chart.yaml
           sed -r -i "s/ghcr.io\/topolvm\/topolvm:[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+/ghcr.io\/topolvm\/topolvm:${{ inputs.app-version }}/g" charts/topolvm/Chart.yaml
+          sed -r -i "s/^(  reference:).*/\1 ${{ inputs.app-version }}@${{ steps.image.outputs.digest }}/" charts/topolvm/values.yaml
           make install-helm-docs && make generate-helm-docs
       - name: Issue an access token
         uses: actions/create-github-app-token@v3
