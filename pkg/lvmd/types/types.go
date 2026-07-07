@@ -34,6 +34,10 @@ type DeviceClass struct {
 	LVCreateOptions []string `json:"lvcreate-options"`
 	// Type is the name of logical volume target, supports 'thick' (default) or 'thin' currently
 	Type DeviceType `json:"type"`
+	// OverheadFactor is a multiplier that accounts for RAID overhead when reporting
+	// available capacity. Reported free space is divided by this factor.
+	// Must be >= 1.0 when set. Defaults to 1.0 (no overhead).
+	OverheadFactor *float64 `json:"overhead-factor,omitempty"`
 	// ThinPoolConfig holds the configuration for thinpool in this volume group corresponding to the device-class
 	ThinPoolConfig *ThinPoolConfig `json:"thin-pool"`
 }

@@ -3,6 +3,7 @@ package lvmd
 import (
 	"context"
 	"errors"
+	"math"
 	"sync"
 
 	"github.com/topolvm/topolvm/internal/lvmd/command"
@@ -161,6 +162,11 @@ func (s *vgService) send(server proto.VGService_WatchServer) error {
 		dc, err := s.dcManager.FindDeviceClassByVGName(vg.Name())
 		if errors.Is(err, ErrDeviceClassNotFound) {
 			continue
+		}
+
+		overheadFactor := GetOverheadFactor(dc)
+		if overheadFactor > 1.0 {
+			vgFree = uint64(math.Floor(float64(vgFree) / overheadFactor))
 		}
 
 		spare := GetSpare(dc)

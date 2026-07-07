@@ -32,6 +32,15 @@ func GetSpare(dc *lvmdTypes.DeviceClass) uint64 {
 	return *dc.SpareGB << 30
 }
 
+// GetOverheadFactor returns the overhead factor for the device-class.
+// Returns 1.0 (no overhead) when not set.
+func GetOverheadFactor(dc *lvmdTypes.DeviceClass) float64 {
+	if dc.OverheadFactor == nil {
+		return 1.0
+	}
+	return *dc.OverheadFactor
+}
+
 // ValidateDeviceClasses validates device-classes
 func ValidateDeviceClasses(deviceClasses []*lvmdTypes.DeviceClass) error {
 	if len(deviceClasses) < 1 {
@@ -95,6 +104,9 @@ func ValidateDeviceClasses(deviceClasses []*lvmdTypes.DeviceClass) error {
 		vgNames[name] = true
 		if dc.StripeSize != "" && !stripeSizeRegexp.MatchString(dc.StripeSize) {
 			return fmt.Errorf("stripe-size format is \"Size[k|UNIT]\": %s", dc.Name)
+		}
+		if dc.OverheadFactor != nil && *dc.OverheadFactor < 1.0 {
+			return fmt.Errorf("overhead-factor for device class %s must be 1.0 or more", dc.Name)
 		}
 	}
 	if countDefault > 1 {

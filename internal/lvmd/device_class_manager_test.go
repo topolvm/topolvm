@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	lvmdTypes "github.com/topolvm/topolvm/pkg/lvmd/types"
+	"k8s.io/utils/ptr"
 )
 
 func TestValidateDeviceClasses(t *testing.T) {
@@ -172,6 +173,28 @@ func TestValidateDeviceClasses(t *testing.T) {
 				},
 			},
 			valid: true,
+		},
+		{
+			deviceClasses: []*lvmdTypes.DeviceClass{
+				{
+					Name:           "overhead-valid",
+					VolumeGroup:    "node1-myvg1",
+					Default:        true,
+					OverheadFactor: ptr.To(2.0),
+				},
+			},
+			valid: true,
+		},
+		{
+			deviceClasses: []*lvmdTypes.DeviceClass{
+				{
+					Name:           "overhead-invalid",
+					VolumeGroup:    "node1-myvg1",
+					Default:        true,
+					OverheadFactor: ptr.To(0.5),
+				},
+			},
+			valid: false,
 		},
 		{
 			deviceClasses: []*lvmdTypes.DeviceClass{
@@ -477,5 +500,43 @@ func TestDeviceClassManager(t *testing.T) {
 	_, err = manager.DeviceClass("dev0")
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestGetOverheadFactor(t *testing.T) {
+	cases := []struct {
+		name     string
+		dc       *lvmdTypes.DeviceClass
+		expected float64
+	}{
+		{
+			name:     "nil returns 1.0",
+			dc:       &lvmdTypes.DeviceClass{Name: "dc1"},
+			expected: 1.0,
+		},
+		{
+			name:     "set to 2.0",
+			dc:       &lvmdTypes.DeviceClass{Name: "dc2", OverheadFactor: ptr.To(2.0)},
+			expected: 2.0,
+		},
+		{
+			name:     "set to 1.0",
+			dc:       &lvmdTypes.DeviceClass{Name: "dc3", OverheadFactor: ptr.To(1.0)},
+			expected: 1.0,
+		},
+		{
+			name:     "fractional",
+			dc:       &lvmdTypes.DeviceClass{Name: "dc4", OverheadFactor: ptr.To(1.5)},
+			expected: 1.5,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := GetOverheadFactor(c.dc)
+			if got != c.expected {
+				t.Errorf("GetOverheadFactor() = %v, want %v", got, c.expected)
+			}
+		})
 	}
 }
