@@ -5,6 +5,7 @@ CURL := curl -sSLf
 BINDIR := $(shell pwd)/bin
 CONTROLLER_GEN := $(BINDIR)/controller-gen
 CONTAINER_STRUCTURE_TEST := $(BINDIR)/container-structure-test
+ACTIONLINT := $(BINDIR)/actionlint
 GOLANGCI_LINT = $(BINDIR)/golangci-lint
 PROTOC := PATH=$(BINDIR):$(PATH) $(BINDIR)/protoc -I=$(shell pwd)/include:.
 PACKAGES := unzip lvm2 xfsprogs thin-provisioning-tools patch
@@ -129,6 +130,10 @@ lint: ## Run lint
 	go vet ./...
 	test -z "$$(go vet ./... | grep -v '^vendor' | tee /dev/stderr)"
 
+.PHONY: run-actionlint
+run-actionlint: install-actionlint ## Run actionlint for GitHub workflows and actions.
+	$(ACTIONLINT)
+
 .PHONY: lint-fix
 lint-fix: ## Run golangci-lint linter and perform fixes
 	$(GOLANGCI_LINT) run --fix
@@ -239,6 +244,10 @@ install-container-structure-test: | $(BINDIR)
 	$(CURL) -o $(CONTAINER_STRUCTURE_TEST) \
 		https://github.com/GoogleContainerTools/container-structure-test/releases/download/v$(CONTAINER_STRUCTURE_TEST_VERSION)/container-structure-test-linux-amd64 \
     && chmod +x $(CONTAINER_STRUCTURE_TEST)
+
+.PHONY: install-actionlint
+install-actionlint: | $(BINDIR)
+	GOBIN=$(BINDIR) go install github.com/rhysd/actionlint/cmd/actionlint@$(ACTIONLINT_VERSION)
 
 .PHONY: install-helm
 install-helm: | $(BINDIR)
