@@ -1,6 +1,6 @@
 image:
   repository: topolvm
-  tag: dev
+  reference: dev
   pullPolicy: Never
 
 controller:
