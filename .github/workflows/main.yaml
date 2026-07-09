@@ -31,7 +31,7 @@ jobs:
     name: "build-images"
     uses: ./.github/workflows/build-images.yaml
     with:
-      test: "true"
+      test: true
 
   example:
     if:  startsWith(github.head_ref, 'bump-chart-')

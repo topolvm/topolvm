@@ -4,7 +4,7 @@ on:
       test_scheduler_extender_type:
         type: string
       test_legacy:
-        type: string
+        type: boolean
 
 permissions:
   contents: read

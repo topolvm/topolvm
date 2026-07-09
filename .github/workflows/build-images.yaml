@@ -15,12 +15,12 @@ on:
         type: string
       push:
         description: "Push images"
-        default: "false"
-        type: string
+        default: false
+        type: boolean
       test:
         description: "Run container-structure-test"
-        default: "false"
-        type: string
+        default: false
+        type: boolean
 
 jobs:
   build-images:
@@ -52,7 +52,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
       - name: Login registry
-        if: ${{ inputs.push == 'true' }}
+        if: ${{ inputs.push }}
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - run: make multi-platform-images
         env:
@@ -61,7 +61,7 @@ jobs:
           IMAGE_PREFIX: ${{ inputs.image_prefix }}
           PUSH: ${{ inputs.push }}
       - name: Run container-structure-test
-        if: ${{ inputs.test == 'true' }}
+        if: ${{ inputs.test }}
         run: |
           make install-container-structure-test
           make container-structure-test STRUCTURE_TEST_TARGET=normal
