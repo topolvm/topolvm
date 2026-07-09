@@ -6,6 +6,7 @@ BINDIR := $(shell pwd)/bin
 CONTROLLER_GEN := $(BINDIR)/controller-gen
 CONTAINER_STRUCTURE_TEST := $(BINDIR)/container-structure-test
 ACTIONLINT := $(BINDIR)/actionlint
+GHALINT := $(BINDIR)/ghalint
 GOLANGCI_LINT = $(BINDIR)/golangci-lint
 PROTOC := PATH=$(BINDIR):$(PATH) $(BINDIR)/protoc -I=$(shell pwd)/include:.
 PACKAGES := unzip lvm2 xfsprogs thin-provisioning-tools patch
@@ -134,6 +135,10 @@ lint: ## Run lint
 run-actionlint: install-actionlint ## Run actionlint for GitHub workflows and actions.
 	$(ACTIONLINT)
 
+.PHONY: run-ghalint
+run-ghalint: install-ghalint ## Run ghalint for GitHub workflows and actions.
+	$(GHALINT) run && $(GHALINT) run-action
+
 .PHONY: lint-fix
 lint-fix: ## Run golangci-lint linter and perform fixes
 	$(GOLANGCI_LINT) run --fix
@@ -248,6 +253,10 @@ install-container-structure-test: | $(BINDIR)
 .PHONY: install-actionlint
 install-actionlint: | $(BINDIR)
 	GOBIN=$(BINDIR) go install github.com/rhysd/actionlint/cmd/actionlint@$(ACTIONLINT_VERSION)
+
+.PHONY: install-ghalint
+install-ghalint: | $(BINDIR)
+	GOBIN=$(BINDIR) go install github.com/suzuki-shunsuke/ghalint/cmd/ghalint@$(GHALINT_VERSION)
 
 .PHONY: install-helm
 install-helm: | $(BINDIR)

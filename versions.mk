@@ -15,6 +15,8 @@ CRI_DOCKERD_VERSION := v0.4.2
 CRICTL_VERSION := v1.35.0
 # https://github.com/rhysd/actionlint/releases
 ACTIONLINT_VERSION := v1.7.12
+# https://github.com/suzuki-shunsuke/ghalint/releases
+GHALINT_VERSION := v1.5.6
 # https://github.com/golangci/golangci-lint/releases
 GOLANGCI_LINT_VERSION := v2.11.4
 # https://github.com/norwoodj/helm-docs/releases
