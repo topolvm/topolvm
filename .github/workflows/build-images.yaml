@@ -17,17 +17,15 @@ on:
         description: "Push images"
         default: "false"
         type: string
+      test:
+        description: "Run container-structure-test"
+        default: "false"
+        type: string
 
 jobs:
   build-images:
     name: "build-images"
     runs-on: "ubuntu-22.04"
-    strategy:
-      fail-fast: true
-      matrix:
-        image:
-          - "normal"
-          - "with-sidecar"
     steps:
       - name: Disk cleanup
         run: |
@@ -41,6 +39,14 @@ jobs:
           sudo rm -rf /usr/local/lib/android
           df -h
       - uses: actions/checkout@v7
+      - name: Configure Docker daemon if necessary
+        # It is necessary to load multi-platform images to the local image store.
+        # see https://docs.docker.com/engine/storage/containerd/
+        run: |
+          if ! docker info -f '{{ .DriverStatus }}' | grep -F 'io.containerd.snapshotter.v1'; then
+            echo '{"features":{"containerd-snapshotter":true}}' | sudo tee /etc/docker/daemon.json
+            sudo systemctl restart docker
+          fi
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
       - name: Set up Docker Buildx
@@ -48,9 +54,18 @@ jobs:
       - name: Login registry
         if: ${{ inputs.push == 'true' }}
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-      - run: make multi-platform-image-${{ matrix.image }}
+      - run: make multi-platform-images
         env:
           TOPOLVM_VERSION: ${{ inputs.topolvm_version }}
           IMAGE_TAG: ${{ inputs.image_tag }}
           IMAGE_PREFIX: ${{ inputs.image_prefix }}
           PUSH: ${{ inputs.push }}
+      - name: Run container-structure-test
+        if: ${{ inputs.test == 'true' }}
+        run: |
+          make install-container-structure-test
+          make container-structure-test STRUCTURE_TEST_TARGET=normal
+          make container-structure-test STRUCTURE_TEST_TARGET=with-sidecar
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          IMAGE_PREFIX: ${{ inputs.image_prefix }}

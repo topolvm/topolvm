@@ -23,9 +23,11 @@ ORIGINAL_IMAGE_TAG ?=
 STRUCTURE_TEST_TARGET ?= normal
 
 PUSH ?= false
-BUILDX_PUSH_OPTIONS := "-o type=tar,dest=build/topolvm.tar"
+BUILDX_BAKE_OPTIONS := --load
+# omit --load when pushing, because it implies --load
+# and the loading will fail due to the already exists error.
 ifeq ($(PUSH),true)
-BUILDX_PUSH_OPTIONS := --push
+BUILDX_BAKE_OPTIONS := --push
 endif
 
 # Set the shell used to bash for better error handling.
@@ -48,9 +50,9 @@ define LEGACY_CRD_TEMPLATE
 endef
 export LEGACY_CRD_TEMPLATE
 
-CONTAINER_STRUCTURE_TEST_IMAGE=$(IMAGE_PREFIX)topolvm:devel
+CONTAINER_STRUCTURE_TEST_IMAGE=$(IMAGE_PREFIX)topolvm:$(IMAGE_TAG)
 ifeq ($(STRUCTURE_TEST_TARGET),with-sidecar)
-CONTAINER_STRUCTURE_TEST_IMAGE=$(IMAGE_PREFIX)topolvm-with-sidecar:devel
+CONTAINER_STRUCTURE_TEST_IMAGE=$(IMAGE_PREFIX)topolvm-with-sidecar:$(IMAGE_TAG)
 endif
 
 export ENVTEST_KUBERNETES_VERSION
@@ -176,16 +178,20 @@ csi-sidecars: ## Build sidecar binaries.
 	mkdir -p build
 	make -f csi-sidecars.mk OUTPUT_DIR=build BUILD_PLATFORMS="linux $(GOARCH)"
 
-.PHONY: image
-image: image-normal image-with-sidecar ## Build topolvm images.
-
-.PHONY: image-normal
-image-normal:
-	docker buildx build --no-cache --load -t $(IMAGE_PREFIX)topolvm:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) --target topolvm .
+.PHONY: images
+images: ## Build topolvm images.
+	IMAGE_PREFIX=$(IMAGE_PREFIX) IMAGE_TAG=$(IMAGE_TAG) TOPOLVM_VERSION=$(TOPOLVM_VERSION) \
+	docker buildx bake --load --no-cache images
 
 .PHONY: image-with-sidecar
 image-with-sidecar:
-	docker buildx build --no-cache --load -t $(IMAGE_PREFIX)topolvm-with-sidecar:devel --build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) --target topolvm-with-sidecar .
+	IMAGE_PREFIX=$(IMAGE_PREFIX) IMAGE_TAG=$(IMAGE_TAG) TOPOLVM_VERSION=$(TOPOLVM_VERSION) \
+	docker buildx bake --load --no-cache topolvm-with-sidecar
+
+.PHONY: multi-platform-images
+multi-platform-images: ## Build or push multi-platform topolvm images.
+	IMAGE_PREFIX=$(IMAGE_PREFIX) IMAGE_TAG=$(IMAGE_TAG) TOPOLVM_VERSION=$(TOPOLVM_VERSION) \
+	docker buildx bake --no-cache $(BUILDX_BAKE_OPTIONS) multi-platform-images
 
 .PHONY: container-structure-test
 container-structure-test: ## Run container-structure-test.
@@ -197,33 +203,6 @@ ifeq ($(STRUCTURE_TEST_TARGET),with-sidecar)
 		--image $(CONTAINER_STRUCTURE_TEST_IMAGE) \
 		--config container-structure-test-with-sidecar.yaml
 endif
-
-.PHONY: create-docker-container
-create-docker-container: ## Create docker-container.
-	docker buildx create --use
-
-.PHONY: multi-platform-images
-multi-platform-images: multi-platform-image-normal multi-platform-image-with-sidecar ## Build or push multi-platform topolvm images.
-
-.PHONY: multi-platform-image-normal
-multi-platform-image-normal:
-	mkdir -p build
-	docker buildx build --no-cache $(BUILDX_PUSH_OPTIONS) \
-		--platform linux/amd64,linux/arm64/v8,linux/ppc64le \
-		-t $(IMAGE_PREFIX)topolvm:$(IMAGE_TAG) \
-		--build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) \
-		--target topolvm \
-		.
-
-.PHONY: multi-platform-image-with-sidecar
-multi-platform-image-with-sidecar:
-	mkdir -p build
-	docker buildx build --no-cache $(BUILDX_PUSH_OPTIONS) \
-		--platform linux/amd64,linux/arm64/v8,linux/ppc64le \
-		-t $(IMAGE_PREFIX)topolvm-with-sidecar:$(IMAGE_TAG) \
-		--build-arg TOPOLVM_VERSION=$(TOPOLVM_VERSION) \
-		--target topolvm-with-sidecar \
-		.
 
 .PHONY: tag
 tag: ## Tag topolvm images.

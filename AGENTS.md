@@ -61,7 +61,7 @@ make check-uncommitted
 make build
 
 # Build Docker images
-make image
+make images
 ```
 
 ### E2E Testing

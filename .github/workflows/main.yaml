@@ -30,24 +30,8 @@ jobs:
   build-images:
     name: "build-images"
     uses: ./.github/workflows/build-images.yaml
-
-  container-structure-test:
-    name: "container-structure-test"
-    needs: build
-    runs-on: "ubuntu-22.04"
-    strategy:
-      fail-fast: true
-      matrix:
-        image:
-          - "normal"
-          - "with-sidecar"
-    steps:
-      - uses: actions/checkout@v7
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-      - run: make install-container-structure-test
-      - run: make image-${{ matrix.image }}
-      - run: make container-structure-test STRUCTURE_TEST_TARGET=${{ matrix.image }}
+    with:
+      test: "true"
 
   example:
     if:  startsWith(github.head_ref, 'bump-chart-')
