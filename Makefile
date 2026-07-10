@@ -7,6 +7,7 @@ CONTROLLER_GEN := $(BINDIR)/controller-gen
 CONTAINER_STRUCTURE_TEST := $(BINDIR)/container-structure-test
 ACTIONLINT := $(BINDIR)/actionlint
 GHALINT := $(BINDIR)/ghalint
+ZIZMOR := $(BINDIR)/zizmor
 GOLANGCI_LINT = $(BINDIR)/golangci-lint
 PROTOC := PATH=$(BINDIR):$(PATH) $(BINDIR)/protoc -I=$(shell pwd)/include:.
 PACKAGES := unzip lvm2 xfsprogs thin-provisioning-tools patch
@@ -139,6 +140,10 @@ run-actionlint: install-actionlint ## Run actionlint for GitHub workflows and ac
 run-ghalint: install-ghalint ## Run ghalint for GitHub workflows and actions.
 	$(GHALINT) run && $(GHALINT) run-action
 
+.PHONY: run-zizmor
+run-zizmor: install-zizmor ## Run zizmor for GitHub workflows and actions.
+	$(ZIZMOR) .
+
 .PHONY: lint-fix
 lint-fix: ## Run golangci-lint linter and perform fixes
 	$(GOLANGCI_LINT) run --fix
@@ -257,6 +262,14 @@ install-actionlint: | $(BINDIR)
 .PHONY: install-ghalint
 install-ghalint: | $(BINDIR)
 	GOBIN=$(BINDIR) go install github.com/suzuki-shunsuke/ghalint/cmd/ghalint@$(GHALINT_VERSION)
+
+.PHONY: install-zizmor
+install-zizmor: | $(BINDIR)
+	{ tmp_archive=$$(mktemp) && \
+	  $(CURL) -o $$tmp_archive https://github.com/zizmorcore/zizmor/releases/download/v$(ZIZMOR_VERSION)/zizmor-x86_64-unknown-linux-gnu.tar.gz && \
+	  echo "$(ZIZMOR_SHA256)  $$tmp_archive" | sha256sum -c && \
+	  tar xzf $$tmp_archive -C $(BINDIR) zizmor && \
+	  rm -f $$tmp_archive; }
 
 .PHONY: install-helm
 install-helm: | $(BINDIR)
