@@ -1,0 +1,4 @@
+excludes:
+  - policy_name: checkout_persist_credentials_should_be_false
+    workflow_file_path: .github/workflows/create-chart-update-pr.yaml
+    job_name: create-chart-update-pr

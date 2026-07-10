@@ -8,11 +8,13 @@ permissions:
 jobs:
   release:
     runs-on: "ubuntu-latest"
+    timeout-minutes: 5
     steps:
       - name: "Checkout"
-        uses: actions/checkout@v7
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: "Configure Git"
         run: |
@@ -22,7 +24,7 @@ jobs:
       # This version is written in `charts/topolvm/README.md`,
       # so do not update it if not necessary.
       - name: "Install Helm"
-        uses: azure/setup-helm@v5
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
         with:
           version: "v3.5.0"
 
@@ -34,7 +36,7 @@ jobs:
           helm repo add cert-manager https://charts.jetstack.io
 
       - name: "Run chart-releaser"
-        uses: helm/chart-releaser-action@v1.7.0
+        uses: helm/chart-releaser-action@cae68fefc6b5f367a0275617c9f83181ba54714f # v1.7.0
         with:
           config: .cr.yaml
         env:

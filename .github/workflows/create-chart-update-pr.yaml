@@ -16,13 +16,14 @@ permissions:
 jobs:
   create-chart-update-pr:
     runs-on: "ubuntu-latest"
+    timeout-minutes: 5
     steps:
       - name: "Validate input"
         run: |
           # The exit code will be 1 if the pattern is not found by grep.
           echo ${{ inputs.app-version }} | grep -E "^[0-9]+.[0-9]+.[0-9]+$"
           echo ${{ inputs.chart-version }} | grep -E "^[0-9]+.[0-9]+.[0-9]+$"
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
       - name: Configure Git
@@ -57,11 +58,12 @@ jobs:
           sed -r -i "s/^(  reference:).*/\1 ${{ inputs.app-version }}@${{ steps.image.outputs.digest }}/" charts/topolvm/values.yaml
           make install-helm-docs && make generate-helm-docs
       - name: Issue an access token
-        uses: actions/create-github-app-token@v3
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         id: app-token
         with:
           app-id: ${{ secrets.PROJECT_APP_ID }}
           private-key: ${{ secrets.PROJECT_APP_PEM }}
+          permission-pull-requests: write
       - name: "Create pull request"
         run: |
           git commit -a -s -m "Bump chart version to ${{ inputs.chart-version }}"
