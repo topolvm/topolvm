@@ -35,6 +35,8 @@ Must update Kubernetes with each new version of Kubernetes.
   - https://github.com/kubernetes/minikube/releases
 - [ ] crictl
   - https://github.com/kubernetes-sigs/cri-tools/releases
+- [ ] kubebuilder
+  - https://github.com/kubernetes-sigs/kubebuilder/releases
 
 ### Release notes check
 
