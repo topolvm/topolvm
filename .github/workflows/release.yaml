@@ -32,7 +32,7 @@ jobs:
         id: export_image_prefix
         run: |
           if [ "${{ secrets.IMAGE_PREFIX }}" != "" ]; then IMAGE_PREFIX=${{ secrets.IMAGE_PREFIX }}; else IMAGE_PREFIX=ghcr.io/topolvm/; fi
-          echo "IMAGE_PREFIX=${IMAGE_PREFIX}" >> ${GITHUB_OUTPUT}
+          echo "image_prefix=${IMAGE_PREFIX}" >> ${GITHUB_OUTPUT}
 
   build-images:
     name: "build-images"
