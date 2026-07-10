@@ -63,19 +63,26 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
+          cache: false
           go-version-file: "go.mod"
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
-      - run: make build/lvmd TOPOLVM_VERSION=${{ needs.prepare.outputs.version }}
-      - run: tar czf lvmd-${{ needs.prepare.outputs.version }}.tar.gz -C ./build lvmd
+      - run: make build/lvmd TOPOLVM_VERSION="$TOPOLVM_VERSION"
+        env:
+          TOPOLVM_VERSION: ${{ needs.prepare.outputs.version }}
+      - run: tar czf "lvmd-${TOPOLVM_VERSION}.tar.gz" -C ./build lvmd
+        env:
+          TOPOLVM_VERSION: ${{ needs.prepare.outputs.version }}
       - name: "Push branch tag"
         if: ${{ needs.prepare.outputs.prerelease == 'false' }}
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-          BRANCH=$(echo "${{ needs.prepare.outputs.version }}" | cut -d "." -f 1-2)
-          make tag IMAGE_TAG="${BRANCH}" ORIGINAL_IMAGE_TAG="${{ needs.prepare.outputs.version }}"
+          printf '%s' "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          BRANCH=$(printf '%s' "$TOPOLVM_VERSION" | cut -d "." -f 1-2)
+          make tag IMAGE_TAG="$BRANCH" ORIGINAL_IMAGE_TAG="$TOPOLVM_VERSION"
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IMAGE_PREFIX: ${{ needs.prepare.outputs.image_prefix }}
+          TOPOLVM_VERSION: ${{ needs.prepare.outputs.version }}
       - name: "Get previous tag"
         id: get_previous_tag
         run: |
@@ -104,14 +111,17 @@ jobs:
             /repos/${{ github.repository }}/releases \
             -f name="Release ${GITHUB_REF_NAME}" \
             -f tag_name="${GITHUB_REF_NAME}" \
-            -f previous_tag_name="${{ steps.get_previous_tag.outputs.previous_tag }}" \
+            -f previous_tag_name="${PREVIOUS_TAG}" \
             -F draft=true \
-            -F prerelease=${{ needs.prepare.outputs.prerelease }} \
+            -F prerelease="${PRERELEASE}" \
             -F generate_release_notes=true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREVIOUS_TAG: ${{ steps.get_previous_tag.outputs.previous_tag }}
+          PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
       - name: "Upload Release Asset"
         run: |
-          gh release upload "${GITHUB_REF_NAME}" "lvmd-${{ needs.prepare.outputs.version }}.tar.gz"
+          gh release upload "${GITHUB_REF_NAME}" "lvmd-${TOPOLVM_VERSION}.tar.gz"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TOPOLVM_VERSION: ${{ needs.prepare.outputs.version }}
