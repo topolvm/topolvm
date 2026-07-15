@@ -49,6 +49,9 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v17.
 | env.topolvm_controller | list | `[]` | Specify environment variables for topolvm_controller container. |
 | env.topolvm_node | list | `[]` | Specify environment variables for topolvm_node container. |
 | env.topolvm_scheduler | list | `[]` | Specify environment variables for topolvm_scheduler container. |
+| extraArgs.csi_provisioner | list | `[]` | Specify extra arguments for csi_provisioner container. |
+| extraArgs.csi_resizer | list | `[]` | Specify extra arguments for csi_resizer container. |
+| extraArgs.csi_snapshotter | list | `[]` | Specify extra arguments for csi_snapshotter container. |
 | image.csi.csiProvisioner | string | `nil` | Specify csi-provisioner image. If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.reference }}` will be used. |
 | image.csi.csiResizer | string | `nil` | Specify csi-resizer image. If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.reference }}` will be used. |
 | image.csi.csiSnapshotter | string | `nil` | Specify csi-snapshot image. If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.reference }}` will be used. |
