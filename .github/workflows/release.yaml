@@ -16,55 +16,73 @@ jobs:
       prerelease: ${{ steps.check_version.outputs.prerelease }}
       image_prefix: ${{ steps.export_image_prefix.outputs.image_prefix }}
     runs-on: "ubuntu-latest"
+    permissions: {}
+    timeout-minutes: 5
     steps:
       - name: "Validate Release Version"
         id: check_version
         run: |
-          VERSION=$(echo $GITHUB_REF | sed -ne 's/[^0-9]*\([0-9]\+\.[0-9]\+\.[0-9]\+\(-.*\)\?\).*/\1/p')
-          if [ "$VERSION" = "" ]; then
+          VERSION=$(echo "${GITHUB_REF}" | sed -ne 's/[^0-9]*\([0-9]\+\.[0-9]\+\.[0-9]\+\(-.*\)\?\).*/\1/p')
+          if [ -z "${VERSION}" ]; then
             # Invalid version format
             exit 1
           fi
-          if [ $(echo $VERSION | grep "-") ]; then PRERELEASE=true; else PRERELEASE=false; fi
-          echo "version=${VERSION}" >> ${GITHUB_OUTPUT}
-          echo "prerelease=${PRERELEASE}" >> ${GITHUB_OUTPUT}
+          if echo "${VERSION}" | grep -q -- "-"; then PRERELEASE=true; else PRERELEASE=false; fi
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "prerelease=${PRERELEASE}" >> "${GITHUB_OUTPUT}"
       - name: "Export IMAGE_PREFIX"
         id: export_image_prefix
         run: |
-          if [ "${{ secrets.IMAGE_PREFIX }}" != "" ]; then IMAGE_PREFIX=${{ secrets.IMAGE_PREFIX }}; else IMAGE_PREFIX=ghcr.io/topolvm/; fi
-          echo "IMAGE_PREFIX=${IMAGE_PREFIX}" >> ${GITHUB_OUTPUT}
+          if [ -n "${{ secrets.IMAGE_PREFIX }}" ]; then IMAGE_PREFIX="${{ secrets.IMAGE_PREFIX }}"; else IMAGE_PREFIX="ghcr.io/topolvm/"; fi
+          echo "IMAGE_PREFIX=${IMAGE_PREFIX}" >> "${GITHUB_OUTPUT}"
 
   build-images:
     name: "build-images"
     needs: prepare
     uses: ./.github/workflows/build-images.yaml
+    permissions:
+      contents: read
+      packages: write
     with:
       topolvm_version: ${{ needs.prepare.outputs.version }}
       image_tag: ${{ needs.prepare.outputs.version }}
       image_prefix: ${{ needs.prepare.outputs.image_prefix }}
-      push: "true"
+      push: true
 
   release:
     name: "release"
     needs: [prepare, build-images]
     runs-on: "ubuntu-22.04"
+    permissions:
+      contents: write
+      packages: write
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6.4.0
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
+          persist-credentials: false
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          cache: false
           go-version-file: "go.mod"
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-      - run: make build/lvmd TOPOLVM_VERSION=${{ needs.prepare.outputs.version }}
-      - run: tar czf lvmd-${{ needs.prepare.outputs.version }}.tar.gz -C ./build lvmd
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+      - run: make build/lvmd TOPOLVM_VERSION="$TOPOLVM_VERSION"
+        env:
+          TOPOLVM_VERSION: ${{ needs.prepare.outputs.version }}
+      - run: tar czf "lvmd-${TOPOLVM_VERSION}.tar.gz" -C ./build lvmd
+        env:
+          TOPOLVM_VERSION: ${{ needs.prepare.outputs.version }}
       - name: "Push branch tag"
         if: ${{ needs.prepare.outputs.prerelease == 'false' }}
         run: |
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          BRANCH=$(echo ${{ needs.prepare.outputs.version }} | cut -d "." -f 1-2)
-          make tag IMAGE_TAG=$BRANCH ORIGINAL_IMAGE_TAG=${{ needs.prepare.outputs.version }}
+          printf '%s' "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          BRANCH=$(printf '%s' "$TOPOLVM_VERSION" | cut -d "." -f 1-2)
+          make tag IMAGE_TAG="$BRANCH" ORIGINAL_IMAGE_TAG="$TOPOLVM_VERSION"
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IMAGE_PREFIX: ${{ needs.prepare.outputs.image_prefix }}
+          TOPOLVM_VERSION: ${{ needs.prepare.outputs.version }}
       - name: "Get previous tag"
         id: get_previous_tag
         run: |
@@ -73,13 +91,13 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             /repos/${{ github.repository }}/git/matching-refs/tags/v)
-          PREV_TAG=$(echo ${RESP} | jq -r '.[].ref' | awk -F "/" '{print $3}' | \
+          PREV_TAG=$(echo "${RESP}" | jq -r '.[].ref' | awk -F "/" '{print $3}' | \
             grep -E "^v[0-9]+\.[0-9]+\.[0-9]+" | sort -V -r | tail -n +2 | head -n 1)
           if [ -z "${PREV_TAG}" ]; then
             echo "PREV_TAG is empty."
             exit 1
           fi
-          echo "previous_tag=${PREV_TAG}" >> ${GITHUB_OUTPUT}
+          echo "previous_tag=${PREV_TAG}" >> "${GITHUB_OUTPUT}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: "Create Release"
@@ -93,14 +111,17 @@ jobs:
             /repos/${{ github.repository }}/releases \
             -f name="Release ${GITHUB_REF_NAME}" \
             -f tag_name="${GITHUB_REF_NAME}" \
-            -f previous_tag_name="${{ steps.get_previous_tag.outputs.previous_tag }}" \
+            -f previous_tag_name="${PREVIOUS_TAG}" \
             -F draft=true \
-            -F prerelease=${{ needs.prepare.outputs.prerelease }} \
+            -F prerelease="${PRERELEASE}" \
             -F generate_release_notes=true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREVIOUS_TAG: ${{ steps.get_previous_tag.outputs.previous_tag }}
+          PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
       - name: "Upload Release Asset"
         run: |
-          gh release upload ${GITHUB_REF_NAME} lvmd-${{ needs.prepare.outputs.version }}.tar.gz
+          gh release upload "${GITHUB_REF_NAME}" "lvmd-${TOPOLVM_VERSION}.tar.gz"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TOPOLVM_VERSION: ${{ needs.prepare.outputs.version }}

@@ -1,0 +1,4 @@
+rules:
+  artipacked:
+    ignore:
+      - create-chart-update-pr.yaml
