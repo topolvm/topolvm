@@ -23,6 +23,7 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v17.
 | controller.minReadySeconds | int | `nil` | Specify minReadySeconds. |
 | controller.nodeFinalize.skipped | bool | `false` | Skip automatic cleanup of PhysicalVolumeClaims when a Node is deleted. |
 | controller.nodeSelector | object | `{}` | Specify nodeSelector. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/ |
+| controller.podAnnotations | object | `{}` | Annotations to be set on the controller pod. |
 | controller.podDisruptionBudget.enabled | bool | `true` | Specify podDisruptionBudget enabled. |
 | controller.podLabels | object | `{}` | Additional labels to be set on the controller pod. |
 | controller.priorityClassName | string | `nil` | Specify priorityClassName. |
@@ -106,6 +107,7 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v17.
 | node.metrics.annotations | object | `{"prometheus.io/port":"metrics"}` | Annotations for Scrape used by Prometheus. |
 | node.metrics.enabled | bool | `true` | If true, enable scraping of metrics by Prometheus. |
 | node.nodeSelector | object | `{}` | Specify nodeSelector. # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/ |
+| node.podAnnotations | object | `{}` | Annotations to be set on the node pods, merged with `node.metrics.annotations` and takes precedence over it. |
 | node.podLabels | object | `{}` | Additional labels to be set on the node pods. |
 | node.podSecurityContext | object | `{}` | Pod securityContext. # ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/ |
 | node.priorityClassName | string | `nil` | Specify priorityClassName. |

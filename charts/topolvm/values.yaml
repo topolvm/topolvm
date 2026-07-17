@@ -407,6 +407,9 @@ node:
   #    maxSurge: 50%
   #    maxUnavailable: 50%
 
+  # node.podAnnotations -- Annotations to be set on the node pods, merged with `node.metrics.annotations` and takes precedence over it.
+  podAnnotations: {}
+
   # node.podLabels -- Additional labels to be set on the node pods.
   podLabels: {}
   # node.labels -- Additional labels to be added to the Daemonset.
@@ -533,6 +536,9 @@ controller:
   podDisruptionBudget:
     # controller.podDisruptionBudget.enabled -- Specify podDisruptionBudget enabled.
     enabled: true
+
+  # controller.podAnnotations -- Annotations to be set on the controller pod.
+  podAnnotations: {}
 
   # controller.podLabels -- Additional labels to be set on the controller pod.
   podLabels: {}

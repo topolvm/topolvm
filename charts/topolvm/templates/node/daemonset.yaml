@@ -24,8 +24,13 @@ spec:
         {{- with .Values.node.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
+      {{- $annotations := merge (dict) (.Values.node.podAnnotations | default dict) }}
       {{- if and .Values.node.metrics.enabled .Values.node.metrics.annotations }}
-      annotations: {{ toYaml .Values.node.metrics.annotations | nindent 8 }}
+      {{- $annotations = merge $annotations .Values.node.metrics.annotations }}
+      {{- end }}
+      {{- with $annotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
       {{- with .Values.node.priorityClassName }}
