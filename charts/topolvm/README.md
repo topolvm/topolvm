@@ -41,6 +41,8 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v17.
 | controller.tolerations | list | `[]` | Specify tolerations. # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ |
 | controller.updateStrategy | object | `{}` | Specify updateStrategy. |
 | controller.volumes | list | `[{"emptyDir":{},"name":"socket-dir"}]` | Specify volumes. |
+| crd | object | `{"annotations":{}}` | CRD configuration. |
+| crd.annotations | object | `{}` | Additional annotations to add to CRDs (e.g. {"helm.sh/resource-policy": "keep"}). |
 | env.csi_provisioner | list | `[]` | Specify environment variables for csi_provisioner container. |
 | env.csi_registrar | list | `[]` | Specify environment variables for csi_registrar container. |
 | env.csi_resizer | list | `[]` | Specify environment variables for csi_resizer container. |
