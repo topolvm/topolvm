@@ -21,6 +21,10 @@ type Config struct {
 	// LVMCommandPrefix is a list of strings necessary to run a LVM command.
 	// For example, if it's X, `/sbin/lvm lvcreate ...` will be run as `X /sbin/lvm lvcreate ...`.
 	LVMCommandPrefix []string `json:"lvm-command-prefix"`
+	// NVMeCheckCommand is the command (binary path plus fixed arguments) used to
+	// issue an NVMe VUC (vendor-unique command) against the device(s) backing a
+	// device-class to verify the hardware supports the feature.
+	NVMeCheckCommand []string `json:"nvme-check-command"`
 }
 
 var config = &Config{

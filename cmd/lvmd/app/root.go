@@ -117,7 +117,7 @@ func subMain(parentCtx context.Context) error {
 	ocm := lvmd.NewLvcreateOptionClassManager(config.LvcreateOptionClasses)
 	vgService, notifier := lvmd.NewVGService(dcm)
 	proto.RegisterVGServiceServer(grpcServer, vgService)
-	proto.RegisterLVServiceServer(grpcServer, lvmd.NewLVService(dcm, ocm, notifier))
+	proto.RegisterLVServiceServer(grpcServer, lvmd.NewLVService(dcm, ocm, config.NVMeCheckCommand, notifier))
 	grpc_health_v1.RegisterHealthServer(grpcServer, lvmd.NewHealthService())
 
 	ctx, stop := signal.NotifyContext(parentCtx, os.Interrupt, syscall.SIGTERM)

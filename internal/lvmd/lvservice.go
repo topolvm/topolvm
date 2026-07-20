@@ -13,20 +13,25 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// NewLVService creates a new LVServiceServer
-func NewLVService(dcmapper *DeviceClassManager, ocmapper *LvcreateOptionClassManager, notifyFunc func()) proto.LVServiceServer {
+// NewLVService creates a new LVServiceServer.
+// nvmeCheckCommand is the command (binary path plus fixed arguments) that issues
+// an NVMe VUC to verify device support before volume-mutating operations. An
+// empty list disables the check.
+func NewLVService(dcmapper *DeviceClassManager, ocmapper *LvcreateOptionClassManager, nvmeCheckCommand []string, notifyFunc func()) proto.LVServiceServer {
 	return &lvService{
-		dcmapper:   dcmapper,
-		ocmapper:   ocmapper,
-		notifyFunc: notifyFunc,
+		dcmapper:    dcmapper,
+		ocmapper:    ocmapper,
+		nvmeChecker: newNVMeChecker(nvmeCheckCommand),
+		notifyFunc:  notifyFunc,
 	}
 }
 
 type lvService struct {
 	proto.UnimplementedLVServiceServer
-	dcmapper   *DeviceClassManager
-	ocmapper   *LvcreateOptionClassManager
-	notifyFunc func()
+	dcmapper    *DeviceClassManager
+	ocmapper    *LvcreateOptionClassManager
+	nvmeChecker *nvmeChecker
+	notifyFunc  func()
 }
 
 func (s *lvService) notify() {
@@ -73,6 +78,10 @@ func (s *lvService) CreateLV(ctx context.Context, req *proto.CreateLVRequest) (*
 		if dc.LVCreateOptions != nil {
 			lvcreateOptions = dc.LVCreateOptions
 		}
+	}
+
+	if err := s.checkNVMe(ctx, dc.VolumeGroup); err != nil {
+		return nil, err
 	}
 
 	err = pool.CreateVolume(ctx, req.GetName(), requested, req.GetTags(), stripe, stripeSize, lvcreateOptions)
@@ -217,6 +226,10 @@ func (s *lvService) CreateLVSnapshot(ctx context.Context, req *proto.CreateLVSna
 	)
 	// Create snapshot lv
 
+	if err := s.checkNVMe(ctx, dc.VolumeGroup); err != nil {
+		return nil, err
+	}
+
 	if err := sourceLV.ThinSnapshot(ctx, req.GetName(), req.GetTags()); err != nil {
 		logger.Error(err, "failed to create snapshot volume")
 		return nil, status.Error(codes.Internal, err.Error())
@@ -314,6 +327,10 @@ func (s *lvService) ResizeLV(ctx context.Context, req *proto.ResizeLVRequest) (*
 			"free", free,
 		)
 		return nil, status.Errorf(codes.ResourceExhausted, "no enough space left on VG: free=%d, requested=%d", free, requested-current)
+	}
+
+	if err := s.checkNVMe(ctx, dc.VolumeGroup); err != nil {
+		return nil, err
 	}
 
 	err = lv.Resize(ctx, requested)

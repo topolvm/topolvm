@@ -38,7 +38,7 @@ func TestNewEmbeddedServiceClients(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			_, vgclient := NewEmbeddedServiceClients(ctx, NewDeviceClassManager(tt.deviceClasses), NewLvcreateOptionClassManager(nil))
+			_, vgclient := NewEmbeddedServiceClients(ctx, NewDeviceClassManager(tt.deviceClasses), NewLvcreateOptionClassManager(nil), nil)
 
 			watchClient, err := vgclient.Watch(ctx, &proto.Empty{}, nil)
 			if err != nil {

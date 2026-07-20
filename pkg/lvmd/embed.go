@@ -12,6 +12,7 @@ func NewEmbeddedServiceClients(
 	ctx context.Context,
 	deviceClasses []*lvmdTypes.DeviceClass,
 	LvcreateOptionClasses []*lvmdTypes.LvcreateOptionClass,
+	nvmeCheckCommand []string,
 ) (
 	proto.LVServiceClient,
 	proto.VGServiceClient,
@@ -19,5 +20,5 @@ func NewEmbeddedServiceClients(
 	dcManager := internalLvmd.NewDeviceClassManager(deviceClasses)
 	lvOptionClassManager := internalLvmd.NewLvcreateOptionClassManager(LvcreateOptionClasses)
 
-	return internalLvmd.NewEmbeddedServiceClients(ctx, dcManager, lvOptionClassManager)
+	return internalLvmd.NewEmbeddedServiceClients(ctx, dcManager, lvOptionClassManager, nvmeCheckCommand)
 }

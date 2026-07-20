@@ -14,12 +14,12 @@ import (
 )
 
 // NewEmbeddedServiceClients creates clients locally calling instead of using gRPC.
-func NewEmbeddedServiceClients(ctx context.Context, dcmapper *DeviceClassManager, ocmapper *LvcreateOptionClassManager) (
+func NewEmbeddedServiceClients(ctx context.Context, dcmapper *DeviceClassManager, ocmapper *LvcreateOptionClassManager, nvmeCheckCommand []string) (
 	proto.LVServiceClient,
 	proto.VGServiceClient,
 ) {
 	vgServiceServerInstance, notifier := NewVGService(dcmapper)
-	lvServiceServerInstance := NewLVService(dcmapper, ocmapper, notifier)
+	lvServiceServerInstance := NewLVService(dcmapper, ocmapper, nvmeCheckCommand, notifier)
 
 	caller := &embeddedServiceClients{
 		lvServiceServer: lvServiceServerInstance,

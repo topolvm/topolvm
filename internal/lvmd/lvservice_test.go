@@ -90,6 +90,7 @@ func setupLVService(ctx context.Context, t *testing.T) (
 			},
 		),
 		NewLvcreateOptionClassManager([]*lvmdTypes.LvcreateOptionClass{}),
+		nil,
 		notifier,
 	)
 

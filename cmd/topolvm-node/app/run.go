@@ -105,6 +105,7 @@ func subMain(ctx context.Context) error {
 			ctx,
 			config.lvmd.DeviceClasses,
 			config.lvmd.LvcreateOptionClasses,
+			config.lvmd.NVMeCheckCommand,
 		)
 	} else {
 		conn, err := grpc.NewClient(
