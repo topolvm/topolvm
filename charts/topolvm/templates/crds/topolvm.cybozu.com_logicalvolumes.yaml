@@ -5,6 +5,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.20.1
+    {{- with .Values.crd.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
   name: logicalvolumes.topolvm.cybozu.com
 spec:
   group: topolvm.cybozu.com

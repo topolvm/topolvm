@@ -53,6 +53,8 @@ define LEGACY_CRD_TEMPLATE
 endef
 export LEGACY_CRD_TEMPLATE
 
+INJECT_CRD_ANNOTATIONS := awk '/controller-gen\.kubebuilder\.io\/version:/{print; print "    {{- with .Values.crd.annotations }}"; print "    {{- toYaml . | nindent 4 }}"; print "    {{- end }}"; next}1'
+
 CONTAINER_STRUCTURE_TEST_IMAGE=$(IMAGE_PREFIX)topolvm:$(IMAGE_TAG)
 ifeq ($(STRUCTURE_TEST_TARGET),with-sidecar)
 CONTAINER_STRUCTURE_TEST_IMAGE=$(IMAGE_PREFIX)topolvm-with-sidecar:$(IMAGE_TAG)
@@ -98,8 +100,8 @@ manifests: generate-legacy-api ## Generate WebhookConfiguration, ClusterRole and
 		webhook \
 		paths="./api/...;./internal/...;./cmd/..." \
 		output:crd:artifacts:config=config/crd/bases
-	cat config/crd/bases/topolvm.io_logicalvolumes.yaml | xargs -d"	" printf "$$CRD_TEMPLATE" > charts/topolvm/templates/crds/topolvm.io_logicalvolumes.yaml
-	cat config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml | xargs -d"	" printf "$$LEGACY_CRD_TEMPLATE" > charts/topolvm/templates/crds/topolvm.cybozu.com_logicalvolumes.yaml
+	cat config/crd/bases/topolvm.io_logicalvolumes.yaml | $(INJECT_CRD_ANNOTATIONS) | xargs -d"	" printf "$$CRD_TEMPLATE" > charts/topolvm/templates/crds/topolvm.io_logicalvolumes.yaml
+	cat config/crd/bases/topolvm.cybozu.com_logicalvolumes.yaml | $(INJECT_CRD_ANNOTATIONS) | xargs -d"	" printf "$$LEGACY_CRD_TEMPLATE" > charts/topolvm/templates/crds/topolvm.cybozu.com_logicalvolumes.yaml
 
 .PHONY: generate-api ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 generate-api: 

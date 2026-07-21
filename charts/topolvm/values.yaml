@@ -1,6 +1,11 @@
 # useLegacy -- If true, the legacy plugin name and legacy custom resource group is used(topolvm.cybozu.com).
 useLegacy: false
 
+# crd -- CRD configuration.
+crd:
+  # crd.annotations -- Additional annotations to add to CRDs (e.g. {"helm.sh/resource-policy": "keep"}).
+  annotations: {}
+
 image:
   # image.repository -- TopoLVM image repository to use.
   repository: ghcr.io/topolvm/topolvm-with-sidecar
