@@ -160,14 +160,9 @@ deleted manually by a cluster administrator.
 
 ### The Controller for PersistentVolumeClaims
 
-The controller accomplishes two tasks.
+The controller accomplishes the following task for PVCs:
 
-1. Delete Pods using PVCs under deletion.
-When a PVC for TopoLVM is being deleted, the controller deletes pods referencing
-the PVC, if any. This is repeated until other finalizers to be completed.
-Once it becomes the last finalizer, it removes the finalizer to immediately delete the PVC.
-
-2. Speed up resizing a PVC filesystem by nudging the kubelet.
+1. Speed up resizing a PVC filesystem by nudging the kubelet.
 kubelet watches Pods rather than PVCs periodically to resize the filesystem,
 therefore the filesystem resizing may be delayed.
 To avoid this, the controller will notify kubelet by setting
