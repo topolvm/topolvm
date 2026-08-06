@@ -21,6 +21,9 @@ If we find some interesting features added in new versions, please consider if w
 
 Choose the next version and check the [release note](https://kubernetes.io/docs/setup/release/notes/). e.g. 1.17, 1.18, 1.19 -> 1.18, 1.19, 1.20
 
+As for the patch version, choose one supported by the minikube version (`MINIKUBE_VERSION` in `versions.mk`), because the e2e tests launch a Kubernetes cluster with minikube.
+You can list the supported versions with the `minikube config defaults kubernetes-version` command.
+
 Edit the following files.
 - `docs/advanced-setup.md`
 - `README.md`
