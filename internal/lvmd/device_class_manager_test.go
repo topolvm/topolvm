@@ -268,7 +268,7 @@ func TestValidateDeviceClasses(t *testing.T) {
 		},
 		{
 			deviceClasses: []*lvmdTypes.DeviceClass{
-				// incomplete thinpool info, no OverprovisionRatio
+				// thinpool info without OverprovisionRatio
 				{
 					Name:        "dev0",
 					VolumeGroup: "vg0",
@@ -279,7 +279,7 @@ func TestValidateDeviceClasses(t *testing.T) {
 					},
 				},
 			},
-			valid: false,
+			valid: true,
 		},
 		{
 			deviceClasses: []*lvmdTypes.DeviceClass{
