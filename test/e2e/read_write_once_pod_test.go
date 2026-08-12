@@ -88,7 +88,7 @@ func testReadWriteOncePod() {
 			for _, c := range pod.Status.Conditions {
 				//nolint:lll
 				// https://github.com/kubernetes/kubernetes/blob/v1.33.7/pkg/scheduler/framework/plugins/volumerestrictions/volume_restrictions.go#L57-L58
-				// https://github.com/kubernetes/kubernetes/blob/v1.35.4/pkg/scheduler/framework/plugins/volumerestrictions/volume_restrictions.go#L59-L60
+				// https://github.com/kubernetes/kubernetes/blob/v1.35.1/pkg/scheduler/framework/plugins/volumerestrictions/volume_restrictions.go#L59-L60
 
 				//nolint:lll
 				if c.Type == corev1.PodScheduled &&

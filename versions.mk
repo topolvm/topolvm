@@ -32,7 +32,9 @@ HELM_VERSION := 3.20.2
 # https://github.com/kubernetes-sigs/kind/releases
 KIND_VERSION := v0.31.0
 # It is set by CI using the environment variable, use conditional assignment.
-KUBERNETES_VERSION ?= 1.35.4
+# Use a Kubernetes version supported by the minikube version below.
+# The patch version may differ from the k8s patch version in go.mod.
+KUBERNETES_VERSION ?= 1.35.1
 KUBERNETES_MINOR = $(shell echo $(KUBERNETES_VERSION) | cut -d '.' -f2)
 # https://github.com/kubernetes/minikube/releases
 MINIKUBE_VERSION := v1.38.1
@@ -68,7 +70,7 @@ NODE_DRIVER_REGISTRAR_VERSION := 2.16.0
 # ref. https://github.com/kubernetes-sigs/kind/releases
 # NOTE: If kind does not have a prebuilt image for the exact patch version,
 # we use the image from the latest available patch version for the same minor version.
-ifeq ($(KUBERNETES_VERSION), 1.35.4)
+ifeq ($(KUBERNETES_VERSION), 1.35.1)
 	KIND_NODE_IMAGE=kindest/node:v1.35.0@sha256:452d707d4862f52530247495d180205e029056831160e22870e37e3f6c1ac31f
 else ifeq ($(KUBERNETES_VERSION), 1.34.3)
 	KIND_NODE_IMAGE=kindest/node:v1.34.3@sha256:08497ee19eace7b4b5348db5c6a1591d7752b164530a36f855cb0f2bdcbadd48
