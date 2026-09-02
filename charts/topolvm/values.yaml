@@ -11,7 +11,7 @@ image:
   repository: ghcr.io/topolvm/topolvm-with-sidecar
 
   # image.reference -- TopoLVM image reference (a tag and/or a digest, e.g. "0.41.0@sha256:...") to use.
-  reference: 0.41.0@sha256:5faf5b94557516ae0f6fa7d329a5a4305e22aa2dc464af7641b31f2aca618036
+  reference: 0.41.1@sha256:70548dbe0c6addcccf79a557f29e95db2e6dc2cba2102988c91f30086004d0fc
 
   # image.pullPolicy -- TopoLVM image pullPolicy.
   pullPolicy:  # Always
