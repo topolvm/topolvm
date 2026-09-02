@@ -90,11 +90,12 @@ rules:
   - apiGroups: [""]
     resources: ["events"]
     verbs: ["list", "watch", "create", "update", "patch"]
-  # The "watch" and "update" verbs for volumesnapshots are optional but recommended.
-  # They enable finalizer-based protection to prevent snapshots from being deleted
-  # during provisioning. Without these permissions, the provisioner will still function
-  # but snapshot protection will be unavailable. This makes the provisioner backwards
-  # compatible with older RBAC configurations.
+  # The "watch", "update", and "list" verbs for volumesnapshots are optional but
+  # recommended. They enable finalizer-based protection to prevent snapshots from
+  # being deleted during provisioning, and allow periodic sweeps to clean up
+  # orphaned finalizers. Without these permissions, the provisioner will still
+  # function but snapshot protection will be unavailable. This makes the
+  # provisioner backwards compatible with older RBAC configurations.
   - apiGroups: ["snapshot.storage.k8s.io"]
     resources: ["volumesnapshots"]
     verbs: ["get", "list", "watch", "update"]

@@ -56,15 +56,15 @@ ENVTEST_KUBERNETES_VERSION := $(shell echo $(KUBERNETES_VERSION) | cut -d "." -f
 
 # CSI sidecar versions
 # https://github.com/kubernetes-csi/external-provisioner/releases
-EXTERNAL_PROVISIONER_VERSION := 6.2.0
+EXTERNAL_PROVISIONER_VERSION := 6.3.0
 # https://github.com/kubernetes-csi/external-resizer/releases
-EXTERNAL_RESIZER_VERSION := 2.1.0
+EXTERNAL_RESIZER_VERSION := 2.2.1
 # https://github.com/kubernetes-csi/external-snapshotter/releases
-EXTERNAL_SNAPSHOTTER_VERSION := 8.5.0
+EXTERNAL_SNAPSHOTTER_VERSION := 8.6.0
 # https://github.com/kubernetes-csi/livenessprobe/releases
-LIVENESSPROBE_VERSION := 2.18.0
+LIVENESSPROBE_VERSION := 2.19.0
 # https://github.com/kubernetes-csi/node-driver-registrar/releases
-NODE_DRIVER_REGISTRAR_VERSION := 2.16.0
+NODE_DRIVER_REGISTRAR_VERSION := 2.17.0
 
 # The container version of kind must be with the digest.
 # ref. https://github.com/kubernetes-sigs/kind/releases
