@@ -34,4 +34,20 @@ spec:
     metricRelabelings:
       {{- toYaml . | nindent 6 }}
     {{- end }}
+  - path: /metrics
+    port: csi-provisioner
+    {{- with .Values.controller.prometheus.podMonitor.interval }}
+    interval: {{ . }}
+    {{- end }}
+    {{- with .Values.controller.prometheus.podMonitor.scrapeTimeout }}
+    scrapeTimeout: {{ . }}
+    {{- end }}
+    {{- with .Values.controller.prometheus.podMonitor.relabelings }}
+    relabelings:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.controller.prometheus.podMonitor.metricRelabelings }}
+    metricRelabelings:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
 {{- end }}
