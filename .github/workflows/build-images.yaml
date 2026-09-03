@@ -28,6 +28,7 @@ jobs:
     runs-on: "ubuntu-22.04"
     permissions:
       contents: read
+      id-token: write
       packages: write
     timeout-minutes: 60
     steps:
@@ -45,6 +46,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: ./.github/actions/setup-go
+        with:
+          cache: false
+          go-version-file: "go.mod"
+          takumi-guard-bot-id: ${{ vars.TAKUMI_GUARD_BOT_ID }}
       - name: Configure Docker daemon if necessary
         # It is necessary to load multi-platform images to the local image store.
         # see https://docs.docker.com/engine/storage/containerd/
