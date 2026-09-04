@@ -16,6 +16,12 @@ ENVTEST_ASSETS_DIR := $(shell pwd)/testbin
 GO_FILES=$(shell find -name '*.go' -not -name '*_test.go')
 GOOS := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
+GOPROXY ?= $(shell go env GOPROXY)
+NETRC_PATH := $(wildcard $(HOME)/.netrc)
+BUILDX_BAKE_ALLOW :=
+ifneq ($(NETRC_PATH),)
+BUILDX_BAKE_ALLOW := --allow=fs.read='$(NETRC_PATH)'
+endif
 GOFLAGS =
 export GOFLAGS
 
@@ -198,17 +204,20 @@ csi-sidecars: ## Build sidecar binaries.
 .PHONY: images
 images: ## Build topolvm images.
 	IMAGE_PREFIX=$(IMAGE_PREFIX) IMAGE_TAG=$(IMAGE_TAG) TOPOLVM_VERSION=$(TOPOLVM_VERSION) \
-	docker buildx bake --load --no-cache images
+	GOPROXY='$(GOPROXY)' NETRC_PATH='$(NETRC_PATH)' \
+	docker buildx bake $(BUILDX_BAKE_ALLOW) --load --no-cache images
 
 .PHONY: image-with-sidecar
 image-with-sidecar:
 	IMAGE_PREFIX=$(IMAGE_PREFIX) IMAGE_TAG=$(IMAGE_TAG) TOPOLVM_VERSION=$(TOPOLVM_VERSION) \
-	docker buildx bake --load --no-cache topolvm-with-sidecar
+	GOPROXY='$(GOPROXY)' NETRC_PATH='$(NETRC_PATH)' \
+	docker buildx bake $(BUILDX_BAKE_ALLOW) --load --no-cache topolvm-with-sidecar
 
 .PHONY: multi-platform-images
 multi-platform-images: ## Build or push multi-platform topolvm images.
 	IMAGE_PREFIX=$(IMAGE_PREFIX) IMAGE_TAG=$(IMAGE_TAG) TOPOLVM_VERSION=$(TOPOLVM_VERSION) \
-	docker buildx bake --no-cache $(BUILDX_BAKE_OPTIONS) multi-platform-images
+	GOPROXY='$(GOPROXY)' NETRC_PATH='$(NETRC_PATH)' \
+	docker buildx bake $(BUILDX_BAKE_ALLOW) --no-cache $(BUILDX_BAKE_OPTIONS) multi-platform-images
 
 .PHONY: container-structure-test
 container-structure-test: ## Run container-structure-test.

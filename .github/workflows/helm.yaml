@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   lint:
@@ -22,9 +23,10 @@ jobs:
           persist-credentials: false
 
       - name: "Setup Go"
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        uses: ./.github/actions/setup-go
         with:
           go-version-file: "go.mod"
+          takumi-guard-bot-id: ${{ vars.TAKUMI_GUARD_BOT_ID }}
 
       - name: "Setup Tools"
         run: |
