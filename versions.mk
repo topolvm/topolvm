@@ -10,9 +10,9 @@ CNI_PLUGINS_VERSION := v1.9.1
 # https://github.com/GoogleContainerTools/container-structure-test/releases
 CONTAINER_STRUCTURE_TEST_VERSION := 1.22.1
 # https://github.com/Mirantis/cri-dockerd/releases
-CRI_DOCKERD_VERSION := v0.4.2
+CRI_DOCKERD_VERSION := v0.4.3
 # https://github.com/kubernetes-sigs/cri-tools/releases
-CRICTL_VERSION := v1.35.0
+CRICTL_VERSION := v1.36.0
 # https://github.com/rhysd/actionlint/releases
 ACTIONLINT_VERSION := v1.7.12
 # https://github.com/suzuki-shunsuke/ghalint/releases
@@ -30,14 +30,14 @@ HELM_VERSION := 3.20.2
 # kind node image version is related to kind version.
 # if you change kind version, also change kind node image version.
 # https://github.com/kubernetes-sigs/kind/releases
-KIND_VERSION := v0.31.0
+KIND_VERSION := v0.32.0
 # It is set by CI using the environment variable, use conditional assignment.
 # Use a Kubernetes version supported by the minikube version below.
 # The patch version may differ from the k8s patch version in go.mod.
-KUBERNETES_VERSION ?= 1.35.1
+KUBERNETES_VERSION ?= 1.36.4
 KUBERNETES_MINOR = $(shell echo $(KUBERNETES_VERSION) | cut -d '.' -f2)
 # https://github.com/kubernetes/minikube/releases
-MINIKUBE_VERSION := v1.38.1
+MINIKUBE_VERSION := v1.39.0
 # https://github.com/protocolbuffers/protobuf/releases
 PROTOC_VERSION := 34.1
 # https://github.com/mikefarah/yq/releases
@@ -70,10 +70,10 @@ NODE_DRIVER_REGISTRAR_VERSION := 2.16.0
 # ref. https://github.com/kubernetes-sigs/kind/releases
 # NOTE: If kind does not have a prebuilt image for the exact patch version,
 # we use the image from the latest available patch version for the same minor version.
-ifeq ($(KUBERNETES_VERSION), 1.35.1)
-	KIND_NODE_IMAGE=kindest/node:v1.35.0@sha256:452d707d4862f52530247495d180205e029056831160e22870e37e3f6c1ac31f
-else ifeq ($(KUBERNETES_VERSION), 1.34.3)
-	KIND_NODE_IMAGE=kindest/node:v1.34.3@sha256:08497ee19eace7b4b5348db5c6a1591d7752b164530a36f855cb0f2bdcbadd48
-else ifeq ($(KUBERNETES_VERSION), 1.33.7)
-	KIND_NODE_IMAGE=kindest/node:v1.33.7@sha256:d26ef333bdb2cbe9862a0f7c3803ecc7b4303d8cea8e814b481b09949d353040
+ifeq ($(KUBERNETES_VERSION), 1.36.4)
+	KIND_NODE_IMAGE=kindest/node:v1.36.1@sha256:3489c7674813ba5d8b1a9977baea8a6e553784dab7b84759d1014dbd78f7ebd5
+else ifeq ($(KUBERNETES_VERSION), 1.35.5)
+	KIND_NODE_IMAGE=kindest/node:v1.35.5@sha256:ce977ae6d65918d0b58a5f8b5e940429c2ce42fa3a5619ec2bbc60b949c0ac95
+else ifeq ($(KUBERNETES_VERSION), 1.34.8)
+	KIND_NODE_IMAGE=kindest/node:v1.34.8@sha256:02722c2dedddcfc00febf5d27fbeb9b7b2c14294c82109ff4a85d89ac9ba3256
 endif

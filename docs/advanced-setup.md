@@ -258,7 +258,7 @@ apiVersion: kubeadm.k8s.io/v1beta3
 kind: ClusterConfiguration
 metadata:
   name: config
-kubernetesVersion: v1.35.1
+kubernetesVersion: v1.36.4
 scheduler:
   extraVolumes:
     - name: "config"
