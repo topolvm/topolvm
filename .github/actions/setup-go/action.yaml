@@ -1,0 +1,37 @@
+# Calling workflows must grant the `id-token: write` permission for Takumi Guard authentication.
+name: "Set up Go"
+description: "This action sets up Go and Takumi Guard."
+inputs:
+  go-version:
+    description: "The Go version to install."
+    required: false
+  go-version-file:
+    description: "The path to a file containing the Go version."
+    required: false
+  cache:
+    description: "Whether to enable the Go build cache."
+    required: false
+    default: "true"
+  takumi-guard-bot-id:
+    description: "The Takumi Guard bot ID."
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      with:
+        go-version: ${{ inputs.go-version }}
+        go-version-file: ${{ inputs.go-version-file }}
+        cache: ${{ inputs.cache }}
+    - name: "Set up Takumi Guard with authentication"
+      if: >-
+        github.event_name != 'pull_request' ||
+        github.event.pull_request.head.repo.full_name == github.repository
+      uses: flatt-security/setup-takumi-guard-golang@1c8aa7498f7f635fbd6ad6a0f436d03092b3502d # v1.1.0
+      with:
+        bot-id: ${{ inputs.takumi-guard-bot-id }}
+    - name: "Set up Takumi Guard without authentication for forked pull requests"
+      if: >-
+        github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name != github.repository
+      uses: flatt-security/setup-takumi-guard-golang@1c8aa7498f7f635fbd6ad6a0f436d03092b3502d # v1.1.0

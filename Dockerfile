@@ -4,12 +4,14 @@ FROM --platform=$BUILDPLATFORM golang:1.25-bookworm AS build-topolvm
 # Get argument
 ARG TOPOLVM_VERSION
 ARG TARGETARCH
+ARG GOPROXY
 
 COPY . /workdir
 WORKDIR /workdir
 
 RUN touch pkg/lvmd/proto/*.go
-RUN make build-topolvm TOPOLVM_VERSION=${TOPOLVM_VERSION} GOARCH=${TARGETARCH}
+RUN --mount=type=secret,id=netrc,target=/root/.netrc,required=false \
+    make build-topolvm TOPOLVM_VERSION=${TOPOLVM_VERSION} GOARCH=${TARGETARCH}
 
 # TopoLVM container
 FROM ubuntu:22.04 AS topolvm
@@ -44,7 +46,8 @@ RUN  apt-get update \
     && apt-get -y install --no-install-recommends \
         patch
 
-RUN make csi-sidecars GOARCH=${TARGETARCH}
+RUN --mount=type=secret,id=netrc,target=/root/.netrc,required=false \
+    make csi-sidecars GOARCH=${TARGETARCH}
 
 # TopoLVM container with sidecar
 FROM topolvm AS topolvm-with-sidecar
