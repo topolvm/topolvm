@@ -55,7 +55,7 @@ else ifeq ($(TEST_LVMD_TYPE),embedded)
 HELM_VALUES_FILES += manifests/values/embedded-lvmd.yaml
 endif
 
-ifeq ($(shell [ $(STORAGE_CAPACITY) = "true" ] && [ $(KUBERNETES_MINOR) -ge 33 ] && echo yes),yes)
+ifeq ($(STORAGE_CAPACITY),true)
 STORAGE_CAPACITY_SCORING := true
 MINIKUBE_FEATURE_GATES := $(MINIKUBE_FEATURE_GATES),StorageCapacityScoring=true
 endif

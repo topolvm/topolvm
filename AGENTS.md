@@ -32,7 +32,7 @@ When you use AI assistance on this project, the AI reads this file to understand
 
 ## Project Overview
 
-- **Language**: Go 1.24.0
+- **Language**: Go 1.26.0
 - **Framework**: Kubernetes controller-runtime
 - **Type**: CSI (Container Storage Interface) plugin for Kubernetes using LVM
 - **License**: [LICENSE](./LICENSE)

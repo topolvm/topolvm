@@ -23,6 +23,12 @@ import (
 const (
 	metricsNamespace = "topolvm"
 
+	metricsSubsystemVolumeGroup = "volumegroup"
+	metricsSubsystemThinPool    = "thinpool"
+
+	metricsLabelNode        = "node"
+	metricsLabelDeviceClass = "device_class"
+
 	TypeThick = "thick"
 	TypeThin  = "thin"
 )
@@ -66,52 +72,52 @@ func NewMetricsExporter(vgServiceClient proto.VGServiceClient, client client.Cli
 	// metrics available under volumegroup subsystem
 	availableBytes := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace:   metricsNamespace,
-		Subsystem:   "volumegroup",
+		Subsystem:   metricsSubsystemVolumeGroup,
 		Name:        "available_bytes",
 		Help:        "LVM VG available bytes under lvmd management",
-		ConstLabels: prometheus.Labels{"node": nodeName},
-	}, []string{"device_class"})
+		ConstLabels: prometheus.Labels{metricsLabelNode: nodeName},
+	}, []string{metricsLabelDeviceClass})
 
 	sizeBytes := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace:   metricsNamespace,
-		Subsystem:   "volumegroup",
+		Subsystem:   metricsSubsystemVolumeGroup,
 		Name:        "size_bytes",
 		Help:        "LVM VG size bytes under lvmd management",
-		ConstLabels: prometheus.Labels{"node": nodeName},
-	}, []string{"device_class"})
+		ConstLabels: prometheus.Labels{metricsLabelNode: nodeName},
+	}, []string{metricsLabelDeviceClass})
 
 	// metrics available under thinpool subsystem
 	tpSizeBytes := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace:   metricsNamespace,
-		Subsystem:   "thinpool",
+		Subsystem:   metricsSubsystemThinPool,
 		Name:        "size_bytes",
 		Help:        "LVM VG Thin Pool raw size bytes",
-		ConstLabels: prometheus.Labels{"node": nodeName},
-	}, []string{"device_class"})
+		ConstLabels: prometheus.Labels{metricsLabelNode: nodeName},
+	}, []string{metricsLabelDeviceClass})
 
 	dataPercent := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace:   metricsNamespace,
-		Subsystem:   "thinpool",
+		Subsystem:   metricsSubsystemThinPool,
 		Name:        "data_percent",
 		Help:        "LVM VG Thin Pool data usage percent",
-		ConstLabels: prometheus.Labels{"node": nodeName},
-	}, []string{"device_class"})
+		ConstLabels: prometheus.Labels{metricsLabelNode: nodeName},
+	}, []string{metricsLabelDeviceClass})
 
 	metadataPercent := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace:   metricsNamespace,
-		Subsystem:   "thinpool",
+		Subsystem:   metricsSubsystemThinPool,
 		Name:        "metadata_percent",
 		Help:        "LVM VG Thin Pool metadata usage percent",
-		ConstLabels: prometheus.Labels{"node": nodeName},
-	}, []string{"device_class"})
+		ConstLabels: prometheus.Labels{metricsLabelNode: nodeName},
+	}, []string{metricsLabelDeviceClass})
 
 	opAvailableBytes := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace:   metricsNamespace,
-		Subsystem:   "thinpool",
+		Subsystem:   metricsSubsystemThinPool,
 		Name:        "overprovisioned_available",
 		Help:        "LVM VG Thin Pool bytes available with overprovisioning",
-		ConstLabels: prometheus.Labels{"node": nodeName},
-	}, []string{"device_class"})
+		ConstLabels: prometheus.Labels{metricsLabelNode: nodeName},
+	}, []string{metricsLabelDeviceClass})
 
 	return &metricsExporter{
 		client:         client,

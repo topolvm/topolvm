@@ -4,6 +4,11 @@ run:
   allow-parallel-runners: true
 linters:
   settings:
+    goconst:
+      # Repeated literals in table-driven tests are not worth extracting to constants.
+      # This cannot be expressed with `linters.exclusions.rules`, because goconst
+      # counts occurrences across all the files in a package.
+      ignore-tests: true
     staticcheck:
       dot-import-whitelist: # allow dot imports for the following packages
         - github.com/onsi/gomega
