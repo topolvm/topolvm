@@ -135,7 +135,7 @@ Update `cri-dockerd` to a version specified in CRI_DOCKERD_VERSION in [the minik
 
 #### Depending Modules
 
-Read [kubernetes go.mod](https://github.com/kubernetes/kubernetes/blob/master/go.mod), and update the `prometheus/*` and `grpc` modules.
+Read [kubernetes go.mod](https://github.com/kubernetes/kubernetes/blob/master/go.mod), and update the `prometheus/*`, `grpc`, and `k8s.io/utils` modules.
 
 #### Update Upstream Information
 
