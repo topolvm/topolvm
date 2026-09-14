@@ -231,6 +231,11 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 			return nil, err
 		}
 
+		if sourceVol.Status.CurrentSize == nil {
+			// Spec.Size is the requested size, not the size LVM allocated.
+			return nil, status.Error(codes.Aborted, "source volume size is not available yet")
+		}
+
 		// check if the volume is equal or bigger than the source volume.
 		sourceSizeBytes := sourceVol.Status.CurrentSize.Value()
 		if requestCapacityBytes < sourceSizeBytes {
@@ -295,6 +300,12 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 		return nil, err
+	}
+
+	if volume.Status.CurrentSize == nil {
+		// Spec.Size is only the requested size, and the CO persists the returned
+		// capacity in the PV.
+		return nil, status.Error(codes.Aborted, "volume size is not available yet")
 	}
 
 	return &csi.CreateVolumeResponse{
@@ -377,6 +388,12 @@ func (s controllerServerNoLocked) CreateSnapshot(ctx context.Context, req *csi.C
 		}
 		return nil, status.Error(codes.Internal, err.Error())
 	}
+	currentSize := sourceVol.Status.CurrentSize
+	if currentSize == nil {
+		// Spec.Size is the requested size, not the size LVM allocated.
+		return nil, status.Error(codes.Aborted, "source volume size is not available yet")
+	}
+
 	snapTimeStamp := &timestamp.Timestamp{
 		Seconds: time.Now().Unix(),
 		Nanos:   0,
@@ -385,7 +402,6 @@ func (s controllerServerNoLocked) CreateSnapshot(ctx context.Context, req *csi.C
 	node := sourceVol.Spec.NodeName
 	deviceClass := sourceVol.Spec.DeviceClass
 	sourceVolName := sourceVol.Spec.Name
-	currentSize := sourceVol.Status.CurrentSize
 	snapshot, err := s.lvService.CreateSnapshot(ctx, node, deviceClass, sourceVolName, name, accessType, *currentSize)
 	if err != nil {
 		_, ok := status.FromError(err)
@@ -393,6 +409,10 @@ func (s controllerServerNoLocked) CreateSnapshot(ctx context.Context, req *csi.C
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 		return nil, err
+	}
+
+	if snapshot.Status.CurrentSize == nil {
+		return nil, status.Error(codes.Aborted, "snapshot size is not available yet")
 	}
 
 	return &csi.CreateSnapshotResponse{
