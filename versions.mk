@@ -1,5 +1,5 @@
 # https://github.com/docker/buildx/releases
-BUILDX_VERSION := 0.33.0
+BUILDX_VERSION := 0.37.1
 # If you update the version, you also need to update getting-started.md.
 # https://github.com/cert-manager/cert-manager/releases
 CERT_MANAGER_VERSION := v1.17.4
@@ -12,7 +12,7 @@ CONTAINER_STRUCTURE_TEST_VERSION := 1.22.1
 # https://github.com/Mirantis/cri-dockerd/releases
 CRI_DOCKERD_VERSION := v0.4.4
 # https://github.com/kubernetes-sigs/cri-tools/releases
-CRICTL_VERSION := v1.35.0
+CRICTL_VERSION := v1.37.0
 # https://github.com/rhysd/actionlint/releases
 ACTIONLINT_VERSION := v1.7.12
 # https://github.com/suzuki-shunsuke/ghalint/releases
@@ -40,7 +40,7 @@ MINIKUBE_VERSION := v1.39.0
 # https://github.com/protocolbuffers/protobuf/releases
 PROTOC_VERSION := 36.1
 # https://github.com/mikefarah/yq/releases
-YQ_VERSION := 4.53.2
+YQ_VERSION := 4.53.6
 
 # Tools versions which are defined in go.mod
 SELF_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
