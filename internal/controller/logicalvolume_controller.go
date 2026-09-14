@@ -160,20 +160,21 @@ func (r *LogicalVolumeReconciler) removeLVIfExists(ctx context.Context, log logr
 	return nil
 }
 
-func (r *LogicalVolumeReconciler) volumeExists(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) (bool, error) {
+// findVolume returns the existing LVM logical volume for lv, or nil if it does not exist.
+func (r *LogicalVolumeReconciler) findVolume(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) (*proto.LogicalVolume, error) {
 	respList, err := r.vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: lv.Spec.DeviceClass})
 	if err != nil {
 		log.Error(err, "failed to get list of LV")
-		return false, err
+		return nil, err
 	}
 
 	for _, v := range respList.Volumes {
 		if v.Name != string(lv.UID) {
 			continue
 		}
-		return true, nil
+		return v, nil
 	}
-	return false, nil
+	return nil, nil
 }
 
 func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) error {
@@ -187,16 +188,17 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 
 	err := func() error {
 		// In case the controller crashed just after LVM LV creation, LV may already exist.
-		found, err := r.volumeExists(ctx, log, lv)
+		existingLV, err := r.findVolume(ctx, log, lv)
 		if err != nil {
 			lv.Status.Code = codes.Internal
 			lv.Status.Message = "failed to check volume existence"
 			return err
 		}
-		if found {
+		if existingLV != nil {
 			log.Info("set volumeID to existing LogicalVolume", "name", lv.Name, "uid", lv.UID, "status.volumeID", lv.Status.VolumeID)
-			// Don't set CurrentSize here because the Spec.Size field may be updated after the LVM LV is created.
 			lv.Status.VolumeID = string(lv.UID)
+			// Spec.Size is the requested size, not the size LVM allocated.
+			lv.Status.CurrentSize = resource.NewQuantity(existingLV.SizeBytes, resource.BinarySI)
 			lv.Status.Code = codes.OK
 			lv.Status.Message = ""
 			return nil
