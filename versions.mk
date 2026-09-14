@@ -22,7 +22,7 @@ ZIZMOR_VERSION := 1.26.1
 # SHA256 checksum of the zizmor release tarball for verification
 ZIZMOR_SHA256 := 8556289a64e7aaf2400cd516f61a471aa91c5902cc56ad96a82fd12f90c2ef73
 # https://github.com/golangci/golangci-lint/releases
-GOLANGCI_LINT_VERSION := v2.11.4
+GOLANGCI_LINT_VERSION := v2.13.2
 # https://github.com/norwoodj/helm-docs/releases
 HELM_DOCS_VERSION := 1.14.2
 # https://github.com/helm/helm/releases
