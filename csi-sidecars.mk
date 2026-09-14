@@ -2,6 +2,12 @@ SELF_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
 
 include $(SELF_DIR)/versions.mk
 
+# The sidecars are rebuilt against the same gRPC version as TopoLVM itself,
+# so an unresolved version must not silently become "go get ...@v".
+ifeq ($(strip $(GRPC_VERSION)),)
+$(error GRPC_VERSION could not be resolved from go.mod)
+endif
+
 CSI_SIDECARS = \
 	external-provisioner \
 	external-snapshotter \
@@ -32,6 +38,7 @@ $(OUTPUT_DIR)/.csi-provisioner-$(EXTERNAL_PROVISIONER_VERSION):
 	mkdir -p $(EXTERNAL_PROVISIONER_SRC)
 	$(CURL) https://github.com/kubernetes-csi/external-provisioner/archive/v$(EXTERNAL_PROVISIONER_VERSION).tar.gz | \
         tar zxf - --strip-components 1 -C $(EXTERNAL_PROVISIONER_SRC)
+	cd $(EXTERNAL_PROVISIONER_SRC) && go get google.golang.org/grpc@v$(GRPC_VERSION) && go mod tidy && go mod vendor
 	patch -d $(EXTERNAL_PROVISIONER_SRC)/release-tools < $(SELF_DIR)/cache-packages.patch
 	make -C $(EXTERNAL_PROVISIONER_SRC)
 	cp -f $(EXTERNAL_PROVISIONER_SRC)/bin/csi-provisioner $@
@@ -44,6 +51,7 @@ $(OUTPUT_DIR)/.csi-snapshotter-$(EXTERNAL_SNAPSHOTTER_VERSION):
 	mkdir -p $(EXTERNAL_SNAPSHOTTER_SRC)
 	curl -sSLf https://github.com/kubernetes-csi/external-snapshotter/archive/v$(EXTERNAL_SNAPSHOTTER_VERSION).tar.gz | \
         tar zxf - --strip-components 1 -C $(EXTERNAL_SNAPSHOTTER_SRC)
+	cd $(EXTERNAL_SNAPSHOTTER_SRC) && go get google.golang.org/grpc@v$(GRPC_VERSION) && go mod tidy && go mod vendor
 	patch -d $(EXTERNAL_SNAPSHOTTER_SRC)/release-tools < $(SELF_DIR)/cache-packages.patch
 	make -C $(EXTERNAL_SNAPSHOTTER_SRC)
 	cp -f $(EXTERNAL_SNAPSHOTTER_SRC)/bin/csi-snapshotter $@
@@ -56,6 +64,7 @@ $(OUTPUT_DIR)/.csi-resizer-$(EXTERNAL_RESIZER_VERSION):
 	mkdir -p $(EXTERNAL_RESIZER_SRC)
 	$(CURL) https://github.com/kubernetes-csi/external-resizer/archive/v$(EXTERNAL_RESIZER_VERSION).tar.gz | \
         tar zxf - --strip-components 1 -C $(EXTERNAL_RESIZER_SRC)
+	cd $(EXTERNAL_RESIZER_SRC) && go get google.golang.org/grpc@v$(GRPC_VERSION) && go mod tidy && go mod vendor
 	patch -d $(EXTERNAL_RESIZER_SRC)/release-tools < $(SELF_DIR)/cache-packages.patch
 	make -C $(EXTERNAL_RESIZER_SRC)
 	cp -f $(EXTERNAL_RESIZER_SRC)/bin/csi-resizer $@
@@ -68,6 +77,7 @@ $(OUTPUT_DIR)/.csi-node-driver-registrar-$(NODE_DRIVER_REGISTRAR_VERSION):
 	mkdir -p $(NODE_DRIVER_REGISTRAR_SRC)
 	$(CURL) https://github.com/kubernetes-csi/node-driver-registrar/archive/v$(NODE_DRIVER_REGISTRAR_VERSION).tar.gz | \
         tar zxf - --strip-components 1 -C $(NODE_DRIVER_REGISTRAR_SRC)
+	cd $(NODE_DRIVER_REGISTRAR_SRC) && go get google.golang.org/grpc@v$(GRPC_VERSION) && go mod tidy && go mod vendor
 	patch -d $(NODE_DRIVER_REGISTRAR_SRC)/release-tools < $(SELF_DIR)/cache-packages.patch
 	make -C $(NODE_DRIVER_REGISTRAR_SRC)
 	cp -f $(NODE_DRIVER_REGISTRAR_SRC)/bin/csi-node-driver-registrar $@
@@ -80,6 +90,7 @@ $(OUTPUT_DIR)/.livenessprobe-$(LIVENESSPROBE_VERSION):
 	mkdir -p $(LIVENESSPROBE_SRC)
 	$(CURL) https://github.com/kubernetes-csi/livenessprobe/archive/v$(LIVENESSPROBE_VERSION).tar.gz | \
         tar zxf - --strip-components 1 -C $(LIVENESSPROBE_SRC)
+	cd $(LIVENESSPROBE_SRC) && go get google.golang.org/grpc@v$(GRPC_VERSION) && go mod tidy && go mod vendor
 	patch -d $(LIVENESSPROBE_SRC)/release-tools < $(SELF_DIR)/cache-packages.patch
 	make -C $(LIVENESSPROBE_SRC)
 	cp -f $(LIVENESSPROBE_SRC)/bin/livenessprobe $@
