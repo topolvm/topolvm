@@ -87,14 +87,12 @@ func testReadWriteOncePod() {
 
 			for _, c := range pod.Status.Conditions {
 				//nolint:lll
-				// https://github.com/kubernetes/kubernetes/blob/v1.33.7/pkg/scheduler/framework/plugins/volumerestrictions/volume_restrictions.go#L57-L58
 				// https://github.com/kubernetes/kubernetes/blob/v1.35.1/pkg/scheduler/framework/plugins/volumerestrictions/volume_restrictions.go#L59-L60
 
 				//nolint:lll
 				if c.Type == corev1.PodScheduled &&
 					c.Status == corev1.ConditionFalse &&
-					(strings.Contains(c.Message, "node has pod using PersistentVolumeClaim with the same name and ReadWriteOncePod access mode") ||
-						strings.Contains(c.Message, "node(s) unavailable due to PersistentVolumeClaim with ReadWriteOncePod access mode already in-use by another pod")) {
+					strings.Contains(c.Message, "node(s) unavailable due to PersistentVolumeClaim with ReadWriteOncePod access mode already in-use by another pod") {
 					return nil
 				}
 			}

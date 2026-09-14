@@ -35,7 +35,6 @@ KIND_VERSION := v0.33.0
 # Use a Kubernetes version supported by the minikube version below.
 # The patch version may differ from the k8s patch version in go.mod.
 KUBERNETES_VERSION ?= 1.36.4
-KUBERNETES_MINOR = $(shell echo $(KUBERNETES_VERSION) | cut -d '.' -f2)
 # https://github.com/kubernetes/minikube/releases
 MINIKUBE_VERSION := v1.39.0
 # https://github.com/protocolbuffers/protobuf/releases
