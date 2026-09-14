@@ -14,6 +14,7 @@ import (
 	"github.com/topolvm/topolvm/internal/driver/internal/k8s"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"k8s.io/apimachinery/pkg/api/resource"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -136,13 +137,23 @@ func findNodeHavingTopologyNodeKey(requirements *csi.TopologyRequirement) string
 	return ""
 }
 
+// logicalVolumeService is the subset of k8s.LogicalVolumeService the controller
+// server uses. It exists so the CSI methods can be tested without an API server.
+type logicalVolumeService interface {
+	CreateVolume(ctx context.Context, node, dc, oc, name, sourceName string, requestBytes int64) (*v1.LogicalVolume, error)
+	CreateSnapshot(ctx context.Context, node, dc, sourceVol, sname, accessType string, snapSize resource.Quantity) (*v1.LogicalVolume, error)
+	DeleteVolume(ctx context.Context, volumeID string) error
+	ExpandVolume(ctx context.Context, volumeID string, requestBytes int64) (*v1.LogicalVolume, error)
+	GetVolume(ctx context.Context, volumeID string) (*v1.LogicalVolume, error)
+}
+
 // controllerServerNoLocked implements csi.ControllerServer.
 // It does not take any lock, gRPC calls may be interleaved.
 // Therefore, must not use it directly.
 type controllerServerNoLocked struct {
 	csi.UnimplementedControllerServer
 
-	lvService   *k8s.LogicalVolumeService
+	lvService   logicalVolumeService
 	nodeService *k8s.NodeService
 
 	settings ControllerServerSettings
