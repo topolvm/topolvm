@@ -214,7 +214,8 @@ incluster-lvmd/launch-minikube: | $(MINIKUBE_HOME)
 		--extra-config=kubeadm.node-name=$(CLUSTER_NAME)-worker \
 		--extra-config=kubelet.hostname-override=$(CLUSTER_NAME)-worker \
 		--feature-gates=$(MINIKUBE_FEATURE_GATES) \
-		--cni=calico
+		--cni=calico \
+		--container-runtime=docker
 
 .PHONY: incluster-lvmd/delete-minikube
 incluster-lvmd/delete-minikube: $(MINIKUBE_HOME)

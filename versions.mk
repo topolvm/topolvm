@@ -10,7 +10,7 @@ CNI_PLUGINS_VERSION := v1.9.1
 # https://github.com/GoogleContainerTools/container-structure-test/releases
 CONTAINER_STRUCTURE_TEST_VERSION := 1.22.1
 # https://github.com/Mirantis/cri-dockerd/releases
-CRI_DOCKERD_VERSION := v0.4.2
+CRI_DOCKERD_VERSION := v0.4.4
 # https://github.com/kubernetes-sigs/cri-tools/releases
 CRICTL_VERSION := v1.35.0
 # https://github.com/rhysd/actionlint/releases
@@ -26,20 +26,20 @@ GOLANGCI_LINT_VERSION := v2.11.4
 # https://github.com/norwoodj/helm-docs/releases
 HELM_DOCS_VERSION := 1.14.2
 # https://github.com/helm/helm/releases
-HELM_VERSION := 3.20.2
+HELM_VERSION := 3.22.0
 # kind node image version is related to kind version.
 # if you change kind version, also change kind node image version.
 # https://github.com/kubernetes-sigs/kind/releases
-KIND_VERSION := v0.31.0
+KIND_VERSION := v0.33.0
 # It is set by CI using the environment variable, use conditional assignment.
 # Use a Kubernetes version supported by the minikube version below.
 # The patch version may differ from the k8s patch version in go.mod.
 KUBERNETES_VERSION ?= 1.36.4
 KUBERNETES_MINOR = $(shell echo $(KUBERNETES_VERSION) | cut -d '.' -f2)
 # https://github.com/kubernetes/minikube/releases
-MINIKUBE_VERSION := v1.38.1
+MINIKUBE_VERSION := v1.39.0
 # https://github.com/protocolbuffers/protobuf/releases
-PROTOC_VERSION := 34.1
+PROTOC_VERSION := 36.1
 # https://github.com/mikefarah/yq/releases
 YQ_VERSION := 4.53.2
 
