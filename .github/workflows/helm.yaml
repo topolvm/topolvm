@@ -23,7 +23,7 @@ jobs:
           persist-credentials: false
 
       - name: "Setup Go"
-        uses: ./.github/actions/setup-go
+        uses: $/.github/actions/setup-go
         with:
           go-version-file: "go.mod"
           takumi-guard-bot-id: ${{ vars.TAKUMI_GUARD_BOT_ID }}

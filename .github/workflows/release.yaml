@@ -39,7 +39,7 @@ jobs:
   build-images:
     name: "build-images"
     needs: prepare
-    uses: ./.github/workflows/build-images.yaml
+    uses: $/.github/workflows/build-images.yaml
     permissions:
       contents: read
       id-token: write
@@ -63,7 +63,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/setup-go
+      - uses: $/.github/actions/setup-go
         with:
           cache: false
           go-version-file: "go.mod"

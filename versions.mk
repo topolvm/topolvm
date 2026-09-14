@@ -18,9 +18,9 @@ ACTIONLINT_VERSION := v1.7.12
 # https://github.com/suzuki-shunsuke/ghalint/releases
 GHALINT_VERSION := v1.5.6
 # https://github.com/zizmorcore/zizmor/releases
-ZIZMOR_VERSION := 1.26.1
+ZIZMOR_VERSION := 1.30.1
 # SHA256 checksum of the zizmor release tarball for verification
-ZIZMOR_SHA256 := 8556289a64e7aaf2400cd516f61a471aa91c5902cc56ad96a82fd12f90c2ef73
+ZIZMOR_SHA256 := e65324f4430c2717591937edcec90ccbefaf14c174f8ec9415e03ca875b46e1a
 # https://github.com/golangci/golangci-lint/releases
 GOLANGCI_LINT_VERSION := v2.13.2
 # https://github.com/norwoodj/helm-docs/releases
