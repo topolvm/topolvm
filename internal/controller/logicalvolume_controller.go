@@ -217,6 +217,11 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 				log.Error(err, "unable to fetch source LogicalVolume", "name", lv.Name)
 				return err
 			}
+			if sourcelv.Status.CurrentSize == nil {
+				// Spec.Size is the requested size, not the size LVM allocated.
+				return fmt.Errorf("source LogicalVolume %s has no status.currentSize yet", sourcelv.Name)
+			}
+
 			sourceVolID := sourcelv.Status.VolumeID
 			currentSize := sourcelv.Status.CurrentSize.Value()
 			if reqBytes < currentSize {

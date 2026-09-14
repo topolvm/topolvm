@@ -314,3 +314,47 @@ var _ = Describe("LogicalVolume controller createLV", func() {
 		Expect(lvm.resizeCalls).To(Equal(0))
 	})
 })
+
+var _ = Describe("LogicalVolume controller createLV with a source", func() {
+	It("should fail without panicking when the source has no currentSize yet", func() {
+		ctx := context.Background()
+
+		source := topolvmv1.LogicalVolume{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: logicalVolumeNameBase + "-source-without-currentsize",
+			},
+			Spec: topolvmv1.LogicalVolumeSpec{
+				NodeName: nodeNameBase + "-source-without-currentsize",
+				Size:     *resource.NewQuantity(1<<30, resource.BinarySI),
+			},
+		}
+		err := k8sClient.Create(ctx, &source)
+		Expect(err).NotTo(HaveOccurred())
+
+		// topolvm-node adopted an existing LVM LV, so volumeID is set while currentSize is not.
+		source.Status.VolumeID = string(source.UID)
+		err = k8sClient.Status().Update(ctx, &source)
+		Expect(err).NotTo(HaveOccurred())
+
+		lv := topolvmv1.LogicalVolume{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: logicalVolumeNameBase + "-snapshot-of-sizeless-source",
+			},
+			Spec: topolvmv1.LogicalVolumeSpec{
+				NodeName:   source.Spec.NodeName,
+				Size:       *resource.NewQuantity(1<<30, resource.BinarySI),
+				Source:     source.Name,
+				AccessType: "ro",
+			},
+		}
+		err = k8sClient.Create(ctx, &lv)
+		Expect(err).NotTo(HaveOccurred())
+
+		reconciler := NewLogicalVolumeReconcilerWithServices(
+			k8sClient, lv.Spec.NodeName, &fakeLVM{}, &fakeLVM{})
+
+		err = reconciler.createLV(ctx, GinkgoLogr, &lv)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("status.currentSize"))
+	})
+})
