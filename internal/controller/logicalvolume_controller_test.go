@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -228,5 +229,88 @@ var _ = Describe("LogicalVolume controller", func() {
 			}
 			return !controllerutil.ContainsFinalizer(&lv, topolvm.GetLogicalVolumeFinalizer())
 		}, "2s").Should(BeTrue())
+	})
+})
+
+// fakeLVM stands in for the LVM state lvmd reports for one node. It serves the
+// logical volumes that already exist there and records the resizes it is asked for.
+type fakeLVM struct {
+	MockVGServiceClient
+	MockLVServiceClient
+
+	volumes     []*proto.LogicalVolume
+	resizeCalls int
+}
+
+// GetLVList implements proto.VGServiceClient.
+func (f *fakeLVM) GetLVList(ctx context.Context, in *proto.GetLVListRequest, opts ...grpc.CallOption) (*proto.GetLVListResponse, error) {
+	return &proto.GetLVListResponse{
+		Volumes: f.volumes,
+	}, nil
+}
+
+// ResizeLV implements proto.LVServiceClient.
+func (f *fakeLVM) ResizeLV(ctx context.Context, in *proto.ResizeLVRequest, opts ...grpc.CallOption) (*proto.ResizeLVResponse, error) {
+	f.resizeCalls++
+	for _, v := range f.volumes {
+		if v.Name == in.Name {
+			v.SizeBytes = in.SizeBytes
+			return &proto.ResizeLVResponse{SizeBytes: v.SizeBytes}, nil
+		}
+	}
+	return nil, fmt.Errorf("no such volume: %s", in.Name)
+}
+
+var _ = Describe("LogicalVolume controller createLV", func() {
+	It("should adopt an existing LVM LV at its actual size without resizing it", func() {
+		ctx := context.Background()
+
+		// LVM rounds the LV up to an extent boundary, so the two differ.
+		const (
+			specSizeBytes   = 1 << 30
+			actualSizeBytes = 1<<30 + 4<<20
+		)
+
+		lv := topolvmv1.LogicalVolume{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: logicalVolumeNameBase + "-existing-lvm-lv",
+			},
+			Spec: topolvmv1.LogicalVolumeSpec{
+				NodeName: nodeNameBase + "-existing-lvm-lv",
+				Size:     *resource.NewQuantity(specSizeBytes, resource.BinarySI),
+			},
+		}
+		err := k8sClient.Create(ctx, &lv)
+		Expect(err).NotTo(HaveOccurred())
+
+		lvm := &fakeLVM{
+			volumes: []*proto.LogicalVolume{
+				{Name: string(lv.UID), SizeBytes: actualSizeBytes},
+			},
+		}
+		reconciler := NewLogicalVolumeReconcilerWithServices(k8sClient, lv.Spec.NodeName, lvm, lvm)
+
+		readBack := func() topolvmv1.LogicalVolume {
+			var updated topolvmv1.LogicalVolume
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(&lv), &updated)).NotTo(HaveOccurred())
+			return updated
+		}
+
+		By("recording the size of the LVM LV rather than spec.size")
+		err = reconciler.createLV(ctx, GinkgoLogr, &lv)
+		Expect(err).NotTo(HaveOccurred())
+
+		adopted := readBack()
+		Expect(adopted.Status.VolumeID).To(Equal(string(lv.UID)))
+		Expect(adopted.Status.CurrentSize).NotTo(BeNil())
+		Expect(adopted.Status.CurrentSize.Value()).To(Equal(int64(actualSizeBytes)))
+		Expect(lvm.resizeCalls).To(Equal(0))
+
+		By("leaving the LV alone because it already covers spec.size")
+		err = reconciler.expandLV(ctx, GinkgoLogr, &lv)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(readBack().Status.CurrentSize.Value()).To(Equal(int64(actualSizeBytes)))
+		Expect(lvm.resizeCalls).To(Equal(0))
 	})
 })
