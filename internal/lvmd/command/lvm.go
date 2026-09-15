@@ -10,6 +10,21 @@ import (
 	"github.com/topolvm/topolvm"
 )
 
+// Names of lvm commands and their common arguments.
+const (
+	cmdLVCreate = "lvcreate"
+
+	argUnits        = "--units"
+	argNoSuffix     = "--nosuffix"
+	argReportFormat = "--reportformat"
+	argConfigReport = "--configreport"
+
+	// formatJSON is the value passed to argReportFormat to get JSON output.
+	formatJSON = "json"
+	// argNoOptions selects an empty set of report fields for "-o".
+	argNoOptions = "-o,"
+)
+
 // ErrNotFound is returned when a VG or LV is not found.
 var ErrNotFound = errors.New("not found")
 
@@ -209,7 +224,7 @@ func (vg *VolumeGroup) CreateVolume(ctx context.Context, name string, size uint6
 		return ErrNoMultipleOfSectorSize
 	}
 
-	lvcreateArgs := []string{"lvcreate", "-n", name, "-L", fmt.Sprintf("%vb", size), "-W", "y", "-y"}
+	lvcreateArgs := []string{cmdLVCreate, "-n", name, "-L", fmt.Sprintf("%vb", size), "-W", "y", "-y"}
 	for _, tag := range tags {
 		lvcreateArgs = append(lvcreateArgs, "--addtag")
 		lvcreateArgs = append(lvcreateArgs, tag)
@@ -267,7 +282,7 @@ func (vg *VolumeGroup) ListPools(ctx context.Context, poolname string) (map[stri
 
 // CreatePool creates a pool for thin-provisioning volumes.
 func (vg *VolumeGroup) CreatePool(ctx context.Context, name string, size uint64) (*ThinPool, error) {
-	if err := callLVM(ctx, "lvcreate", "-T", fmt.Sprintf("%v/%v", vg.Name(), name),
+	if err := callLVM(ctx, cmdLVCreate, "-T", fmt.Sprintf("%v/%v", vg.Name(), name),
 		"--size", fmt.Sprintf("%vb", size)); err != nil {
 		return nil, err
 	}
@@ -385,7 +400,7 @@ func (t *ThinPool) FindVolume(ctx context.Context, name string) (*LogicalVolume,
 // CreateVolume creates a thin volume from this pool.
 func (t *ThinPool) CreateVolume(ctx context.Context, name string, size uint64, tags []string, stripe uint, stripeSize string, lvcreateOptions []string) error {
 	lvcreateArgs := []string{
-		"lvcreate",
+		cmdLVCreate,
 		"-T",
 		t.FullName(),
 		"-n",
@@ -524,7 +539,7 @@ func (l *LogicalVolume) ThinSnapshot(ctx context.Context, name string, tags []st
 		return fmt.Errorf("cannot take snapshot of non-thin volume: %s", l.fullname)
 	}
 
-	lvcreateArgs := []string{"lvcreate", "-s", "-k", "n", "-n", name, l.fullname}
+	lvcreateArgs := []string{cmdLVCreate, "-s", "-k", "n", "-n", name, l.fullname}
 
 	for _, tag := range tags {
 		lvcreateArgs = append(lvcreateArgs, "--addtag")

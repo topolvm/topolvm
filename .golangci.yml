@@ -4,6 +4,10 @@ run:
   allow-parallel-runners: true
 linters:
   settings:
+    goconst:
+      # Test code often repeats short literals as test data; keeping them
+      # inline is more readable than extracting constants.
+      ignore-tests: true
     staticcheck:
       dot-import-whitelist: # allow dot imports for the following packages
         - github.com/onsi/gomega

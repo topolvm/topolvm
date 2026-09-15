@@ -4,6 +4,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -79,5 +80,8 @@ type LogicalVolumeList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&LogicalVolume{}, &LogicalVolumeList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &LogicalVolume{}, &LogicalVolumeList{})
+		return nil
+	})
 }

@@ -2,8 +2,18 @@ apiVersion:  kind.x-k8s.io/v1alpha4
 kind: Cluster
 # patch the generated kubeadm config with some extra settings
 kubeadmConfigPatches:
+# use kubeadm.k8s.io/v1beta3 for Kubernetes <= 1.35 and kubeadm.k8s.io/v1beta4 for Kubernetes >= 1.36.
+# cf. https://github.com/kubernetes-sigs/kind/pull/4173
 - |
   apiVersion: kubeadm.k8s.io/v1beta3
+  kind: ClusterConfiguration
+  metadata:
+    name: config
+  kubernetesVersion: "v@KUBERNETES_VERSION@"
+  networking:
+    serviceSubnet: 10.0.0.0/16
+- |
+  apiVersion: kubeadm.k8s.io/v1beta4
   kind: ClusterConfiguration
   metadata:
     name: config

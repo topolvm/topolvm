@@ -254,11 +254,11 @@ If you are using `topolvm-scheduler` as a Deployment, you need to edit the `urlP
 If you are installing your cluster from scratch with `kubeadm`, you can use the following configuration:
 
 ```yaml
-apiVersion: kubeadm.k8s.io/v1beta3
+apiVersion: kubeadm.k8s.io/v1beta4
 kind: ClusterConfiguration
 metadata:
   name: config
-kubernetesVersion: v1.35.1
+kubernetesVersion: v1.36.4
 scheduler:
   extraVolumes:
     - name: "config"
@@ -266,7 +266,8 @@ scheduler:
       mountPath: /var/lib/scheduler
       readOnly: true
   extraArgs:
-    config: /var/lib/scheduler/scheduler-config.yaml
+    - name: "config"
+      value: /var/lib/scheduler/scheduler-config.yaml
 ```
 
 #### For Existing Clusters

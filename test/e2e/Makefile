@@ -31,7 +31,6 @@ DOMAIN_NAME := topolvm.io
 HELM_VALUES_FILES := manifests/values/base.yaml
 SCHEDULER_CONFIG := ../../deploy/scheduler-config/scheduler-config.yaml
 STORAGE_CAPACITY := true
-STORAGE_CAPACITY_SCORING := false
 USE_LEGACY :=
 
 ifeq ($(TEST_SCHEDULER_EXTENDER_TYPE),daemonset)
@@ -55,8 +54,7 @@ else ifeq ($(TEST_LVMD_TYPE),embedded)
 HELM_VALUES_FILES += manifests/values/embedded-lvmd.yaml
 endif
 
-ifeq ($(shell [ $(STORAGE_CAPACITY) = "true" ] && [ $(KUBERNETES_MINOR) -ge 33 ] && echo yes),yes)
-STORAGE_CAPACITY_SCORING := true
+ifeq ($(STORAGE_CAPACITY),true)
 MINIKUBE_FEATURE_GATES := $(MINIKUBE_FEATURE_GATES),StorageCapacityScoring=true
 endif
 
@@ -79,7 +77,7 @@ endif
 launch-kind: /tmp/topolvm/scheduler/scheduler-config.yaml $(KIND)
 	$(SUDO) rm -rf /tmp/topolvm/controller /tmp/topolvm/worker*
 	sed -e "s|@KUBERNETES_VERSION@|$(KUBERNETES_VERSION)|" $(KIND_CONFIG) > /tmp/$(KIND_CONFIG)
-ifeq ($(STORAGE_CAPACITY_SCORING),true)
+ifeq ($(STORAGE_CAPACITY),true)
 	$(YQ) -i '.featureGates.StorageCapacityScoring = true' /tmp/$(KIND_CONFIG)
 endif
 	$(KIND) create cluster --name=$(CLUSTER_NAME) --config /tmp/$(KIND_CONFIG) --image $(KIND_NODE_IMAGE)
@@ -214,7 +212,8 @@ incluster-lvmd/launch-minikube: | $(MINIKUBE_HOME)
 		--extra-config=kubeadm.node-name=$(CLUSTER_NAME)-worker \
 		--extra-config=kubelet.hostname-override=$(CLUSTER_NAME)-worker \
 		--feature-gates=$(MINIKUBE_FEATURE_GATES) \
-		--cni=calico
+		--cni=calico \
+		--container-runtime=docker
 
 .PHONY: incluster-lvmd/delete-minikube
 incluster-lvmd/delete-minikube: $(MINIKUBE_HOME)
@@ -316,6 +315,5 @@ common/test: $(GINKGO)
 	E2ETEST=1 \
 	KUBECTL=$(KUBECTL) \
 	STORAGE_CAPACITY=$(STORAGE_CAPACITY) \
-	STORAGE_CAPACITY_SCORING=$(STORAGE_CAPACITY_SCORING) \
 	USE_LEGACY=$(USE_LEGACY) \
 	$(GINKGO) --fail-fast -v $(GINKGO_FLAGS) .

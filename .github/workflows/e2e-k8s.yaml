@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/setup-go
+      - uses: $/.github/actions/setup-go
         with:
           go-version-file: "go.mod"
           takumi-guard-bot-id: ${{ vars.TAKUMI_GUARD_BOT_ID }}
@@ -48,7 +48,7 @@ jobs:
 
   default:
     needs: build
-    uses: ./.github/workflows/e2e-k8s-workflow.yaml
+    uses: $/.github/workflows/e2e-k8s-workflow.yaml
     permissions:
       contents: read
       id-token: write
@@ -58,7 +58,7 @@ jobs:
 
   scheduler-manifest:
     needs: build
-    uses: ./.github/workflows/e2e-k8s-workflow.yaml
+    uses: $/.github/workflows/e2e-k8s-workflow.yaml
     permissions:
       contents: read
       id-token: write
@@ -68,7 +68,7 @@ jobs:
 
   use-legacy:
     needs: build
-    uses: ./.github/workflows/e2e-k8s-workflow.yaml
+    uses: $/.github/workflows/e2e-k8s-workflow.yaml
     permissions:
       contents: read
       id-token: write
@@ -78,7 +78,7 @@ jobs:
 
   storage-capacity-scoring:
     needs: build
-    uses: ./.github/workflows/e2e-k8s-workflow.yaml
+    uses: $/.github/workflows/e2e-k8s-workflow.yaml
     permissions:
       contents: read
       id-token: write

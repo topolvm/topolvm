@@ -605,10 +605,6 @@ func testE2E() {
 	})
 
 	It("should choose a node with the largest capacity when volumeBindingMode == Immediate is specified", func() {
-		skipIfStorageCapacityWithoutScoring(
-			"Storage Capacity Tracking doesn't check Storage Capacity when volumeBindingMode == Immediate is specified",
-		)
-
 		// Repeat applying a PVC to make sure that the volume is created on the node with the largest capacity in each loop.
 		for i := 0; i < nonControlPlaneNodeCount; i++ {
 			By("getting the node with max capacity (loop: " + strconv.Itoa(i) + ")")
@@ -754,7 +750,6 @@ func testE2E() {
 	})
 
 	It("should schedule pods and volumes according to topolvm-scheduler", func() {
-		skipIfStorageCapacityWithoutScoring()
 		skipIfSingleNode()
 
 		/*

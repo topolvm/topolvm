@@ -117,11 +117,11 @@ func getLVReport(ctx context.Context, name string) (map[string]lv, error) {
 		"lv_uuid,lv_name,lv_full_name,lv_path,lv_size," +
 			"lv_kernel_major,lv_kernel_minor,origin,origin_size,pool_lv,lv_tags," +
 			"lv_attr,vg_name,data_percent,metadata_percent,pool_lv",
-		"--units",
+		argUnits,
 		"b",
-		"--nosuffix",
-		"--reportformat",
-		"json",
+		argNoSuffix,
+		argReportFormat,
+		formatJSON,
 	}
 	err := callLVMInto(ctx, res, verbosityLVMStateNoUpdate, args...)
 
