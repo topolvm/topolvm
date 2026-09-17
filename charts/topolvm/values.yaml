@@ -664,6 +664,14 @@ env:
   # env.topolvm_scheduler -- Specify environment variables for topolvm_scheduler container.
   topolvm_scheduler: []
 
+extraArgs:
+  # extraArgs.csi_provisioner -- Additional arguments for the csi-provisioner container.
+  csi_provisioner: []
+  # extraArgs.csi_resizer -- Additional arguments for the csi-resizer container.
+  csi_resizer: []
+  # extraArgs.csi_snapshotter -- Additional arguments for the csi-snapshotter container.
+  csi_snapshotter: []
+
 livenessProbe:
   # livenessProbe.topolvm_node -- Specify resources.
   ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
