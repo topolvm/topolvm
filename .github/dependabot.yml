@@ -34,3 +34,4 @@ updates:
       - dependency-name: "k8s.io/mount-utils"
       - dependency-name: "sigs.k8s.io/controller-runtime"
       - dependency-name: "sigs.k8s.io/controller-tools"
+      - dependency-name: "github.com/container-storage-interface/spec"
