@@ -292,6 +292,11 @@ node:
   # For example, on microk8s it needs to be set to `/var/snap/microk8s/common/var/lib/kubelet`
   kubeletWorkDirectory: /var/lib/kubelet
 
+  # node.volumeHealth -- Specify whether to report the volume condition in NodeGetVolumeStats.
+  # It runs LVM commands for every volume on every stats request, and kubelet uses the result
+  # only with the CSIVolumeHealth feature gate enabled.
+  volumeHealth: true
+
   # node.args -- Arguments to be passed to the command.
   args: []
 
