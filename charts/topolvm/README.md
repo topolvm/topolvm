@@ -124,6 +124,7 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v17.
 | node.securityContext.privileged | bool | `true` |  |
 | node.tolerations | list | `[]` | Specify tolerations. # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ |
 | node.updateStrategy | object | `{}` | Specify updateStrategy. |
+| node.volumeHealth | bool | `true` | Specify whether to report the volume condition in NodeGetVolumeStats. It runs LVM commands for every volume on every stats request, and kubelet uses the result only with the CSIVolumeHealth feature gate enabled. |
 | node.volumeMounts.topolvmNode | list | `[]` | Specify volumes. |
 | node.volumes | list | `[]` | Specify volumes. |
 | priorityClass.enabled | bool | `true` | Install priorityClass. |
