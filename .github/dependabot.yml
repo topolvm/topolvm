@@ -25,6 +25,7 @@ updates:
       default-days: 14
     ignore:
       - dependency-name: "github.com/container-storage-interface/spec"
+      - dependency-name: "github.com/kubernetes-csi/csi-test/*"
       - dependency-name: "github.com/prometheus/*"
       - dependency-name: "google.golang.org/grpc"
       - dependency-name: "google.golang.org/grpc/cmd/protoc-gen-go-grpc"
