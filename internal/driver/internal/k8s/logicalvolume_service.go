@@ -391,6 +391,19 @@ func (s *LogicalVolumeService) waitForVolumeProvisioning(ctx context.Context, lv
 		}
 
 		if newLV.Status.VolumeID != "" {
+			if newLV.Status.Code != codes.OK {
+				// Kept separate from the check below because that one deletes the LogicalVolume.
+				return false, status.Error(newLV.Status.Code, newLV.Status.Message)
+			}
+
+			// A thin snapshot starts at the source size, so it may be observed below Spec.Size before resize.
+			if newLV.Status.CurrentSize == nil || newLV.Status.CurrentSize.Cmp(newLV.Spec.Size) < 0 {
+				logger.Info("waiting for 'status.currentSize' to reach 'spec.size'",
+					"name", lvName, "volume_id", newLV.Status.VolumeID,
+					"status.currentSize", newLV.Status.CurrentSize, "spec.size", newLV.Spec.Size)
+				return false, nil
+			}
+
 			logger.Info("LogicalVolume successfully provisioned", "volume_id", newLV.Status.VolumeID)
 			return true, nil
 		}
