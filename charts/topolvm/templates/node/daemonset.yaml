@@ -67,6 +67,9 @@ spec:
             {{- if .Values.node.profiling.bindAddress }}
             - --profiling-bind-address={{ .Values.node.profiling.bindAddress }}
             {{- end }}
+            {{- if not .Values.node.volumeHealth }}
+            - --enable-volume-health=false
+            {{- end }}
           {{- with .Values.node.args }}
           args: {{ toYaml . | nindent 12 }}
           {{- end }}

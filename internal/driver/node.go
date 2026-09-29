@@ -31,8 +31,15 @@ const (
 
 var nodeLogger = ctrl.Log.WithName("driver").WithName("node")
 
+// NodeServerSettings is used to configure the node server.
+type NodeServerSettings struct {
+	// VolumeHealth makes the node server report the volume condition in
+	// NodeGetVolumeStats and advertise the VOLUME_CONDITION capability.
+	VolumeHealth bool
+}
+
 // NewNodeServer returns a new NodeServer.
-func NewNodeServer(nodeName string, vgServiceClient proto.VGServiceClient, lvServiceClient proto.LVServiceClient, mgr manager.Manager) (csi.NodeServer, error) {
+func NewNodeServer(nodeName string, vgServiceClient proto.VGServiceClient, lvServiceClient proto.LVServiceClient, mgr manager.Manager, settings NodeServerSettings) (csi.NodeServer, error) {
 	lvService, err := k8s.NewLogicalVolumeService(mgr)
 	if err != nil {
 		return nil, err
@@ -44,6 +51,7 @@ func NewNodeServer(nodeName string, vgServiceClient proto.VGServiceClient, lvSer
 			client:       vgServiceClient,
 			lvService:    lvServiceClient,
 			k8sLVService: lvService,
+			volumeHealth: settings.VolumeHealth,
 			mounter: mountutil.SafeFormatAndMount{
 				Interface: mountutil.New(""),
 				Exec:      utilexec.New(),
@@ -111,6 +119,7 @@ type nodeServerNoLocked struct {
 	client       proto.VGServiceClient
 	lvService    proto.LVServiceClient
 	k8sLVService *k8s.LogicalVolumeService
+	volumeHealth bool
 	mounter      mountutil.SafeFormatAndMount
 }
 
@@ -435,6 +444,11 @@ func (s *nodeServerNoLocked) NodeGetVolumeStats(ctx context.Context, req *csi.No
 		})
 	}
 
+	// No need to run lvs/vgs for VolumeCondition when CSIVolumeHealth is disabled.
+	if !s.volumeHealth {
+		return &csi.NodeGetVolumeStatsResponse{Usage: usage}, nil
+	}
+
 	var lv *proto.LogicalVolume
 	lvr, err := s.k8sLVService.GetVolume(ctx, volumeID)
 	if err != nil {
@@ -534,7 +548,9 @@ func (s *nodeServerNoLocked) NodeGetCapabilities(context.Context, *csi.NodeGetCa
 	capabilities := []csi.NodeServiceCapability_RPC_Type{
 		csi.NodeServiceCapability_RPC_GET_VOLUME_STATS,
 		csi.NodeServiceCapability_RPC_EXPAND_VOLUME,
-		csi.NodeServiceCapability_RPC_VOLUME_CONDITION,
+	}
+	if s.volumeHealth {
+		capabilities = append(capabilities, csi.NodeServiceCapability_RPC_VOLUME_CONDITION)
 	}
 
 	csiCaps := make([]*csi.NodeServiceCapability, len(capabilities))
