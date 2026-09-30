@@ -25,6 +25,7 @@ RUN clean-apt install \
     xfsprogs
 
 COPY --from=build-topolvm /workdir/build/hypertopolvm /hypertopolvm
+COPY --from=build-topolvm /workdir/build/topolvm-capacity-template-controller /topolvm-capacity-template-controller
 
 RUN ln -s hypertopolvm /lvmd \
     && ln -s hypertopolvm /topolvm-scheduler \

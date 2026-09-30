@@ -180,7 +180,7 @@ distclean: clean ## Clean all on the working directory.
 build: build-topolvm csi-sidecars ## Build binaries.
 
 .PHONY: build-topolvm
-build-topolvm: build/hypertopolvm build/lvmd
+build-topolvm: build/hypertopolvm build/lvmd build/topolvm-capacity-template-controller
 
 build/hypertopolvm: $(GO_FILES)
 	mkdir -p build
@@ -189,6 +189,10 @@ build/hypertopolvm: $(GO_FILES)
 build/lvmd: $(GO_FILES)
 	mkdir -p build
 	GOARCH=$(GOARCH) CGO_ENABLED=0 go build -o $@ -ldflags "-w -s -X github.com/topolvm/topolvm.Version=$(TOPOLVM_VERSION)" ./cmd/lvmd
+
+build/topolvm-capacity-template-controller: $(GO_FILES)
+	mkdir -p build
+	GOARCH=$(GOARCH) CGO_ENABLED=0 go build -o $@ -ldflags "-w -s -X github.com/topolvm/topolvm.Version=$(TOPOLVM_VERSION)" ./cmd/datadog/topolvm-capacity-template-controller
 
 .PHONY: csi-sidecars
 csi-sidecars: ## Build sidecar binaries.
