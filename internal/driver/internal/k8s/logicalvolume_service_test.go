@@ -131,6 +131,18 @@ func TestCreateVolume(t *testing.T) {
 		}
 	})
 
+	t.Run("deletes the LogicalVolume when reporting a failed creation", func(t *testing.T) {
+		s, api := newTestService(topolvmv1.LogicalVolumeStatus{Code: codes.Internal, Message: "failed to create"})
+
+		_, err := s.CreateVolume(context.Background(), "node", "dc", "oc", "lv", "", requestedBytes)
+		if got := status.Code(err); got != codes.Internal {
+			t.Fatalf("expected %s, but got %s (err: %v)", codes.Internal, got, err)
+		}
+		if len(api.deleted) == 0 {
+			t.Errorf("expected the LogicalVolume to be deleted, but got %v", api.deleted)
+		}
+	})
+
 	t.Run("reports the node's failure instead of waiting for a size it cannot produce", func(t *testing.T) {
 		s, api := newTestService(failedExpansion)
 
@@ -141,8 +153,8 @@ func TestCreateVolume(t *testing.T) {
 		if msg := status.Convert(err).Message(); msg != "failed to resize" {
 			t.Errorf("expected the node's message, but got %q", msg)
 		}
-		if len(api.deleted) != 0 {
-			t.Errorf("expected the LogicalVolume not to be deleted, but got %v", api.deleted)
+		if len(api.deleted) == 0 {
+			t.Errorf("expected the LogicalVolume to be deleted, but got %v", api.deleted)
 		}
 	})
 
@@ -171,8 +183,8 @@ func TestCreateVolume(t *testing.T) {
 		if got := status.Code(err); got != codes.Internal {
 			t.Fatalf("expected %s, but got %s (err: %v)", codes.Internal, got, err)
 		}
-		if len(api.deleted) != 0 {
-			t.Errorf("expected the LogicalVolume not to be deleted, but got %v", api.deleted)
+		if len(api.deleted) == 0 {
+			t.Errorf("expected the LogicalVolume to be deleted, but got %v", api.deleted)
 		}
 	})
 }
