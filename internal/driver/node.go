@@ -270,11 +270,19 @@ func (s *nodeServerNoLocked) nodePublishFilesystemVolume(req *csi.NodePublishVol
 }
 
 func (s *nodeServerNoLocked) nodePublishBlockVolume(req *csi.NodePublishVolumeRequest, lv *proto.LogicalVolume) error {
+	mounted, err := s.mounter.IsMountPoint(req.GetTargetPath())
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return status.Errorf(codes.Internal, "mount check failed: target=%s, error=%v", req.GetTargetPath(), err)
+	}
+	if mounted {
+		return nil
+	}
+
 	// Find lv and create a block device with it
 	// We mount via bind mount so that we can also respect the readonly flag
 	mountOptions := append(toReadOnlyMountOption(req.GetReadonly()), "bind")
 
-	fi, err := os.Create(req.GetTargetPath())
+	fi, err := os.OpenFile(req.GetTargetPath(), os.O_CREATE|os.O_RDONLY, 0755)
 	if err != nil {
 		return status.Errorf(codes.Internal, "create failed: target=%s, error=%v", req.GetTargetPath(), err)
 	}
