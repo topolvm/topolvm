@@ -12,7 +12,10 @@ Kubernetes controller to implement dynamic volume provisioning.
 
 Block `NodePublishVolume` is idempotent: retrying publication at an already
 mounted target does not stack another bind mount or truncate the target.
-An error checking mount state fails publication without changing the target.
+ An error checking mount state fails publication without changing the target.
+The mount check precedes target creation, and the node service serializes
+publish and unpublish requests with the same mutex. An unmounted target file
+is only a placeholder for the block-device bind mount.
 
 
 ## Dynamic Volume Provisioning
