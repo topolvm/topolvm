@@ -280,10 +280,6 @@ func (s *nodeServerNoLocked) nodePublishBlockVolume(req *csi.NodePublishVolumeRe
 	}
 	defer func() { _ = fi.Close() }()
 
-	if err := os.Chmod(req.GetTargetPath(), 0755); err != nil {
-		return status.Errorf(codes.Internal, "chmod failed: target=%s, error=%v", req.GetTargetPath(), err)
-	}
-
 	if err := s.mounter.Mount(lv.GetPath(), req.GetTargetPath(), "", mountOptions); err != nil {
 		return status.Errorf(codes.Internal, "(bind)mount failed: volume=%s, error=%v", req.GetVolumeId(), err)
 	}
