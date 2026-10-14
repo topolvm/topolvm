@@ -282,7 +282,7 @@ func (s *nodeServerNoLocked) nodePublishBlockVolume(req *csi.NodePublishVolumeRe
 	// We mount via bind mount so that we can also respect the readonly flag
 	mountOptions := append(toReadOnlyMountOption(req.GetReadonly()), "bind")
 
-	fi, err := os.OpenFile(req.GetTargetPath(), os.O_CREATE|os.O_RDONLY, 0755)
+	fi, err := os.Create(req.GetTargetPath())
 	if err != nil {
 		return status.Errorf(codes.Internal, "create failed: target=%s, error=%v", req.GetTargetPath(), err)
 	}
