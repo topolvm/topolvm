@@ -2,71 +2,69 @@ package k8s
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
+	"github.com/topolvm/topolvm"
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/runtime/schema"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// fakeAPI stands in for the API server. It reports the LogicalVolume as missing
-// until it is created, then serves one scripted status per Get, repeating the
-// last one once the script runs out.
-type fakeAPI struct {
-	client.Writer
-	client.StatusClient
+// With equal values the test could not tell the reported size from the
+// requested one.
+const (
+	requestedBytes = 1<<30 + 1
+	reportedBytes  = 1<<30 + 4<<20
+	sourceBytes    = 1 << 29
+)
 
-	statuses []topolvmv1.LogicalVolumeStatus
+// newTestService returns a service whose LogicalVolume gets the given status as
+// soon as CreateVolume creates it, since no node runs here to publish one.
+func newTestService(t *testing.T, st topolvmv1.LogicalVolumeStatus) (*LogicalVolumeService, client.WithWatch) {
+	t.Helper()
 
-	created *topolvmv1.LogicalVolume
-	gets    int
-	deleted []string
-}
-
-func (f *fakeAPI) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
-	if f.created == nil {
-		return apierrors.NewNotFound(schema.GroupResource{Resource: "logicalvolumes"}, key.Name)
+	scheme := runtime.NewScheme()
+	if err := topolvmv1.AddToScheme(scheme); err != nil {
+		t.Fatalf("failed to build the scheme: %v", err)
 	}
 
-	i := min(f.gets, len(f.statuses)-1)
-	f.gets++
-
-	lv := obj.(*topolvmv1.LogicalVolume)
-	lv.Name = key.Name
-	lv.Spec = *f.created.Spec.DeepCopy()
-	lv.Status = *f.statuses[i].DeepCopy()
-	return nil
+	c := interceptor.NewClient(
+		fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(&topolvmv1.LogicalVolume{}).Build(),
+		interceptor.Funcs{
+			Create: func(ctx context.Context, c client.WithWatch, obj client.Object, opts ...client.CreateOption) error {
+				lv := obj.DeepCopyObject().(*topolvmv1.LogicalVolume)
+				// Without a finalizer a deletion would remove the object and leave nothing to inspect.
+				controllerutil.AddFinalizer(lv, topolvm.GetLogicalVolumeFinalizer())
+				if err := c.Create(ctx, lv, opts...); err != nil {
+					return err
+				}
+				lv.Status = *st.DeepCopy()
+				return c.Status().Update(ctx, lv)
+			},
+		},
+	)
+	return &LogicalVolumeService{writer: c, getter: newRetryMissingGetter(c, c)}, c
 }
 
-func (f *fakeAPI) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
-	f.created = obj.(*topolvmv1.LogicalVolume)
-	return nil
-}
-
-func (f *fakeAPI) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
-	f.deleted = append(f.deleted, obj.GetName())
-	return nil
-}
-
-func newTestService(statuses ...topolvmv1.LogicalVolumeStatus) (*LogicalVolumeService, *fakeAPI) {
-	api := &fakeAPI{statuses: statuses}
-	return &LogicalVolumeService{writer: api, getter: api}, api
+func deletionTimestamp(t *testing.T, c client.Client) *metav1.Time {
+	t.Helper()
+	var lv topolvmv1.LogicalVolume
+	if err := c.Get(context.Background(), client.ObjectKey{Name: "lv"}, &lv); err != nil {
+		t.Fatalf("failed to get the LogicalVolume: %v", err)
+	}
+	return lv.DeletionTimestamp
 }
 
 func TestCreateVolume(t *testing.T) {
-	// With equal values the test could not tell the reported size from the
-	// requested one.
-	const (
-		requestedBytes = 1<<30 + 1
-		reportedBytes  = 1<<30 + 4<<20
-		sourceBytes    = 1 << 29
-	)
-
 	provisioning := topolvmv1.LogicalVolumeStatus{
 		VolumeID: "volume-id",
 	}
@@ -92,9 +90,12 @@ func TestCreateVolume(t *testing.T) {
 	undersizedAndFailed.Message = "failed to resize"
 
 	t.Run("reports the size the node published, not the one it was asked for", func(t *testing.T) {
-		s, api := newTestService(provisioning, sized)
+		s, c := newTestService(t, sized)
 
-		lv, err := s.CreateVolume(context.Background(), "node", "dc", "oc", "lv", "", requestedBytes)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		lv, err := s.CreateVolume(ctx, "node", "dc", "oc", "lv", "", requestedBytes)
 		if err != nil {
 			t.Fatalf("expected no error, but got %v", err)
 		}
@@ -104,87 +105,117 @@ func TestCreateVolume(t *testing.T) {
 		if got := lv.Status.CurrentSize.Value(); got != reportedBytes {
 			t.Errorf("expected the reported size %d, but got %d", int64(reportedBytes), got)
 		}
-		if api.gets < 2 {
-			t.Errorf("expected the volume to be polled more than once, but it was read %d time(s)", api.gets)
-		}
-		if len(api.deleted) != 0 {
-			t.Errorf("expected the LogicalVolume not to be deleted, but got %v", api.deleted)
+		if got := deletionTimestamp(t, c); got != nil {
+			t.Errorf("expected the LogicalVolume not to be deleted, but got %v", got)
 		}
 	})
 
 	t.Run("keeps a provisioned volume while its size is missing instead of deleting it", func(t *testing.T) {
-		s, api := newTestService(provisioning)
+		s, c := newTestService(t, provisioning)
 
 		// The wait runs until the context is canceled, so bound it here. The window
 		// has to outlast the first backoff so that the volume is polled more than once.
 		ctx, cancel := context.WithTimeout(context.Background(), 2500*time.Millisecond)
 		defer cancel()
 
-		if _, err := s.CreateVolume(ctx, "node", "dc", "oc", "lv", "", requestedBytes); err == nil {
-			t.Fatal("expected the wait to be cut short, but it returned successfully")
+		if _, err := s.CreateVolume(ctx, "node", "dc", "oc", "lv", "", requestedBytes); !errors.Is(err, context.DeadlineExceeded) {
+			t.Fatalf("expected the wait to run until the deadline, but got %v", err)
 		}
-		if len(api.deleted) != 0 {
-			t.Errorf("expected the LogicalVolume not to be deleted, but got %v", api.deleted)
-		}
-		if api.gets < 2 {
-			t.Errorf("expected the volume to be polled more than once, but it was read %d time(s)", api.gets)
+		if got := deletionTimestamp(t, c); got != nil {
+			t.Errorf("expected the LogicalVolume not to be deleted, but got %v", got)
 		}
 	})
 
 	t.Run("deletes the LogicalVolume when reporting a failed creation", func(t *testing.T) {
-		s, api := newTestService(topolvmv1.LogicalVolumeStatus{Code: codes.Internal, Message: "failed to create"})
+		s, c := newTestService(t, topolvmv1.LogicalVolumeStatus{Code: codes.Internal, Message: "failed to create"})
 
-		_, err := s.CreateVolume(context.Background(), "node", "dc", "oc", "lv", "", requestedBytes)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		_, err := s.CreateVolume(ctx, "node", "dc", "oc", "lv", "", requestedBytes)
 		if got := status.Code(err); got != codes.Internal {
 			t.Fatalf("expected %s, but got %s (err: %v)", codes.Internal, got, err)
 		}
-		if len(api.deleted) == 0 {
-			t.Errorf("expected the LogicalVolume to be deleted, but got %v", api.deleted)
+		if got := deletionTimestamp(t, c); got == nil {
+			t.Errorf("expected the LogicalVolume to be deleted, but got %v", got)
 		}
 	})
 
 	t.Run("reports the node's failure instead of waiting for a size it cannot produce", func(t *testing.T) {
-		s, api := newTestService(failedExpansion)
+		s, c := newTestService(t, failedExpansion)
 
-		_, err := s.CreateVolume(context.Background(), "node", "dc", "oc", "lv", "", requestedBytes)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		_, err := s.CreateVolume(ctx, "node", "dc", "oc", "lv", "", requestedBytes)
 		if got := status.Code(err); got != codes.Internal {
 			t.Fatalf("expected %s, but got %s (err: %v)", codes.Internal, got, err)
 		}
 		if msg := status.Convert(err).Message(); msg != "failed to resize" {
 			t.Errorf("expected the node's message, but got %q", msg)
 		}
-		if len(api.deleted) == 0 {
-			t.Errorf("expected the LogicalVolume to be deleted, but got %v", api.deleted)
+		if got := deletionTimestamp(t, c); got == nil {
+			t.Errorf("expected the LogicalVolume to be deleted, but got %v", got)
 		}
 	})
 
 	t.Run("keeps waiting while the reported size is below spec.size", func(t *testing.T) {
-		s, api := newTestService(undersized, sized)
+		s, c := newTestService(t, undersized)
 
-		lv, err := s.CreateVolume(context.Background(), "node", "dc", "oc", "lv", "source", requestedBytes)
+		ctx, cancel := context.WithTimeout(context.Background(), 2500*time.Millisecond)
+		defer cancel()
+
+		if _, err := s.CreateVolume(ctx, "node", "dc", "oc", "lv", "source", requestedBytes); !errors.Is(err, context.DeadlineExceeded) {
+			t.Fatalf("expected the wait to run until the deadline, but got %v", err)
+		}
+		if got := deletionTimestamp(t, c); got != nil {
+			t.Errorf("expected the LogicalVolume not to be deleted, but got %v", got)
+		}
+	})
+
+	t.Run("keeps a LogicalVolume the node fixed after its failure was read", func(t *testing.T) {
+		s, c := newTestService(t, undersizedAndFailed)
+		s.writer = interceptor.NewClient(c, interceptor.Funcs{
+			Delete: func(ctx context.Context, c client.WithWatch, obj client.Object, opts ...client.DeleteOption) error {
+				var fixed topolvmv1.LogicalVolume
+				if err := c.Get(ctx, client.ObjectKeyFromObject(obj), &fixed); err != nil {
+					return err
+				}
+				fixed.Status = *sized.DeepCopy()
+				if err := c.Status().Update(ctx, &fixed); err != nil {
+					return err
+				}
+				return c.Delete(ctx, obj, opts...)
+			},
+		})
+
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		lv, err := s.CreateVolume(ctx, "node", "dc", "oc", "lv", "source", requestedBytes)
 		if err != nil {
 			t.Fatalf("expected no error, but got %v", err)
 		}
 		if got := lv.Status.CurrentSize.Value(); got != reportedBytes {
 			t.Errorf("expected the reported size %d, but got %d", int64(reportedBytes), got)
 		}
-		if api.gets < 2 {
-			t.Errorf("expected the volume to be polled more than once, but it was read %d time(s)", api.gets)
-		}
-		if len(api.deleted) != 0 {
-			t.Errorf("expected the LogicalVolume not to be deleted, but got %v", api.deleted)
+		if got := deletionTimestamp(t, c); got != nil {
+			t.Errorf("expected the LogicalVolume not to be deleted, but got %v", got)
 		}
 	})
 
 	t.Run("reports the node's failure when the size stays below spec.size", func(t *testing.T) {
-		s, api := newTestService(undersizedAndFailed)
+		s, c := newTestService(t, undersizedAndFailed)
 
-		_, err := s.CreateVolume(context.Background(), "node", "dc", "oc", "lv", "source", requestedBytes)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		_, err := s.CreateVolume(ctx, "node", "dc", "oc", "lv", "source", requestedBytes)
 		if got := status.Code(err); got != codes.Internal {
 			t.Fatalf("expected %s, but got %s (err: %v)", codes.Internal, got, err)
 		}
-		if len(api.deleted) == 0 {
-			t.Errorf("expected the LogicalVolume to be deleted, but got %v", api.deleted)
+		if got := deletionTimestamp(t, c); got == nil {
+			t.Errorf("expected the LogicalVolume to be deleted, but got %v", got)
 		}
 	})
 }

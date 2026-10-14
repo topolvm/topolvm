@@ -391,7 +391,12 @@ func (s *LogicalVolumeService) waitForVolumeProvisioning(ctx context.Context, lv
 		}
 
 		if newLV.Status.Code != codes.OK {
-			if err := s.writer.Delete(ctx, &newLV); err != nil {
+			// The node may have fixed the volume since newLV was read.
+			err := s.writer.Delete(ctx, &newLV, client.Preconditions{UID: &newLV.UID, ResourceVersion: &newLV.ResourceVersion})
+			if apierrors.IsConflict(err) {
+				return false, nil
+			}
+			if err != nil {
 				// log this error but do not return this error, because newLV.Status.Message is more important
 				logger.Error(err, "failed to delete LogicalVolume")
 			}
