@@ -1004,7 +1004,7 @@ func testE2E() {
 			_, err = kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
 			Expect(err).ShouldNot(HaveOccurred())
 
-			By("confirming that a failure event occurs")
+			By("confirming that an OutOfRange failure event occurs")
 			Eventually(func() error {
 				var events corev1.EventList
 				err := getObjects(&events, "events", "-n", ns, "--field-selector="+fieldSelector)
@@ -1016,17 +1016,50 @@ func testE2E() {
 				default:
 					foundValid := false
 					for _, item := range events.Items {
-						if !strings.Contains(item.Message, wasModified) {
+						if strings.Contains(item.Message, "code = OutOfRange") {
 							foundValid = true
 							break
 						}
 					}
 					if !foundValid {
-						return errors.New("no valid failure event found (filtered to not contain conflicts)")
+						return errors.New("no OutOfRange failure event found")
 					}
 					return nil
 				}
 			}).Should(Succeed())
+
+			By("confirming that the PVC has an OutOfRange resize error condition")
+			Eventually(func() error {
+				var pvc corev1.PersistentVolumeClaim
+				if err := getObjects(&pvc, "pvc", "-n", ns, "topo-pvc"); err != nil {
+					return fmt.Errorf("failed to get PVC. err: %w", err)
+				}
+				for _, cond := range pvc.Status.Conditions {
+					if cond.Type == corev1.PersistentVolumeClaimControllerResizeError &&
+						strings.Contains(cond.Message, "code = OutOfRange") {
+						return nil
+					}
+				}
+				return fmt.Errorf("OutOfRange resize error condition not found. conditions: %v", pvc.Status.Conditions)
+			}).Should(Succeed())
+
+			By("retrying expansion with a smaller size")
+			sizeInByte = 5 * 1024 << 20
+			claimYAML = []byte(fmt.Sprintf(pvcTemplateYAML, "topo-pvc", "Filesystem", sizeInByte, storageClass))
+			_, err = kubectlWithInput(claimYAML, "apply", "-n", ns, "-f", "-")
+			Expect(err).ShouldNot(HaveOccurred())
+
+			By("confirming that PVC capacity reaches the smaller requested size")
+			Eventually(func() error {
+				var pvc corev1.PersistentVolumeClaim
+				if err := getObjects(&pvc, "pvc", "-n", ns, "topo-pvc"); err != nil {
+					return fmt.Errorf("failed to get PVC. err: %w", err)
+				}
+				if pvc.Status.Capacity.Storage().Cmp(*pvc.Spec.Resources.Requests.Storage()) != 0 {
+					return fmt.Errorf("capacity was not yet updated in status: %s", pvc.Status.Capacity.Storage().String())
+				}
+				return nil
+			}, timeout).Should(Succeed())
 
 			By("deleting the Pod and PVC")
 			_, err = kubectlWithInput(podYaml, "delete", "--now=true", "-n", ns, "-f", "-")
@@ -1036,6 +1069,7 @@ func testE2E() {
 		},
 		Entry("xfs", "topolvm-provisioner"),
 		Entry("btrfs", "topolvm-provisioner-btrfs"),
+		Entry("thin xfs", "topolvm-provisioner-thin"),
 	)
 
 	It("should resize a block device", func() {

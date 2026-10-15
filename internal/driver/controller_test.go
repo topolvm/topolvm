@@ -6,6 +6,10 @@ import (
 	"testing"
 
 	"github.com/topolvm/topolvm"
+	v1 "github.com/topolvm/topolvm/api/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 func Test_convertRequestCapacityBytes(t *testing.T) {
@@ -110,6 +114,33 @@ func Test_roundUp(t *testing.T) {
 			rounded := roundUp(tc.size, tc.multiple)
 			if rounded != tc.expected {
 				t.Errorf("%s, but was %d", name, rounded)
+			}
+		})
+	}
+}
+
+func Test_notEnoughSpaceError(t *testing.T) {
+	testCases := []struct {
+		statusCode  codes.Code
+		currentSize *resource.Quantity
+		expected    codes.Code
+	}{
+		{codes.OK, nil, codes.ResourceExhausted},
+		{codes.OK, resource.NewQuantity(1<<30, resource.BinarySI), codes.ResourceExhausted},
+		{codes.OK, resource.NewQuantity(2<<30, resource.BinarySI), codes.OutOfRange},
+		{codes.ResourceExhausted, nil, codes.OutOfRange},
+		{codes.ResourceExhausted, resource.NewQuantity(1<<30, resource.BinarySI), codes.OutOfRange},
+	}
+
+	for _, tc := range testCases {
+		name := fmt.Sprintf("status.code:%s status.currentSize:%v = %s", tc.statusCode, tc.currentSize, tc.expected)
+		t.Run(name, func(t *testing.T) {
+			lv := &v1.LogicalVolume{
+				Spec:   v1.LogicalVolumeSpec{Size: *resource.NewQuantity(2<<30, resource.BinarySI)},
+				Status: v1.LogicalVolumeStatus{Code: tc.statusCode, CurrentSize: tc.currentSize},
+			}
+			if code := status.Code(notEnoughSpaceError(lv)); code != tc.expected {
+				t.Errorf("expected %s, but got %s", tc.expected, code)
 			}
 		})
 	}
