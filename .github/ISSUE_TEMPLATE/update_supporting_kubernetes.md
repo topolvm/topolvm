@@ -19,10 +19,6 @@ There is a check list to confirm depending libraries or tools are released. The 
 
 Must update Kubernetes with each new version of Kubernetes.
 
-- [ ] sigs.k8s.io/controller-runtime
-  - https://github.com/kubernetes-sigs/controller-runtime/releases
-- [ ] sigs.k8s.io/controller-tools
-  - https://github.com/kubernetes-sigs/controller-tools/releases
 - [ ] external provisioner
   - https://github.com/kubernetes-csi/external-provisioner/tree/master/CHANGELOG
 - [ ] external resizer
