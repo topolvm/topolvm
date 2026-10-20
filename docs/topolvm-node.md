@@ -9,6 +9,7 @@ Kubernetes controller to implement dynamic volume provisioning.
 
 - [`GET_VOLUME_STATS`](https://github.com/container-storage-interface/spec/blob/v1.1.0/spec.md#nodegetvolumestats)
 - [`EXPAND_VOLUME`](https://github.com/container-storage-interface/spec/blob/v1.1.0/spec.md#nodeexpandvolume)
+- [`VOLUME_CONDITION`](https://github.com/container-storage-interface/spec/blob/v1.5.0/spec.md#nodegetvolumestats)
 
 
 ## Dynamic Volume Provisioning
@@ -107,6 +108,7 @@ to clean up PVCs and associated Pods bound to the node.
 | `lvmd-socket`          | string | `/run/topolvm/lvmd.sock`        | UNIX domain socket of `LVMd` service.  |
 | `metrics-bind-address` | string | `:8080`                         | Bind address for the metrics endpoint. |
 | `secure-metrics-server`| bool   | `false`                         | Secures the metrics server.            |
+| `enable-volume-health` | bool   | `true`                          | Report the volume condition.           |
 | `nodename`             | string |                                 | `Node` resource name.                  |
 
 ## Environment Variables
