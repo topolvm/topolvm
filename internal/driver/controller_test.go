@@ -121,15 +121,16 @@ func Test_roundUp(t *testing.T) {
 
 func Test_notEnoughSpaceError(t *testing.T) {
 	testCases := []struct {
-		statusCode  codes.Code
-		currentSize *resource.Quantity
-		expected    codes.Code
+		statusCode   codes.Code
+		currentSize  *resource.Quantity
+		currentBytes int64
+		expected     codes.Code
 	}{
-		{codes.OK, nil, codes.ResourceExhausted},
-		{codes.OK, resource.NewQuantity(1<<30, resource.BinarySI), codes.ResourceExhausted},
-		{codes.OK, resource.NewQuantity(2<<30, resource.BinarySI), codes.OutOfRange},
-		{codes.ResourceExhausted, nil, codes.OutOfRange},
-		{codes.ResourceExhausted, resource.NewQuantity(1<<30, resource.BinarySI), codes.OutOfRange},
+		{codes.OK, nil, 2 << 30, codes.ResourceExhausted},
+		{codes.OK, resource.NewQuantity(1<<30, resource.BinarySI), 1 << 30, codes.ResourceExhausted},
+		{codes.OK, resource.NewQuantity(2<<30, resource.BinarySI), 2 << 30, codes.OutOfRange},
+		{codes.ResourceExhausted, nil, 2 << 30, codes.OutOfRange},
+		{codes.ResourceExhausted, resource.NewQuantity(1<<30, resource.BinarySI), 1 << 30, codes.OutOfRange},
 	}
 
 	for _, tc := range testCases {
@@ -139,8 +140,16 @@ func Test_notEnoughSpaceError(t *testing.T) {
 				Spec:   v1.LogicalVolumeSpec{Size: *resource.NewQuantity(2<<30, resource.BinarySI)},
 				Status: v1.LogicalVolumeStatus{Code: tc.statusCode, CurrentSize: tc.currentSize},
 			}
-			if code := status.Code(notEnoughSpaceError(lv)); code != tc.expected {
+			err := notEnoughSpaceError(lv, 3<<30+512, tc.currentBytes, 1<<29+1)
+			if code := status.Code(err); code != tc.expected {
 				t.Errorf("expected %s, but got %s", tc.expected, code)
+			}
+			expectedMessage := fmt.Sprintf("not enough space: requested=3221225984 bytes, current=%d bytes, available=536870913 bytes", tc.currentBytes)
+			if tc.expected == codes.ResourceExhausted {
+				expectedMessage += "; volume expansion is pending"
+			}
+			if message := status.Convert(err).Message(); message != expectedMessage {
+				t.Errorf("expected message %q, but got %q", expectedMessage, message)
 			}
 		})
 	}

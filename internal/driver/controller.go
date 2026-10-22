@@ -654,7 +654,7 @@ func (s controllerServerNoLocked) ControllerExpandVolume(ctx context.Context, re
 	}
 
 	if capacity < (requestCapacityBytes - currentSize.Value()) {
-		return nil, notEnoughSpaceError(lv)
+		return nil, notEnoughSpaceError(lv, requestCapacityBytes, currentSize.Value(), capacity)
 	}
 
 	logger.Info("ControllerExpandVolume triggering lvService.ExpandVolume")
@@ -675,10 +675,12 @@ func (s controllerServerNoLocked) ControllerExpandVolume(ctx context.Context, re
 	}, nil
 }
 
-func notEnoughSpaceError(lv *v1.LogicalVolume) error {
+func notEnoughSpaceError(lv *v1.LogicalVolume, requestCapacityBytes, currentSize, capacity int64) error {
+	message := fmt.Sprintf("not enough space: requested=%d bytes, current=%d bytes, available=%d bytes",
+		requestCapacityBytes, currentSize, capacity)
 	// expandLV in topolvm-node sets a non-OK status.code when the last ResizeLV attempt failed.
 	if lv.Status.Code == codes.OK && (lv.Status.CurrentSize == nil || lv.Spec.Size.Cmp(*lv.Status.CurrentSize) > 0) {
-		return status.Error(codes.ResourceExhausted, "not enough space; volume expansion is pending")
+		return status.Error(codes.ResourceExhausted, message+"; volume expansion is pending")
 	}
-	return status.Error(codes.OutOfRange, "not enough space")
+	return status.Error(codes.OutOfRange, message)
 }
