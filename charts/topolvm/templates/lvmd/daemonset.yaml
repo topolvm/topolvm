@@ -35,7 +35,7 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
       annotations:
-        checksum/config: {{ include (print $.Template.BasePath "/lvmd/configmap.yaml") . | sha256sum }}
+        checksum/config: {{ include "topolvm.lvmdConfig" (dict "global" . "lvmd" $lvmd) | sha256sum }}
         {{- if .Values.lvmd.metrics.enabled }}
         {{- with .Values.lvmd.metrics.annotations }}
         {{- toYaml . | nindent 8 }}
