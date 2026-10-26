@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"slices"
 	"strings"
+	"syscall"
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -78,9 +79,34 @@ func callLVMStreamed(ctx context.Context, logVerbosity int, args ...string) (io.
 	// of leaving it running on the node. exec.Command ignores ctx and
 	// accumulates orphans under repeated timeout scenarios (#1163).
 	cmd := exec.CommandContext(ctx, wholeCommand[0], wholeCommand[1:]...)
+	killProcessGroupOnCancel(cmd)
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "LC_ALL=C")
 	return runCommand(ctx, logVerbosity, cmd)
+}
+
+// killProcessGroupOnCancel makes ctx cancellation kill the command's whole
+// process group instead of only the direct child.
+//
+// The default prefix runs lvm through "nsenter -p", and nsenter forks before
+// it execs lvm when it enters a PID namespace. exec.CommandContext alone kills
+// only nsenter, so lvm keeps running: it still holds the VG lock and the write
+// end of our stdout pipe, and commandReadCloser.Close blocks draining stdout.
+// That is what happens when lvcreate waits forever for a udev cookie that a
+// killed udev worker never completed.
+//
+// The signal must be SIGKILL: lvm blocks all other signals while it holds a
+// VG lock, and libdm retries the cookie wait on EINTR. The VG lock is a
+// flock, so it is released when lvm dies.
+func killProcessGroupOnCancel(cmd *exec.Cmd) {
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	cmd.Cancel = func() error {
+		err := syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+		if errors.Is(err, syscall.ESRCH) {
+			return os.ErrProcessDone
+		}
+		return err
+	}
 }
 
 // runCommand runs the command and returns the stdout as a ReadCloser that also Waits for the command to finish.
