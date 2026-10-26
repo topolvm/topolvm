@@ -37,6 +37,13 @@ releases its VG lock. A command that still runs a few seconds later is killed,
 and the udev cookies it leaves behind are deleted. Other processes' cookies are
 not touched.
 
+When systemd-udevd kills the worker for a device's event, it also forgets the
+device, and would then leave the device's links under `/dev` behind when the
+volume is removed. So after an LVM command on a volume is stopped, `LVMd`
+makes udev process the volume's device again, as `udevadm trigger` does. When
+it removes a volume, `LVMd` also deletes the volume's links that still point to
+a device that is gone or now has another name.
+
 The timeout must be at least 5 minutes, or 0 to disable it, and `topolvm-node`
 refuses to start otherwise. A shorter timeout could stop LVM commands that are
 still waiting for udev: systemd-udevd gives each event 180 seconds by default
