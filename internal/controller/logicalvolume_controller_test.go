@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -10,6 +11,7 @@ import (
 	topolvmv1 "github.com/topolvm/topolvm/api/v1"
 	"github.com/topolvm/topolvm/pkg/lvmd/proto"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	corev1 "k8s.io/api/core/v1"
 	storegev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -74,14 +76,37 @@ func (MockLVServiceClient) ResizeLV(ctx context.Context, in *proto.ResizeLVReque
 	panic("unimplemented")
 }
 
+// blockingLVServiceClient never answers CreateLV until the context ends,
+// like an lvcreate stuck waiting for a udev cookie. It returns a plain error,
+// as the embedded lvmd does, rather than a gRPC status.
+type blockingLVServiceClient struct {
+	MockLVServiceClient
+}
+
+// CreateLV implements proto.LVServiceClient.
+func (blockingLVServiceClient) CreateLV(ctx context.Context, in *proto.CreateLVRequest, opts ...grpc.CallOption) (*proto.CreateLVResponse, error) {
+	<-ctx.Done()
+	return nil, ctx.Err()
+}
+
+// blockingVGServiceClient never answers GetLVList until the context ends,
+// like an lvs waiting for a VG lock that a stuck LVM command holds.
+type blockingVGServiceClient struct {
+	MockVGServiceClient
+}
+
+// GetLVList implements proto.VGServiceClient.
+func (blockingVGServiceClient) GetLVList(ctx context.Context, in *proto.GetLVListRequest, opts ...grpc.CallOption) (*proto.GetLVListResponse, error) {
+	<-ctx.Done()
+	return nil, ctx.Err()
+}
+
 var _ = Describe("LogicalVolume controller", func() {
 	ctx := context.Background()
 	var stopFunc func()
 	errCh := make(chan error)
-	var vgService MockVGServiceClient
-	var lvService MockLVServiceClient
-
-	startReconciler := func(suffix string) {
+	startReconcilerWith := func(suffix string, vgService proto.VGServiceClient, lvService proto.LVServiceClient,
+		opts ...LogicalVolumeReconcilerOption) {
 		skipNameValidation := true
 		mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 			Scheme: scheme,
@@ -94,10 +119,7 @@ var _ = Describe("LogicalVolume controller", func() {
 		})
 		Expect(err).ToNot(HaveOccurred())
 
-		vgService = MockVGServiceClient{}
-		lvService = MockLVServiceClient{}
-
-		reconciler := NewLogicalVolumeReconcilerWithServices(mgr.GetClient(), nodeNameBase+suffix, vgService, lvService)
+		reconciler := NewLogicalVolumeReconcilerWithServices(mgr.GetClient(), nodeNameBase+suffix, vgService, lvService, opts...)
 		err = reconciler.SetupWithManager(mgr)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -107,6 +129,10 @@ var _ = Describe("LogicalVolume controller", func() {
 			errCh <- mgr.Start(ctx)
 		}()
 		time.Sleep(100 * time.Millisecond)
+	}
+
+	startReconciler := func(suffix string) {
+		startReconcilerWith(suffix, MockVGServiceClient{}, MockLVServiceClient{})
 	}
 
 	AfterEach(func() {
@@ -229,4 +255,66 @@ var _ = Describe("LogicalVolume controller", func() {
 			return !controllerutil.ContainsFinalizer(&lv, topolvm.GetLogicalVolumeFinalizer())
 		}, "2s").Should(BeTrue())
 	})
+
+	It("should fail the LogicalVolume with DeadlineExceeded when CreateLV does not finish in time", func() {
+		startReconcilerWith("-lvm-timeout", MockVGServiceClient{}, blockingLVServiceClient{},
+			WithLVMOperationTimeout(time.Second))
+
+		ctx := context.Background()
+
+		// Setup
+		lv := setupResources(ctx, "-lvm-timeout")
+
+		// Verify
+		// the stuck CreateLV is given up on, and the failure is recorded on the LogicalVolume
+		Eventually(func(g Gomega) {
+			g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(&lv), &lv)).To(Succeed())
+			g.Expect(lv.Status.Code).To(Equal(codes.DeadlineExceeded))
+			g.Expect(lv.Status.Message).To(ContainSubstring("did not finish within 1s"))
+			g.Expect(lv.Status.VolumeID).To(BeEmpty())
+		}).Should(Succeed())
+	})
+
+	It("should fail the LogicalVolume with DeadlineExceeded when listing LVs does not finish in time", func() {
+		startReconcilerWith("-lvs-timeout", blockingVGServiceClient{}, MockLVServiceClient{},
+			WithLVMOperationTimeout(time.Second))
+
+		ctx := context.Background()
+
+		// Setup
+		lv := setupResources(ctx, "-lvs-timeout")
+
+		// Verify
+		// the stuck existence check is given up on, and the timeout is named on the LogicalVolume
+		Eventually(func(g Gomega) {
+			g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(&lv), &lv)).To(Succeed())
+			g.Expect(lv.Status.Code).To(Equal(codes.DeadlineExceeded))
+			g.Expect(lv.Status.Message).To(ContainSubstring("did not finish within 1s"))
+			g.Expect(lv.Status.VolumeID).To(BeEmpty())
+		}).Should(Succeed())
+	})
 })
+
+func TestLVMContext(t *testing.T) {
+	t.Run("the default timeout sets a deadline", func(t *testing.T) {
+		r := NewLogicalVolumeReconcilerWithServices(nil, "node", nil, nil)
+		ctx, cancel := r.lvmContext(context.Background())
+		defer cancel()
+		deadline, ok := ctx.Deadline()
+		if !ok {
+			t.Fatal("expected a deadline")
+		}
+		if remaining := time.Until(deadline); remaining <= 0 || remaining > DefaultLVMOperationTimeout {
+			t.Fatalf("deadline is %v away, expected at most %v", remaining, DefaultLVMOperationTimeout)
+		}
+	})
+
+	t.Run("a zero timeout disables the deadline", func(t *testing.T) {
+		r := NewLogicalVolumeReconcilerWithServices(nil, "node", nil, nil, WithLVMOperationTimeout(0))
+		ctx, cancel := r.lvmContext(context.Background())
+		defer cancel()
+		if _, ok := ctx.Deadline(); ok {
+			t.Fatal("expected no deadline when the timeout is disabled")
+		}
+	})
+}
