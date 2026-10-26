@@ -61,6 +61,12 @@ func NewLogicalVolumeReconcilerWithServices(client client.Client, nodeName strin
 	return r
 }
 
+// LVMOperationTimeout returns how long each lvmd call may take; zero or less
+// means no limit.
+func (r *LogicalVolumeReconciler) LVMOperationTimeout() time.Duration {
+	return r.lvmTimeout
+}
+
 // lvmContext returns a context that bounds a single lvmd call.
 func (r *LogicalVolumeReconciler) lvmContext(ctx context.Context) (context.Context, context.CancelFunc) {
 	if r.lvmTimeout <= 0 {

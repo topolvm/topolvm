@@ -23,6 +23,19 @@ it means that the logical volume correspond to `LogicalVolume` is not provisione
 So in that case, `topolvm-node` sends `CreateLV` request to `LVMd`.
 If its response is succeeded, `topolvm-node` set `logicalvolume.status.volumeID`.
 
+Each request to `LVMd` must finish within `lvm-operation-timeout`.
+An LVM command can otherwise hang forever, for example when `lvcreate` waits for
+a udev event whose udev worker was killed, and stop provisioning on the node.
+When the timeout expires, the LVM command is killed and `logicalvolume.status.code`
+is set to `DeadlineExceeded`. `topolvm-controller` then deletes the `LogicalVolume`,
+the partially created logical volume is removed, and the provisioner retries.
+
+The timeout must be at least 5 minutes, or 0 to disable it, and `topolvm-node`
+refuses to start otherwise. A shorter timeout could stop LVM commands that are
+still waiting for udev: systemd-udevd gives each event 180 seconds by default
+(`event_timeout` in `udev.conf`). If you raise `event_timeout`, keep this timeout
+above it.
+
 ### Finalize a Logical Volume
 
 When a `LogicalVolume` resource is being deleted, `topolvm-node` sends
@@ -108,6 +121,7 @@ to clean up PVCs and associated Pods bound to the node.
 | `metrics-bind-address` | string | `:8080`                         | Bind address for the metrics endpoint. |
 | `secure-metrics-server`| bool   | `false`                         | Secures the metrics server.            |
 | `nodename`             | string |                                 | `Node` resource name.                  |
+| `lvm-operation-timeout`| duration | `5m`                          | Maximum time an LVM operation may run before it is stopped. At least `5m`; `0` disables the timeout. |
 
 ## Environment Variables
 

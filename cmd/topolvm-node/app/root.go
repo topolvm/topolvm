@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/topolvm/topolvm"
 	lvmd "github.com/topolvm/topolvm/cmd/lvmd/app"
+	"github.com/topolvm/topolvm/pkg/controller"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
@@ -24,6 +26,7 @@ var config struct {
 	lvmPath              string
 	lvmd                 lvmd.Config
 	profilingBindAddress string
+	lvmOperationTimeout  time.Duration
 }
 
 var rootCmd = &cobra.Command{
@@ -63,6 +66,8 @@ func init() {
 	fs.StringVar(&config.lvmPath, "lvm-path", "", "lvm command path on the host OS. This is deprecated and users should use lvm-command-prefix setting instead.")
 	fs.StringVar(&cfgFilePath, "config", filepath.Join("/etc", "topolvm", "lvmd.yaml"), "config file")
 	fs.StringVar(&config.profilingBindAddress, "profiling-bind-address", "", "Bind pprof profiling to the given network address. If empty, profiling is disabled.")
+	fs.DurationVar(&config.lvmOperationTimeout, "lvm-operation-timeout", controller.DefaultLVMOperationTimeout, "Maximum time an LVM operation such as lvcreate may run before it is stopped and the LogicalVolume fails. "+
+		"Must be at least 5m; 0 disables the timeout.")
 
 	_ = viper.BindEnv("nodename", "NODE_NAME")
 	_ = viper.BindPFlag("nodename", fs.Lookup("nodename"))

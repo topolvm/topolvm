@@ -104,6 +104,7 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v17.
 | node.initContainers | list | `[]` | Additional initContainers for the node service. |
 | node.kubeletWorkDirectory | string | `"/var/lib/kubelet"` | Specify the work directory of Kubelet on the host. For example, on microk8s it needs to be set to `/var/snap/microk8s/common/var/lib/kubelet` |
 | node.labels | object | `{}` | Additional labels to be added to the Daemonset. |
+| node.lvmOperationTimeout | string | `""` | Maximum time an LVM operation such as lvcreate may run before it is stopped and the LogicalVolume fails, as a duration such as `10m`. If empty, the topolvm-node default (5m) is used. It must be at least `5m`, or `0s` to disable the timeout. |
 | node.lvmdEmbedded | bool | `false` | Specify whether to embed lvmd in the node container. Should not be used in conjunction with lvmd.managed otherwise lvmd will be started twice. |
 | node.lvmdSocket | string | `"/run/topolvm/lvmd.sock"` | Specify the socket to be used for communication with lvmd. |
 | node.metrics.annotations | object | `{"prometheus.io/port":"metrics"}` | Annotations for Scrape used by Prometheus. |
