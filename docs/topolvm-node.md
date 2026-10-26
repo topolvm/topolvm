@@ -26,9 +26,16 @@ If its response is succeeded, `topolvm-node` set `logicalvolume.status.volumeID`
 Each request to `LVMd` must finish within `lvm-operation-timeout`.
 An LVM command can otherwise hang forever, for example when `lvcreate` waits for
 a udev event whose udev worker was killed, and stop provisioning on the node.
-When the timeout expires, the LVM command is killed and `logicalvolume.status.code`
+When the timeout expires, the LVM command is stopped and `logicalvolume.status.code`
 is set to `DeadlineExceeded`. `topolvm-controller` then deletes the `LogicalVolume`,
 the partially created logical volume is removed, and the provisioner retries.
+
+To stop an LVM command that waits for udev, `LVMd` deletes the udev cookie
+(a SysV semaphore) that this command is waiting for, as
+`dmsetup udevcomplete_all` would. The command then finishes by itself and
+releases its VG lock. A command that still runs a few seconds later is killed,
+and the udev cookies it leaves behind are deleted. Other processes' cookies are
+not touched.
 
 The timeout must be at least 5 minutes, or 0 to disable it, and `topolvm-node`
 refuses to start otherwise. A shorter timeout could stop LVM commands that are

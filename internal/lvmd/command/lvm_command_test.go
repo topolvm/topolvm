@@ -183,9 +183,14 @@ func TestCallLVMCancelKillsForkedChild(t *testing.T) {
 	// The real prefix is "nsenter -p ... /sbin/lvm", and nsenter forks before
 	// it execs lvm. Stand in for it with a shell that forks a blocked child,
 	// like an lvcreate stuck waiting for a udev cookie.
-	orig := lvmCommandPrefix
+	// There is no udev cookie to release, so the child has to be killed.
+	orig, origHost := lvmCommandPrefix, hostCommand
 	SetLVMCommandPrefix([]string{"sh", "-c", "sleep 60; exit $?", "sh"})
-	t.Cleanup(func() { SetLVMCommandPrefix(orig) })
+	hostCommand = func(string, ...string) []string { return []string{"true"} }
+	t.Cleanup(func() {
+		SetLVMCommandPrefix(orig)
+		hostCommand = origHost
+	})
 
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 	defer cancel()

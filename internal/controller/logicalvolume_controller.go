@@ -80,7 +80,7 @@ func (r *LogicalVolumeReconciler) lvmContext(ctx context.Context) (context.Conte
 func lvmCallError(lvmCtx context.Context, err error, timeout time.Duration) (codes.Code, string) {
 	if errors.Is(lvmCtx.Err(), context.DeadlineExceeded) {
 		return codes.DeadlineExceeded, fmt.Sprintf(
-			"LVM command did not finish within %s and was killed; it may have been waiting for udev, "+
+			"LVM command did not finish within %s and was stopped; it may have been waiting for udev, "+
 				"or for a VG lock held by another LVM command (check `dmsetup udevcookies` and "+
 				"systemd-udevd logs on the node): %v", timeout, err)
 	}
