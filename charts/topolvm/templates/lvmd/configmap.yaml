@@ -15,18 +15,7 @@ metadata:
     {{- include "topolvm.labels" . | nindent 4 }}
 data:
   lvmd.yaml: |
-    {{- if not .Values.node.lvmdEmbedded }}
-    socket-name: {{ default .Values.lvmd.socketName $lvmd.socketName }}
-    {{- end }}
-    {{- if $lvmd.deviceClasses }}
-    device-classes: {{ toYaml $lvmd.deviceClasses | nindent 6 }}
-    {{- end }}
-    {{- if $lvmd.lvcreateOptionClasses }}
-    lvcreate-option-classes: {{ toYaml $lvmd.lvcreateOptionClasses | nindent 6 }}
-    {{- end }}
-    {{- with $lvmd.additionalLVMDYamlContent }}
-    {{- toYaml . | nindent 4 }}
-    {{- end }}
+    {{- include "topolvm.lvmdConfig" (dict "global" . "lvmd" $lvmd) | trim | nindent 4 }}
 ---
     {{- end }}
   {{- end }}

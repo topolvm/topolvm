@@ -67,3 +67,21 @@ Plugin Name.
 {{- define "topolvm.pluginName" -}}
 {{ if .Values.useLegacy }}topolvm.cybozu.com{{ else }}topolvm.io{{ end }}
 {{- end }} 
+
+{{/*
+Contents of lvmd.yaml for one entry of lvmd and lvmd.additionalConfigs.
+*/}}
+{{- define "topolvm.lvmdConfig" -}}
+{{- if not .global.Values.node.lvmdEmbedded }}
+socket-name: {{ default .global.Values.lvmd.socketName .lvmd.socketName }}
+{{- end }}
+{{- if .lvmd.deviceClasses }}
+device-classes: {{ toYaml .lvmd.deviceClasses | nindent 2 }}
+{{- end }}
+{{- if .lvmd.lvcreateOptionClasses }}
+lvcreate-option-classes: {{ toYaml .lvmd.lvcreateOptionClasses | nindent 2 }}
+{{- end }}
+{{- with .lvmd.additionalLVMDYamlContent }}
+{{ toYaml . }}
+{{- end }}
+{{- end }}
