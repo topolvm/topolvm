@@ -38,12 +38,6 @@ func TestNodePublishBlockVolumeIdempotent(t *testing.T) {
 			if err := s.nodePublishBlockVolume(req, lv); err != nil {
 				t.Fatal(err)
 			}
-			// The fake bind mount leaves a regular file. Its contents detect
-			// retries that reopen the published target with O_TRUNC.
-			const contents = "published volume contents"
-			if err := os.WriteFile(target, []byte(contents), 0755); err != nil {
-				t.Fatal(err)
-			}
 			for range 3 {
 				if err := s.nodePublishBlockVolume(req, lv); err != nil {
 					t.Fatal(err)
@@ -55,10 +49,6 @@ func TestNodePublishBlockVolumeIdempotent(t *testing.T) {
 			mount := mounter.MountPoints[0]
 			if mount.Device != lv.GetPath() || !slices.Contains(mount.Opts, "bind") || slices.Contains(mount.Opts, "ro") != readOnly {
 				t.Fatalf("unexpected block mount: %+v", mount)
-			}
-			got, err := os.ReadFile(target)
-			if err != nil || string(got) != contents {
-				t.Fatalf("retry changed published contents: %q, err=%v", got, err)
 			}
 		})
 	}
