@@ -67,6 +67,9 @@ spec:
             {{- if .Values.node.profiling.bindAddress }}
             - --profiling-bind-address={{ .Values.node.profiling.bindAddress }}
             {{- end }}
+            {{- with .Values.node.lvmOperationTimeout }}
+            - --lvm-operation-timeout={{ . }}
+            {{- end }}
           {{- with .Values.node.args }}
           args: {{ toYaml . | nindent 12 }}
           {{- end }}
