@@ -390,19 +390,32 @@ func (s *LogicalVolumeService) waitForVolumeProvisioning(ctx context.Context, lv
 			return false, err
 		}
 
-		if newLV.Status.VolumeID != "" {
-			logger.Info("LogicalVolume successfully provisioned", "volume_id", newLV.Status.VolumeID)
-			return true, nil
-		}
-
 		if newLV.Status.Code != codes.OK {
-			if err := s.writer.Delete(ctx, &newLV); err != nil {
+			// The node may have fixed the volume since newLV was read.
+			err := s.writer.Delete(ctx, &newLV, client.Preconditions{UID: &newLV.UID, ResourceVersion: &newLV.ResourceVersion})
+			if apierrors.IsConflict(err) {
+				return false, nil
+			}
+			if err != nil {
 				// log this error but do not return this error, because newLV.Status.Message is more important
 				logger.Error(err, "failed to delete LogicalVolume")
 			}
 			return false, status.Error(newLV.Status.Code, newLV.Status.Message)
 		}
 
-		return false, nil
+		if newLV.Status.VolumeID == "" {
+			return false, nil
+		}
+
+		// A thin snapshot starts at the source size, so it may be observed below Spec.Size before resize.
+		if newLV.Status.CurrentSize == nil || newLV.Status.CurrentSize.Cmp(newLV.Spec.Size) < 0 {
+			logger.Info("waiting for 'status.currentSize' to reach 'spec.size'",
+				"name", lvName, "volume_id", newLV.Status.VolumeID,
+				"status.currentSize", newLV.Status.CurrentSize, "spec.size", newLV.Spec.Size)
+			return false, nil
+		}
+
+		logger.Info("LogicalVolume successfully provisioned", "volume_id", newLV.Status.VolumeID)
+		return true, nil
 	})
 }
