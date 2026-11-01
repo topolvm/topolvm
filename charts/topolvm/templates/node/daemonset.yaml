@@ -145,6 +145,9 @@ spec:
             - --csi-address={{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/csi-topolvm.sock
             - --kubelet-registration-path={{ .Values.node.kubeletWorkDirectory }}/plugins/{{ include "topolvm.pluginName" . }}/node/csi-topolvm.sock
             - --http-endpoint=:9809
+          {{- with .Values.node.csiRegistrar.args }}
+          args: {{ toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - containerPort: 9809
               name: reg-healthz
