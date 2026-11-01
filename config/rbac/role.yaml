@@ -27,6 +27,13 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - persistentvolumes
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - ""
+  resources:
   - pods
   verbs:
   - get

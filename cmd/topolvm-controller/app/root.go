@@ -46,6 +46,7 @@ var config struct {
 	leaderElectionRenewDeadline time.Duration
 	leaderElectionRetryPeriod   time.Duration
 	skipNodeFinalize            bool
+	orphanedVolumeGracePeriod   time.Duration
 	zapOpts                     zap.Options
 	controllerServerSettings    driver.ControllerServerSettings
 	profilingBindAddress        string
@@ -90,6 +91,7 @@ func init() {
 	fs.DurationVar(&config.leaderElectionRenewDeadline, "leader-election-renew-deadline", 10*time.Second, "Duration that the acting controlplane will retry refreshing leadership before giving up. This is measured against time of last observed ack.")
 	fs.DurationVar(&config.leaderElectionRetryPeriod, "leader-election-retry-period", 2*time.Second, "Duration the LeaderElector clients should wait between tries of actions.")
 	fs.BoolVar(&config.skipNodeFinalize, "skip-node-finalize", false, "skips automatic cleanup of PhysicalVolumeClaims when a Node is deleted")
+	fs.DurationVar(&config.orphanedVolumeGracePeriod, "orphaned-volume-cleanup-grace-period", 0, "Delete LogicalVolumes older than this duration that have no PersistentVolume or PersistentVolumeClaim. 0 disables the cleanup.")
 	fs.StringVar(&config.profilingBindAddress, "profiling-bind-address", "", "Bind pprof profiling to the given network address. If empty, profiling is disabled.")
 
 	driver.QuantityVar(fs, &config.controllerServerSettings.Block,

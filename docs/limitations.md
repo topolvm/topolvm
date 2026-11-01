@@ -105,3 +105,4 @@ Thus, if a pod consumes a restored/cloned PV having a different storage class fr
 
 In rare cases, a logical volume may not be deleted even after deleting its PVC. This is more likely to occur when deleting a PVC immediately after creation. This is due to [a bug in the external provisioner](https://github.com/kubernetes-csi/external-provisioner/issues/486) and is not specific to TopoLVM.
 As workarounds, avoid deleting the PVC immediately after creation. And run manual garbage collection. i.e., manually delete the LogicalVolume when there is no corresponding PV/PVC for a LogicalVolume that has existed for a certain period of time or longer.
+`topolvm-controller` can run this garbage collection for you; see [Cleanup of orphaned LogicalVolumes](topolvm-controller.md#cleanup-of-orphaned-logicalvolumes).

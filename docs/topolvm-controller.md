@@ -168,6 +168,30 @@ therefore the filesystem resizing may be delayed.
 To avoid this, the controller will notify kubelet by setting
 the `topolvm.io/last-resizefs-requested-at` annotation with the current time to the Pod.
 
+### Cleanup of orphaned LogicalVolumes
+
+external-provisioner can leave a LogicalVolume behind when its PVC is deleted
+while `CreateVolume` is still in progress and the provisioner restarts
+([external-provisioner#486](https://github.com/kubernetes-csi/external-provisioner/issues/486)).
+The volume keeps its space on the node, but no PV or PVC refers to it.
+
+When `--orphaned-volume-cleanup-grace-period` is positive, the leader checks
+every 10 minutes and deletes each LogicalVolume that meets all of these
+conditions:
+
+1. It is not being deleted, and its `status.volumeID` is set, so the volume
+   exists on the node.
+2. It has no `spec.source`. Snapshots and clones are never deleted.
+3. It is older than the grace period.
+4. No PersistentVolume of this driver has its volume ID as `volumeHandle`.
+5. Its name ends with a PVC UID, as in external-provisioner's default
+   `pvc-<UID>` names, and no PVC with that UID exists. LogicalVolumes whose
+   names do not end with a UID are never deleted.
+
+This also deletes LogicalVolumes whose PersistentVolume was deleted while its
+reclaim policy was `Retain`, along with their data. Leave the cleanup disabled
+if you keep such volumes to recover data later.
+
 Command-line flags
 ------------------
 
@@ -180,3 +204,4 @@ Command-line flags
 | `leader-election-id`    | string | `topolvm`                               | ID for leader election by controller-runtime.                                |
 | `webhook-addr`          | string | `:9443`                                 | Listen address for the webhook endpoint.                                     |
 | `skip-node-finalize`    | bool   | `false`                                 | When true, skips automatic cleanup of PhysicalVolumeClaims on Node deletion. |
+| `orphaned-volume-cleanup-grace-period` | duration | `0` | When positive, deletes orphaned LogicalVolumes older than this. See [Cleanup of orphaned LogicalVolumes](#cleanup-of-orphaned-logicalvolumes). |

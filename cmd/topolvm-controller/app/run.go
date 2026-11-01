@@ -116,6 +116,12 @@ func subMain() error {
 		return err
 	}
 
+	if config.orphanedVolumeGracePeriod > 0 {
+		if err := mgr.Add(runners.NewOrphanedVolumeCleaner(client, apiReader, config.orphanedVolumeGracePeriod)); err != nil {
+			return err
+		}
+	}
+
 	//+kubebuilder:scaffold:builder
 
 	// Add health checker to manager
