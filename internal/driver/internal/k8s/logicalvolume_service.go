@@ -40,6 +40,11 @@ type LogicalVolumeService struct {
 
 const (
 	indexFieldVolumeID = "status.volumeID"
+
+	// directListPageSize is the page size used when listing LogicalVolumes
+	// directly from the API server. It bounds the memory one lookup holds,
+	// independently of the number of LogicalVolumes in the cluster.
+	directListPageSize = 500
 )
 
 var (
@@ -99,18 +104,28 @@ func (v *volumeGetter) Get(ctx context.Context, volumeID string) (*topolvmv1.Log
 	}
 
 	// not found. try direct reader.
-	err = v.apiReader.List(ctx, lvList)
-	if err != nil {
-		return nil, err
-	}
-
+	// The direct reader bypasses the cache, so page through the list instead
+	// of decoding every LogicalVolume at once. DeleteVolume retries for
+	// already-deleted volumes always end up here, and many can run
+	// concurrently.
 	count := 0
 	var foundLv *topolvmv1.LogicalVolume
-	for _, lv := range lvList.Items {
-		if lv.Status.VolumeID == volumeID {
-			count++
-			lv := lv
-			foundLv = &lv
+	continueToken := ""
+	for {
+		page := new(topolvmv1.LogicalVolumeList)
+		err = v.apiReader.List(ctx, page, client.Limit(directListPageSize), client.Continue(continueToken))
+		if err != nil {
+			return nil, err
+		}
+		for i := range page.Items {
+			if page.Items[i].Status.VolumeID == volumeID {
+				count++
+				foundLv = page.Items[i].DeepCopy()
+			}
+		}
+		continueToken = page.Continue
+		if continueToken == "" {
+			break
 		}
 	}
 	if count > 1 {
