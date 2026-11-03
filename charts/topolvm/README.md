@@ -40,6 +40,7 @@ See [Getting Started](https://github.com/topolvm/topolvm/blob/topolvm-chart-v17.
 | controller.storageCapacityTracking.enabled | bool | `true` | Enable Storage Capacity Tracking for csi-provisioner. |
 | controller.terminationGracePeriodSeconds | int | `nil` | Specify terminationGracePeriodSeconds. |
 | controller.tolerations | list | `[]` | Specify tolerations. # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ |
+| controller.topologySpreadConstraints | string | `""` | Specify topologySpreadConstraints, as a template string like affinity. To replace the default pod anti-affinity with a spread constraint, set affinity to "". # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/ |
 | controller.updateStrategy | object | `{}` | Specify updateStrategy. |
 | controller.volumes | list | `[{"emptyDir":{},"name":"socket-dir"}]` | Specify volumes. |
 | crd | object | `{"annotations":{}}` | CRD configuration. |

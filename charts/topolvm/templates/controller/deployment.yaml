@@ -307,6 +307,9 @@ spec:
       {{- if ne .Values.controller.affinity "" }}
       affinity: {{ tpl .Values.controller.affinity . | nindent 8 }}
       {{- end }}
+      {{- if ne .Values.controller.topologySpreadConstraints "" }}
+      topologySpreadConstraints: {{ tpl .Values.controller.topologySpreadConstraints . | nindent 8 }}
+      {{- end }}
       {{- with .Values.controller.tolerations }}
       tolerations: {{ toYaml . | nindent 8 }}
       {{- end }}
