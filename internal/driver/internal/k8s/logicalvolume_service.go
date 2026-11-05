@@ -99,7 +99,14 @@ func (v *volumeGetter) Get(ctx context.Context, volumeID string) (*topolvmv1.Log
 	}
 
 	// not found. try direct reader.
-	err = v.apiReader.List(ctx, lvList)
+	// Filter by status.volumeID on the API server side to avoid fetching all LogicalVolumes.
+	err = v.apiReader.List(ctx, lvList, client.MatchingFields{indexFieldVolumeID: volumeID})
+	if apierrors.IsBadRequest(err) {
+		// The CRD may not have status.volumeID as a selectable field yet (e.g. the CRD is not upgraded).
+		logger.Info("field selector is not supported; falling back to listing all LogicalVolumes",
+			"field", indexFieldVolumeID, "error", err.Error())
+		err = v.apiReader.List(ctx, lvList)
+	}
 	if err != nil {
 		return nil, err
 	}

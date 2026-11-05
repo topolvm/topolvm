@@ -46,6 +46,7 @@ type LogicalVolumeStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:scope=Cluster
+//+kubebuilder:selectablefield:JSONPath=`.status.volumeID`
 
 // LogicalVolume is the Schema for the logicalvolumes API
 type LogicalVolume struct {

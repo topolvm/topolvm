@@ -98,6 +98,8 @@ spec:
                 type: string
             type: object
         type: object
+    selectableFields:
+    - jsonPath: .status.volumeID
     served: true
     storage: true
     subresources:
