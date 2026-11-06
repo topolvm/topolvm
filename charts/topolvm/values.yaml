@@ -295,6 +295,10 @@ node:
   # node.args -- Arguments to be passed to the command.
   args: []
 
+  csiRegistrar:
+    # node.csiRegistrar.args -- Arguments to be passed to the csi-registrar command.
+    args: []
+
   # node.podSecurityContext -- Pod securityContext.
   ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
   podSecurityContext: {}
@@ -438,6 +442,18 @@ controller:
 
   # controller.args -- Arguments to be passed to the command.
   args: []
+
+  csiProvisioner:
+    # controller.csiProvisioner.args -- Arguments to be passed to the csi-provisioner command.
+    args: []
+
+  csiResizer:
+    # controller.csiResizer.args -- Arguments to be passed to the csi-resizer command.
+    args: []
+
+  csiSnapshotter:
+    # controller.csiSnapshotter.args -- Arguments to be passed to the csi-snapshotter command.
+    args: []
 
   storageCapacityTracking:
     # controller.storageCapacityTracking.enabled -- Enable Storage Capacity Tracking for csi-provisioner.
