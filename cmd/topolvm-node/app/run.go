@@ -59,6 +59,9 @@ func subMain(ctx context.Context) error {
 	if len(nodename) == 0 {
 		return errors.New("node name is not given")
 	}
+	if err := controller.ValidateLVMOperationTimeout(config.lvmOperationTimeout); err != nil {
+		return fmt.Errorf("invalid --lvm-operation-timeout: %w", err)
+	}
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&config.zapOpts)))
 
@@ -120,7 +123,8 @@ func subMain(ctx context.Context) error {
 	}
 
 	if err := controller.SetupLogicalVolumeReconcilerWithServices(
-		mgr, client, nodename, vgService, lvService); err != nil {
+		mgr, client, nodename, vgService, lvService,
+		controller.WithLVMOperationTimeout(config.lvmOperationTimeout)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "LogicalVolume")
 		return err
 	}

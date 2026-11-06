@@ -78,6 +78,7 @@ func callLVMStreamed(ctx context.Context, logVerbosity int, args ...string) (io.
 	// of leaving it running on the node. exec.Command ignores ctx and
 	// accumulates orphans under repeated timeout scenarios (#1163).
 	cmd := exec.CommandContext(ctx, wholeCommand[0], wholeCommand[1:]...)
+	stopProcessGroupOnCancel(ctx, cmd)
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "LC_ALL=C")
 	return runCommand(ctx, logVerbosity, cmd)

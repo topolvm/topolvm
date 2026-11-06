@@ -2,7 +2,9 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/topolvm/topolvm"
@@ -27,18 +29,62 @@ type LogicalVolumeReconciler struct {
 	nodeName  string
 	vgService proto.VGServiceClient
 	lvService proto.LVServiceClient
+	// lvmTimeout bounds each lvmd call; see DefaultLVMOperationTimeout.
+	lvmTimeout time.Duration
+}
+
+// LogicalVolumeReconcilerOption configures a LogicalVolumeReconciler.
+type LogicalVolumeReconcilerOption func(*LogicalVolumeReconciler)
+
+// WithLVMOperationTimeout sets how long each call to lvmd may take before it
+// is cancelled. Zero or a negative value disables the timeout.
+func WithLVMOperationTimeout(timeout time.Duration) LogicalVolumeReconcilerOption {
+	return func(r *LogicalVolumeReconciler) {
+		r.lvmTimeout = timeout
+	}
 }
 
 //+kubebuilder:rbac:groups=topolvm.io,resources=logicalvolumes,verbs=get;list;watch;update;patch
 //+kubebuilder:rbac:groups=topolvm.io,resources=logicalvolumes/status,verbs=get;update;patch
 
-func NewLogicalVolumeReconcilerWithServices(client client.Client, nodeName string, vgService proto.VGServiceClient, lvService proto.LVServiceClient) *LogicalVolumeReconciler {
-	return &LogicalVolumeReconciler{
-		client:    client,
-		nodeName:  nodeName,
-		vgService: vgService,
-		lvService: lvService,
+func NewLogicalVolumeReconcilerWithServices(client client.Client, nodeName string, vgService proto.VGServiceClient, lvService proto.LVServiceClient, opts ...LogicalVolumeReconcilerOption) *LogicalVolumeReconciler {
+	r := &LogicalVolumeReconciler{
+		client:     client,
+		nodeName:   nodeName,
+		vgService:  vgService,
+		lvService:  lvService,
+		lvmTimeout: DefaultLVMOperationTimeout,
 	}
+	for _, opt := range opts {
+		opt(r)
+	}
+	return r
+}
+
+// LVMOperationTimeout returns how long each lvmd call may take; zero or less
+// means no limit.
+func (r *LogicalVolumeReconciler) LVMOperationTimeout() time.Duration {
+	return r.lvmTimeout
+}
+
+// lvmContext returns a context that bounds a single lvmd call.
+func (r *LogicalVolumeReconciler) lvmContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	if r.lvmTimeout <= 0 {
+		return context.WithCancel(ctx)
+	}
+	return context.WithTimeout(ctx, r.lvmTimeout)
+}
+
+// lvmCallError converts an lvmd error into the status code and message stored
+// on the LogicalVolume, naming the likely cause when the call timed out.
+func lvmCallError(lvmCtx context.Context, err error, timeout time.Duration) (codes.Code, string) {
+	if errors.Is(lvmCtx.Err(), context.DeadlineExceeded) {
+		return codes.DeadlineExceeded, fmt.Sprintf(
+			"LVM command did not finish within %s and was stopped; it may have been waiting for udev, "+
+				"or for a VG lock held by another LVM command (check `dmsetup udevcookies` and "+
+				"systemd-udevd logs on the node): %v", timeout, err)
+	}
+	return extractFromError(err)
 }
 
 // Reconcile creates/deletes LVM logical volume for a LogicalVolume.
@@ -147,7 +193,9 @@ func (r *LogicalVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *LogicalVolumeReconciler) removeLVIfExists(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) error {
 	// Finalizer's process ( RemoveLV then removeString ) is not atomic,
 	// so checking existence of LV to ensure its idempotence
-	_, err := r.lvService.RemoveLV(ctx, &proto.RemoveLVRequest{Name: string(lv.UID), DeviceClass: lv.Spec.DeviceClass})
+	lvmCtx, cancel := r.lvmContext(ctx)
+	defer cancel()
+	_, err := r.lvService.RemoveLV(lvmCtx, &proto.RemoveLVRequest{Name: string(lv.UID), DeviceClass: lv.Spec.DeviceClass})
 	if status.Code(err) == codes.NotFound {
 		log.Info("LV already removed", "name", lv.Name, "uid", lv.UID)
 		return nil
@@ -161,8 +209,13 @@ func (r *LogicalVolumeReconciler) removeLVIfExists(ctx context.Context, log logr
 }
 
 func (r *LogicalVolumeReconciler) volumeExists(ctx context.Context, log logr.Logger, lv *topolvmv1.LogicalVolume) (bool, error) {
-	respList, err := r.vgService.GetLVList(ctx, &proto.GetLVListRequest{DeviceClass: lv.Spec.DeviceClass})
+	lvmCtx, cancel := r.lvmContext(ctx)
+	defer cancel()
+	respList, err := r.vgService.GetLVList(lvmCtx, &proto.GetLVListRequest{DeviceClass: lv.Spec.DeviceClass})
 	if err != nil {
+		if code, message := lvmCallError(lvmCtx, err, r.lvmTimeout); code == codes.DeadlineExceeded {
+			err = status.Error(code, message)
+		}
 		log.Error(err, "failed to get list of LV")
 		return false, err
 	}
@@ -191,6 +244,10 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 		if err != nil {
 			lv.Status.Code = codes.Internal
 			lv.Status.Message = "failed to check volume existence"
+			if s, ok := status.FromError(err); ok && s.Code() == codes.DeadlineExceeded {
+				lv.Status.Code = codes.DeadlineExceeded
+				lv.Status.Message = s.Message()
+			}
 			return err
 		}
 		if found {
@@ -222,7 +279,9 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 			}
 
 			// Create a snapshot lv
-			resp, err := r.lvService.CreateLVSnapshot(ctx, &proto.CreateLVSnapshotRequest{
+			lvmCtx, cancel := r.lvmContext(ctx)
+			defer cancel()
+			resp, err := r.lvService.CreateLVSnapshot(lvmCtx, &proto.CreateLVSnapshotRequest{
 				Name:         string(lv.UID),
 				DeviceClass:  lv.Spec.DeviceClass,
 				SourceVolume: sourceVolID,
@@ -230,7 +289,7 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 				AccessType:   lv.Spec.AccessType,
 			})
 			if err != nil {
-				code, message := extractFromError(err)
+				code, message := lvmCallError(lvmCtx, err, r.lvmTimeout)
 				log.Error(err, message)
 				lv.Status.Code = code
 				lv.Status.Message = message
@@ -239,14 +298,16 @@ func (r *LogicalVolumeReconciler) createLV(ctx context.Context, log logr.Logger,
 			volume = resp.Snapshot
 		} else {
 			// Create a regular lv
-			resp, err := r.lvService.CreateLV(ctx, &proto.CreateLVRequest{
+			lvmCtx, cancel := r.lvmContext(ctx)
+			defer cancel()
+			resp, err := r.lvService.CreateLV(lvmCtx, &proto.CreateLVRequest{
 				Name:                string(lv.UID),
 				DeviceClass:         lv.Spec.DeviceClass,
 				LvcreateOptionClass: lv.Spec.LvcreateOptionClass,
 				SizeBytes:           reqBytes,
 			})
 			if err != nil {
-				code, message := extractFromError(err)
+				code, message := lvmCallError(lvmCtx, err, r.lvmTimeout)
 				log.Error(err, message)
 				lv.Status.Code = code
 				lv.Status.Message = message
@@ -296,13 +357,15 @@ func (r *LogicalVolumeReconciler) expandLV(ctx context.Context, log logr.Logger,
 	reqBytes := lv.Spec.Size.Value()
 
 	err := func() error {
-		resp, err := r.lvService.ResizeLV(ctx, &proto.ResizeLVRequest{
+		lvmCtx, cancel := r.lvmContext(ctx)
+		defer cancel()
+		resp, err := r.lvService.ResizeLV(lvmCtx, &proto.ResizeLVRequest{
 			Name:        string(lv.UID),
 			SizeBytes:   reqBytes,
 			DeviceClass: lv.Spec.DeviceClass,
 		})
 		if err != nil {
-			code, message := extractFromError(err)
+			code, message := lvmCallError(lvmCtx, err, r.lvmTimeout)
 			log.Error(err, message)
 			lv.Status.Code = code
 			lv.Status.Message = message

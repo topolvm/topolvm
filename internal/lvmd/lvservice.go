@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/topolvm/topolvm/internal/lvmd/command"
 	"github.com/topolvm/topolvm/pkg/lvmd/proto"
 	lvmdTypes "github.com/topolvm/topolvm/pkg/lvmd/types"
@@ -80,6 +82,7 @@ func (s *lvService) CreateLV(ctx context.Context, req *proto.CreateLVRequest) (*
 		logger.Error(err, "failed to create volume",
 			"requested", requested,
 			"tags", req.GetTags())
+		announceIfCancelled(ctx, logger, pool.FindVolume, req.GetName())
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -88,6 +91,7 @@ func (s *lvService) CreateLV(ctx context.Context, req *proto.CreateLVRequest) (*
 		logger.Error(err, "failed to find volume",
 			"requested", requested,
 			"tags", req.GetTags())
+		announceIfCancelled(ctx, logger, pool.FindVolume, req.GetName())
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -219,23 +223,27 @@ func (s *lvService) CreateLVSnapshot(ctx context.Context, req *proto.CreateLVSna
 
 	if err := sourceLV.ThinSnapshot(ctx, req.GetName(), req.GetTags()); err != nil {
 		logger.Error(err, "failed to create snapshot volume")
+		announceIfCancelled(ctx, logger, vg.FindVolume, req.GetName())
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	snapLV, err := vg.FindVolume(ctx, req.GetName())
 	if err != nil {
 		logger.Error(err, "failed to get snapshot after creation")
+		announceIfCancelled(ctx, logger, vg.FindVolume, req.GetName())
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	if err := snapLV.Resize(ctx, desiredSize); err != nil {
 		logger.Error(err, "failed to resize snapshot volume")
+		announceIfCancelled(ctx, logger, vg.FindVolume, req.GetName())
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	// If source volume is thin, activate the thin snapshot lv with accessmode.
 	if err := snapLV.Activate(ctx, req.AccessType); err != nil {
 		logger.Error(err, "failed to activate snapshot volume")
+		announceIfCancelled(ctx, logger, vg.FindVolume, req.GetName())
 		if err := vg.RemoveVolume(ctx, req.GetName()); err != nil {
 			logger.Error(err, "failed to delete snapshot after activation failed")
 		} else {
@@ -323,6 +331,7 @@ func (s *lvService) ResizeLV(ctx context.Context, req *proto.ResizeLVRequest) (*
 			"current", current,
 			"free", free,
 		)
+		announceIfCancelled(ctx, logger, pool.FindVolume, req.GetName())
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	s.notify()
@@ -330,4 +339,29 @@ func (s *lvService) ResizeLV(ctx context.Context, req *proto.ResizeLVRequest) (*
 	logger.Info("resized a LV", "requested", requested, "size", lv.Size())
 
 	return &proto.ResizeLVResponse{SizeBytes: int64(lv.Size())}, nil
+}
+
+// announceIfCancelled lets udev learn a volume's device again after an LVM
+// command on it was cancelled. Such a command may have been waiting for a udev
+// event whose worker systemd-udevd killed, and then udev forgot the device and
+// could not remove its /dev links later. See command.LogicalVolume.AnnounceToUdev.
+func announceIfCancelled(ctx context.Context, logger logr.Logger,
+	find func(context.Context, string) (*command.LogicalVolume, error), name string) {
+	if ctx.Err() == nil {
+		return
+	}
+	findCtx, cancel := context.WithTimeout(log.IntoContext(context.Background(), logger), time.Minute)
+	defer cancel()
+	lv, err := find(findCtx, name)
+	if errors.Is(err, command.ErrNotFound) {
+		return
+	}
+	if err == nil {
+		err = lv.AnnounceToUdev()
+	}
+	if err != nil {
+		logger.Error(err, "failed to make udev process a volume again after a cancelled LVM command")
+		return
+	}
+	logger.Info("made udev process a volume again after a cancelled LVM command")
 }

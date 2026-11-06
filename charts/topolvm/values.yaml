@@ -291,6 +291,9 @@ node:
   # node.kubeletWorkDirectory -- Specify the work directory of Kubelet on the host.
   # For example, on microk8s it needs to be set to `/var/snap/microk8s/common/var/lib/kubelet`
   kubeletWorkDirectory: /var/lib/kubelet
+  # node.lvmOperationTimeout -- Maximum time an LVM operation such as lvcreate may run before it is stopped and the LogicalVolume fails, as a duration such as `10m`.
+  # If empty, the topolvm-node default (5m) is used. It must be at least `5m`, or `0s` to disable the timeout.
+  lvmOperationTimeout: ""
 
   # node.args -- Arguments to be passed to the command.
   args: []

@@ -8,6 +8,7 @@ import (
 	"path"
 
 	"github.com/topolvm/topolvm"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // Names of lvm commands and their common arguments.
@@ -588,8 +589,19 @@ func (l *LogicalVolume) Resize(ctx context.Context, newSize uint64) error {
 }
 
 // RemoveVolume removes the given volume from the volume group.
+// It also deletes the volume's /dev links that udev left behind.
 func (vg *VolumeGroup) RemoveVolume(ctx context.Context, name string) error {
 	err := callLVM(ctx, "lvremove", "-f", fullName(name, vg))
+
+	if err == nil || IsLVMNotFound(err) {
+		removed, linkErr := vg.removeStaleLinks(name)
+		if linkErr != nil {
+			log.FromContext(ctx).Error(linkErr, "failed to check the /dev links of a removed volume", "name", name)
+		}
+		if len(removed) > 0 {
+			log.FromContext(ctx).Info("deleted /dev links that udev left behind", "name", name, "links", removed)
+		}
+	}
 
 	if IsLVMNotFound(err) {
 		return errors.Join(ErrNotFound, err)

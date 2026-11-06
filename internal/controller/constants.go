@@ -16,4 +16,11 @@ const (
 
 	// requeueIntervalForSimpleUpdate is the requeue interval when updating the manifest during reconciliation and re-execute loop
 	requeueIntervalForSimpleUpdate = 1 * time.Second
+
+	// DefaultLVMOperationTimeout bounds each call the LogicalVolume reconciler
+	// makes to lvmd. An LVM command that waits on a udev cookie which a killed
+	// udev worker never completed would otherwise block forever, holding the
+	// VG lock and this node's only reconcile worker. It is longer than udevd's
+	// default event_timeout (180s), after which the cookie cannot complete.
+	DefaultLVMOperationTimeout = 5 * time.Minute
 )

@@ -178,3 +178,33 @@ func TestCommandReadCloserClose(t *testing.T) {
 		}
 	})
 }
+
+func TestCallLVMCancelKillsForkedChild(t *testing.T) {
+	// The real prefix is "nsenter -p ... /sbin/lvm", and nsenter forks before
+	// it execs lvm. Stand in for it with a shell that forks a blocked child,
+	// like an lvcreate stuck waiting for a udev cookie.
+	// There is no udev cookie to release, so the child has to be killed.
+	orig, origHost := lvmCommandPrefix, hostCommand
+	SetLVMCommandPrefix([]string{"sh", "-c", "sleep 60; exit $?", "sh"})
+	hostCommand = func(string, ...string) []string { return []string{"true"} }
+	t.Cleanup(func() {
+		SetLVMCommandPrefix(orig)
+		hostCommand = origHost
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+	ctx = log.IntoContext(ctx, testr.New(t))
+
+	done := make(chan error, 1)
+	go func() { done <- callLVM(ctx, "lvcreate") }()
+
+	select {
+	case err := <-done:
+		if err == nil {
+			t.Fatal("expected an error after the context deadline")
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("callLVM still blocked 10s after its context expired: the forked child was not killed")
+	}
+}
