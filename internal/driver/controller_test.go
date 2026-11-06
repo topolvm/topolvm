@@ -6,6 +6,10 @@ import (
 	"testing"
 
 	"github.com/topolvm/topolvm"
+	v1 "github.com/topolvm/topolvm/api/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 func Test_convertRequestCapacityBytes(t *testing.T) {
@@ -110,6 +114,42 @@ func Test_roundUp(t *testing.T) {
 			rounded := roundUp(tc.size, tc.multiple)
 			if rounded != tc.expected {
 				t.Errorf("%s, but was %d", name, rounded)
+			}
+		})
+	}
+}
+
+func Test_notEnoughSpaceError(t *testing.T) {
+	testCases := []struct {
+		statusCode   codes.Code
+		currentSize  *resource.Quantity
+		currentBytes int64
+		expected     codes.Code
+	}{
+		{codes.OK, nil, 2 << 30, codes.ResourceExhausted},
+		{codes.OK, resource.NewQuantity(1<<30, resource.BinarySI), 1 << 30, codes.ResourceExhausted},
+		{codes.OK, resource.NewQuantity(2<<30, resource.BinarySI), 2 << 30, codes.OutOfRange},
+		{codes.ResourceExhausted, nil, 2 << 30, codes.OutOfRange},
+		{codes.ResourceExhausted, resource.NewQuantity(1<<30, resource.BinarySI), 1 << 30, codes.OutOfRange},
+	}
+
+	for _, tc := range testCases {
+		name := fmt.Sprintf("status.code:%s status.currentSize:%v = %s", tc.statusCode, tc.currentSize, tc.expected)
+		t.Run(name, func(t *testing.T) {
+			lv := &v1.LogicalVolume{
+				Spec:   v1.LogicalVolumeSpec{Size: *resource.NewQuantity(2<<30, resource.BinarySI)},
+				Status: v1.LogicalVolumeStatus{Code: tc.statusCode, CurrentSize: tc.currentSize},
+			}
+			err := notEnoughSpaceError(lv, 3<<30+512, tc.currentBytes, 1<<29+1)
+			if code := status.Code(err); code != tc.expected {
+				t.Errorf("expected %s, but got %s", tc.expected, code)
+			}
+			expectedMessage := fmt.Sprintf("not enough space: requested=3221225984 bytes, current=%d bytes, available=536870913 bytes", tc.currentBytes)
+			if tc.expected == codes.ResourceExhausted {
+				expectedMessage += "; volume expansion is pending"
+			}
+			if message := status.Convert(err).Message(); message != expectedMessage {
+				t.Errorf("expected message %q, but got %q", expectedMessage, message)
 			}
 		})
 	}
