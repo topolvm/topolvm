@@ -14,6 +14,7 @@ import (
 	"github.com/topolvm/topolvm/internal/driver/internal/k8s"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"k8s.io/apimachinery/pkg/api/resource"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -136,13 +137,23 @@ func findNodeHavingTopologyNodeKey(requirements *csi.TopologyRequirement) string
 	return ""
 }
 
+// logicalVolumeService is the subset of k8s.LogicalVolumeService the controller
+// server uses. It exists so the CSI methods can be tested without an API server.
+type logicalVolumeService interface {
+	CreateVolume(ctx context.Context, node, dc, oc, name, sourceName string, requestBytes int64) (*v1.LogicalVolume, error)
+	CreateSnapshot(ctx context.Context, node, dc, sourceVol, sname, accessType string, snapSize resource.Quantity) (*v1.LogicalVolume, error)
+	DeleteVolume(ctx context.Context, volumeID string) error
+	ExpandVolume(ctx context.Context, volumeID string, requestBytes int64) (*v1.LogicalVolume, error)
+	GetVolume(ctx context.Context, volumeID string) (*v1.LogicalVolume, error)
+}
+
 // controllerServerNoLocked implements csi.ControllerServer.
 // It does not take any lock, gRPC calls may be interleaved.
 // Therefore, must not use it directly.
 type controllerServerNoLocked struct {
 	csi.UnimplementedControllerServer
 
-	lvService   *k8s.LogicalVolumeService
+	lvService   logicalVolumeService
 	nodeService *k8s.NodeService
 
 	settings ControllerServerSettings
@@ -220,6 +231,11 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 			return nil, err
 		}
 
+		if sourceVol.Status.CurrentSize == nil {
+			// Spec.Size is the requested size, not the size LVM allocated.
+			return nil, status.Error(codes.Aborted, "source volume size is not available yet")
+		}
+
 		// check if the volume is equal or bigger than the source volume.
 		sourceSizeBytes := sourceVol.Status.CurrentSize.Value()
 		if requestCapacityBytes < sourceSizeBytes {
@@ -284,6 +300,12 @@ func (s controllerServerNoLocked) CreateVolume(ctx context.Context, req *csi.Cre
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 		return nil, err
+	}
+
+	if volume.Status.CurrentSize == nil {
+		// Spec.Size is only the requested size, and the CO persists the returned
+		// capacity in the PV.
+		return nil, status.Error(codes.Aborted, "volume size is not available yet")
 	}
 
 	return &csi.CreateVolumeResponse{
@@ -366,6 +388,12 @@ func (s controllerServerNoLocked) CreateSnapshot(ctx context.Context, req *csi.C
 		}
 		return nil, status.Error(codes.Internal, err.Error())
 	}
+	currentSize := sourceVol.Status.CurrentSize
+	if currentSize == nil {
+		// Spec.Size is the requested size, not the size LVM allocated.
+		return nil, status.Error(codes.Aborted, "source volume size is not available yet")
+	}
+
 	snapTimeStamp := &timestamp.Timestamp{
 		Seconds: time.Now().Unix(),
 		Nanos:   0,
@@ -374,7 +402,6 @@ func (s controllerServerNoLocked) CreateSnapshot(ctx context.Context, req *csi.C
 	node := sourceVol.Spec.NodeName
 	deviceClass := sourceVol.Spec.DeviceClass
 	sourceVolName := sourceVol.Spec.Name
-	currentSize := sourceVol.Status.CurrentSize
 	snapshot, err := s.lvService.CreateSnapshot(ctx, node, deviceClass, sourceVolName, name, accessType, *currentSize)
 	if err != nil {
 		_, ok := status.FromError(err)
@@ -382,6 +409,10 @@ func (s controllerServerNoLocked) CreateSnapshot(ctx context.Context, req *csi.C
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 		return nil, err
+	}
+
+	if snapshot.Status.CurrentSize == nil {
+		return nil, status.Error(codes.Aborted, "snapshot size is not available yet")
 	}
 
 	return &csi.CreateSnapshotResponse{
