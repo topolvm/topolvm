@@ -4,9 +4,13 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -177,4 +181,95 @@ func TestCommandReadCloserClose(t *testing.T) {
 			t.Fatalf("close returned error: %v", err)
 		}
 	})
+}
+
+// withLVMCommandPrefix runs LVM commands as prefix followed by their
+// arguments until the test ends.
+func withLVMCommandPrefix(t *testing.T, prefix ...string) {
+	t.Helper()
+	orig := lvmCommandPrefix
+	SetLVMCommandPrefix(prefix)
+	t.Cleanup(func() { SetLVMCommandPrefix(orig) })
+}
+
+// callLVMUntilCancelled runs an LVM command with a short deadline and fails
+// the test if it does not return soon after.
+func callLVMUntilCancelled(t *testing.T, args ...string) error {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+	ctx = log.IntoContext(ctx, testr.New(t))
+
+	done := make(chan error, 1)
+	go func() { done <- callLVM(ctx, args...) }()
+	select {
+	case err := <-done:
+		return err
+	case <-time.After(10 * time.Second):
+		t.Fatalf("%v still blocked 10s after its context expired", args)
+		return nil
+	}
+}
+
+func TestCallLVMCancelStopsReadCommand(t *testing.T) {
+	// The real prefix is "nsenter -p ... /sbin/lvm", and nsenter forks before
+	// it execs lvm. Stand in for it with a shell that forks a blocked child.
+	withLVMCommandPrefix(t, "sh", "-c", "sleep 60; exit $?", "sh")
+
+	for _, command := range []string{"lvs", "vgs", "fullreport"} {
+		t.Run(command, func(t *testing.T) {
+			err := callLVMUntilCancelled(t, command)
+			if err == nil {
+				t.Fatal("expected an error after the context deadline")
+			}
+			if _, ok := AsLVMError(err); !ok {
+				t.Errorf("expected an LVM error, got %v", err)
+			}
+		})
+	}
+}
+
+func TestCallLVMCancelReturnsWhenOutputStaysOpen(t *testing.T) {
+	// A process outside the command's process group keeps stdout open after
+	// the group was killed, as a process stuck in the kernel would.
+	pidFile := filepath.Join(t.TempDir(), "pid")
+	t.Setenv("TOPOLVM_TEST_HELPER", "hold-output")
+	t.Setenv("TOPOLVM_TEST_PID_FILE", pidFile)
+	withLVMCommandPrefix(t, os.Args[0], "-test.run=^TestHelperProcess$", "--")
+	origDelay := readCommandWaitDelay
+	readCommandWaitDelay = 500 * time.Millisecond
+	t.Cleanup(func() {
+		readCommandWaitDelay = origDelay
+		if data, err := os.ReadFile(pidFile); err == nil {
+			if pid, err := strconv.Atoi(string(data)); err == nil {
+				_ = syscall.Kill(pid, syscall.SIGKILL)
+			}
+		}
+	})
+
+	if err := callLVMUntilCancelled(t, "vgs"); err == nil {
+		t.Fatal("expected an error after the context deadline")
+	}
+}
+
+// TestHelperProcess is not a test: TestCallLVMCancelReturnsWhenOutputStaysOpen
+// runs the test binary as a fake lvm.
+func TestHelperProcess(t *testing.T) {
+	switch os.Getenv("TOPOLVM_TEST_HELPER") {
+	case "hold-output":
+		holder := exec.Command(os.Args[0], "-test.run=^TestHelperProcess$")
+		holder.Env = append(os.Environ(), "TOPOLVM_TEST_HELPER=sleep")
+		holder.Stdout = os.Stdout
+		holder.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+		if err := holder.Start(); err != nil {
+			os.Exit(2)
+		}
+		_ = os.WriteFile(os.Getenv("TOPOLVM_TEST_PID_FILE"), []byte(strconv.Itoa(holder.Process.Pid)), 0o644)
+		time.Sleep(time.Minute)
+	case "sleep":
+		time.Sleep(30 * time.Second)
+	default:
+		return
+	}
+	os.Exit(0)
 }
