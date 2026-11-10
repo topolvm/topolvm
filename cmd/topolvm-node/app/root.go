@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/topolvm/topolvm"
 	lvmd "github.com/topolvm/topolvm/cmd/lvmd/app"
+	pkglvmd "github.com/topolvm/topolvm/pkg/lvmd"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
@@ -24,6 +26,8 @@ var config struct {
 	lvmPath              string
 	lvmd                 lvmd.Config
 	profilingBindAddress string
+
+	lvmCommandWarningThreshold time.Duration
 }
 
 var rootCmd = &cobra.Command{
@@ -63,6 +67,7 @@ func init() {
 	fs.StringVar(&config.lvmPath, "lvm-path", "", "lvm command path on the host OS. This is deprecated and users should use lvm-command-prefix setting instead.")
 	fs.StringVar(&cfgFilePath, "config", filepath.Join("/etc", "topolvm", "lvmd.yaml"), "config file")
 	fs.StringVar(&config.profilingBindAddress, "profiling-bind-address", "", "Bind pprof profiling to the given network address. If empty, profiling is disabled.")
+	fs.DurationVar(&config.lvmCommandWarningThreshold, "lvm-command-warning-threshold", pkglvmd.DefaultLVMCommandWarningThreshold, "With --embed-lvmd: log a warning while an LVM command that changes LVM state, such as lvcreate, runs longer than this, and repeat it at this interval. 0 disables the warning.")
 
 	_ = viper.BindEnv("nodename", "NODE_NAME")
 	_ = viper.BindPFlag("nodename", fs.Lookup("nodename"))

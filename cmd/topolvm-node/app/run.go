@@ -93,6 +93,7 @@ func subMain(ctx context.Context) error {
 		if err := loadConfFile(ctx, cfgFilePath); err != nil {
 			return err
 		}
+		lvmd.SetLVMCommandWarningThreshold(config.lvmCommandWarningThreshold)
 
 		if config.lvmd.LVMCommandPrefix != nil {
 			if config.lvmPath != "" {
