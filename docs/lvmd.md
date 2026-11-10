@@ -12,6 +12,7 @@ LVMd is a gRPC service to manage LVM volumes.  It is composed of two services:
 | ----------- | ------ | ------------------------ | ------------------------------------------ |
 | `config`    | string | `/etc/topolvm/lvmd.yaml` | Config file path for device-class settings |
 | `container` | -      | not set                  | Set if LVMd runs in the container          |
+| `lvm-command-warning-threshold` | duration | `5m` | Log a warning while an LVM command that changes LVM state, such as `lvcreate`, runs longer than this, and repeat it at this interval. `0` disables the warning. |
 
 ## Config File Format
 

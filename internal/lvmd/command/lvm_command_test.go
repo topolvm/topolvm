@@ -8,8 +8,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -272,4 +274,109 @@ func TestHelperProcess(t *testing.T) {
 		return
 	}
 	os.Exit(0)
+}
+
+func TestCallLVMCancelDoesNotStopWriteCommand(t *testing.T) {
+	// A command that changes LVM state runs to the end even if its context
+	// ends meanwhile, and its result is reported.
+	finished := filepath.Join(t.TempDir(), "finished")
+	withLVMCommandPrefix(t, "sh", "-c", `sleep 1; touch "$1"`, "sh", finished)
+
+	if err := callLVMUntilCancelled(t, "lvcreate"); err != nil {
+		t.Fatalf("expected the command to succeed, got %v", err)
+	}
+	if _, err := os.Stat(finished); err != nil {
+		t.Error("expected the command to run to the end")
+	}
+}
+
+func TestCallLVMDoesNotStartWriteCommandAfterCancel(t *testing.T) {
+	started := filepath.Join(t.TempDir(), "started")
+	withLVMCommandPrefix(t, "sh", "-c", `touch "$1"`, "sh", started)
+
+	ctx, cancel := context.WithCancel(log.IntoContext(context.Background(), testr.New(t)))
+	cancel()
+	if err := callLVM(ctx, "lvremove"); err == nil {
+		t.Fatal("expected an error for a cancelled context")
+	}
+	if _, err := os.Stat(started); !os.IsNotExist(err) {
+		t.Error("expected the command not to start")
+	}
+}
+
+func TestWarnWhileRunning(t *testing.T) {
+	orig := lvmCommandWarningThreshold
+	SetLVMCommandWarningThreshold(100 * time.Millisecond)
+	t.Cleanup(func() { SetLVMCommandWarningThreshold(orig) })
+	withLVMCommandPrefix(t, "sh", "-c", "sleep 0.5", "sh")
+
+	// callWithWarnings runs an LVM command and returns the warnings it logged.
+	callWithWarnings := func(t *testing.T, args ...string) []string {
+		var mu sync.Mutex
+		var warnings []string
+		logger := funcr.New(func(_, args string) {
+			if strings.Contains(args, `"msg"="LVM command is still running"`) {
+				mu.Lock()
+				defer mu.Unlock()
+				warnings = append(warnings, args)
+			}
+		}, funcr.Options{})
+		if err := callLVM(log.IntoContext(context.Background(), logger), args...); err != nil {
+			t.Fatal(err)
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		return slices.Clone(warnings)
+	}
+
+	t.Run("a slow command that changes LVM state is reported", func(t *testing.T) {
+		warnings := callWithWarnings(t, "lvcreate")
+		if len(warnings) < 2 {
+			t.Fatalf("expected the warning to be repeated, got %q", warnings)
+		}
+		for _, key := range []string{`"lvcreate"`, `"pid"=`, `"wchan"=`, `"elapsed"=`} {
+			if !strings.Contains(warnings[0], key) {
+				t.Errorf("expected %s in the warning %q", key, warnings[0])
+			}
+		}
+	})
+
+	t.Run("a slow read command is not reported", func(t *testing.T) {
+		if warnings := callWithWarnings(t, "lvs"); len(warnings) != 0 {
+			t.Errorf("expected no warning, got %q", warnings)
+		}
+	})
+}
+
+func TestLVMProcess(t *testing.T) {
+	if _, err := os.Stat("/proc/self/stat"); err != nil {
+		t.Skip("needs /proc")
+	}
+	// Like "nsenter -p", the shell forks the process that does the work.
+	cmd := exec.Command("sh", "-c", "sleep 30; exit $?")
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+		_ = cmd.Wait()
+	})
+
+	var pid int
+	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(20 * time.Millisecond) {
+		if pid = lvmProcess(cmd.Process.Pid); pid != cmd.Process.Pid {
+			break
+		}
+	}
+	comm, err := os.ReadFile(fmt.Sprintf("/proc/%d/comm", pid))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.TrimSpace(string(comm)); got != "sleep" {
+		t.Errorf("expected the forked sleep, got %q (pid %d)", got, pid)
+	}
+	if got := wchan(pid); got == "unknown" {
+		t.Error("expected the wchan of the forked sleep")
+	}
 }

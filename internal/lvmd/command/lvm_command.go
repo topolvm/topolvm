@@ -72,6 +72,7 @@ func callLVMInto(ctx context.Context, into any, logVerbosity int, args ...string
 
 // readCommands are the LVM commands that only read LVM state. Stopping one has
 // no side effects, so it is stopped when its context ends; see stopOnCancel.
+// The other commands change LVM state and are not stopped.
 var readCommands = map[string]bool{
 	"fullreport": true,
 	"lvs":        true,
@@ -86,19 +87,39 @@ var readCommandWaitDelay = 10 * time.Second
 // The caller is responsible for closing the ReadCloser, which will cause the command to complete.
 // Not calling close on this method will result in a resource leak.
 func callLVMStreamed(ctx context.Context, logVerbosity int, args ...string) (io.ReadCloser, error) {
-	ctx = log.IntoContext(ctx, log.FromContext(ctx).WithCallDepth(1))
+	logger := log.FromContext(ctx)
+	ctx = log.IntoContext(ctx, logger.WithCallDepth(1))
 	wholeCommand := slices.Concat(lvmCommandPrefix, args)
-	// Use CommandContext so kubelet timing out on an RPC (default 2 min
-	// csiTimeout) cancels the underlying vgs/lvs/... subprocess instead
-	// of leaving it running on the node. exec.Command ignores ctx and
-	// accumulates orphans under repeated timeout scenarios (#1163).
-	cmd := exec.CommandContext(ctx, wholeCommand[0], wholeCommand[1:]...)
-	if len(args) > 0 && readCommands[args[0]] {
+	read := len(args) > 0 && readCommands[args[0]]
+
+	var cmd *exec.Cmd
+	if read {
+		// Use CommandContext so kubelet timing out on an RPC (default 2 min
+		// csiTimeout) cancels the underlying vgs/lvs/... subprocess instead
+		// of leaving it running on the node. exec.Command ignores ctx and
+		// accumulates orphans under repeated timeout scenarios (#1163).
+		cmd = exec.CommandContext(ctx, wholeCommand[0], wholeCommand[1:]...)
 		stopOnCancel(cmd)
+	} else {
+		// A command that changes LVM state is not stopped when ctx ends: why
+		// it hangs, and whether stopping it is safe, depends on the node. It
+		// runs to the end, and warnWhileRunning reports it if it takes long.
+		// As before, it is not started once ctx has ended.
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		cmd = exec.Command(wholeCommand[0], wholeCommand[1:]...)
 	}
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "LC_ALL=C")
-	return runCommand(ctx, logVerbosity, cmd)
+	rc, err := runCommand(ctx, logVerbosity, cmd)
+	if err != nil {
+		return nil, err
+	}
+	if !read {
+		go warnWhileRunning(logger, cmd, lvmCommandWarningThreshold, rc.done)
+	}
+	return rc, nil
 }
 
 // stopOnCancel makes the end of cmd's context kill cmd's whole process group,

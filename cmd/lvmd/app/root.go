@@ -37,6 +37,8 @@ var (
 	zapOpts              zap.Options
 	profilingBindAddress string
 	metricsBindAddress   string
+
+	lvmCommandWarningThreshold time.Duration
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -64,6 +66,7 @@ func subMain(parentCtx context.Context) error {
 	logger := log.FromContext(parentCtx)
 
 	command.SetLVMPath(lvmPath)
+	command.SetLVMCommandWarningThreshold(lvmCommandWarningThreshold)
 
 	if err := loadConfFile(parentCtx, cfgFilePath); err != nil {
 		return err
@@ -205,6 +208,7 @@ func init() {
 	fs.StringVar(&lvmPath, "lvm-path", "", "lvm command path on the host OS. This is deprecated and users should use lvm-command-prefix setting instead.")
 	fs.StringVar(&profilingBindAddress, "profiling-bind-address", "", "bind address to expose pprof profiling. If empty, profiling is disabled")
 	fs.StringVar(&metricsBindAddress, "metrics-bind-address", ":8080", "bind address to expose prometheus metrics. If empty, metrics are disabled")
+	fs.DurationVar(&lvmCommandWarningThreshold, "lvm-command-warning-threshold", command.DefaultLVMCommandWarningThreshold, "Log a warning while an LVM command that changes LVM state, such as lvcreate, runs longer than this, and repeat it at this interval. 0 disables the warning.")
 
 	klogFlags := flag.NewFlagSet("klog", flag.ExitOnError)
 	klog.InitFlags(klogFlags)

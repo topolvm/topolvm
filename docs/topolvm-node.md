@@ -108,6 +108,7 @@ to clean up PVCs and associated Pods bound to the node.
 | `metrics-bind-address` | string | `:8080`                         | Bind address for the metrics endpoint. |
 | `secure-metrics-server`| bool   | `false`                         | Secures the metrics server.            |
 | `nodename`             | string |                                 | `Node` resource name.                  |
+| `lvm-command-warning-threshold` | duration | `5m` | With `embed-lvmd`: log a warning while an LVM command that changes LVM state, such as `lvcreate`, runs longer than this, and repeat it at this interval. `0` disables the warning. |
 
 ## Environment Variables
 
