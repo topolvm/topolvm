@@ -142,7 +142,13 @@ func subMain(ctx context.Context) error {
 	// Add gRPC server to manager.
 	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(ErrorLoggingInterceptor))
 	csi.RegisterIdentityServer(grpcServer, driver.NewIdentityServer(checker.Ready))
-	nodeServer, err := driver.NewNodeServer(nodename, vgService, lvService, mgr) // adjusted signature
+	nodeServer, err := driver.NewNodeServerWithSettings(
+		nodename,
+		vgService,
+		lvService,
+		mgr,
+		driver.NodeServerSettings{VolumeHealth: config.volumeHealth},
+	)
 	if err != nil {
 		return err
 	}
